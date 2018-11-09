@@ -63,3 +63,54 @@ customers with a standard expectation.
 This library provides a wrapper CLI interface for convenience. This interface is not supported at the moment. So we 
 don't provide any guarantees of back compatibility. 
 
+### Project Meta
+#### Directory Structure
+This project's directories are laid as follows:
+
+```
+aws_lambda_builders
+├── __init__.py
+├── __main__.py <- entrypoint for the CLI
+├── action.py   <- This now just has the BaseAction class and any common language-agnostic Actions like CopySourceAction
+├── runner.py    <- This is more or less the same as above.
+├── workflows  <- Now instead of having all the builders/actions in one place, they are sorted by their language. You now need to use your technique to iterate these submodules and import the builders so that they get included in your registry.
+│   ├── __init__.py
+│   ├── dotnet_cli
+│   │   ├── __init__.py
+│   │   ├── actions.py
+│   │   └── builders.py
+│   ├── javascript_npm
+│   │   ├── __init__.py
+│   │   ├── npm_packager.js <- custom stuff would live alongside the python in these modules or in more subfolders.
+│   │   ├── actions.py
+│   │   └── builders.py
+│   └── python_pip
+│       ├── __init__.py
+│       ├── packager.py <- low level packager code that is called by the PythonPipResolveAction to do its job.
+│       ├── actions.py  <- This now contains python specific actions like PythonPipResolveAction
+│       └── builders.py <- The python specific builders would be defined here
+├── exceptions.py
+└── registry.py
+```
+
+Benefit here is that our high level build/action system is pulled out, and each language-specific piece acts almost like a plugin, its its own self contained directory. Someone could develop their own "package" with the structure
+
+```
+ruby
+├── __init__.py
+├── packager.rb
+├── utils.rb
+├── actions.py
+└── builders.py
+```
+
+And essentially drop into the builders package (or maybe we can have a notion of a BUILDERS_PATH that is searched for these things and the default entry is this vended builders dir.) to get it to work. This seems the friendliest to me.
+
+#### Terminologies
+
+- **builder**: The entire project is called builder, because it can build Lambda functions
+- **workflows**: Building for each language+framework combination is defined using a workflow. 
+- **actions**: A workflow is implemented as a chain of actions.
+
+
+
