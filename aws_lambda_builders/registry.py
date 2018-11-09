@@ -1,4 +1,6 @@
-
+"""
+Registry of auto-discovered workflows
+"""
 
 # TODO: Is this datastructure threadsafe?
 # Maintains a registry of builders
@@ -32,5 +34,3 @@ class WorkflowMetaClass(type):
         cls = type.__new__(mcs, name, bases, class_dict)
 
         return cls
-
-

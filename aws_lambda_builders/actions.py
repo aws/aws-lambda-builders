@@ -1,3 +1,6 @@
+"""
+Definition of actions used in the workflow
+"""
 
 class BaseAction(object):
     """
