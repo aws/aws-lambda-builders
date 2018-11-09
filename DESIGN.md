@@ -84,7 +84,7 @@ aws_lambda_builders
 │   │   ├── npm_packager.js <- custom stuff would live alongside the python in these modules or in more subfolders.
 │   │   ├── actions.py
 │   │   └── builders.py
-│   └── python_pip
+│   └── python_pip  <-- files in this directory do not have any convention. You can name them however you want
 │       ├── __init__.py
 │       ├── packager.py <- low level packager code that is called by the PythonPipResolveAction to do its job.
 │       ├── actions.py  <- This now contains python specific actions like PythonPipResolveAction
