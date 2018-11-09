@@ -26,44 +26,44 @@ are known to be compatible with AWS Lambda.
 
 ### Interface
 
-The top level interface will consist of a single function with the signature:
+The top level interface is presented by the `PythonPipDependencyBuilder`
+class. There will be one public method `build_dependencies`, which takes
+the provided arguments and builds python dependencies using pip under
+the hood.
 
 ```python
-def build_depenencies(source_path, config=None):
-    """Builds a source directory's dependencies into the directory.
+def build_dependencies(artifacts_dir_path,
+                       requirements_path,
+                       runtime,
+                       ui=None,
+                       config=None,
+                      ):
+    """Builds a python project's dependencies into an artifact directory.
 
-	:type source_path: str
-	:param source_path: The source directory that needs to have dependencies
-		built for it. It is assumed that this customer code is correct and
-		would function if it had all of its dependencies installed alongside
-		it. It is assumed that the dependencies are specified in a top level
-		``requirements.txt`` file. This file can be removed before deploying
-		to lambda, but the this function will not modify any existing files
-		in this directory.
+	:type artifacts_dir_path: str
+	:param artifacts_dir_path: Directory to write dependencies into.
 
-	:type config: :class:`lambda_builders.actions.python_pip.config`
-	:param config: A configuration object which contains additional config
-		to control how the source directories dependencies are installed.
-		This may include concepts such as skips where a dependency is
-		already prepared and the builder need not waste time compiling that
-		dependency.
-	"""
+	:type requirements_path: str
+	:param requirements_path: Path to a requirements.txt file to inspect
+	    for a list of dependencies.
+
+    :type runtime: str
+    :param runtime: Python version to build dependencies for. This can
+        either be python2.7 or python3.6. These are currently the only
+        supported values.
+
+    :type ui: :class:`lambda_builders.actions.python_pip.utils.UI`
+    :param ui: A class that traps all progress information such as status
+        and errors. If injected by the caller, it can be used to monitor
+        the status of the build process or forward this information
+        elsewhere.
+
+    :type config: :class:`lambda_builders.actions.python_pip.utils.Config`
+    :param config: To be determined. This is an optional config object
+        we can extend at a later date to add more options to how pip is
+        called.
+    """
 ```
-
-There are a couple ways error reporting can be done.
-
-1) We can raise a python error and have the caller catch and deal with
-   it at the end. The error may not be significant, for example if the user
-   is already aware of the problem and has a post-build hook that fixes the
-   bundle with a custom dependency injection. So this exception would be thrown
-   at the end and not interrupt the rest of the dependency building.
-2) Return None or a list of aggregated error objects that can be inspected by
-   the caller.
-3) Use the UI object. The builder as it is written right now has a notion of a
-   UI, which it uses to report its status and errors through. If the parent
-   passes this in it will recieve the errors and status as they happen. This
-   can be piped to the processes stdout/stderr or handled by the caller
-   similar to an exception.
 
 ### Implementation
 
