@@ -24,7 +24,7 @@ def read_requirements(req='base.txt'):
 
 def read_version():
     content = read(os.path.join(
-        os.path.dirname(__file__), 'lambda_builders', '__init__.py'))
+        os.path.dirname(__file__), 'aws_lambda_builders', '__init__.py'))
     return re.search(r"__version__ = '([^']+)'", content).group(1)
 
 
@@ -34,7 +34,7 @@ if os.getenv("LAMBDA_BUILDERS_DEV"):
     cmd_name = "lambda-builders-dev"
 
 setup(
-    name='aws-lambda-builders',
+    name='aws_lambda_builders',
     version=read_version(),
     description='Python library to compile, build & package AWS Lambda functions for several runtimes & framework',
     long_description=read('README.md'),
@@ -45,7 +45,9 @@ setup(
     packages=find_packages(exclude=('tests', 'docs')),
     keywords="AWS Lambda Functions Building",
     # Support Python 2.7 and 3.6 or greater
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*',
+    python_requires=(
+                '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*'
+    ),
     entry_points={
         'console_scripts': [
             '{}=lambda_builders.cli.main:cli'.format(cmd_name)
