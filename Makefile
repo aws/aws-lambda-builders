@@ -4,7 +4,7 @@ init:
 test:
 	# Run unit tests
 	# Fail if coverage falls below 95%
-	pytest --cov lambda_builders --cov-report term-missing --cov-fail-under 95 tests/unit
+	pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under 95 tests/unit tests/functional
 
 integ-test:
 	# Integration tests don't need code coverage
@@ -17,7 +17,7 @@ flake:
 
 lint:
 	# Liner performs static analysis to catch latent bugs
-	pylint --rcfile .pylintrc lambda_builders
+	pylint --rcfile .pylintrc aws_lambda_builders
 
 # Command to run everytime you make changes to verify everything works
 dev: flake lint test
