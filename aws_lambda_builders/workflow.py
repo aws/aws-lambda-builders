@@ -6,22 +6,57 @@ import os
 import logging
 import six
 
-from aws_lambda_builders.registry import WorkflowMetaClass
+from collections import namedtuple
+
+from aws_lambda_builders.registry import DEFAULT_REGISTRY
 
 LOG = logging.getLogger(__name__)
 
 
-class BaseWorkflow(six.with_metaclass(WorkflowMetaClass, object)):
+# Named tuple to express the capabilities supported by the builder.
+# ``Language`` is the programming language. Ex: Python
+# ``LangageFramework`` is the framework of particular language. Ex: PIP
+# ``ApplicationFramework`` is the specific application framework used to write the code. Ex: Chalice
+Capability = namedtuple('Capability', ["language", "language_framework", "application_framework"])
+
+
+class _WorkflowMetaClass(type):
+    """
+    A metaclass that maintains the registry of loaded builders
+    """
+
+    def __new__(mcs, name, bases, class_dict):
+        """
+        Add the builder to registry when loading the class
+        """
+
+        cls = type.__new__(mcs, name, bases, class_dict)
+
+        # We don't want to register the base classes, so we simply return here.
+        if cls.__name__ == 'BaseWorkflow':
+            return cls
+
+        # Validate class variables
+        # All workflows must express their capabilities
+        if not isinstance(cls.CAPABILITY, Capability):
+            raise ValueError("Workflow '{}' must register valid capabilities".format(cls.__name__))
+
+        DEFAULT_REGISTRY[cls.CAPABILITY] = cls
+
+        return cls
+
+
+class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
     """
     Default implementation of the builder workflow. It provides several useful capabilities out-of-box that help
     minimize the scope of build actions.
     """
 
-    # Capabilities supported by this builder. Must be an instance of `BuilderCapability` named tuple
+    # Capabilities supported by this builder. Must be an instance of `Capability` named tuple
     CAPABILITY = None
 
+    # Optional list of manifests file/folder names supported by this workflow.
     SUPPORTED_MANIFESTS = []
-    NAME = 'BaseBuilder'
 
     def __init__(self,
                  source_dir,
@@ -72,10 +107,14 @@ class BaseWorkflow(six.with_metaclass(WorkflowMetaClass, object)):
 
     def is_supported(self):
         """
-        Is the given manifest supported?
+        Is the given manifest supported? If the workflow exposes no manifests names, then we it is assumed that
+        we don't have a restriction
         """
 
-        return os.path.basename(self.manifest_path) in self.SUPPORTED_MANIFESTS
+        if self.SUPPORTED_MANIFESTS:
+            return os.path.basename(self.manifest_path) in self.SUPPORTED_MANIFESTS
+
+        return True
 
     def run(self):
         """
