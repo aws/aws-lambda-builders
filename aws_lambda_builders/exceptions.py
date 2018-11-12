@@ -27,11 +27,11 @@ class WorkflowFailedError(LambdaBuilderError):
     """
     Raised when the build failed, for well-known cases
     """
-    MESSAGE = "'{workflow_name}' workflow failed: {reason}"
+    MESSAGE = "Workflow='{workflow_name}',Action='{action_name}' failed: {reason}"
 
 
-class WorkflowError(LambdaBuilderError):
+class WorkflowUnknownError(LambdaBuilderError):
     """
     Raised when the build ran into an unexpected error
     """
-    MESSAGE = "'{workflow_name}' workflow ran into an error: {reason}"
+    MESSAGE = "Workflow='{workflow_name}',Action='{action_name}' ran into an error: {reason}"

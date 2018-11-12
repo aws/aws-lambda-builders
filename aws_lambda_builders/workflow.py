@@ -9,6 +9,8 @@ import six
 from collections import namedtuple
 
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
+from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError
+from aws_lambda_builders.actions import ActionFailedError
 
 LOG = logging.getLogger(__name__)
 
@@ -33,13 +35,19 @@ class _WorkflowMetaClass(type):
         cls = type.__new__(mcs, name, bases, class_dict)
 
         # We don't want to register the base classes, so we simply return here.
-        if cls.__name__ == 'BaseWorkflow':
+        # Also, skip further steps if the class is marked for testing
+        if cls.__name__ == 'BaseWorkflow' or cls.__TESTING__:
             return cls
 
         # Validate class variables
+
+        # All classes must provide a name
+        if not isinstance(cls.NAME, six.string_types):
+            raise ValueError("Workflow must provide a valid name")
+
         # All workflows must express their capabilities
         if not isinstance(cls.CAPABILITY, Capability):
-            raise ValueError("Workflow '{}' must register valid capabilities".format(cls.__name__))
+            raise ValueError("Workflow '{}' must register valid capabilities".format(cls.NAME))
 
         DEFAULT_REGISTRY[cls.CAPABILITY] = cls
 
@@ -52,6 +60,12 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
     minimize the scope of build actions.
     """
 
+    # Set this property if you are in the process of testing a workflow class. This will prevent the class from
+    # being added to registry.
+    __TESTING__ = False
+
+    NAME = None
+
     # Capabilities supported by this builder. Must be an instance of `Capability` named tuple
     CAPABILITY = None
 
@@ -61,6 +75,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
     def __init__(self,
                  source_dir,
                  artifacts_dir,
+                 scratch_dir,
                  manifest_path,
                  runtime=None,
                  optimizations=None,
@@ -76,6 +91,11 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         :type artifacts_dir: str
         :param artifacts_dir:
             Path to a folder where the built artifacts should be placed
+
+        :type scratch_dir: str
+        :param scratch_dir:
+            Path to a directory that the workflow can use as scratch space. Workflows are expected to use this directory
+            to write temporary files instead of ``/tmp`` or other OS-specific temp directories.
 
         :type manifest_path: str
         :param manifest_path:
@@ -97,6 +117,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         self.source_dir = source_dir
         self.artifacts_dir = artifacts_dir
+        self.scratch_dir = scratch_dir
         self.manifest_path = manifest_path
         self.runtime = runtime
         self.optimizations = optimizations
@@ -118,8 +139,38 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
     def run(self):
         """
-        Actually perform the build by executing registered actions
+        Actually perform the build by executing registered actions.
 
-        :return:
+        :raises WorkflowFailedError: If the workflow does not contain any actions or if one of the actions ran into
+            an error
+
+        :raises WorkflowUnknownError: If one of the actions in the workflow raised an unhandled exception
         """
-        pass
+
+        if not self.actions:
+            raise WorkflowFailedError(workflow_name=self.NAME,
+                                      action_name=None,
+                                      reason="Workflow does not have any actions registered")
+
+        for action in self.actions:
+            action_info = "Workflow='{}',Action='{}'".format(self.NAME, action.NAME)
+
+            try:
+                action.execute()
+
+                LOG.debug("{} succeeded", action_info)
+
+            except ActionFailedError as ex:
+                LOG.debug("{} failed", action_info, exc_info=ex)
+
+                raise WorkflowFailedError(workflow_name=self.NAME,
+                                          action_name=action.NAME,
+                                          reason=str(ex))
+            except Exception as ex:
+                LOG.debug("{} raised unhandled exception", action_info, exc_info=ex)
+
+                raise WorkflowUnknownError(workflow_name=self.NAME,
+                                           action_name=action.NAME,
+                                           reason=str(ex))
+
+
