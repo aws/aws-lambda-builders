@@ -78,7 +78,7 @@ class BaseAction(six.with_metaclass(_ActionMetaClass, object)):
         :raises lambda_builders.actions.ActionFailedError: Instance of this class if something went wrong with the
             action
         """
-        raise NotImplementedError()
+        raise NotImplementedError('execute')
 
     def __repr__(self):
         return "Name={}, Purpose={}, Description={}".format(self.NAME, self.PURPOSE, self.DESCRIPTION)
