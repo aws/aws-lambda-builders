@@ -193,3 +193,41 @@ class TestBaseWorkflow_run(TestCase):
 
         self.assertIn("somevalueerror", str(ctx.exception))
 
+
+class TestBaseWorkflow_repr(TestCase):
+
+    class MyWorkflow(BaseWorkflow):
+        __TESTING__ = True
+        NAME = "MyWorkflow"
+        CAPABILITY = Capability(language="test",
+                                language_framework="testframework",
+                                application_framework="appframework")
+
+    def setUp(self):
+        self.action1 = Mock()
+        self.action2 = Mock()
+        self.action3 = Mock()
+
+        self.action1.__repr__ = Mock(return_value="Name=Action1, Purpose=COPY_SOURCE, Description=Copies source code")
+        self.action2.__repr__ = Mock(return_value="Name=Action2, Purpose=RESOLVE_DEPENDENCIES,"
+                                                  " Description=Resolves dependencies")
+        self.action3.__repr__ = Mock(return_value="Name=Action3, Purpose=COMPILE_SOURCE, "
+                                                  "Description=Compiles code")
+
+        self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
+                                    runtime="runtime",
+                                    optimizations={"a": "b"},
+                                    options={"c": "d"})
+
+    def test_must_pretty_print_workflow_info(self):
+        self.work.actions = [self.action1, self.action2, self.action3]
+        self.maxDiff = None
+
+        result = str(self.work)
+        expected = """Workflow=MyWorkflow
+Actions=
+\tName=Action1, Purpose=COPY_SOURCE, Description=Copies source code
+\tName=Action2, Purpose=RESOLVE_DEPENDENCIES, Description=Resolves dependencies
+\tName=Action3, Purpose=COMPILE_SOURCE, Description=Compiles code"""
+
+        self.assertEquals(result, expected)

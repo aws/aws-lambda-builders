@@ -147,6 +147,8 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         :raises WorkflowUnknownError: If one of the actions in the workflow raised an unhandled exception
         """
 
+        LOG.debug("Running workflow '{}'", self.NAME)
+
         if not self.actions:
             raise WorkflowFailedError(workflow_name=self.NAME,
                                       action_name=None,
@@ -154,6 +156,8 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         for action in self.actions:
             action_info = "Workflow='{}',Action='{}'".format(self.NAME, action.NAME)
+
+            LOG.info("Running {}: {}", action_info, action.DESCRIPTION)
 
             try:
                 action.execute()
@@ -173,4 +177,15 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                                            action_name=action.NAME,
                                            reason=str(ex))
 
+    def __repr__(self):
+        """
+        Pretty prints information about this workflow.
 
+        Sample output:
+            Workflow=MyWorkflow
+            Actions=
+                Name=Action1, Purpose=COPY_SOURCE, Description=Copies source code
+                Name=Action2, Purpose=RESOLVE_DEPENDENCIES, Description=Resolves dependencies
+                Name=Action3, Purpose=COMPILE_SOURCE, Description=Compiles code
+        """
+        return "Workflow={}\nActions=\n\t{}".format(self.NAME, "\n\t".join(map(str, self.actions)))
