@@ -63,6 +63,58 @@ customers with a standard expectation.
 This library provides a wrapper CLI interface for convenience. This interface is not supported at the moment. So we 
 don't provide any guarantees of back compatibility. 
 
+It is a very thin wrapper over the library. It is meant to integrate
+with tools written in other programming languages that can't import Python libraries directly. The CLI provides
+a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
+
+**Request Format**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "LambdaBuilder.build",
+  "id": 1,
+  "params": {
+    "capability": {
+      "language": "<programming language>",
+      "language_framework": "<programming language framework>",
+      "application_framework": "<application framework>"
+    },
+    "source_dir": "/path/to/source",
+    "artifacts_dir": "/path/to/store/artifacts",
+    "scratch_dir": "/path/to/tmp",
+    "manifest_path": "/path/to/manifest.json",
+    "runtime": "Function's runtime ex: nodejs8.10",
+    "optimizations": {},  // not supported 
+    "options": {}  // not supported
+  }
+}
+```
+
+**Successful Response Format**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {}  // Empty result indicates success
+}
+```
+
+**Error Response Format**
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": "",  // Integer code indicating the problem
+    "message": "",  // Contains the Exception name 
+    "data": ""   // Contains the exception message
+  }  
+}
+```
+
 ### Project Meta
 #### Directory Structure
 This project's directories are laid as follows:

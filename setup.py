@@ -50,7 +50,7 @@ setup(
     ),
     entry_points={
         'console_scripts': [
-            '{}=lambda_builders.cli.main:cli'.format(cmd_name)
+            '{}=aws_lambda_builders.__main__:main'.format(cmd_name)
         ]
     },
     install_requires=read_requirements('base.txt'),

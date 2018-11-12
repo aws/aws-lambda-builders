@@ -5,7 +5,7 @@ Entrypoint for the AWS Lambda Builder library
 import importlib
 import logging
 
-from aws_lambda_builders.registry import get_workflow
+from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
 from aws_lambda_builders.workflow import Capability
 
 LOG = logging.getLogger(__name__)
@@ -99,3 +99,6 @@ class LambdaBuilder(object):
                                               options=options)
 
         return workflow.run()
+
+    def _clear_workflows(self):
+        DEFAULT_REGISTRY.clear()
