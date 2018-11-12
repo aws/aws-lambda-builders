@@ -2,9 +2,9 @@
 Definition of actions used in the workflow
 """
 
-import six
 import logging
 import shutil
+import six
 
 from aws_lambda_builders.utils import copytree
 

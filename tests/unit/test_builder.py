@@ -116,4 +116,3 @@ class TesetLambdaBuilder_build(TestCase):
         workflow_cls.assert_called_with("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                         runtime="runtime", optimizations="optimizations", options="options")
         workflow_instance.run.assert_called_once()
-

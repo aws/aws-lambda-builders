@@ -1,3 +1,6 @@
+"""
+Entrypoint for the AWS Lambda Builder library
+"""
 
 import importlib
 import logging
@@ -40,7 +43,7 @@ class LambdaBuilder(object):
         self.supported_workflows = _SUPPORTED_WORKFLOWS if supported_workflows is None else supported_workflows
 
         for workflow_module in self.supported_workflows:
-            LOG.debug("Loading workflow module '{}'", workflow_module)
+            LOG.debug("Loading workflow module '%s'", workflow_module)
 
             # If a module is already loaded, this call is pretty much a no-op. So it is okay to keep loading again.
             importlib.import_module(workflow_module)
@@ -49,16 +52,10 @@ class LambdaBuilder(object):
                                      language_framework=language_framework,
                                      application_framework=application_framework)
         self.selected_workflow_cls = get_workflow(self.capability)
-        LOG.debug("Found workflow '{}' to support capabilities '{}'", self.selected_workflow_cls.NAME, self.capability)
+        LOG.debug("Found workflow '%s' to support capabilities '%s'", self.selected_workflow_cls.NAME, self.capability)
 
-    def build(self,
-              source_dir,
-              artifacts_dir,
-              scratch_dir,
-              manifest_path,
-              runtime=None,
-              optimizations=None,
-              options=None):
+    def build(self, source_dir, artifacts_dir, scratch_dir, manifest_path,
+              runtime=None, optimizations=None, options=None):
         """
         Actually build the code by running workflows
 

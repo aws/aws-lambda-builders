@@ -97,7 +97,7 @@ class TestRegistryLocking(TestCase):
         self.registry[self.capability] = self.workflow_data
         self.mock_lock.reset_mock()
 
-        _ = self.registry[self.capability]
+        _ = self.registry[self.capability]  # noqa: F841
 
         self.assertEquals(self.mock_lock.method_calls, [])
 
@@ -105,7 +105,7 @@ class TestRegistryLocking(TestCase):
         self.registry[self.capability] = self.workflow_data
         self.mock_lock.reset_mock()
 
-        _ = self.capability in self.registry
+        _ = self.capability in self.registry  # noqa: F841
 
         self.assertEquals(self.mock_lock.method_calls, [])
 
@@ -147,4 +147,3 @@ class TestGetWorkflow(TestCase):
 
         with self.assertRaises(WorkflowNotFoundError):
             get_workflow(self.capability)
-

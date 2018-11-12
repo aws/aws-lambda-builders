@@ -97,5 +97,3 @@ def get_workflow(capability, registry=DEFAULT_REGISTRY):
                                     application_framework=capability.application_framework)
 
     return registry[capability]
-
-

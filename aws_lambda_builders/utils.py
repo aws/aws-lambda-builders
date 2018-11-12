@@ -1,3 +1,6 @@
+"""
+Common utilities for the library
+"""
 
 import shutil
 import os
@@ -8,10 +11,18 @@ def copytree(source, destination, ignore=None):
     Similar to shutil.copytree except that it removes the limitation that the destination directory should
     be present.
 
+    :type source: str
     :param source:
+        Path to the source folder to copy
+
+    :type destination: str
     :param destination:
+        Path to destination folder
+
+    :type ignore: function
     :param ignore:
-    :return:
+        A function that returns a set of file names to ignore, given a list of available file names. Similar to the
+        ``ignore`` property of ``shutils.copytree`` method
     """
 
     if not os.path.exists(destination):
@@ -20,7 +31,7 @@ def copytree(source, destination, ignore=None):
         try:
             # Let's try to copy the directory metadata from source to destination
             shutil.copystat(source, destination)
-        except WindowsError:
+        except WindowsError:  # pylint: disable=undefined-variable
             # Can't copy file access times in Windows
             pass
 
@@ -41,5 +52,3 @@ def copytree(source, destination, ignore=None):
             copytree(new_source, new_destination, ignore=ignore)
         else:
             shutil.copy2(new_source, new_destination)
-
-

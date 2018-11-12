@@ -4,9 +4,9 @@ Implementation of a base workflow
 
 import os
 import logging
-import six
 
 from collections import namedtuple
+import six
 
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
 from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError
@@ -147,7 +147,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         :raises WorkflowUnknownError: If one of the actions in the workflow raised an unhandled exception
         """
 
-        LOG.debug("Running workflow '{}'", self.NAME)
+        LOG.debug("Running workflow '%s'", self.NAME)
 
         if not self.actions:
             raise WorkflowFailedError(workflow_name=self.NAME,
@@ -157,21 +157,21 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         for action in self.actions:
             action_info = "Workflow='{}',Action='{}'".format(self.NAME, action.NAME)
 
-            LOG.info("Running {}: {}", action_info, action.DESCRIPTION)
+            LOG.info("Running %s: %s", action_info, action.DESCRIPTION)
 
             try:
                 action.execute()
 
-                LOG.debug("{} succeeded", action_info)
+                LOG.debug("%s succeeded", action_info)
 
             except ActionFailedError as ex:
-                LOG.debug("{} failed", action_info, exc_info=ex)
+                LOG.debug("%s failed", action_info, exc_info=ex)
 
                 raise WorkflowFailedError(workflow_name=self.NAME,
                                           action_name=action.NAME,
                                           reason=str(ex))
             except Exception as ex:
-                LOG.debug("{} raised unhandled exception", action_info, exc_info=ex)
+                LOG.debug("%s raised unhandled exception", action_info, exc_info=ex)
 
                 raise WorkflowUnknownError(workflow_name=self.NAME,
                                            action_name=action.NAME,
