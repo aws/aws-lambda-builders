@@ -1,5 +1,7 @@
 [run]
 branch = True
+omit =
+    aws_lambda_builders/workflows/python_pip/compat.py
 [report]
 exclude_lines =
     pragma: no cover

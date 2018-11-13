@@ -68,8 +68,10 @@ class PythonPipDependencyBuilder(object):
         :param dependency_builder: This class will be used to build the
             dependencies of the project.
         """
+        self.osutils = osutils
         if osutils is None:
             self.osutils = OSUtils()
+
         if dependency_builder is None:
             dependency_builder = DependencyBuilder(self.osutils)
         self._dependency_builder = dependency_builder

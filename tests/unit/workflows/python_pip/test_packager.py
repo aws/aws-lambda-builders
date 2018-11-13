@@ -88,8 +88,9 @@ class FakePopenOSUtils(OSUtils):
 class TestPythonPipDependencyBuilder(object):
     def test_can_call_dependency_builder(self, osutils):
         mock_dep_builder = mock.Mock(spec=DependencyBuilder)
+        osutils_mock = mock.Mock(spec=osutils)
         builder = PythonPipDependencyBuilder(
-            osutils=osutils,
+            osutils=osutils_mock,
             dependency_builder=mock_dep_builder,
         )
         builder.build_dependencies(
@@ -97,6 +98,8 @@ class TestPythonPipDependencyBuilder(object):
         )
         mock_dep_builder.build_site_packages.assert_called_once_with(
             'path/to/requirements.txt', 'artifacts/path/')
+        osutils_mock.file_exists.assert_called_once_with(
+            'path/to/requirements.txt')
 
 
 class TestPackage(object):
