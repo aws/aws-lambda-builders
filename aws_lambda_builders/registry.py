@@ -17,11 +17,11 @@ class Registry(object):
 
     def __init__(self, write_lock=None):
         self._write_lock = write_lock or threading.Lock()
-        self.data = {}
+        self._data = {}
 
     def __getitem__(self, capability):
         key = self._make_key(capability)
-        return self.data[key]
+        return self._data[key]
 
     def __setitem__(self, capability, value):
 
@@ -30,25 +30,25 @@ class Registry(object):
         try:
             self._write_lock.acquire()
 
-            if key in self.data:
+            if key in self._data:
                 raise KeyError("A workflow with given capabilities '{}' is already registered".format(key))
 
-            self.data[key] = value
+            self._data[key] = value
 
         finally:
             self._write_lock.release()
 
     def __contains__(self, capability):
         key = self._make_key(capability)
-        return key in self.data
+        return key in self._data
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def clear(self):
         try:
             self._write_lock.acquire()
-            self.data.clear()
+            self._data.clear()
         finally:
             self._write_lock.release()
 

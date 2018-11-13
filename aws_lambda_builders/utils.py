@@ -4,6 +4,10 @@ Common utilities for the library
 
 import shutil
 import os
+import logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 def copytree(source, destination, ignore=None):
@@ -31,9 +35,9 @@ def copytree(source, destination, ignore=None):
         try:
             # Let's try to copy the directory metadata from source to destination
             shutil.copystat(source, destination)
-        except WindowsError:  # pylint: disable=undefined-variable
+        except WindowsError as ex:  # pylint: disable=undefined-variable
             # Can't copy file access times in Windows
-            pass
+            LOG.debug("Unable to copy file access times from %s to %s", source, destination, exc_info=ex)
 
     names = os.listdir(source)
     if ignore is not None:
