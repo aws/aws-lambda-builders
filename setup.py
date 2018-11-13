@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import io
 import re
 import os
@@ -36,7 +35,10 @@ if os.getenv("LAMBDA_BUILDERS_DEV"):
 setup(
     name='aws_lambda_builders',
     version=read_version(),
-    description='Python library to compile, build & package AWS Lambda functions for several runtimes & framework',
+    description=(
+        'Python library to compile, build & package AWS Lambda functions for '
+        'several runtimes & frameworks.'
+    ),
     long_description=read('README.md'),
     author='Amazon Web Services',
     author_email='aws-sam-developers@amazon.com',
@@ -46,7 +48,7 @@ setup(
     keywords="AWS Lambda Functions Building",
     # Support Python 2.7 and 3.6 or greater
     python_requires=(
-                '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*'
+        '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*'
     ),
     entry_points={
         'console_scripts': [
