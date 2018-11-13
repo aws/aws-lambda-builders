@@ -15,15 +15,23 @@ class UnsupportedManifestError(LambdaBuilderError):
     MESSAGE = "A builder for the given capabilities '{capabilities}' was not found"
 
 
-class WorkflowFailed(LambdaBuilderError):
+class WorkflowNotFoundError(LambdaBuilderError):
+    """
+    Raised when a workflow matching the given capabilities was not found
+    """
+    MESSAGE = "Unable to find a workflow matching given capability: " \
+              "{language}, {dependency_manager}, {application_framework}"
+
+
+class WorkflowFailedError(LambdaBuilderError):
     """
     Raised when the build failed, for well-known cases
     """
-    MESSAGE = "'{workflow_name}' workflow failed: {reason}"
+    MESSAGE = "Workflow='{workflow_name}',Action='{action_name}' failed: {reason}"
 
 
-class WorkflowError(LambdaBuilderError):
+class WorkflowUnknownError(LambdaBuilderError):
     """
     Raised when the build ran into an unexpected error
     """
-    MESSAGE = "'{workflow_name}' workflow ran into an error: {reason}"
+    MESSAGE = "Workflow='{workflow_name}',Action='{action_name}' ran into an error: {reason}"
