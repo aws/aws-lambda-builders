@@ -1,3 +1,7 @@
+"""
+Installs packages using PIP
+"""
+
 import sys
 import re
 import subprocess
@@ -20,24 +24,34 @@ the vendor folder.
 """
 
 
-class InvalidSourceDistributionNameError(Exception):
+class PackagerError(Exception):
     pass
 
 
-class MissingDependencyError(Exception):
+class InvalidSourceDistributionNameError(PackagerError):
+    pass
+
+
+class RequirementsFileNotFoundError(PackagerError):
+    def __init__(self, requirements_path):
+        super(RequirementsFileNotFoundError, self).__init__(
+            'Requirements file not found: %s' % requirements_path)
+
+
+class MissingDependencyError(PackagerError):
     """Raised when some dependencies could not be packaged for any reason."""
     def __init__(self, missing):
         self.missing = missing
 
 
-class NoSuchPackageError(Exception):
+class NoSuchPackageError(PackagerError):
     """Raised when a package name or version could not be found."""
     def __init__(self, package_name):
         super(NoSuchPackageError, self).__init__(
             'Could not satisfy the requirement: %s' % package_name)
 
 
-class PackageDownloadError(Exception):
+class PackageDownloadError(PackagerError):
     """Generic networking error during a package download."""
     pass
 
@@ -55,9 +69,9 @@ class PythonPipDependencyBuilder(object):
             dependencies of the project.
         """
         if osutils is None:
-            osutils = OSUtils()
+            self.osutils = OSUtils()
         if dependency_builder is None:
-            dependency_builder = DependencyBuilder(osutils)
+            dependency_builder = DependencyBuilder(self.osutils)
         self._dependency_builder = dependency_builder
 
     def build_dependencies(self, artifacts_dir_path, requirements_path,
@@ -93,6 +107,10 @@ class PythonPipDependencyBuilder(object):
         # correct version of python. We need to enforce that assumption here
         # by finding/creating a virtualenv of the correct version and when
         # pip is called set the appropriate env vars.
+
+        if not self.osutils.file_exists(requirements_path):
+            raise RequirementsFileNotFoundError(requirements_path)
+
         self._dependency_builder.build_site_packages(
             requirements_path, artifacts_dir_path)
 

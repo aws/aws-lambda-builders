@@ -1,10 +1,19 @@
-from aws_lambda_builders.workflow import BaseWorkflow
+"""
+Python PIP Workflow
+"""
+
+from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 
 from .actions import PythonPipBuildAction
 
 
 class PythonPipWorkflow(BaseWorkflow):
+
+    NAME = "PythonPipWorkflow"
+    CAPABILITY = Capability(language="python",
+                            dependency_manager="pip",
+                            application_framework=None)
 
     def __init__(self,
                  source_dir,
