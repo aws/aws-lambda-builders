@@ -30,7 +30,7 @@ class TesetLambdaBuilder_init(TestCase):
 
         # then check if we tried to get a workflow for given capability
         get_workflow_mock.assert_called_with(Capability(language=self.lang,
-                                                        language_framework=self.lang_framework,
+                                                        dependency_manager=self.lang_framework,
                                                         application_framework=self.app_framework))
 
     @patch('aws_lambda_builders.builder.importlib')
@@ -67,7 +67,7 @@ class TesetLambdaBuilder_init(TestCase):
         class MyWorkflow(BaseWorkflow):
             NAME = "MyWorkflow"
             CAPABILITY = Capability(language=self.lang,
-                                    language_framework=self.lang_framework,
+                                    dependency_manager=self.lang_framework,
                                     application_framework=self.app_framework)
 
             def __init__(self,

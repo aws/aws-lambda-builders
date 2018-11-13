@@ -11,11 +11,11 @@ from aws_lambda_builders.actions import ActionFailedError
 class TestRegisteringWorkflows(TestCase):
 
     CAPABILITY1 = Capability(language="test",
-                             language_framework="testframework",
+                             dependency_manager="testframework",
                              application_framework="appframework")
 
     CAPABILITY2 = Capability(language="test2",
-                             language_framework="testframework2",
+                             dependency_manager="testframework2",
                              application_framework="appframework2")
 
     def tearDown(self):
@@ -81,7 +81,7 @@ class TestBaseWorkflow_init(TestCase):
         __TESTING__ = True
         NAME = "MyWorkflow"
         CAPABILITY = Capability(language="test",
-                                language_framework="testframework",
+                                dependency_manager="testframework",
                                 application_framework="appframework")
 
     def test_must_initialize_variables(self):
@@ -105,7 +105,7 @@ class TestBaseWorkflow_is_supported(TestCase):
         __TESTING__ = True
         NAME = "MyWorkflow"
         CAPABILITY = Capability(language="test",
-                                language_framework="testframework",
+                                dependency_manager="testframework",
                                 application_framework="appframework")
 
     def setUp(self):
@@ -142,7 +142,7 @@ class TestBaseWorkflow_run(TestCase):
         __TESTING__ = True
         NAME = "MyWorkflow"
         CAPABILITY = Capability(language="test",
-                                language_framework="testframework",
+                                dependency_manager="testframework",
                                 application_framework="appframework")
 
     def setUp(self):
@@ -200,7 +200,7 @@ class TestBaseWorkflow_repr(TestCase):
         __TESTING__ = True
         NAME = "MyWorkflow"
         CAPABILITY = Capability(language="test",
-                                language_framework="testframework",
+                                dependency_manager="testframework",
                                 application_framework="appframework")
 
     def setUp(self):

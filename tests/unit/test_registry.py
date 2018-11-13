@@ -18,15 +18,15 @@ class TestRegistryEndToEnd(TestCase):
         self.workflow_data = "fake workflow"
 
     def test_must_add_item(self):
-        capability = Capability(language="a", language_framework="b", application_framework="c")
+        capability = Capability(language="a", dependency_manager="b", application_framework="c")
 
         self.registry[capability] = self.workflow_data
         self.assertEquals(self.workflow_data, self.registry[capability])
 
     @parameterized.expand([
-        (Capability(language=None, language_framework="b", application_framework="c"), ),
-        (Capability(language="a", language_framework=None, application_framework="c"), ),
-        (Capability(language="a", language_framework=None, application_framework=None), ),
+        (Capability(language=None, dependency_manager="b", application_framework="c"), ),
+        (Capability(language="a", dependency_manager=None, application_framework="c"), ),
+        (Capability(language="a", dependency_manager=None, application_framework=None), ),
     ])
     def test_must_add_item_with_optional_capabilities(self, capability):
 
@@ -34,8 +34,8 @@ class TestRegistryEndToEnd(TestCase):
         self.assertEquals(self.workflow_data, self.registry[capability])
 
     def test_must_add_multiple_items(self):
-        capability1 = Capability(language="a", language_framework="b", application_framework="c")
-        capability2 = Capability(language="d", language_framework="e", application_framework="f")
+        capability1 = Capability(language="a", dependency_manager="b", application_framework="c")
+        capability2 = Capability(language="d", dependency_manager="e", application_framework="f")
 
         self.registry[capability1] = "some data"
         self.registry[capability2] = "some other data"
@@ -45,7 +45,7 @@ class TestRegistryEndToEnd(TestCase):
         self.assertTrue(capability2 in self.registry)
 
     def test_fail_on_duplciate_entry(self):
-        capability = Capability(language="a", language_framework="b", application_framework="c")
+        capability = Capability(language="a", dependency_manager="b", application_framework="c")
 
         self.registry[capability] = self.workflow_data
         self.assertEquals(self.workflow_data, self.registry[capability])
@@ -54,7 +54,7 @@ class TestRegistryEndToEnd(TestCase):
             self.registry[capability] = "some other data"
 
     def test_must_clear_entries(self):
-        capability = Capability(language="a", language_framework="b", application_framework="c")
+        capability = Capability(language="a", dependency_manager="b", application_framework="c")
 
         self.registry[capability] = self.workflow_data
         self.assertEquals(len(self.registry), 1)
@@ -70,7 +70,7 @@ class TestRegistryLocking(TestCase):
         self.mock_lock = Mock()
         self.registry = Registry(write_lock=self.mock_lock)
 
-        self.capability = Capability(language="a", language_framework="b", application_framework="c")
+        self.capability = Capability(language="a", dependency_manager="b", application_framework="c")
         self.workflow_data = "fake workflow"
 
         # Always must call acquire() first before release()
@@ -122,7 +122,7 @@ class TestGetWorkflow(TestCase):
 
     def setUp(self):
         self.registry = Registry()
-        self.capability = Capability(language="a", language_framework="b", application_framework="c")
+        self.capability = Capability(language="a", dependency_manager="b", application_framework="c")
         self.workflow_data = "some workflow data"
 
     def tearDown(self):

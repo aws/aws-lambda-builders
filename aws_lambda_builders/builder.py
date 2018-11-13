@@ -20,7 +20,7 @@ class LambdaBuilder(object):
     Helps you build AWS Lambda functions. This class is the primary entry point for this library.
     """
 
-    def __init__(self, language, language_framework, application_framework, supported_workflows=None):
+    def __init__(self, language, dependency_manager, application_framework, supported_workflows=None):
 
         """
         Initialize the builder.
@@ -49,7 +49,7 @@ class LambdaBuilder(object):
             importlib.import_module(workflow_module)
 
         self.capability = Capability(language=language,
-                                     language_framework=language_framework,
+                                     dependency_manager=dependency_manager,
                                      application_framework=application_framework)
         self.selected_workflow_cls = get_workflow(self.capability)
         LOG.debug("Found workflow '%s' to support capabilities '%s'", self.selected_workflow_cls.NAME, self.capability)

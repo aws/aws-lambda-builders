@@ -63,7 +63,7 @@ class Registry(object):
         # This helps us be forwards compatible with new capabilities
         return "_".join([
             capability.language or "",
-            capability.language_framework or "",
+            capability.dependency_manager or "",
             capability.application_framework or ""
         ]).lower()
 
@@ -93,7 +93,7 @@ def get_workflow(capability, registry=DEFAULT_REGISTRY):
 
     if capability not in registry:
         raise WorkflowNotFoundError(language=capability.language,
-                                    language_framework=capability.language_framework,
+                                    dependency_manager=capability.dependency_manager,
                                     application_framework=capability.application_framework)
 
     return registry[capability]

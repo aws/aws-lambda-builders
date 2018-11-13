@@ -35,7 +35,7 @@ def main():
 
     try:
         builder = LambdaBuilder(language=capabilities["language"],
-                                language_framework=capabilities["language_framework"],
+                                dependency_manager=capabilities["dependency_manager"],
                                 application_framework=capabilities["application_framework"],
                                 supported_workflows=supported_workflows)
 

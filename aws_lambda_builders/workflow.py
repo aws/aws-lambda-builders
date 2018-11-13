@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 # ``Language`` is the programming language. Ex: Python
 # ``LangageFramework`` is the framework of particular language. Ex: PIP
 # ``ApplicationFramework`` is the specific application framework used to write the code. Ex: Chalice
-Capability = namedtuple('Capability', ["language", "language_framework", "application_framework"])
+Capability = namedtuple('Capability', ["language", "dependency_manager", "application_framework"])
 
 
 class _WorkflowMetaClass(type):

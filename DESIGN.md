@@ -77,7 +77,7 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
   "params": {
     "capability": {
       "language": "<programming language>",
-      "language_framework": "<programming language framework>",
+      "dependency_manager": "<programming language framework>",
       "application_framework": "<application framework>"
     },
     "source_dir": "/path/to/source",

@@ -33,7 +33,7 @@ class WriteHelloAction(BaseAction):
 class WriteHelloWorkflow(BaseWorkflow):
 
     NAME = "WriteHelloWorkflow"
-    CAPABILITY = Capability(language="test", language_framework="test", application_framework="test")
+    CAPABILITY = Capability(language="test", dependency_manager="test", application_framework="test")
 
     def __init__(self, source_dir, artifacts_dir, *args, **kwargs):
         super(WriteHelloWorkflow, self).__init__(source_dir, artifacts_dir, *args, **kwargs)

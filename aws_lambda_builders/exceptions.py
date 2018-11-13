@@ -20,7 +20,7 @@ class WorkflowNotFoundError(LambdaBuilderError):
     Raised when a workflow matching the given capabilities was not found
     """
     MESSAGE = "Unable to find a workflow matching given capability: " \
-              "{language}, {language_framework}, {application_framework}"
+              "{language}, {dependency_manager}, {application_framework}"
 
 
 class WorkflowFailedError(LambdaBuilderError):

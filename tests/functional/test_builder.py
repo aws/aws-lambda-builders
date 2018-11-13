@@ -20,7 +20,7 @@ class TestBuilderWithHelloWorkflow(TestCase):
         self.source_dir = tempfile.mkdtemp()
         self.artifacts_dir = tempfile.mkdtemp()
         self.hello_builder = LambdaBuilder(language="test",
-                                           language_framework="test",
+                                           dependency_manager="test",
                                            application_framework="test",
                                            supported_workflows=[
                                                self.HELLO_WORKFLOW_MODULE

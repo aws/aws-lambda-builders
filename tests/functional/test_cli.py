@@ -21,7 +21,7 @@ class TestCliWithHelloWorkflow(TestCase):
 
         # Capabilities supported by the Hello workflow
         self.language = "test"
-        self.language_framework = "test"
+        self.dependency_manager = "test"
         self.application_framework = "test"
 
         # The builder should write a file called hello.txt with contents "Hello World"
@@ -45,7 +45,7 @@ class TestCliWithHelloWorkflow(TestCase):
             "params": {
                 "capability": {
                     "language": self.language,
-                    "language_framework": self.language_framework,
+                    "dependency_manager": self.dependency_manager,
                     "application_framework": self.application_framework
                 },
                 "supported_workflows": [self.HELLO_WORKFLOW_MODULE],
