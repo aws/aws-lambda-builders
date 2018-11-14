@@ -8,7 +8,6 @@ def pip_import_string():
     # Pip moved its internals to an _internal module in version 10.
     # In order to be compatible with version 9 which has it at at the
     # top level we need to figure out the correct import path here.
-    print(pip_major_version)
     if pip_major_version == '9':
         return 'from pip import main'
     else:
