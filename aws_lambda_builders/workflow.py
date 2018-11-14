@@ -49,6 +49,7 @@ class _WorkflowMetaClass(type):
         if not isinstance(cls.CAPABILITY, Capability):
             raise ValueError("Workflow '{}' must register valid capabilities".format(cls.NAME))
 
+        LOG.debug("Registering workflow '%s' with capability '%s'", cls.NAME, cls.CAPABILITY)
         DEFAULT_REGISTRY[cls.CAPABILITY] = cls
 
         return cls
