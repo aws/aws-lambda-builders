@@ -17,3 +17,4 @@ script:
   # Runs unit tests
   - make pr
   - make test
+  - LAMBDA_BUILDERS_DEV=1 travis_wait pytest -vv tests/integration
