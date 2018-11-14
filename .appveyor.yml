@@ -1,0 +1,22 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+
+environment:
+
+  matrix:
+
+  - PYTHON: "C:\\Python27-x64"
+  - PYTHON: "C:\\Python36-x64"
+  - PYTHON: "C:\\Python37-x64"
+
+
+build: off
+
+install:
+- "set PATH=%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+- "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
+- "%PYTHON%\\python.exe -m pip install -e ."
+
+test_script:
+- "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
+- "%PYTHON%\\python.exe -m pytest tests/integration"
