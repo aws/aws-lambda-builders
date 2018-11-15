@@ -41,6 +41,11 @@ class TestPythonPipWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEquals(expected_files, output_files)
 
+    def test_runtime_validate_python_project(self):
+        with self.assertRaises(ValueError):
+            self.builder.build(self.source_dir, self.artifacts_dir, None, self.manifest_path_valid,
+                               runtime="python2.8")
+
     def test_must_fail_to_resolve_dependencies(self):
 
         with self.assertRaises(WorkflowFailedError) as ctx:

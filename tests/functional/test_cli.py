@@ -53,7 +53,6 @@ class TestCliWithHelloWorkflow(TestCase):
                 "artifacts_dir": self.artifacts_dir,
                 "scratch_dir": "/ignored",
                 "manifest_path": "/ignored",
-                "runtime": "ignored",
                 "optimizations": {},
                 "options": {},
             }
