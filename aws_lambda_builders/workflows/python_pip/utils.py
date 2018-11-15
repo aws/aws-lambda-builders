@@ -9,7 +9,6 @@ import contextlib
 import tempfile
 import shutil
 import tarfile
-import sys
 import subprocess
 
 
