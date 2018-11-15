@@ -3,6 +3,7 @@ from unittest import TestCase
 import mock
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
+from aws_lambda_builders.runtime import validate_python_cmd
 from aws_lambda_builders.runtime import Runtime
 
 
@@ -38,3 +39,9 @@ class TestRuntime(TestCase):
             with self.assertRaises(MisMatchRuntimeError):
                 Runtime.validate_runtime("python", "python2.7")
                 self.assertTrue(mock_subprocess.call_count, 1)
+
+    def test_python_command(self):
+        cmd = validate_python_cmd("python", "python2.7")
+        version_strings = ["sys.version_info.major == 2", "sys.version_info.minor == 7"]
+        for version_string in version_strings:
+            self.assertTrue(any([part for part in cmd if version_string in part]))

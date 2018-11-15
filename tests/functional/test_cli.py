@@ -53,10 +53,12 @@ class TestCliWithHelloWorkflow(TestCase):
                 "artifacts_dir": self.artifacts_dir,
                 "scratch_dir": "/ignored",
                 "manifest_path": "/ignored",
+                "runtime": None,
                 "optimizations": {},
                 "options": {},
             }
         }).encode('utf-8')
+
 
         env = copy.deepcopy(os.environ)
         env["PYTHONPATH"] = self.python_path

@@ -7,7 +7,20 @@ import subprocess
 from enum import Enum
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
-from aws_lambda_builders.workflows.python_pip.runtime_validator import validate_python_cmd
+
+
+def validate_python_cmd(required_language, required_runtime_version):
+    major, minor = required_runtime_version.replace(required_language, "").split('.')
+    cmd = [
+        "python",
+        "-c",
+        "import sys; "
+        "assert sys.version_info.major == {major} "
+        "and sys.version_info.minor == {minor}".format(
+            major=major,
+            minor=minor)]
+    return cmd
+
 
 _RUNTIME_VERSION_RESOLVER = {
     "python": validate_python_cmd
