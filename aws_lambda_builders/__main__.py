@@ -23,10 +23,18 @@ def _success_response(request_id):
 def main():
     """
     Implementation of CLI Interface. Handles only one JSON-RPC method at a time and responds with data
+
+    Input is passed as JSON string either through stdin or as the first argument to the command. Output is always
+    printed to stdout.
     """
 
     # For now the request is not validated
-    request = json.load(sys.stdin)
+    if len(sys.argv) > 1:
+        request_str = sys.argv[1]
+    else:
+        request_str = sys.stdin.read()
+
+    request = json.loads(request_str)
 
     request_id = request["id"]
     params = request["params"]
