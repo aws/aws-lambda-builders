@@ -46,7 +46,7 @@ def _error_response(request_id, http_status_code, message):
     })
 
 
-def main():
+def main():  # pylint: disable=too-many-statements
     """
     Implementation of CLI Interface. Handles only one JSON-RPC method at a time and responds with data
 
