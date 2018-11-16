@@ -378,5 +378,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+/Dockerfile
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode
