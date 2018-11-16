@@ -34,7 +34,7 @@ class TestPythonPipWorkflow(TestCase):
         shutil.rmtree(self.scratch_dir)
 
     def test_must_build_python_project(self):
-        self.builder.build(self.source_dir, self.artifacts_dir, None, self.manifest_path_valid,
+        self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                            runtime="python2.7")
 
         expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
@@ -44,7 +44,7 @@ class TestPythonPipWorkflow(TestCase):
     def test_must_fail_to_resolve_dependencies(self):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(self.source_dir, self.artifacts_dir, None, self.manifest_path_invalid,
+            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid,
                                runtime="python2.7")
 
         self.assertIn("Invalid requirement: 'adfasf=1.2.3'", str(ctx.exception))
@@ -52,7 +52,7 @@ class TestPythonPipWorkflow(TestCase):
     def test_must_fail_if_requirements_not_found(self):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(self.source_dir, self.artifacts_dir, None, os.path.join("non", "existent", "manifest"),
+            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, os.path.join("non", "existent", "manifest"),
                                runtime="python2.7")
 
         self.assertIn("Requirements file not found", str(ctx.exception))
