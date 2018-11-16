@@ -52,7 +52,9 @@ class TestPythonPipWorkflow(TestCase):
     def test_must_fail_if_requirements_not_found(self):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, os.path.join("non", "existent", "manifest"),
+            self.builder.build(self.source_dir, self.artifacts_dir,
+                               self.scratch_dir,
+                               os.path.join("non", "existent", "manifest"),
                                runtime="python2.7")
 
         self.assertIn("Requirements file not found", str(ctx.exception))
