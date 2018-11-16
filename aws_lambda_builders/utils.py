@@ -52,6 +52,7 @@ def copytree(source, destination, ignore=None):
 
         new_source = os.path.join(source, name)
         new_destination = os.path.join(destination, name)
+
         if os.path.isdir(new_source):
             copytree(new_source, new_destination, ignore=ignore)
         else:

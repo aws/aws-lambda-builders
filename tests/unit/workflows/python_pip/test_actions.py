@@ -28,4 +28,3 @@ class TestPythonPipBuildAction(TestCase):
 
         with self.assertRaises(ActionFailedError):
             action.execute()
-
