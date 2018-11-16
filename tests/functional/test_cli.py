@@ -82,6 +82,7 @@ class TestCliWithHelloWorkflow(TestCase):
         response = json.loads(stdout_data)
         self.assertNotIn('error', response)
         self.assertIn('result', response)
+        self.assertEquals(response['result']['artifacts_dir'], self.artifacts_dir)
 
         self.assertTrue(os.path.exists(self.expected_filename))
         contents = ''

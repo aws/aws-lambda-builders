@@ -8,15 +8,41 @@ Read the design document for explanation of the JSON-RPC interface
 
 import sys
 import json
+import os
+import logging
+
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowNotFoundError, WorkflowUnknownError, WorkflowFailedError
 
 
-def _success_response(request_id):
+log_level = int(os.environ.get("LAMBDA_BUILDERS_LOG_LEVEL", logging.INFO))
+
+# Write output to stderr because stdout is used for command response
+logging.basicConfig(stream=sys.stderr,
+                    level=log_level,
+                    format='[Lambda Builders] %(asctime)s - %(levelname)s - %(message)s')
+
+LOG = logging.getLogger(__name__)
+
+
+def _success_response(request_id, artifacts_dir):
     return json.dumps({
         "jsonrpc": "2.0",
         "id": request_id,
-        "result": {}
+        "result": {
+            "artifacts_dir": artifacts_dir
+        }
+    })
+
+
+def _error_response(request_id, http_status_code, message):
+    return json.dumps({
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "error": {
+            "code": http_status_code,
+            "message": message
+        }
     })
 
 
@@ -31,7 +57,9 @@ def main():
     # For now the request is not validated
     if len(sys.argv) > 1:
         request_str = sys.argv[1]
+        LOG.debug("Using the request object from command line argument")
     else:
+        LOG.debug("Reading the request object from stdin")
         request_str = sys.stdin.read()
 
     request = json.loads(request_str)
@@ -39,14 +67,17 @@ def main():
     request_id = request["id"]
     params = request["params"]
     capabilities = params["capability"]
-    supported_workflows = params["supported_workflows"]
+    supported_workflows = params.get("supported_workflows")
 
+    exit_code = 0
+    response = None
     try:
         builder = LambdaBuilder(language=capabilities["language"],
                                 dependency_manager=capabilities["dependency_manager"],
                                 application_framework=capabilities["application_framework"],
                                 supported_workflows=supported_workflows)
 
+        artifacts_dir = params["artifacts_dir"]
         builder.build(params["source_dir"],
                       params["artifacts_dir"],
                       params["scratch_dir"],
@@ -56,17 +87,21 @@ def main():
                       options=params["options"])
 
         # Return a success response
-        sys.stdout.write(_success_response(request_id))
-        sys.stdout.flush()  # Make sure it is written
+        response = _success_response(request_id, artifacts_dir)
 
     except (WorkflowNotFoundError, WorkflowUnknownError, WorkflowFailedError) as ex:
-        # TODO: Return a workflow error response
-        print(str(ex))
-        sys.exit(1)
+        LOG.debug("Builder workflow failed", exc_info=ex)
+        exit_code = 1
+        response = _error_response(request_id, 400, str(ex))
+
     except Exception as ex:
-        # TODO: Return a internal server response
-        print(str(ex))
-        sys.exit(1)
+        LOG.debug("Builder crashed", exc_info=ex)
+        exit_code = 1
+        response = _error_response(request_id, 500, str(ex))
+
+    sys.stdout.write(response)
+    sys.stdout.flush()  # Make sure it is written
+    sys.exit(exit_code)
 
 
 if __name__ == '__main__':
