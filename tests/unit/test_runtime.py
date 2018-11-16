@@ -23,9 +23,12 @@ class TestRuntime(TestCase):
         self.assertTrue(Runtime.has_value("python3.6"))
         self.assertFalse(Runtime.has_value("test_language"))
 
-    def test_runtime_validate_unsupported_runtime(self):
+    def test_runtime_validate_unsupported_language_fail_open(self):
+        Runtime.validate_runtime("test_language", "test_language2.7")
+
+    def test_runtime_validate_unsupported_runtime_version(self):
         with self.assertRaises(ValueError):
-            Runtime.validate_runtime("test_language", "test_language2.7")
+            Runtime.validate_runtime("python", "python2.8")
 
     def test_runtime_validate_supported_version_runtime(self):
         with mock.patch('subprocess.Popen') as mock_subprocess:

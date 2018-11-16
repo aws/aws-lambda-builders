@@ -49,10 +49,14 @@ class Runtime(Enum):
         :raises ValueError: Unsupported Lambda Runtime
         :raises MisMatchRuntimeError: Version mismatch of the lanugage vs the required runtime
         """
+        try:
+            cmd = _RUNTIME_VERSION_RESOLVER[required_language](required_language, required_runtime)
+        except KeyError:
+            # The language is not currently supported, so there is no runtime validation.
+            return
         if not Runtime.has_value(required_runtime):
             raise ValueError("Unsupported Lambda runtime {}".format(required_runtime))
 
-        cmd = _RUNTIME_VERSION_RESOLVER[required_language](required_language, required_runtime)
         p = subprocess.Popen(cmd,
                              cwd=os.getcwd(),
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)

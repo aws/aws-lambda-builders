@@ -1,6 +1,7 @@
 
 import os
 import shutil
+import sys
 import tempfile
 from unittest import TestCase
 
@@ -28,6 +29,10 @@ class TestPythonPipWorkflow(TestCase):
         self.builder = LambdaBuilder(language="python",
                                      dependency_manager="pip",
                                      application_framework=None)
+        self.runtime = "{language}{major}.{minor}".format(
+            language=self.builder.capability.language,
+            major=sys.version_info.major,
+            minor=sys.version_info.minor)
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -35,7 +40,7 @@ class TestPythonPipWorkflow(TestCase):
 
     def test_must_build_python_project(self):
         self.builder.build(self.source_dir, self.artifacts_dir, None, self.manifest_path_valid,
-                           runtime="python2.7")
+                           runtime=self.runtime)
 
         expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
@@ -50,7 +55,7 @@ class TestPythonPipWorkflow(TestCase):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
             self.builder.build(self.source_dir, self.artifacts_dir, None, self.manifest_path_invalid,
-                               runtime="python2.7")
+                               runtime=self.runtime)
 
         self.assertIn("Invalid requirement: 'adfasf=1.2.3'", str(ctx.exception))
 
@@ -58,6 +63,6 @@ class TestPythonPipWorkflow(TestCase):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
             self.builder.build(self.source_dir, self.artifacts_dir, None, os.path.join("non", "existent", "manifest"),
-                               runtime="python2.7")
+                               runtime=self.runtime)
 
         self.assertIn("Requirements file not found", str(ctx.exception))
