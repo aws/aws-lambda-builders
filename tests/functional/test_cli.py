@@ -63,7 +63,7 @@ class TestCliWithHelloWorkflow(TestCase):
                 "optimizations": {},
                 "options": {},
             }
-        }).encode('utf-8')
+        })
 
         env = copy.deepcopy(os.environ)
         env["PYTHONPATH"] = self.python_path
@@ -71,7 +71,7 @@ class TestCliWithHelloWorkflow(TestCase):
         stdout_data = None
         if flavor == "request_through_stdin":
             p = subprocess.Popen([self.command_name], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            stdout_data = p.communicate(input=request_json)[0]
+            stdout_data = p.communicate(input=request_json.encode('utf-8'))[0]
         elif flavor == "request_through_argument":
             p = subprocess.Popen([self.command_name, request_json], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             stdout_data = p.communicate()[0]
