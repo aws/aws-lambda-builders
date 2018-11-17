@@ -48,6 +48,7 @@ class TestCliWithHelloWorkflow(TestCase):
         request_json = json.dumps({
             "jsonschema": "2.0",
             "id": 1234,
+            "method": "LambdaBuilder.build",
             "params": {
                 "capability": {
                     "language": self.language,

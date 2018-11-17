@@ -86,9 +86,9 @@ class BaseAction(six.with_metaclass(_ActionMetaClass, object)):
 
 class CopySourceAction(BaseAction):
 
-    NAME = 'CopySourceAction'
+    NAME = 'CopySource'
 
-    DESCRIPTION = "Copies source code while skipping certain commonly excluded files"
+    DESCRIPTION = "Copying source code while skipping certain commonly excluded files"
 
     PURPOSE = Purpose.COPY_SOURCE
 

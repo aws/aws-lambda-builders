@@ -75,6 +75,7 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
   "method": "LambdaBuilder.build",
   "id": 1,
   "params": {
+    "__protocol_version": "0.1",  // Expected version of RPC protocol 
     "capability": {
       "language": "<programming language>",
       "dependency_manager": "<programming language framework>",
@@ -114,6 +115,15 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
   }  
 }
 ```
+
+**Error Codes**:
+
+Error codes returned by the application are similar to HTTP Status Codes.
+
+- 400 - Similar to HTTP 400. Blame the caller.
+- 500 - Internal server error
+- 505 - RPC Protocol unsupported
+- -32601 - Method unsupported (standard JSON-RPC protocol error code)
 
 ### Project Meta
 #### Directory Structure
