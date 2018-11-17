@@ -20,7 +20,7 @@ log_level = int(os.environ.get("LAMBDA_BUILDERS_LOG_LEVEL", logging.INFO))
 # Write output to stderr because stdout is used for command response
 logging.basicConfig(stream=sys.stderr,
                     level=log_level,
-                    format='[Lambda Builders] %(asctime)s - %(levelname)s - %(message)s')
+                    format='%(message)s')
 
 LOG = logging.getLogger(__name__)
 
@@ -46,6 +46,12 @@ def _error_response(request_id, http_status_code, message):
     })
 
 
+def _write_response(response, exit_code):
+    sys.stdout.write(response)
+    sys.stdout.flush()  # Make sure it is written
+    sys.exit(exit_code)
+
+
 def main():  # pylint: disable=too-many-statements
     """
     Implementation of CLI Interface. Handles only one JSON-RPC method at a time and responds with data
@@ -63,9 +69,14 @@ def main():  # pylint: disable=too-many-statements
         request_str = sys.stdin.read()
 
     request = json.loads(request_str)
-
     request_id = request["id"]
     params = request["params"]
+
+    # Currently, this is the only supported method
+    if request["method"] != "LambdaBuilder.build":
+        response = _error_response(request_id, -32601, "Method unavailable")
+        return _write_response(response, 1)
+
     capabilities = params["capability"]
     supported_workflows = params.get("supported_workflows")
 
@@ -99,9 +110,7 @@ def main():  # pylint: disable=too-many-statements
         exit_code = 1
         response = _error_response(request_id, 500, str(ex))
 
-    sys.stdout.write(response)
-    sys.stdout.flush()  # Make sure it is written
-    sys.exit(exit_code)
+    _write_response(response, exit_code)
 
 
 if __name__ == '__main__':

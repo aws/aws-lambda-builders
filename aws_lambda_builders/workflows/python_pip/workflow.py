@@ -10,7 +10,8 @@ from .actions import PythonPipBuildAction
 
 class PythonPipWorkflow(BaseWorkflow):
 
-    NAME = "PythonPipWorkflow"
+    NAME = "PythonPipBuilder"
+
     CAPABILITY = Capability(language="python",
                             dependency_manager="pip",
                             application_framework=None)

@@ -156,9 +156,9 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                                       reason="Workflow does not have any actions registered")
 
         for action in self.actions:
-            action_info = "Workflow='{}',Action='{}'".format(self.NAME, action.NAME)
+            action_info = "{}:{}".format(self.NAME, action.NAME)
 
-            LOG.info("Running %s: %s", action_info, action.DESCRIPTION)
+            LOG.info("Running %s", action_info)
 
             try:
                 action.execute()
