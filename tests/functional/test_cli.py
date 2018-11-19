@@ -66,6 +66,7 @@ class TestCliWithHelloWorkflow(TestCase):
             }
         })
 
+
         env = copy.deepcopy(os.environ)
         env["PYTHONPATH"] = self.python_path
 
