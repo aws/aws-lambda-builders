@@ -18,7 +18,10 @@ class PythonPipWorkflow(BaseWorkflow):
 
     # Common source files to exclude from build artifacts output
     # Trimmed version of https://github.com/github/gitignore/blob/master/Python.gitignore
-    EXCLUDED_FILES = (".git",
+    EXCLUDED_FILES = (
+                      ".aws-sam", ".chalice",
+
+                      ".git",
 
                       # Compiled files
                       "*.pyc", "__pycache__", "*.so",
