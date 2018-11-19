@@ -31,6 +31,7 @@ class PythonPipWorkflow(BaseWorkflow):
                                                 **kwargs)
 
         self.actions = [
-            PythonPipBuildAction(artifacts_dir, manifest_path, runtime),
+            PythonPipBuildAction(artifacts_dir, scratch_dir,
+                                 manifest_path, runtime),
             CopySourceAction(source_dir, artifacts_dir),
         ]

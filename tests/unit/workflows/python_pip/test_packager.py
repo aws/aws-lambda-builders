@@ -94,10 +94,11 @@ class TestPythonPipDependencyBuilder(object):
             dependency_builder=mock_dep_builder,
         )
         builder.build_dependencies(
-            'artifacts/path/', 'path/to/requirements.txt', 'python3.6'
+            'artifacts/path/', 'scratch_dir/path/',
+            'path/to/requirements.txt', 'python3.6'
         )
         mock_dep_builder.build_site_packages.assert_called_once_with(
-            'path/to/requirements.txt', 'artifacts/path/')
+            'path/to/requirements.txt', 'artifacts/path/', 'scratch_dir/path/')
         osutils_mock.file_exists.assert_called_once_with(
             'path/to/requirements.txt')
 

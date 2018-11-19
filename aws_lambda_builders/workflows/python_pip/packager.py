@@ -76,12 +76,15 @@ class PythonPipDependencyBuilder(object):
             dependency_builder = DependencyBuilder(self.osutils)
         self._dependency_builder = dependency_builder
 
-    def build_dependencies(self, artifacts_dir_path, requirements_path,
-                           runtime, ui=None, config=None):
+    def build_dependencies(self, artifacts_dir_path, scratch_dir_path,
+                           requirements_path, runtime, ui=None, config=None):
         """Builds a python project's dependencies into an artifact directory.
 
         :type artifacts_dir_path: str
         :param artifacts_dir_path: Directory to write dependencies into.
+
+        :type scratch_dir_path: str
+        :param scratch_dir_path: Directory to write temp files into.
 
         :type requirements_path: str
         :param requirements_path: Path to a requirements.txt file to inspect
@@ -114,7 +117,7 @@ class PythonPipDependencyBuilder(object):
             raise RequirementsFileNotFoundError(requirements_path)
 
         self._dependency_builder.build_site_packages(
-            requirements_path, artifacts_dir_path)
+            requirements_path, artifacts_dir_path, scratch_dir_path)
 
 
 class DependencyBuilder(object):
@@ -151,7 +154,9 @@ class DependencyBuilder(object):
             pip_runner = PipRunner(SubprocessPip(osutils))
         self._pip = pip_runner
 
-    def build_site_packages(self, requirements_filepath, target_directory):
+    def build_site_packages(self, requirements_filepath,
+                            target_directory,
+                            scratch_directory):
         """Build site-packages directory for a set of requiremetns.
 
         :type requirements_filepath: str
@@ -165,15 +170,17 @@ class DependencyBuilder(object):
             This directory should be on the PYTHON_PATH of whichever process
             wants to use thse dependencies.
 
+        :type scratch_directory: str
+        :param scratch_directory: The directory to write temp files into.
+
         :raises MissingDependencyError: This exception is raised if one or more
             packages could not be installed. The complete list of missing
             packages is included in the error object's ``missing`` property.
         """
         if self._has_at_least_one_package(requirements_filepath):
-            with self._osutils.tempdir() as tempdir:
-                wheels, packages_without_wheels = self._download_dependencies(
-                    tempdir, requirements_filepath)
-                self._install_wheels(tempdir, target_directory, wheels)
+            wheels, packages_without_wheels = self._download_dependencies(
+                scratch_directory, requirements_filepath)
+            self._install_wheels(scratch_directory, target_directory, wheels)
             if packages_without_wheels:
                 raise MissingDependencyError(packages_without_wheels)
 
