@@ -39,7 +39,6 @@ class TestPythonPipWorkflow(TestCase):
         shutil.rmtree(self.scratch_dir)
 
     def test_must_build_python_project(self):
-
         self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                            runtime=self.runtime)
 
@@ -48,7 +47,7 @@ class TestPythonPipWorkflow(TestCase):
         self.assertEquals(expected_files, output_files)
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
-        self.builder.build(self.source_dir, self.artifacts_dir, None, self.manifest_path_valid,
+        self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                            runtime="python2.8")
         expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
@@ -65,10 +64,12 @@ class TestPythonPipWorkflow(TestCase):
     def test_must_fail_if_requirements_not_found(self):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
+            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, os.path.join("non", "existent", "manifest"),
+                               runtime=self.runtime)
 
             self.builder.build(self.source_dir, self.artifacts_dir,
                                self.scratch_dir,
                                os.path.join("non", "existent", "manifest"),
                                runtime=self.runtime)
-  
+
         self.assertIn("Requirements file not found", str(ctx.exception))
