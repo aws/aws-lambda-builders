@@ -6,6 +6,7 @@ import importlib
 import logging
 
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
+from aws_lambda_builders.validate import RuntimeValidator
 from aws_lambda_builders.workflow import Capability
 
 LOG = logging.getLogger(__name__)
@@ -89,6 +90,9 @@ class LambdaBuilder(object):
         :param options:
             Optional dictionary of options ot pass to build action. **Not supported**.
         """
+        if runtime:
+            self._validate_runtime(runtime)
+
 
         workflow = self.selected_workflow_cls(source_dir,
                                               artifacts_dir,
@@ -99,6 +103,17 @@ class LambdaBuilder(object):
                                               options=options)
 
         return workflow.run()
+
+    def _validate_runtime(self, runtime):
+        """
+        validate runtime and local runtime version to make sure they match
+
+        :type runtime: str
+        :param runtime:
+            String matching a lambda runtime eg: python3.6
+        """
+        RuntimeValidator.validate_runtime(required_language=self.capability.language,
+                                          required_runtime=runtime)
 
     def _clear_workflows(self):
         DEFAULT_REGISTRY.clear()
