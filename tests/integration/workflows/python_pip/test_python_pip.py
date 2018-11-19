@@ -24,7 +24,7 @@ class TestPythonPipWorkflow(TestCase):
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
 
-        self.test_data_files = set(os.listdir(self.TEST_DATA_FOLDER))
+        self.test_data_files = {"__init__.py", "main.py", "requirements-invalid.txt", "requirements-numpy.txt"}
 
         self.builder = LambdaBuilder(language="python",
                                      dependency_manager="pip",
