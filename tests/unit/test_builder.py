@@ -102,17 +102,17 @@ class TesetLambdaBuilder_build(TestCase):
     @patch('aws_lambda_builders.builder.importlib')
     @patch('aws_lambda_builders.builder.get_workflow')
     def test_with_mocks(self, get_workflow_mock, importlib_mock):
-
         workflow_cls = Mock()
         workflow_instance = workflow_cls.return_value = Mock()
 
         get_workflow_mock.return_value = workflow_cls
 
-        builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=[])
+        with patch.object(LambdaBuilder, "_validate_runtime"):
+            builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=[])
 
-        builder.build("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                      runtime="runtime", optimizations="optimizations", options="options")
+            builder.build("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
+                          runtime="runtime", optimizations="optimizations", options="options")
 
-        workflow_cls.assert_called_with("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                                        runtime="runtime", optimizations="optimizations", options="options")
-        workflow_instance.run.assert_called_once()
+            workflow_cls.assert_called_with("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
+                                            runtime="runtime", optimizations="optimizations", options="options")
+            workflow_instance.run.assert_called_once()

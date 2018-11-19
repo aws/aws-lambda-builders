@@ -8,7 +8,8 @@ from .packager import PythonPipDependencyBuilder, PackagerError
 
 class PythonPipBuildAction(BaseAction):
 
-    NAME = 'PythonPipBuildAction'
+    NAME = 'ResolveDependencies'
+    DESCRIPTION = "Installing dependencies from PIP"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
     def __init__(self, artifacts_dir, manifest_path, scratch_dir, runtime):
