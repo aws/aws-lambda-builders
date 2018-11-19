@@ -217,7 +217,7 @@ class TestDependencyBuilder(object):
         builder = DependencyBuilder(OSUtils(), runner)
         return appdir, builder
 
-    def test_can_build_local_dir_as_whl(self, tmpdir, pip_runner):
+    def test_can_build_local_dir_as_whl(self, tmpdir, pip_runner, osutils):
         reqs = ['../foo']
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(
@@ -234,13 +234,15 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
         assert ['foo'] == installed_packages
 
-    def test_can_get_whls_all_manylinux(self, tmpdir, pip_runner):
+    def test_can_get_whls_all_manylinux(self, tmpdir, pip_runner, osutils):
         reqs = ['foo', 'bar']
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(
@@ -255,14 +257,17 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
         for req in reqs:
             assert req in installed_packages
 
-    def test_can_use_abi3_whl_for_any_python3(self, tmpdir, pip_runner):
+    def test_can_use_abi3_whl_for_any_python3(self, tmpdir,
+                                              pip_runner, osutils):
         reqs = ['foo', 'bar', 'baz', 'qux']
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(
@@ -279,14 +284,16 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
         for req in reqs:
             assert req in installed_packages
 
-    def test_can_expand_purelib_whl(self, tmpdir, pip_runner):
+    def test_can_expand_purelib_whl(self, tmpdir, pip_runner, osutils):
         reqs = ['foo']
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(
@@ -301,14 +308,16 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
         for req in reqs:
             assert req in installed_packages
 
-    def test_can_expand_platlib_whl(self, tmpdir, pip_runner):
+    def test_can_expand_platlib_whl(self, tmpdir, pip_runner, osutils):
         reqs = ['foo']
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(
@@ -323,14 +332,16 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
         for req in reqs:
             assert req in installed_packages
 
-    def test_can_expand_platlib_and_purelib(self, tmpdir, pip_runner):
+    def test_can_expand_platlib_and_purelib(self, tmpdir, pip_runner, osutils):
         # This wheel installs two importable libraries foo and bar, one from
         # the wheels purelib and one from its platlib.
         reqs = ['foo', 'bar']
@@ -350,14 +361,16 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
         for req in reqs:
             assert req in installed_packages
 
-    def test_does_ignore_data(self, tmpdir, pip_runner):
+    def test_does_ignore_data(self, tmpdir, pip_runner, osutils):
         # Make sure the wheel installer does not copy the data directory
         # up to the root.
         reqs = ['foo']
@@ -377,7 +390,9 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -385,7 +400,7 @@ class TestDependencyBuilder(object):
             assert req in installed_packages
         assert 'bar' not in installed_packages
 
-    def test_does_ignore_include(self, tmpdir, pip_runner):
+    def test_does_ignore_include(self, tmpdir, pip_runner, osutils):
         # Make sure the wheel installer does not copy the includes directory
         # up to the root.
         reqs = ['foo']
@@ -405,7 +420,9 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -413,7 +430,7 @@ class TestDependencyBuilder(object):
             assert req in installed_packages
         assert 'bar' not in installed_packages
 
-    def test_does_ignore_scripts(self, tmpdir, pip_runner):
+    def test_does_ignore_scripts(self, tmpdir, pip_runner, osutils):
         # Make sure the wheel isntaller does not copy the scripts directory
         # up to the root.
         reqs = ['foo']
@@ -433,7 +450,9 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -441,7 +460,8 @@ class TestDependencyBuilder(object):
             assert req in installed_packages
         assert 'bar' not in installed_packages
 
-    def test_can_expand_platlib_and_platlib_and_root(self, tmpdir, pip_runner):
+    def test_can_expand_platlib_and_platlib_and_root(self, tmpdir,
+                                                     pip_runner, osutils):
         # This wheel installs three import names foo, bar and baz.
         # they are from the root install directory and the platlib and purelib
         # subdirectories in the platlib.
@@ -463,7 +483,9 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -486,7 +508,9 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -509,7 +533,9 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -534,8 +560,10 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        with pytest.raises(MissingDependencyError) as e:
-            builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            with pytest.raises(MissingDependencyError) as e:
+                builder.build_site_packages(
+                    requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
         missing_packages = list(e.value.missing)
 
@@ -559,8 +587,10 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        with pytest.raises(MissingDependencyError) as e:
-            builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            with pytest.raises(MissingDependencyError) as e:
+                builder.build_site_packages(
+                    requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         missing_packages = list(e.value.missing)
@@ -583,8 +613,10 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        with pytest.raises(MissingDependencyError) as e:
-            builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            with pytest.raises(MissingDependencyError) as e:
+                builder.build_site_packages(
+                    requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         missing_packages = list(e.value.missing)
@@ -620,7 +652,9 @@ class TestDependencyBuilder(object):
             ]
         )
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -651,7 +685,9 @@ class TestDependencyBuilder(object):
             ]
         )
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -680,7 +716,9 @@ class TestDependencyBuilder(object):
             ]
         )
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         pip.validate()
@@ -714,8 +752,10 @@ class TestDependencyBuilder(object):
             ]
         )
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        with pytest.raises(MissingDependencyError) as e:
-            builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            with pytest.raises(MissingDependencyError) as e:
+                builder.build_site_packages(
+                    requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         # bar should succeed and foo should failed.
@@ -767,7 +807,9 @@ class TestDependencyBuilder(object):
         )
 
         site_packages = os.path.join(appdir, '.chalice.', 'site-packages')
-        builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(
+                requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         # Now we should have successfully built the foo package.
@@ -812,8 +854,10 @@ class TestDependencyBuilder(object):
         os.makedirs(foo)
         bar = os.path.join(site_packages, 'bar')
         os.makedirs(bar)
-        with pytest.raises(MissingDependencyError) as e:
-            builder.build_site_packages(requirements_file, site_packages)
+        with osutils.tempdir() as scratch_dir:
+            with pytest.raises(MissingDependencyError) as e:
+                builder.build_site_packages(
+                    requirements_file, site_packages, scratch_dir)
         installed_packages = os.listdir(site_packages)
 
         # bar should succeed and foo should failed.
