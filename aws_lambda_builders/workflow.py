@@ -138,6 +138,17 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         return True
 
+    @property
+    def target_artifact_path(self):
+        """
+        Returns the path to the built artifact. The value of this property
+        is returned in the build response. By default, returns the artifacts_dir
+        value from the build request. Workflows for compiled languages that
+        generate a single-file artifact can override this value to return the
+        path to the compiled executable/package.
+        """
+        return self.artifacts_dir
+
     def run(self):
         """
         Actually perform the build by executing registered actions.
@@ -177,6 +188,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                 raise WorkflowUnknownError(workflow_name=self.NAME,
                                            action_name=action.NAME,
                                            reason=str(ex))
+        return self.target_artifact_path
 
     def __repr__(self):
         """

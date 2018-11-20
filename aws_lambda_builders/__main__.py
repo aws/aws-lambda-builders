@@ -88,8 +88,7 @@ def main():  # pylint: disable=too-many-statements
                                 application_framework=capabilities["application_framework"],
                                 supported_workflows=supported_workflows)
 
-        artifacts_dir = params["artifacts_dir"]
-        builder.build(params["source_dir"],
+        target_path = builder.build(params["source_dir"],
                       params["artifacts_dir"],
                       params["scratch_dir"],
                       params["manifest_path"],
@@ -98,7 +97,7 @@ def main():  # pylint: disable=too-many-statements
                       options=params["options"])
 
         # Return a success response
-        response = _success_response(request_id, artifacts_dir)
+        response = _success_response(request_id, target_path)
 
     except (WorkflowNotFoundError, WorkflowUnknownError, WorkflowFailedError) as ex:
         LOG.debug("Builder workflow failed", exc_info=ex)
