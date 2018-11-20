@@ -1,0 +1,19 @@
+[package]
+name = "test_lambda_function"
+version = "0.1.0"
+authors = ["me <my_email@my_server.com>"]
+autobins = false
+
+[dependencies]
+#lambda_runtime = "^0.1"
+# we need to use the local copy until the runtime is officially released.
+lambda_runtime = { path="../../../../../../aws-lambda-rust-runtime/lambda-runtime"}
+serde = "^1"
+serde_json = "^1"
+serde_derive = "^1"
+log = "^0.4"
+simple_logger = "^1"
+
+[[bin]]
+name = "bootstrap"
+path = "src/main.rs"
