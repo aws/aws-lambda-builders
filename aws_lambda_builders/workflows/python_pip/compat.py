@@ -1,5 +1,6 @@
 import os
 import six
+import sys
 
 
 def pip_import_string():
@@ -104,6 +105,7 @@ else:
 
 
 if six.PY3:
-    lambda_abi = 'cp36m'
+    # cp37m or cp36m
+    lambda_abi = 'cp{}{}m'.format(sys.version_info.major, sys.version_info.minor)
 else:
     lambda_abi = 'cp27mu'
