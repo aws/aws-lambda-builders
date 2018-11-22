@@ -1,0 +1,5 @@
+
+# Following packages are required by `python_pip` workflow to run.
+# TODO: Consider moving this dependency directly into the `python_pip` workflow module
+setuptools
+wheel
