@@ -55,17 +55,35 @@ class PackageDownloadError(PackagerError):
     pass
 
 
+class UnsupportedPythonVersion(PackagerError):
+    """Generic networking error during a package download."""
+    def __init__(self, version):
+        super(UnsupportedPythonVersion, self).__init__(
+            "'%s' version of python is not supported" % version
+        )
+
+
 def get_lambda_abi(runtime):
-    return {
+    supported = {
         "python2.7": "cp27mu",
         "python3.6": "cp36m",
         "python3.7": "cp37m"
-    }.get(runtime)
+    }
+
+    if runtime not in supported:
+        raise UnsupportedPythonVersion(runtime)
+
+    return supported[runtime]
 
 
 class PythonPipDependencyBuilder(object):
-    def __init__(self, osutils=None, dependency_builder=None):
+    def __init__(self, runtime, osutils=None, dependency_builder=None):
         """Initialize a PythonPipDependencyBuilder.
+
+        :type runtime: str
+        :param runtime: Python version to build dependencies for. This can
+            either be python2.7, python3.6 or python3.7. These are currently the
+            only supported values.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
         :param osutils: A class used for all interactions with the
@@ -80,11 +98,11 @@ class PythonPipDependencyBuilder(object):
             self.osutils = OSUtils()
 
         if dependency_builder is None:
-            dependency_builder = DependencyBuilder(self.osutils)
+            dependency_builder = DependencyBuilder(self.osutils, runtime)
         self._dependency_builder = dependency_builder
 
     def build_dependencies(self, artifacts_dir_path, scratch_dir_path,
-                           requirements_path, runtime, ui=None, config=None):
+                           requirements_path, ui=None, config=None):
         """Builds a python project's dependencies into an artifact directory.
 
         :type artifacts_dir_path: str
@@ -96,11 +114,6 @@ class PythonPipDependencyBuilder(object):
         :type requirements_path: str
         :param requirements_path: Path to a requirements.txt file to inspect
             for a list of dependencies.
-
-        :type runtime: str
-        :param runtime: Python version to build dependencies for. This can
-            either be python2.7, python3.6 or python3.7. These are currently the
-            only supported values.
 
         :type ui: :class:`lambda_builders.utils.UI` or None
         :param ui: A class that traps all progress information such as status
@@ -145,26 +158,25 @@ class DependencyBuilder(object):
         'sqlalchemy'
     }
 
-    def __init__(self, osutils, pip_runner=None, runtime="python2.7"):
+    def __init__(self, osutils, runtime, pip_runner=None):
         """Initialize a DependencyBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
         :param osutils: A class used for all interactions with the
             outside OS.
 
+        :type runtime: str
+        :param runtime: AWS Lambda Python runtime to build for
+
         :type pip_runner: :class:`PipRunner`
         :param pip_runner: This class is responsible for executing our pip
             on our behalf.
-
-        :type runtime: str
-        :param runtime: AWS Lambda Python runtime to build for. Defaults to Python2.7
-
         """
         self._osutils = osutils
         if pip_runner is None:
             pip_runner = PipRunner(SubprocessPip(osutils))
         self._pip = pip_runner
-        self.lambda_abi = get_lambda_abi(runtime)
+        self.runtime = runtime
 
     def build_site_packages(self, requirements_filepath,
                             target_directory,
@@ -301,8 +313,9 @@ class DependencyBuilder(object):
 
     def _download_binary_wheels(self, packages, directory):
         # Try to get binary wheels for each package that isn't compatible.
+        lambda_abi = get_lambda_abi(self.runtime)
         self._pip.download_manylinux_wheels(
-            [pkg.identifier for pkg in packages], directory, self.lambda_abi)
+            [pkg.identifier for pkg in packages], directory, lambda_abi)
 
     def _build_sdists(self, sdists, directory, compile_c=True):
         for sdist in sdists:
@@ -328,6 +341,9 @@ class DependencyBuilder(object):
         # Verify platform is compatible
         if platform not in self._MANYLINUX_COMPATIBLE_PLATFORM:
             return False
+
+        lambda_runtime_abi = get_lambda_abi(self.runtime)
+
         # Verify that the ABI is compatible with lambda. Either none or the
         # correct type for the python version cp27mu for py27 and cp36m for
         # py36.
@@ -338,7 +354,7 @@ class DependencyBuilder(object):
             # Deploying python 3 function which means we need cp36m abi
             # We can also accept abi3 which is the CPython 3 Stable ABI and
             # will work on any version of python 3.
-            return abi == self.lambda_abi or abi == 'abi3'
+            return abi == lambda_runtime_abi or abi == 'abi3'
         elif prefix_version == 'cp2':
             # Deploying to python 2 function which means we need cp27mu abi
             return abi == 'cp27mu'
