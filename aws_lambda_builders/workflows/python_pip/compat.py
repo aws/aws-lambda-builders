@@ -1,6 +1,4 @@
 import os
-import six
-import sys
 
 
 def pip_import_string():
@@ -102,10 +100,3 @@ else:
     pip_no_compile_c_env_vars = {
         'CC': '/var/false'
     }
-
-
-if six.PY3:
-    # cp37m or cp36m
-    lambda_abi = 'cp{}{}m'.format(sys.version_info.major, sys.version_info.minor)
-else:
-    lambda_abi = 'cp27mu'

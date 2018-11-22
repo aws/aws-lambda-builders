@@ -8,7 +8,6 @@ import subprocess
 from email.parser import FeedParser
 
 
-from .compat import lambda_abi
 from .compat import pip_import_string
 from .compat import pip_no_compile_c_env_vars
 from .compat import pip_no_compile_c_shim
@@ -56,6 +55,14 @@ class PackageDownloadError(PackagerError):
     pass
 
 
+def get_lambda_abi(runtime):
+    return {
+        "python2.7": "cp27mu",
+        "python3.6": "cp36m",
+        "python3.7": "cp37m"
+    }.get(runtime)
+
+
 class PythonPipDependencyBuilder(object):
     def __init__(self, osutils=None, dependency_builder=None):
         """Initialize a PythonPipDependencyBuilder.
@@ -92,8 +99,8 @@ class PythonPipDependencyBuilder(object):
 
         :type runtime: str
         :param runtime: Python version to build dependencies for. This can
-            either be python2.7 or python3.6. These are currently the only
-            supported values.
+            either be python2.7, python3.6 or python3.7. These are currently the
+            only supported values.
 
         :type ui: :class:`lambda_builders.utils.UI` or None
         :param ui: A class that traps all progress information such as status
@@ -138,7 +145,7 @@ class DependencyBuilder(object):
         'sqlalchemy'
     }
 
-    def __init__(self, osutils, pip_runner=None):
+    def __init__(self, osutils, pip_runner=None, runtime="python2.7"):
         """Initialize a DependencyBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -148,11 +155,16 @@ class DependencyBuilder(object):
         :type pip_runner: :class:`PipRunner`
         :param pip_runner: This class is responsible for executing our pip
             on our behalf.
+
+        :type runtime: str
+        :param runtime: AWS Lambda Python runtime to build for. Defaults to Python2.7
+
         """
         self._osutils = osutils
         if pip_runner is None:
             pip_runner = PipRunner(SubprocessPip(osutils))
         self._pip = pip_runner
+        self.lambda_abi = get_lambda_abi(runtime)
 
     def build_site_packages(self, requirements_filepath,
                             target_directory,
@@ -290,7 +302,7 @@ class DependencyBuilder(object):
     def _download_binary_wheels(self, packages, directory):
         # Try to get binary wheels for each package that isn't compatible.
         self._pip.download_manylinux_wheels(
-            [pkg.identifier for pkg in packages], directory)
+            [pkg.identifier for pkg in packages], directory, self.lambda_abi)
 
     def _build_sdists(self, sdists, directory, compile_c=True):
         for sdist in sdists:
@@ -326,7 +338,7 @@ class DependencyBuilder(object):
             # Deploying python 3 function which means we need cp36m abi
             # We can also accept abi3 which is the CPython 3 Stable ABI and
             # will work on any version of python 3.
-            return abi == lambda_abi or abi == 'abi3'
+            return abi == self.lambda_abi or abi == 'abi3'
         elif prefix_version == 'cp2':
             # Deploying to python 2 function which means we need cp27mu abi
             return abi == 'cp27mu'
@@ -589,7 +601,7 @@ class PipRunner(object):
             # complain at deployment time.
             self.build_wheel(wheel_package_path, directory)
 
-    def download_manylinux_wheels(self, packages, directory):
+    def download_manylinux_wheels(self, packages, directory, lambda_abi):
         """Download wheel files for manylinux for all the given packages."""
         # If any one of these dependencies fails pip will bail out. Since we
         # are only interested in all the ones we can download, we need to feed
