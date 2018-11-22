@@ -47,7 +47,7 @@ class TestPythonPipWorkflow(TestCase):
         self.assertEquals(expected_files, output_files)
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
-        with self.assertRaises(WorkflowFailedError) as ctx:
+        with self.assertRaises(WorkflowFailedError):
             self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                                runtime="python2.8")
 

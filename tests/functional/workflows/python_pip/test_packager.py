@@ -215,8 +215,7 @@ class TestDependencyBuilder(object):
     def _make_appdir_and_dependency_builder(self, reqs, tmpdir, runner):
         appdir = str(_create_app_structure(tmpdir))
         self._write_requirements_txt(reqs, appdir)
-        runtime = "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
-        builder = DependencyBuilder(OSUtils(), runtime, runner)
+        builder = DependencyBuilder(OSUtils(), "python3.6", runner)
         return appdir, builder
 
     def test_can_build_local_dir_as_whl(self, tmpdir, pip_runner, osutils):
