@@ -55,7 +55,7 @@ setup(
             '{}=aws_lambda_builders.__main__:main'.format(cmd_name)
         ]
     },
-    install_requires=read_requirements('base.txt'),
+    install_requires=read_requirements('base.txt') + read_requirements("python_pip.txt"),
     extras_require={
         'dev': read_requirements('dev.txt')
     },
