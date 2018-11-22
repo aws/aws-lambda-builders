@@ -94,6 +94,7 @@ def main():  # pylint: disable=too-many-statements
                       params["scratch_dir"],
                       params["manifest_path"],
                       runtime=params["runtime"],
+                      runtime_path=params["runtime_path"],
                       optimizations=params["optimizations"],
                       options=params["options"])
 

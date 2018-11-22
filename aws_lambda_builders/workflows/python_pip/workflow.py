@@ -1,11 +1,16 @@
 """
 Python PIP Workflow
 """
+import logging
 
+from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
+
+LOG = logging.getLogger(__name__)
 
 
 class PythonPipWorkflow(BaseWorkflow):
@@ -54,17 +59,25 @@ class PythonPipWorkflow(BaseWorkflow):
                  artifacts_dir,
                  scratch_dir,
                  manifest_path,
-                 runtime=None, **kwargs):
+                 runtime_path=None,
+                 runtime=None,
+                 **kwargs):
+
+        self.runtime_path = PathResolver(language=self.CAPABILITY.language, runtime=runtime).path
 
         super(PythonPipWorkflow, self).__init__(source_dir,
                                                 artifacts_dir,
                                                 scratch_dir,
                                                 manifest_path,
+                                                runtime_path=self.runtime_path,
                                                 runtime=runtime,
                                                 **kwargs)
 
         self.actions = [
             PythonPipBuildAction(artifacts_dir, scratch_dir,
-                                 manifest_path, runtime),
+                                 manifest_path, runtime, runtime_path=self.runtime_path),
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
+
+    def get_validator(self, runtime):
+        return PythonRuntimeValidator(language_runtime=runtime)

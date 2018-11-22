@@ -61,6 +61,7 @@ class TestCliWithHelloWorkflow(TestCase):
                 "scratch_dir": "/ignored",
                 "manifest_path": "/ignored",
                 "runtime": "ignored",
+                "runtime_path": "ignored_path",
                 "optimizations": {},
                 "options": {},
             }

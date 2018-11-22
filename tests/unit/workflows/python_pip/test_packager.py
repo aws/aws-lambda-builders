@@ -47,7 +47,7 @@ class FakePip(object):
 def pip_factory():
     def create_pip_runner(osutils=None):
         pip = FakePip()
-        pip_runner = PipRunner(pip, osutils=osutils)
+        pip_runner = PipRunner(sys.executable, pip, osutils=osutils)
         return pip, pip_runner
     return create_pip_runner
 

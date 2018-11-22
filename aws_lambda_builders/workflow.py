@@ -2,15 +2,16 @@
 Implementation of a base workflow
 """
 
-import os
 import logging
-
+import os
 from collections import namedtuple
+
 import six
 
-from aws_lambda_builders.registry import DEFAULT_REGISTRY
-from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError, MisMatchRuntimeError
+from aws_lambda_builders.registry import DEFAULT_REGISTRY
+from aws_lambda_builders.validator import RuntimeValidator
 
 LOG = logging.getLogger(__name__)
 
@@ -78,6 +79,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                  artifacts_dir,
                  scratch_dir,
                  manifest_path,
+                 runtime_path,
                  runtime=None,
                  optimizations=None,
                  options=None):
@@ -123,9 +125,23 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.runtime = runtime
         self.optimizations = optimizations
         self.options = options
+        self.runtime_path = runtime_path
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
+
+    def get_validator(self, runtime):
+
+        class EmptyRuntimeValidator(RuntimeValidator):
+            def __init__(self):
+                pass
+
+            def has_runtime(self):
+                pass
+
+            def validate_runtime(self, runtime_path):
+                pass
+        return EmptyRuntimeValidator()
 
     def is_supported(self):
         """
@@ -138,6 +154,10 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         return True
 
+    def resolve_runtime(self):
+        if self.runtime:
+            self.get_validator(self.runtime).validate_runtime(self.runtime_path)
+
     def run(self):
         """
         Actually perform the build by executing registered actions.
@@ -149,6 +169,15 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
 
         LOG.debug("Running workflow '%s'", self.NAME)
+
+        try:
+            self.resolve_runtime()
+        except MisMatchRuntimeError as ex:
+            raise WorkflowFailedError(workflow_name=self.NAME,
+                                      action_name=None,
+                                      reason=str(ex))
+
+        LOG.info("%s path : '%s'", self.CAPABILITY.language, self.runtime_path)
 
         if not self.actions:
             raise WorkflowFailedError(workflow_name=self.NAME,

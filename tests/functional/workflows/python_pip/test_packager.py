@@ -1,4 +1,5 @@
 import os
+import sys
 import zipfile
 import tarfile
 import io
@@ -16,7 +17,6 @@ from aws_lambda_builders.workflows.python_pip.packager import SubprocessPip
 from aws_lambda_builders.workflows.python_pip.packager import SDistMetadataFetcher
 from aws_lambda_builders.workflows.python_pip.packager import \
     InvalidSourceDistributionNameError
-from aws_lambda_builders.workflows.python_pip.compat import lambda_abi
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_env_vars
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_shim
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
@@ -644,7 +644,7 @@ class TestDependencyBuilder(object):
             expected_args=[
                 '--only-binary=:all:', '--no-deps', '--platform',
                 'manylinux1_x86_64', '--implementation', 'cp',
-                '--abi', lambda_abi, '--dest', mock.ANY,
+                '--abi', 'cp36m', '--dest', mock.ANY,
                 'bar==1.2'
             ],
             packages=[
@@ -677,7 +677,7 @@ class TestDependencyBuilder(object):
             expected_args=[
                 '--only-binary=:all:', '--no-deps', '--platform',
                 'manylinux1_x86_64', '--implementation', 'cp',
-                '--abi', lambda_abi, '--dest', mock.ANY,
+                '--abi', 'cp36m', '--dest', mock.ANY,
                 'sqlalchemy==1.1.18'
             ],
             packages=[
@@ -839,7 +839,7 @@ class TestDependencyBuilder(object):
             expected_args=[
                 '--only-binary=:all:', '--no-deps', '--platform',
                 'manylinux1_x86_64', '--implementation', 'cp',
-                '--abi', lambda_abi, '--dest', mock.ANY,
+                '--abi', 'cp36m', '--dest', mock.ANY,
                 'foo==1.2'
             ],
             packages=[

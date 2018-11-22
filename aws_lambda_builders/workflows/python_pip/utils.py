@@ -3,6 +3,7 @@ Commonly used utilities
 """
 
 import io
+import sys
 import os
 import zipfile
 import contextlib

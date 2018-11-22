@@ -87,6 +87,7 @@ class TestBaseWorkflow_init(TestCase):
     def test_must_initialize_variables(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    runtime_path="runtime_path",
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -95,6 +96,7 @@ class TestBaseWorkflow_init(TestCase):
         self.assertEquals(self.work.scratch_dir, "scratch_dir")
         self.assertEquals(self.work.manifest_path, "manifest_path")
         self.assertEquals(self.work.runtime, "runtime")
+        self.assertEquals(self.work.runtime_path, "runtime_path")
         self.assertEquals(self.work.optimizations, {"a": "b"})
         self.assertEquals(self.work.options, {"c": "d"})
 
@@ -111,6 +113,7 @@ class TestBaseWorkflow_is_supported(TestCase):
     def setUp(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    runtime_path="runtime_path",
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -148,6 +151,7 @@ class TestBaseWorkflow_run(TestCase):
     def setUp(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    runtime_path="runtime_path",
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -216,6 +220,7 @@ class TestBaseWorkflow_repr(TestCase):
 
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    runtime_path="runtime_path",
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 

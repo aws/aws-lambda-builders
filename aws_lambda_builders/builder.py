@@ -6,7 +6,6 @@ import importlib
 import logging
 
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
-from aws_lambda_builders.validate import RuntimeValidator
 from aws_lambda_builders.workflow import Capability
 
 LOG = logging.getLogger(__name__)
@@ -56,7 +55,7 @@ class LambdaBuilder(object):
         LOG.debug("Found workflow '%s' to support capabilities '%s'", self.selected_workflow_cls.NAME, self.capability)
 
     def build(self, source_dir, artifacts_dir, scratch_dir, manifest_path,
-              runtime=None, optimizations=None, options=None):
+              runtime=None, runtime_path=None, optimizations=None, options=None):
         """
         Actually build the code by running workflows
 
@@ -90,30 +89,18 @@ class LambdaBuilder(object):
         :param options:
             Optional dictionary of options ot pass to build action. **Not supported**.
         """
-        if runtime:
-            self._validate_runtime(runtime)
-
-
+        # import ipdb
+        # ipdb.set_trace()
         workflow = self.selected_workflow_cls(source_dir,
                                               artifacts_dir,
                                               scratch_dir,
                                               manifest_path,
                                               runtime=runtime,
+                                              runtime_path=runtime_path,
                                               optimizations=optimizations,
                                               options=options)
 
         return workflow.run()
-
-    def _validate_runtime(self, runtime):
-        """
-        validate runtime and local runtime version to make sure they match
-
-        :type runtime: str
-        :param runtime:
-            String matching a lambda runtime eg: python3.6
-        """
-        RuntimeValidator.validate_runtime(required_language=self.capability.language,
-                                          required_runtime=runtime)
 
     def _clear_workflows(self):
         DEFAULT_REGISTRY.clear()

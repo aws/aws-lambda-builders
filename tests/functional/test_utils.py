@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from aws_lambda_builders.utils import copytree
 
+
 class TestCopyTree(TestCase):
 
     def setUp(self):

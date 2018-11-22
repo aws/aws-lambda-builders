@@ -23,6 +23,9 @@ class Purpose(object):
     Enum like object to describe the purpose of each action.
     """
 
+    # Action is identifying language version against provided runtime
+    RESOLVE_LANGUAGE_VERSION = "RESOLVE_LANGUAGE_VERSION"
+
     # Action is identifying dependencies, downloading, compiling and resolving them
     RESOLVE_DEPENDENCIES = "RESOLVE_DEPENDENCIES"
 
