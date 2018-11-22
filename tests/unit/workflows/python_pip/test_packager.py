@@ -1,4 +1,3 @@
-import sys
 from collections import namedtuple
 
 import mock
@@ -12,6 +11,7 @@ from aws_lambda_builders.workflows.python_pip.packager import PythonPipDependenc
 from aws_lambda_builders.workflows.python_pip.packager import Package
 from aws_lambda_builders.workflows.python_pip.packager import PipRunner
 from aws_lambda_builders.workflows.python_pip.packager import SubprocessPip
+from aws_lambda_builders.workflows.python_pip.packager import get_lambda_abi
 from aws_lambda_builders.workflows.python_pip.packager \
     import InvalidSourceDistributionNameError
 from aws_lambda_builders.workflows.python_pip.packager import NoSuchPackageError
@@ -85,6 +85,17 @@ class FakePopenOSUtils(OSUtils):
         return self._processes.pop()
 
 
+class TestGetLambdaAbi(object):
+    def test_get_lambda_abi_python27(self):
+        assert "cp27mu" == get_lambda_abi("python2.7")
+
+    def test_get_lambda_abi_python36(self):
+        assert "cp36m" == get_lambda_abi("python3.6")
+
+    def test_get_lambda_abi_python37(self):
+        assert "cp37m" == get_lambda_abi("python3.7")
+
+
 class TestPythonPipDependencyBuilder(object):
     def test_can_call_dependency_builder(self, osutils):
         mock_dep_builder = mock.Mock(spec=DependencyBuilder)
@@ -92,10 +103,11 @@ class TestPythonPipDependencyBuilder(object):
         builder = PythonPipDependencyBuilder(
             osutils=osutils_mock,
             dependency_builder=mock_dep_builder,
+            runtime="runtime"
         )
         builder.build_dependencies(
             'artifacts/path/', 'scratch_dir/path/',
-            'path/to/requirements.txt', 'python3.6'
+            'path/to/requirements.txt'
         )
         mock_dep_builder.build_site_packages.assert_called_once_with(
             'path/to/requirements.txt', 'artifacts/path/', 'scratch_dir/path/')
@@ -218,14 +230,10 @@ class TestPipRunner(object):
         # for getting lambda compatible wheels.
         pip, runner = pip_factory()
         packages = ['foo', 'bar', 'baz']
-        runner.download_manylinux_wheels(packages, 'directory')
-        if sys.version_info[0] == 2:
-            abi = 'cp27mu'
-        else:
-            abi = 'cp36m'
+        runner.download_manylinux_wheels(packages, 'directory', "abi")
         expected_prefix = ['download', '--only-binary=:all:', '--no-deps',
                            '--platform', 'manylinux1_x86_64',
-                           '--implementation', 'cp', '--abi', abi,
+                           '--implementation', 'cp', '--abi', "abi",
                            '--dest', 'directory']
         for i, package in enumerate(packages):
             assert pip.calls[i].args == expected_prefix + [package]
@@ -234,7 +242,7 @@ class TestPipRunner(object):
 
     def test_download_wheels_no_wheels(self, pip_factory):
         pip, runner = pip_factory()
-        runner.download_manylinux_wheels([], 'directory')
+        runner.download_manylinux_wheels([], 'directory', "abi")
         assert len(pip.calls) == 0
 
     def test_raise_no_such_package_error(self, pip_factory):
