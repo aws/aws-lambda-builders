@@ -20,8 +20,7 @@ class TestPythonPipBuildAction(TestCase):
 
         builder_instance.build_dependencies.assert_called_with("artifacts",
                                                                "scratch_dir",
-                                                               "manifest",
-                                                               "runtime")
+                                                               "manifest")
 
     @patch("aws_lambda_builders.workflows.python_pip.actions.PythonPipDependencyBuilder")
     def test_must_raise_exception_on_failure(self, PythonPipDependencyBuilderMock):

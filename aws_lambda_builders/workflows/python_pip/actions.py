@@ -17,15 +17,14 @@ class PythonPipBuildAction(BaseAction):
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
         self.runtime = runtime
-        self.package_builder = PythonPipDependencyBuilder()
+        self.package_builder = PythonPipDependencyBuilder(runtime=runtime)
 
     def execute(self):
         try:
             self.package_builder.build_dependencies(
                 self.artifacts_dir,
                 self.manifest_path,
-                self.scratch_dir,
-                self.runtime,
+                self.scratch_dir
             )
         except PackagerError as ex:
             raise ActionFailedError(str(ex))
