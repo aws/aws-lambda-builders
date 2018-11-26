@@ -13,7 +13,7 @@ class MockSubProcess(object):
         self.returncode = returncode
 
     def communicate(self):
-        pass
+        return b'python3,6', None
 
 
 class TestRuntime(TestCase):
@@ -44,6 +44,7 @@ class TestRuntime(TestCase):
 
     def test_python_command(self):
         cmd = validate_python_cmd("python", "python2.7")
-        version_strings = ["sys.version_info.major == 2", "sys.version_info.minor == 7"]
+        version_strings = ["sys.stdout.write", "sys.version_info.major == 2",
+                           "sys.version_info.minor == 7"]
         for version_string in version_strings:
             self.assertTrue(any([part for part in cmd if version_string in part]))
