@@ -6,7 +6,7 @@ import tempfile
 from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.exceptions import WorkflowFailedError, MisMatchRuntimeError
 
 
 class TestPythonPipWorkflow(TestCase):
@@ -33,6 +33,12 @@ class TestPythonPipWorkflow(TestCase):
             language=self.builder.capability.language,
             major=sys.version_info.major,
             minor=sys.version_info.minor)
+        self.runtime_mismatch = {
+            'python3.6': 'python2.7',
+            'python3.7': 'python2.7',
+            'python2.7': 'python3.6'
+
+        }
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -45,6 +51,15 @@ class TestPythonPipWorkflow(TestCase):
         expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEquals(expected_files, output_files)
+
+    def test_mismatch_runtime_python_project(self):
+        with self.assertRaises(MisMatchRuntimeError) as mismatch_error:
+            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
+                               runtime=self.runtime_mismatch[self.runtime])
+            self.assertEquals(mismatch_error.msg,
+                              MisMatchRuntimeError(language="python",
+                                                   required_runtime=self.runtime_mismatch[self.runtime],
+                                                   found_runtime=self.runtime).MESSAGE)
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
         with self.assertRaises(WorkflowFailedError):
