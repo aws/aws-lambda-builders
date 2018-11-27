@@ -17,7 +17,6 @@ def validate_python_cmd(required_language, required_runtime_version):
         "python",
         "-c",
         "import sys; "
-        "sys.stdout.write('python' + str(sys.version_info.major) + '.' + str(sys.version_info.minor)); "
         "assert sys.version_info.major == {major} "
         "and sys.version_info.minor == {minor}".format(
             major=major,
@@ -64,11 +63,10 @@ class RuntimeValidator(object):
             p = subprocess.Popen(cmd,
                                  cwd=os.getcwd(),
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            found_runtime, _ = p.communicate()
+            p.communicate()
             if p.returncode != 0:
                 raise MisMatchRuntimeError(language=required_language,
-                                           required_runtime=required_runtime,
-                                           found_runtime=str(found_runtime.decode('utf-8')))
+                                           required_runtime=required_runtime)
         else:
             LOG.warning("'%s' runtime has not "
                         "been validated!", required_language)
