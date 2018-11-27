@@ -5,7 +5,6 @@ Installs packages using PIP
 import sys
 import re
 import subprocess
-import logging
 from email.parser import FeedParser
 
 
@@ -14,8 +13,6 @@ from .compat import pip_import_string
 from .compat import pip_no_compile_c_env_vars
 from .compat import pip_no_compile_c_shim
 from .utils import OSUtils
-
-LOG = logging.getLogger(__name__)
 
 
 # TODO update the wording here
@@ -232,9 +229,6 @@ class DependencyBuilder(object):
                 else:
                     incompatible_wheels.add(package)
 
-        LOG.debug("initial compatible: %s", compatible_wheels)
-        LOG.debug("initial incompatible: %s", incompatible_wheels | sdists)
-
         # Next we need to go through the downloaded packages and pick out any
         # dependencies that do not have a compatible wheel file downloaded.
         # For these packages we need to explicitly try to download a
@@ -248,10 +242,6 @@ class DependencyBuilder(object):
         # file ourselves.
         compatible_wheels, incompatible_wheels = self._categorize_wheel_files(
             directory)
-        LOG.debug(
-            "compatible wheels after second download pass: %s",
-            compatible_wheels
-        )
         missing_wheels = sdists - compatible_wheels
         self._build_sdists(missing_wheels, directory, compile_c=True)
 
@@ -265,10 +255,6 @@ class DependencyBuilder(object):
         # compiler.
         compatible_wheels, incompatible_wheels = self._categorize_wheel_files(
             directory)
-        LOG.debug(
-            "compatible after building wheels (no C compiling): %s",
-            compatible_wheels
-        )
         missing_wheels = sdists - compatible_wheels
         self._build_sdists(missing_wheels, directory, compile_c=False)
 
@@ -278,10 +264,6 @@ class DependencyBuilder(object):
         # compatible version directly and building from source.
         compatible_wheels, incompatible_wheels = self._categorize_wheel_files(
             directory)
-        LOG.debug(
-            "compatible after building wheels (C compiling): %s",
-            compatible_wheels
-        )
 
         # Now there is still the case left over where the setup.py has been
         # made in such a way to be incompatible with python's setup tools,
@@ -291,9 +273,6 @@ class DependencyBuilder(object):
         compatible_wheels, incompatible_wheels = self._apply_wheel_whitelist(
             compatible_wheels, incompatible_wheels)
         missing_wheels = deps - compatible_wheels
-        LOG.debug("Final compatible: %s", compatible_wheels)
-        LOG.debug("Final incompatible: %s", incompatible_wheels)
-        LOG.debug("Final missing wheels: %s", missing_wheels)
 
         return compatible_wheels, missing_wheels
 
@@ -306,18 +285,14 @@ class DependencyBuilder(object):
         self._pip.download_all_dependencies(requirements_filename, directory)
         deps = {Package(directory, filename) for filename
                 in self._osutils.get_directory_contents(directory)}
-        LOG.debug("Full dependency closure: %s", deps)
         return deps
 
     def _download_binary_wheels(self, packages, directory):
         # Try to get binary wheels for each package that isn't compatible.
-        LOG.debug("Downloading missing wheels: %s", packages)
         self._pip.download_manylinux_wheels(
             [pkg.identifier for pkg in packages], directory)
 
     def _build_sdists(self, sdists, directory, compile_c=True):
-        LOG.debug("Build missing wheels from sdists "
-                  "(C compiling %s): %s", compile_c, sdists)
         for sdist in sdists:
             path_to_sdist = self._osutils.joinpath(directory, sdist.filename)
             self._pip.build_wheel(path_to_sdist, directory, compile_c)
@@ -562,7 +537,6 @@ class PipRunner(object):
     def _execute(self, command, args, env_vars=None, shim=None):
         """Execute a pip command with the given arguments."""
         main_args = [command] + args
-        LOG.debug("calling pip %s", ' '.join(main_args))
         rc, out, err = self._wrapped_pip.main(main_args, env_vars=env_vars,
                                               shim=shim)
         return rc, out, err
