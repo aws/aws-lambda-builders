@@ -5,7 +5,7 @@
 This package is an effort to port the Chalice packager to a library that can
 be used to handle the dependency resilution portion of packaging Python code
 for use in AWS Lambda. The scope for this builder is to take an existing
-directory containing customer code, and a top-level `requirements.txt` file
+directory containing customer code, and a top-levle `requirements.txt` file
 specifying third party depedencies. The builder will examine the dependencies
 and use pip to build and include the dependencies in the customer code bundle
 in a way that makes them importable.
