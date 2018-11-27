@@ -61,8 +61,10 @@ class RuntimeValidator(object):
                 return
             cmd = _RUNTIME_VERSION_RESOLVER[required_language](required_language, required_runtime)
 
+            # NOTE(TheSriram): Spawning an intermediate shell only on windows.
             p = subprocess.Popen(cmd,
                                  cwd=os.getcwd(),
+                                 shell=True if os.name == 'nt' else False,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             found_runtime, _ = p.communicate()
             if p.returncode != 0:
