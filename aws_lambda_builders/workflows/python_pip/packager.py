@@ -5,14 +5,16 @@ Installs packages using PIP
 import sys
 import re
 import subprocess
+import logging
 from email.parser import FeedParser
 
 
-from .compat import lambda_abi
 from .compat import pip_import_string
 from .compat import pip_no_compile_c_env_vars
 from .compat import pip_no_compile_c_shim
 from .utils import OSUtils
+
+LOG = logging.getLogger(__name__)
 
 
 # TODO update the wording here
@@ -56,9 +58,35 @@ class PackageDownloadError(PackagerError):
     pass
 
 
+class UnsupportedPythonVersion(PackagerError):
+    """Generic networking error during a package download."""
+    def __init__(self, version):
+        super(UnsupportedPythonVersion, self).__init__(
+            "'%s' version of python is not supported" % version
+        )
+
+
+def get_lambda_abi(runtime):
+    supported = {
+        "python2.7": "cp27mu",
+        "python3.6": "cp36m",
+        "python3.7": "cp37m"
+    }
+
+    if runtime not in supported:
+        raise UnsupportedPythonVersion(runtime)
+
+    return supported[runtime]
+
+
 class PythonPipDependencyBuilder(object):
-    def __init__(self, osutils=None, dependency_builder=None):
+    def __init__(self, runtime, osutils=None, dependency_builder=None):
         """Initialize a PythonPipDependencyBuilder.
+
+        :type runtime: str
+        :param runtime: Python version to build dependencies for. This can
+            either be python2.7, python3.6 or python3.7. These are currently the
+            only supported values.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
         :param osutils: A class used for all interactions with the
@@ -73,11 +101,11 @@ class PythonPipDependencyBuilder(object):
             self.osutils = OSUtils()
 
         if dependency_builder is None:
-            dependency_builder = DependencyBuilder(self.osutils)
+            dependency_builder = DependencyBuilder(self.osutils, runtime)
         self._dependency_builder = dependency_builder
 
     def build_dependencies(self, artifacts_dir_path, scratch_dir_path,
-                           requirements_path, runtime, ui=None, config=None):
+                           requirements_path, ui=None, config=None):
         """Builds a python project's dependencies into an artifact directory.
 
         :type artifacts_dir_path: str
@@ -89,11 +117,6 @@ class PythonPipDependencyBuilder(object):
         :type requirements_path: str
         :param requirements_path: Path to a requirements.txt file to inspect
             for a list of dependencies.
-
-        :type runtime: str
-        :param runtime: Python version to build dependencies for. This can
-            either be python2.7 or python3.6. These are currently the only
-            supported values.
 
         :type ui: :class:`lambda_builders.utils.UI` or None
         :param ui: A class that traps all progress information such as status
@@ -138,12 +161,15 @@ class DependencyBuilder(object):
         'sqlalchemy'
     }
 
-    def __init__(self, osutils, pip_runner=None):
+    def __init__(self, osutils, runtime, pip_runner=None):
         """Initialize a DependencyBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
         :param osutils: A class used for all interactions with the
             outside OS.
+
+        :type runtime: str
+        :param runtime: AWS Lambda Python runtime to build for
 
         :type pip_runner: :class:`PipRunner`
         :param pip_runner: This class is responsible for executing our pip
@@ -153,6 +179,7 @@ class DependencyBuilder(object):
         if pip_runner is None:
             pip_runner = PipRunner(SubprocessPip(osutils))
         self._pip = pip_runner
+        self.runtime = runtime
 
     def build_site_packages(self, requirements_filepath,
                             target_directory,
@@ -229,6 +256,9 @@ class DependencyBuilder(object):
                 else:
                     incompatible_wheels.add(package)
 
+        LOG.debug("initial compatible: %s", compatible_wheels)
+        LOG.debug("initial incompatible: %s", incompatible_wheels | sdists)
+
         # Next we need to go through the downloaded packages and pick out any
         # dependencies that do not have a compatible wheel file downloaded.
         # For these packages we need to explicitly try to download a
@@ -242,6 +272,10 @@ class DependencyBuilder(object):
         # file ourselves.
         compatible_wheels, incompatible_wheels = self._categorize_wheel_files(
             directory)
+        LOG.debug(
+            "compatible wheels after second download pass: %s",
+            compatible_wheels
+        )
         missing_wheels = sdists - compatible_wheels
         self._build_sdists(missing_wheels, directory, compile_c=True)
 
@@ -255,6 +289,10 @@ class DependencyBuilder(object):
         # compiler.
         compatible_wheels, incompatible_wheels = self._categorize_wheel_files(
             directory)
+        LOG.debug(
+            "compatible after building wheels (no C compiling): %s",
+            compatible_wheels
+        )
         missing_wheels = sdists - compatible_wheels
         self._build_sdists(missing_wheels, directory, compile_c=False)
 
@@ -264,6 +302,10 @@ class DependencyBuilder(object):
         # compatible version directly and building from source.
         compatible_wheels, incompatible_wheels = self._categorize_wheel_files(
             directory)
+        LOG.debug(
+            "compatible after building wheels (C compiling): %s",
+            compatible_wheels
+        )
 
         # Now there is still the case left over where the setup.py has been
         # made in such a way to be incompatible with python's setup tools,
@@ -273,6 +315,9 @@ class DependencyBuilder(object):
         compatible_wheels, incompatible_wheels = self._apply_wheel_whitelist(
             compatible_wheels, incompatible_wheels)
         missing_wheels = deps - compatible_wheels
+        LOG.debug("Final compatible: %s", compatible_wheels)
+        LOG.debug("Final incompatible: %s", incompatible_wheels)
+        LOG.debug("Final missing wheels: %s", missing_wheels)
 
         return compatible_wheels, missing_wheels
 
@@ -285,14 +330,19 @@ class DependencyBuilder(object):
         self._pip.download_all_dependencies(requirements_filename, directory)
         deps = {Package(directory, filename) for filename
                 in self._osutils.get_directory_contents(directory)}
+        LOG.debug("Full dependency closure: %s", deps)
         return deps
 
     def _download_binary_wheels(self, packages, directory):
         # Try to get binary wheels for each package that isn't compatible.
+        LOG.debug("Downloading missing wheels: %s", packages)
+        lambda_abi = get_lambda_abi(self.runtime)
         self._pip.download_manylinux_wheels(
-            [pkg.identifier for pkg in packages], directory)
+            [pkg.identifier for pkg in packages], directory, lambda_abi)
 
     def _build_sdists(self, sdists, directory, compile_c=True):
+        LOG.debug("Build missing wheels from sdists "
+                  "(C compiling %s): %s", compile_c, sdists)
         for sdist in sdists:
             path_to_sdist = self._osutils.joinpath(directory, sdist.filename)
             self._pip.build_wheel(path_to_sdist, directory, compile_c)
@@ -316,6 +366,9 @@ class DependencyBuilder(object):
         # Verify platform is compatible
         if platform not in self._MANYLINUX_COMPATIBLE_PLATFORM:
             return False
+
+        lambda_runtime_abi = get_lambda_abi(self.runtime)
+
         # Verify that the ABI is compatible with lambda. Either none or the
         # correct type for the python version cp27mu for py27 and cp36m for
         # py36.
@@ -326,7 +379,7 @@ class DependencyBuilder(object):
             # Deploying python 3 function which means we need cp36m abi
             # We can also accept abi3 which is the CPython 3 Stable ABI and
             # will work on any version of python 3.
-            return abi == 'cp36m' or abi == 'abi3'
+            return abi == lambda_runtime_abi or abi == 'abi3'
         elif prefix_version == 'cp2':
             # Deploying to python 2 function which means we need cp27mu abi
             return abi == 'cp27mu'
@@ -537,6 +590,7 @@ class PipRunner(object):
     def _execute(self, command, args, env_vars=None, shim=None):
         """Execute a pip command with the given arguments."""
         main_args = [command] + args
+        LOG.debug("calling pip %s", ' '.join(main_args))
         rc, out, err = self._wrapped_pip.main(main_args, env_vars=env_vars,
                                               shim=shim)
         return rc, out, err
@@ -589,7 +643,7 @@ class PipRunner(object):
             # complain at deployment time.
             self.build_wheel(wheel_package_path, directory)
 
-    def download_manylinux_wheels(self, packages, directory):
+    def download_manylinux_wheels(self, packages, directory, lambda_abi):
         """Download wheel files for manylinux for all the given packages."""
         # If any one of these dependencies fails pip will bail out. Since we
         # are only interested in all the ones we can download, we need to feed

@@ -16,8 +16,10 @@ class UnsupportedManifestError(LambdaBuilderError):
 
 
 class MisMatchRuntimeError(LambdaBuilderError):
-    MESSAGE = "A runtime version mismatch was found for the given language " \
-              "'{language}', required runtime '{required_runtime}'"
+    MESSAGE = "{language} executable found in your path does not " \
+              "match runtime. " \
+              "\n Expected version: {required_runtime}, Found version: {found_runtime}. " \
+              "\n Possibly related: https://github.com/awslabs/aws-lambda-builders/issues/30"
 
 
 class WorkflowNotFoundError(LambdaBuilderError):
