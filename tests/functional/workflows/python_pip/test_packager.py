@@ -1,4 +1,3 @@
-import sys
 import os
 import zipfile
 import tarfile
@@ -17,7 +16,7 @@ from aws_lambda_builders.workflows.python_pip.packager import SubprocessPip
 from aws_lambda_builders.workflows.python_pip.packager import SDistMetadataFetcher
 from aws_lambda_builders.workflows.python_pip.packager import \
     InvalidSourceDistributionNameError
-from aws_lambda_builders.workflows.python_pip.packager import get_lambda_abi
+from aws_lambda_builders.workflows.python_pip.compat import lambda_abi
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_env_vars
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_shim
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
@@ -215,7 +214,7 @@ class TestDependencyBuilder(object):
     def _make_appdir_and_dependency_builder(self, reqs, tmpdir, runner):
         appdir = str(_create_app_structure(tmpdir))
         self._write_requirements_txt(reqs, appdir)
-        builder = DependencyBuilder(OSUtils(), "python3.6", runner)
+        builder = DependencyBuilder(OSUtils(), runner)
         return appdir, builder
 
     def test_can_build_local_dir_as_whl(self, tmpdir, pip_runner, osutils):
@@ -645,7 +644,7 @@ class TestDependencyBuilder(object):
             expected_args=[
                 '--only-binary=:all:', '--no-deps', '--platform',
                 'manylinux1_x86_64', '--implementation', 'cp',
-                '--abi', get_lambda_abi(builder.runtime), '--dest', mock.ANY,
+                '--abi', lambda_abi, '--dest', mock.ANY,
                 'bar==1.2'
             ],
             packages=[
@@ -678,7 +677,7 @@ class TestDependencyBuilder(object):
             expected_args=[
                 '--only-binary=:all:', '--no-deps', '--platform',
                 'manylinux1_x86_64', '--implementation', 'cp',
-                '--abi', get_lambda_abi(builder.runtime), '--dest', mock.ANY,
+                '--abi', lambda_abi, '--dest', mock.ANY,
                 'sqlalchemy==1.1.18'
             ],
             packages=[
@@ -840,7 +839,7 @@ class TestDependencyBuilder(object):
             expected_args=[
                 '--only-binary=:all:', '--no-deps', '--platform',
                 'manylinux1_x86_64', '--implementation', 'cp',
-                '--abi', get_lambda_abi(builder.runtime), '--dest', mock.ANY,
+                '--abi', lambda_abi, '--dest', mock.ANY,
                 'foo==1.2'
             ],
             packages=[

@@ -32,8 +32,7 @@ _RUNTIME_VERSION_RESOLVER = {
 class RuntimeValidator(object):
     SUPPORTED_RUNTIMES = [
         "python2.7",
-        "python3.6",
-        "python3.7",
+        "python3.6"
     ]
 
     @classmethod
