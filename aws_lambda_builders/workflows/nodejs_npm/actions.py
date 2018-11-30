@@ -11,6 +11,50 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
+class NodejsNpmPackAction(BaseAction):
+
+    NAME = 'CopySource'
+    DESCRIPTION = "Packaging source using NPM"
+    PURPOSE = Purpose.COPY_SOURCE
+
+    def __init__(self, artifacts_dir, scratch_dir, manifest_path, runtime, osutils=None, subprocess_npm=None):
+        self.artifacts_dir = artifacts_dir
+        self.manifest_path = manifest_path
+        self.scratch_dir = scratch_dir
+        self.runtime = runtime
+
+        self.osutils = osutils
+        if osutils is None:
+            self.osutils = OSUtils()
+
+        self.subprocess_npm = subprocess_npm
+
+        if self.subprocess_npm is None:
+            self.subprocess_npm = SubprocessNpm(self.osutils)
+
+    def execute(self):
+        try:
+            if not self.osutils.file_exists(self.manifest_path):
+                raise ActionFailedError('package.json not found in: %s' % self.manifest_path)
+
+            package_path = "file:%s" % self.osutils.abspath(self.osutils.dirname(self.manifest_path))
+
+            LOG.debug("NODEJS packaging %s to %s", package_path, self.scratch_dir)
+
+            tarfile_name = self.subprocess_npm.main(['pack', '-q', package_path], cwd=self.scratch_dir)
+
+            LOG.debug("NODEJS packed to %s", tarfile_name)
+
+            tarfile_path = self.osutils.joinpath(self.scratch_dir, tarfile_name)
+
+            self.osutils.extract_tarfile(tarfile_path, tarfile_path + '-unpacked')
+
+            self.osutils.copytree(self.osutils.joinpath(tarfile_path + '-unpacked', 'package'), self.artifacts_dir)
+
+        except NpmError as ex:
+            raise ActionFailedError(str(ex))
+
+
 class NodejsNpmInstallAction(BaseAction):
 
     NAME = 'ResolveDependencies'
@@ -34,12 +78,15 @@ class NodejsNpmInstallAction(BaseAction):
 
     def execute(self):
         try:
-            LOG.debug("NODEJS building in: %s from: %s", self.artifacts_dir, self.manifest_path)
+            LOG.debug("NODEJS installing in: %s from: %s", self.artifacts_dir, self.manifest_path)
 
             if not self.osutils.file_exists(self.osutils.joinpath(self.artifacts_dir, 'package.json')):
                 raise ActionFailedError('package.json not found in: %s' % self.artifacts_dir)
 
-            self.subprocess_npm.main(['install', '--production'], cwd=self.artifacts_dir)
+            self.subprocess_npm.main(
+                    ['install', '-q', '--no-audit', '--no-save', '--production'],
+                    cwd=self.artifacts_dir
+            )
 
         except NpmError as ex:
             raise ActionFailedError(str(ex))

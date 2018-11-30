@@ -19,6 +19,12 @@ class NpmNotFoundError(NpmError):
             'NPM executable not found: %s' % npm_path)
 
 
+class NpmExecutionError(NpmError):
+    def __init__(self, err):
+        super(NpmExecutionError, self).__init__(
+            'NPM failed: %s' % err)
+
+
 class SubprocessNpm(object):
 
     def __init__(self, osutils=None, npm_exe=None):
@@ -47,6 +53,10 @@ class SubprocessNpm(object):
                                 stderr=self._osutils.pipe,
                                 env=env_vars,
                                 cwd=cwd)
+
         out, err = p.communicate()
-        rc = p.returncode
-        return rc, out, err
+
+        if (p.returncode != 0):
+            raise NpmExecutionError(err)
+
+        return out.decode('utf8').strip()

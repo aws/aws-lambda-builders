@@ -90,3 +90,9 @@ class OSUtils(object):
 
     def find_executable(self, execname):
         return distutils.spawn.find_executable(execname)
+
+    def dirname(self, path):
+        return os.path.dirname(path)
+
+    def abspath(self, path):
+        return os.path.abspath(path)
