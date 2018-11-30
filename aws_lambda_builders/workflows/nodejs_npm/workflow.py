@@ -5,7 +5,7 @@ NodeJS NPM Workflow
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 
-from .actions import NodejsNpmBuildAction
+from .actions import NodejsNpmInstallAction
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -38,5 +38,5 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         self.actions = [
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            NodejsNpmBuildAction(artifacts_dir, scratch_dir, manifest_path, runtime)
+            NodejsNpmInstallAction(artifacts_dir, scratch_dir, manifest_path, runtime)
         ]
