@@ -10,6 +10,7 @@ import tempfile
 import shutil
 import tarfile
 import subprocess
+import distutils
 
 
 class OSUtils(object):
@@ -76,8 +77,8 @@ class OSUtils(object):
         finally:
             shutil.rmtree(tempdir)
 
-    def popen(self, command, stdout=None, stderr=None, env=None):
-        p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env)
+    def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
+        p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
         return p
 
     def mtime(self, path):
@@ -86,3 +87,6 @@ class OSUtils(object):
     @property
     def pipe(self):
         return subprocess.PIPE
+
+    def find_executable(self, execname):
+        return distutils.spawn.find_executable(execname)
