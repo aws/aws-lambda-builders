@@ -57,6 +57,6 @@ class SubprocessNpm(object):
         out, err = p.communicate()
 
         if (p.returncode != 0):
-            raise NpmExecutionError(err)
+            raise NpmExecutionError(err.decode('utf8').strip())
 
         return out.decode('utf8').strip()

@@ -1,0 +1,12 @@
+{
+  "name": "brokendeps",
+  "version": "1.0.0",
+  "description": "",
+  "files": ["included.js"],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "dependencies": {
+    "minimal-request-promise": "0.0.0-NON_EXISTENT" 
+  }
+}
