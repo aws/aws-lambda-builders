@@ -25,16 +25,6 @@ class TestOSUtils(object):
                                             encoding='utf-16')
         assert content == checkmark
 
-    def test_find_executable_returns_path_for_known_exe(self, tmpdir, osutils):
-        found = osutils.find_executable('python')
-
-        assert os.path.realpath(found) == os.path.realpath(sys.executable)
-
-    def test_find_executable_returns_none_for_non_existing_exe(self, tmpdir, osutils):
-        found = osutils.find_executable('not-python')
-
-        assert found is None
-
     def test_dirname_returns_directory_for_path(self, tmpdir, osutils):
         dirname = osutils.dirname(sys.executable)
 

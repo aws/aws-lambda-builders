@@ -10,7 +10,6 @@ import tempfile
 import shutil
 import tarfile
 import subprocess
-import distutils
 
 
 class OSUtils(object):
@@ -87,9 +86,6 @@ class OSUtils(object):
     @property
     def pipe(self):
         return subprocess.PIPE
-
-    def find_executable(self, execname):
-        return distutils.spawn.find_executable(execname)
 
     def dirname(self, path):
         return os.path.dirname(path)

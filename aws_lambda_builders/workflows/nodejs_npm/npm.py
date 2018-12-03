@@ -33,14 +33,15 @@ class SubprocessNpm(object):
         self.osutils = osutils
 
         if npm_exe is None:
-            npm_exe = osutils.find_executable('npm')
-
-        if not osutils.file_exists(npm_exe):
-            raise NpmNotFoundError(npm_exe)
+            npm_exe = 'npm'
 
         self.npm_exe = npm_exe
 
     def main(self, args, cwd=None):
+
+        if not isinstance(args, list):
+            raise NpmExecutionError('args must be a list')
+
         invoke_npm = [self.npm_exe] + args
 
         LOG.debug("executing NPM: %s", invoke_npm)
