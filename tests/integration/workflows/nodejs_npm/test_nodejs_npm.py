@@ -10,7 +10,7 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 
 class TestNodejsNpmWorkflow(TestCase):
     """
-    Verifies that `nodejs_npm` workflow works by building a Lambda that requires Numpy
+    Verifies that `nodejs_npm` workflow works by building a Lambda using NPM
     """
 
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
