@@ -13,12 +13,6 @@ class NpmError(Exception):
     pass
 
 
-class NpmNotFoundError(NpmError):
-    def __init__(self, npm_path):
-        super(NpmNotFoundError, self).__init__(
-            'NPM executable not found: %s' % npm_path)
-
-
 class NpmExecutionError(NpmError):
     def __init__(self, err):
         super(NpmExecutionError, self).__init__(
