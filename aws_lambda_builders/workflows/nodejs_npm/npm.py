@@ -4,7 +4,7 @@ Wrapper around calling npm through a subprocess.
 
 import logging
 
-from aws_lambda_builders.workflows.python_pip.utils import OSUtils
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
