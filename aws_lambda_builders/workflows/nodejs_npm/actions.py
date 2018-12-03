@@ -2,11 +2,10 @@
 Action to resolve NodeJS dependencies using NPM
 """
 
+import logging
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 from .npm import SubprocessNpm, NpmError
-
-import logging
 
 LOG = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ class NodejsNpmPackAction(BaseAction):
             if not self.osutils.file_exists(self.manifest_path):
                 raise ActionFailedError('package.json not found in: %s' % self.manifest_path)
 
-            package_path = "file:%s" % self.osutils.abspath(self.osutils.dirname(self.manifest_path))
+            package_path = "file:{}".format(self.osutils.abspath(self.osutils.dirname(self.manifest_path)))
 
             LOG.debug("NODEJS packaging %s to %s", package_path, self.scratch_dir)
 
