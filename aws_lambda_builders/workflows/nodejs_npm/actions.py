@@ -12,9 +12,9 @@ LOG = logging.getLogger(__name__)
 
 class NodejsNpmPackAction(BaseAction):
 
-    NAME = 'CopySource'
+    NAME = 'NpmPack'
     DESCRIPTION = "Packaging source using NPM"
-    PURPOSE = Purpose.COPY_SOURCE
+    PURPOSE = Purpose.COMPILE_SOURCE
 
     def __init__(self, artifacts_dir, scratch_dir, manifest_path, runtime, osutils=None, subprocess_npm=None):
         self.artifacts_dir = artifacts_dir
@@ -43,9 +43,9 @@ class NodejsNpmPackAction(BaseAction):
 
             tarfile_path = self.osutils.joinpath(self.scratch_dir, tarfile_name)
 
-            self.osutils.extract_tarfile(tarfile_path, tarfile_path + '-unpacked')
+            LOG.debug("NODEJS extracting to %s", self.artifacts_dir)
 
-            self.osutils.copytree(self.osutils.joinpath(tarfile_path + '-unpacked', 'package'), self.artifacts_dir)
+            self.osutils.extract_tarfile(tarfile_path, self.artifacts_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
@@ -53,7 +53,7 @@ class NodejsNpmPackAction(BaseAction):
 
 class NodejsNpmInstallAction(BaseAction):
 
-    NAME = 'ResolveDependencies'
+    NAME = 'NpmInstall'
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 

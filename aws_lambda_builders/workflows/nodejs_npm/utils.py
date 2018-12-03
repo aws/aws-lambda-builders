@@ -2,11 +2,7 @@
 Commonly used utilities
 """
 
-import io
 import os
-import zipfile
-import contextlib
-import tempfile
 import shutil
 import tarfile
 import subprocess
