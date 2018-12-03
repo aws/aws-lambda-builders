@@ -2,19 +2,11 @@
 NodeJS NPM Workflow
 """
 
-import hashlib
-
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction
 from .utils import OSUtils
-
-
-def unique_dir(manifest_path):
-    md5 = hashlib.md5()
-    md5.update(manifest_path.encode('utf8'))
-    return md5.hexdigest()
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -46,7 +38,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
-        tar_dest_dir = osutils.joinpath(scratch_dir, unique_dir(manifest_path))
+        tar_dest_dir = osutils.joinpath(scratch_dir, 'unpacked')
         tar_package_dir = osutils.joinpath(tar_dest_dir, 'package')
 
         self.actions = [
