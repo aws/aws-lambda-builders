@@ -14,7 +14,7 @@ class NodejsNpmPackAction(BaseAction):
 
     NAME = 'NpmPack'
     DESCRIPTION = "Packaging source using NPM"
-    PURPOSE = Purpose.COMPILE_SOURCE
+    PURPOSE = Purpose.COPY_SOURCE
 
     def __init__(self, artifacts_dir, scratch_dir, manifest_path, runtime, osutils=None, subprocess_npm=None):
         self.artifacts_dir = artifacts_dir
