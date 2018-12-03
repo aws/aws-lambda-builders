@@ -5,7 +5,7 @@ Action to resolve NodeJS dependencies using NPM
 import logging
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .utils import OSUtils
-from .npm import SubprocessNpm, NpmError
+from .npm import SubprocessNpm, NpmExecutionError
 
 LOG = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class NodejsNpmPackAction(BaseAction):
 
             LOG.debug("NODEJS packaging %s to %s", package_path, self.scratch_dir)
 
-            tarfile_name = self.subprocess_npm.main(['pack', '-q', package_path], cwd=self.scratch_dir)
+            tarfile_name = self.subprocess_npm.run(['pack', '-q', package_path], cwd=self.scratch_dir)
 
             LOG.debug("NODEJS packed to %s", tarfile_name)
 
@@ -47,7 +47,7 @@ class NodejsNpmPackAction(BaseAction):
 
             self.osutils.copytree(self.osutils.joinpath(tarfile_path + '-unpacked', 'package'), self.artifacts_dir)
 
-        except NpmError as ex:
+        except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
 
 
@@ -76,10 +76,10 @@ class NodejsNpmInstallAction(BaseAction):
         try:
             LOG.debug("NODEJS installing in: %s from: %s", self.artifacts_dir, self.manifest_path)
 
-            self.subprocess_npm.main(
+            self.subprocess_npm.run(
                     ['install', '-q', '--no-audit', '--no-save', '--production'],
                     cwd=self.artifacts_dir
             )
 
-        except NpmError as ex:
+        except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))

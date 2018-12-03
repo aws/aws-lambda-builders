@@ -4,19 +4,15 @@ Wrapper around calling npm through a subprocess.
 
 import logging
 
+from aws_lambda_builders.exceptions import LambdaBuilderError
+
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
 
-class NpmError(Exception):
-    pass
-
-
-class NpmExecutionError(NpmError):
-    def __init__(self, err):
-        super(NpmExecutionError, self).__init__(
-            'NPM failed: %s' % err)
+class NpmExecutionError(LambdaBuilderError):
+    MESSAGE = "NPM Failed: {message}"
 
 
 class SubprocessNpm(object):
@@ -31,10 +27,10 @@ class SubprocessNpm(object):
 
         self.npm_exe = npm_exe
 
-    def main(self, args, cwd=None):
+    def run(self, args, cwd=None):
 
         if not isinstance(args, list):
-            raise NpmExecutionError('args must be a list')
+            raise ValueError('args must be a list')
 
         invoke_npm = [self.npm_exe] + args
 
@@ -48,6 +44,6 @@ class SubprocessNpm(object):
         out, err = p.communicate()
 
         if p.returncode != 0:
-            raise NpmExecutionError(err.decode('utf8').strip())
+            raise NpmExecutionError(message=err.decode('utf8').strip())
 
         return out.decode('utf8').strip()
