@@ -76,9 +76,6 @@ class NodejsNpmInstallAction(BaseAction):
         try:
             LOG.debug("NODEJS installing in: %s from: %s", self.artifacts_dir, self.manifest_path)
 
-            if not self.osutils.file_exists(self.osutils.joinpath(self.artifacts_dir, 'package.json')):
-                raise ActionFailedError('package.json not found in: %s' % self.artifacts_dir)
-
             self.subprocess_npm.main(
                     ['install', '-q', '--no-audit', '--no-save', '--production'],
                     cwd=self.artifacts_dir
