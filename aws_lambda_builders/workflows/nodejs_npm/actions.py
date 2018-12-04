@@ -4,8 +4,7 @@ Action to resolve NodeJS dependencies using NPM
 
 import logging
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
-from .utils import OSUtils
-from .npm import SubprocessNpm, NpmExecutionError
+from .npm import NpmExecutionError
 
 LOG = logging.getLogger(__name__)
 
@@ -16,20 +15,12 @@ class NodejsNpmPackAction(BaseAction):
     DESCRIPTION = "Packaging source using NPM"
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self, artifacts_dir, scratch_dir, manifest_path, runtime, osutils=None, subprocess_npm=None):
+    def __init__(self, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
         self.artifacts_dir = artifacts_dir
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
-        self.runtime = runtime
-
         self.osutils = osutils
-        if osutils is None:
-            self.osutils = OSUtils()
-
         self.subprocess_npm = subprocess_npm
-
-        if self.subprocess_npm is None:
-            self.subprocess_npm = SubprocessNpm(self.osutils)
 
     def execute(self):
         try:
@@ -57,20 +48,11 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, scratch_dir, manifest_path, runtime, osutils=None, subprocess_npm=None):
+    def __init__(self, artifacts_dir, manifest_path, osutils, subprocess_npm):
         self.artifacts_dir = artifacts_dir
         self.manifest_path = manifest_path
-        self.scratch_dir = scratch_dir
-        self.runtime = runtime
-
         self.osutils = osutils
-        if osutils is None:
-            self.osutils = OSUtils()
-
         self.subprocess_npm = subprocess_npm
-
-        if self.subprocess_npm is None:
-            self.subprocess_npm = SubprocessNpm(self.osutils)
 
     def execute(self):
         try:

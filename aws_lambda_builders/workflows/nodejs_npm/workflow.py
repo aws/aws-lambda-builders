@@ -7,6 +7,7 @@ from aws_lambda_builders.actions import CopySourceAction
 
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction
 from .utils import OSUtils
+from .npm import SubprocessNpm
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -38,11 +39,23 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
+        subprocess_npm = SubprocessNpm(osutils)
+
         tar_dest_dir = osutils.joinpath(scratch_dir, 'unpacked')
         tar_package_dir = osutils.joinpath(tar_dest_dir, 'package')
 
+        npm_pack = NodejsNpmPackAction(tar_dest_dir,
+                                       scratch_dir,
+                                       manifest_path,
+                                       osutils=osutils,
+                                       subprocess_npm=subprocess_npm)
+
+        npm_install = NodejsNpmInstallAction(artifacts_dir,
+                                             manifest_path,
+                                             osutils=osutils,
+                                             subprocess_npm=subprocess_npm)
         self.actions = [
-            NodejsNpmPackAction(tar_dest_dir, scratch_dir, manifest_path, runtime),
+            npm_pack,
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            NodejsNpmInstallAction(artifacts_dir, scratch_dir, manifest_path, runtime)
+            npm_install,
         ]

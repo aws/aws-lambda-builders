@@ -17,8 +17,9 @@ class TestNodejsNpmPackAction(TestCase):
         subprocess_npm = SubprocessNpmMock.return_value
 
         action = NodejsNpmPackAction("artifacts", "scratch_dir",
-                                     "manifest", "runtime",
-                                     osutils=osutils, subprocess_npm=subprocess_npm)
+                                     "manifest",
+                                     osutils=osutils,
+                                     subprocess_npm=subprocess_npm)
 
         osutils.dirname.side_effect = lambda value: "/dir:{}".format(value)
         osutils.abspath.side_effect = lambda value: "/abs:{}".format(value)
@@ -41,13 +42,13 @@ class TestNodejsNpmPackAction(TestCase):
         builder_instance.run.side_effect = NpmExecutionError(message="boom!")
 
         action = NodejsNpmPackAction("artifacts", "scratch_dir",
-                                     "manifest", "runtime",
+                                     "manifest",
                                      osutils=osutils, subprocess_npm=subprocess_npm)
 
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
 
-        self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
+        assert raised.exception.args[0] == "NPM Failed: boom!"
 
 
 class TestNodejsNpmInstallAction(TestCase):
@@ -58,9 +59,9 @@ class TestNodejsNpmInstallAction(TestCase):
         osutils = OSUtilMock.return_value
         subprocess_npm = SubprocessNpmMock.return_value
 
-        action = NodejsNpmInstallAction("artifacts", "scratch_dir",
-                                        "manifest", "runtime",
-                                        osutils=osutils, subprocess_npm=subprocess_npm)
+        action = NodejsNpmInstallAction("artifacts", "manifest",
+                                        osutils=osutils,
+                                        subprocess_npm=subprocess_npm)
 
         action.execute()
 
@@ -77,11 +78,12 @@ class TestNodejsNpmInstallAction(TestCase):
         builder_instance = SubprocessNpmMock.return_value
         builder_instance.run.side_effect = NpmExecutionError(message="boom!")
 
-        action = NodejsNpmInstallAction("artifacts", "scratch_dir",
-                                        "manifest", "runtime",
-                                        osutils=osutils, subprocess_npm=subprocess_npm)
+        action = NodejsNpmInstallAction("artifacts",
+                                        "manifest",
+                                        osutils=osutils,
+                                        subprocess_npm=subprocess_npm)
 
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
 
-        self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
+        assert raised.exception.args[0] == "NPM Failed: boom!"

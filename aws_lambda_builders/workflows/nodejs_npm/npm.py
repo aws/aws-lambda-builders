@@ -6,8 +6,6 @@ import logging
 
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
-from .utils import OSUtils
-
 LOG = logging.getLogger(__name__)
 
 
@@ -17,9 +15,7 @@ class NpmExecutionError(LambdaBuilderError):
 
 class SubprocessNpm(object):
 
-    def __init__(self, osutils=None, npm_exe=None):
-        if osutils is None:
-            osutils = OSUtils()
+    def __init__(self, osutils, npm_exe=None):
         self.osutils = osutils
 
         if npm_exe is None:
