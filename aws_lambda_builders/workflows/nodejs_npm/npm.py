@@ -39,7 +39,7 @@ class SubprocessNpm(object):
         self.osutils = osutils
 
         if npm_exe is None:
-            npm_exe = 'npm'
+            npm_exe = 'npm.cmd'
 
         self.npm_exe = npm_exe
 
