@@ -4,13 +4,14 @@ Wrapper around calling npm through a subprocess.
 
 import logging
 
-from aws_lambda_builders.exceptions import LambdaBuilderError
-
 LOG = logging.getLogger(__name__)
 
 
-class NpmExecutionError(LambdaBuilderError):
+class NpmExecutionError(Exception):
     MESSAGE = "NPM Failed: {message}"
+
+    def __init__(self, **kwargs):
+        Exception.__init__(self, self.MESSAGE.format(**kwargs))
 
 
 class SubprocessNpm(object):
