@@ -9,18 +9,9 @@ import subprocess
 
 class OSUtils(object):
 
-    def environ(self):
-        return os.environ
-
-    def file_exists(self, filename):
-        return os.path.isfile(filename)
-
     def extract_tarfile(self, tarfile_path, unpack_dir):
         with tarfile.open(tarfile_path, 'r:*') as tar:
             tar.extractall(unpack_dir)
-
-    def get_directory_contents(self, path):
-        return os.listdir(path)
 
     def joinpath(self, *args):
         return os.path.join(*args)
