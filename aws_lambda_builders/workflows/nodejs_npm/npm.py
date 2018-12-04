@@ -4,8 +4,6 @@ Wrapper around calling npm through a subprocess.
 
 import logging
 
-import platform
-
 LOG = logging.getLogger(__name__)
 
 
@@ -41,7 +39,7 @@ class SubprocessNpm(object):
         self.osutils = osutils
 
         if npm_exe is None:
-            if platform.system() == 'Windows':
+            if osutils.is_windows():
                 npm_exe = 'npm.cmd'
             else:
                 npm_exe = 'npm'

@@ -26,11 +26,25 @@ class TestSubprocessNpm(TestCase):
         self.osutils.popen.side_effect = [self.popen]
         self.under_test = SubprocessNpm(self.osutils, npm_exe="/a/b/c/npm.exe")
 
-#    def test_run_executes_npm_via_popen(self):
-#
-#        self.under_test.run(['pack', '-q'])
-#
-#        self.osutils.popen.assert_called_with(['npm', 'pack', '-q'], cwd=None, stderr='PIPE', stdout='PIPE')
+    def test_run_executes_npm_on_nixes(self):
+
+        self.osutils.is_windows.side_effect = [False]
+
+        self.under_test = SubprocessNpm(self.osutils)
+
+        self.under_test.run(['pack', '-q'])
+
+        self.osutils.popen.assert_called_with(['npm', 'pack', '-q'], cwd=None, stderr='PIPE', stdout='PIPE')
+
+    def test_run_executes_npm_cmd_on_windows(self):
+
+        self.osutils.is_windows.side_effect = [True]
+
+        self.under_test = SubprocessNpm(self.osutils)
+
+        self.under_test.run(['pack', '-q'])
+
+        self.osutils.popen.assert_called_with(['npm.cmd', 'pack', '-q'], cwd=None, stderr='PIPE', stdout='PIPE')
 
     def test_uses_custom_npm_path_if_supplied(self):
 

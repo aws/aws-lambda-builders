@@ -5,6 +5,7 @@ Commonly used utilities
 import os
 import tarfile
 import subprocess
+import sys
 
 
 class OSUtils(object):
@@ -34,3 +35,6 @@ class OSUtils(object):
 
     def abspath(self, path):
         return os.path.abspath(path)
+
+    def is_windows(self):
+        return sys.platform.lower().startswith('win')
