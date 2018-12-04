@@ -12,6 +12,10 @@ from .npm import SubprocessNpm
 
 class NodejsNpmWorkflow(BaseWorkflow):
 
+    """
+    A Lambda builder workflow that knows how to pack
+    NodeJS projects using NPM.
+    """
     NAME = "NodejsNpmBuilder"
 
     CAPABILITY = Capability(language="nodejs",
@@ -51,8 +55,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
                                        subprocess_npm=subprocess_npm)
 
         npm_install = NodejsNpmInstallAction(artifacts_dir,
-                                             manifest_path,
-                                             osutils=osutils,
                                              subprocess_npm=subprocess_npm)
         self.actions = [
             npm_pack,

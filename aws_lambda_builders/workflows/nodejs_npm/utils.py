@@ -9,6 +9,11 @@ import subprocess
 
 class OSUtils(object):
 
+    """
+    Wrapper around file system functions, to make it easy to
+    unit test actions in memory
+    """
+
     def extract_tarfile(self, tarfile_path, unpack_dir):
         with tarfile.open(tarfile_path, 'r:*') as tar:
             tar.extractall(unpack_dir)

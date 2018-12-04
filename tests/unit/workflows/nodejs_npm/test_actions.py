@@ -53,14 +53,11 @@ class TestNodejsNpmPackAction(TestCase):
 
 class TestNodejsNpmInstallAction(TestCase):
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
-    def test_tars_and_unpacks_npm_project(self, OSUtilMock, SubprocessNpmMock):
-        osutils = OSUtilMock.return_value
+    def test_tars_and_unpacks_npm_project(self, SubprocessNpmMock):
         subprocess_npm = SubprocessNpmMock.return_value
 
-        action = NodejsNpmInstallAction("artifacts", "manifest",
-                                        osutils=osutils,
+        action = NodejsNpmInstallAction("artifacts",
                                         subprocess_npm=subprocess_npm)
 
         action.execute()
@@ -69,18 +66,14 @@ class TestNodejsNpmInstallAction(TestCase):
 
         subprocess_npm.run.assert_called_with(expected_args, cwd='artifacts')
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
-    def test_raises_action_failed_when_npm_fails(self, OSUtilMock, SubprocessNpmMock):
-        osutils = OSUtilMock.return_value
+    def test_raises_action_failed_when_npm_fails(self, SubprocessNpmMock):
         subprocess_npm = SubprocessNpmMock.return_value
 
         builder_instance = SubprocessNpmMock.return_value
         builder_instance.run.side_effect = NpmExecutionError(message="boom!")
 
         action = NodejsNpmInstallAction("artifacts",
-                                        "manifest",
-                                        osutils=osutils,
                                         subprocess_npm=subprocess_npm)
 
         with self.assertRaises(ActionFailedError) as raised:

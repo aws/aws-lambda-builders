@@ -11,11 +11,32 @@ LOG = logging.getLogger(__name__)
 
 class NodejsNpmPackAction(BaseAction):
 
+    """
+    A Lambda Builder Action that packages a Node.js package using NPM to extract the source and remove test resources
+    """
+
     NAME = 'NpmPack'
     DESCRIPTION = "Packaging source using NPM"
     PURPOSE = Purpose.COPY_SOURCE
 
     def __init__(self, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
+        """
+        :type artifacts_dir: str
+        :param artifacts_dir: an existing (writable) directory where to store the output.
+            Note that the actual result will be in the 'package' subdirectory here.
+
+        :type scratch_dir: str
+        :param scratch_dir: an existing (writable) directory for temporary files
+
+        :type manifest_path: str
+        :param manifest_path: path to package.json of an NPM project with the source to pack
+
+        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :param osutils: An instance of OS Utilities for file manipulation
+
+        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+        :param subprocess_npm: An instance of the NPM process wrapper
+        """
         self.artifacts_dir = artifacts_dir
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
@@ -23,6 +44,11 @@ class NodejsNpmPackAction(BaseAction):
         self.subprocess_npm = subprocess_npm
 
     def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when NPM packaging fails
+        """
         try:
             package_path = "file:{}".format(self.osutils.abspath(self.osutils.dirname(self.manifest_path)))
 
@@ -44,19 +70,36 @@ class NodejsNpmPackAction(BaseAction):
 
 class NodejsNpmInstallAction(BaseAction):
 
+    """
+    A Lambda Builder Action that installs NPM project dependencies
+    """
+
     NAME = 'NpmInstall'
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, manifest_path, osutils, subprocess_npm):
+    def __init__(self, artifacts_dir, subprocess_npm):
+        """
+        :type artifacts_dir: str
+        :param artifacts_dir: an existing (writable) directory with project source files.
+            Dependencies will be installed in this directory.
+
+        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+        :param subprocess_npm: An instance of the NPM process wrapper
+        """
+
         self.artifacts_dir = artifacts_dir
-        self.manifest_path = manifest_path
-        self.osutils = osutils
         self.subprocess_npm = subprocess_npm
 
     def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
+        """
+
         try:
-            LOG.debug("NODEJS installing in: %s from: %s", self.artifacts_dir, self.manifest_path)
+            LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
 
             self.subprocess_npm.run(
                     ['install', '-q', '--no-audit', '--no-save', '--production'],
