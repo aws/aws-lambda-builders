@@ -32,6 +32,9 @@ class SubprocessNpm(object):
         if not isinstance(args, list):
             raise ValueError('args must be a list')
 
+        if not args:
+            raise ValueError('requires at least one arg')
+
         invoke_npm = [self.npm_exe] + args
 
         LOG.debug("executing NPM: %s", invoke_npm)
