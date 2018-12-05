@@ -3,9 +3,9 @@ Commonly used utilities
 """
 
 import os
+import platform
 import tarfile
 import subprocess
-import sys
 
 
 class OSUtils(object):
@@ -37,4 +37,4 @@ class OSUtils(object):
         return os.path.abspath(path)
 
     def is_windows(self):
-        return sys.platform.lower().startswith('win')
+        return platform.system().lower() == 'windows'
