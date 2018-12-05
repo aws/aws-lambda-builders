@@ -1,5 +1,3 @@
-import pytest
-
 import sys
 
 import os
@@ -8,22 +6,24 @@ import shutil
 
 import tempfile
 
+from unittest import TestCase
+
 from aws_lambda_builders.workflows.nodejs_npm import utils
 
 
-@pytest.fixture
-def osutils():
-    return utils.OSUtils()
+class TestOSUtils(TestCase):
 
+    def setUp(self):
 
-class TestOSUtils(object):
-    def test_extract_tarfile_unpacks_a_tar(self, osutils):
+        self.osutils = utils.OSUtils()
+
+    def test_extract_tarfile_unpacks_a_tar(self):
 
         test_tar = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
 
         test_dir = tempfile.mkdtemp()
 
-        osutils.extract_tarfile(test_tar, test_dir)
+        self.osutils.extract_tarfile(test_tar, test_dir)
 
         output_files = set(os.listdir(test_dir))
 
@@ -31,32 +31,32 @@ class TestOSUtils(object):
 
         assert {"test_utils.py"} == output_files
 
-    def test_dirname_returns_directory_for_path(self, osutils):
-        dirname = osutils.dirname(sys.executable)
+    def test_dirname_returns_directory_for_path(self):
+        dirname = self.osutils.dirname(sys.executable)
 
         assert dirname == os.path.dirname(sys.executable)
 
-    def test_abspath_returns_absolute_path(self, osutils):
+    def test_abspath_returns_absolute_path(self):
 
-        result = osutils.abspath('.')
+        result = self.osutils.abspath('.')
 
         assert os.path.isabs(result)
 
         assert result == os.path.abspath('.')
 
-    def test_joinpath_joins_path_components(self, osutils):
+    def test_joinpath_joins_path_components(self):
 
-        result = osutils.joinpath('a', 'b', 'c')
+        result = self.osutils.joinpath('a', 'b', 'c')
 
         assert result == os.path.join('a', 'b', 'c')
 
-    def test_popen_runs_a_process_and_returns_outcome(self, osutils):
+    def test_popen_runs_a_process_and_returns_outcome(self):
 
         cwd_py = os.path.join(os.path.dirname(__file__), '..', '..', 'testdata', 'cwd.py')
 
-        p = osutils.popen([sys.executable, cwd_py],
-                          stdout=osutils.pipe,
-                          stderr=osutils.pipe
+        p = self.osutils.popen([sys.executable, cwd_py],
+                          stdout=self.osutils.pipe,
+                          stderr=self.osutils.pipe
                           )
 
         out, err = p.communicate()
@@ -65,13 +65,13 @@ class TestOSUtils(object):
 
         assert out.decode('utf8').strip() == os.getcwd()
 
-    def test_popen_can_accept_cwd(self, osutils):
+    def test_popen_can_accept_cwd(self):
 
         testdata_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'testdata')
 
-        p = osutils.popen([sys.executable, 'cwd.py'],
-                          stdout=osutils.pipe,
-                          stderr=osutils.pipe,
+        p = self.osutils.popen([sys.executable, 'cwd.py'],
+                          stdout=self.osutils.pipe,
+                          stderr=self.osutils.pipe,
                           cwd=testdata_dir)
 
         out, err = p.communicate()
