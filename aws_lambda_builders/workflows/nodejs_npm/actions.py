@@ -37,6 +37,7 @@ class NodejsNpmPackAction(BaseAction):
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
         """
+        super(NodejsNpmPackAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
@@ -88,6 +89,7 @@ class NodejsNpmInstallAction(BaseAction):
         :param subprocess_npm: An instance of the NPM process wrapper
         """
 
+        super(NodejsNpmInstallAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.subprocess_npm = subprocess_npm
 
