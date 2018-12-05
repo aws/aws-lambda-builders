@@ -19,10 +19,10 @@ class TestNodejsNpmWorkflow(TestCase):
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
-        assert len(workflow.actions) == 3
+        self.assertEqual(len(workflow.actions), 3)
 
-        assert isinstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
 
-        assert isinstance(workflow.actions[1], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], CopySourceAction)
 
-        assert isinstance(workflow.actions[2], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[2], NodejsNpmInstallAction)

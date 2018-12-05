@@ -65,7 +65,7 @@ class TestSubprocessNpm(TestCase):
 
         result = self.under_test.run(['pack'])
 
-        assert result == 'some encoded text'
+        self.assertEqual(result, 'some encoded text')
 
     def test_raises_NpmExecutionError_with_err_text_if_retcode_is_not_0(self):
 
@@ -75,18 +75,18 @@ class TestSubprocessNpm(TestCase):
         with self.assertRaises(NpmExecutionError) as raised:
             self.under_test.run(['pack'])
 
-        assert raised.exception.args[0] == "NPM Failed: some error text"
+        self.assertEqual(raised.exception.args[0], "NPM Failed: some error text")
 
     def test_raises_ValueError_if_args_not_a_list(self):
 
         with self.assertRaises(ValueError) as raised:
             self.under_test.run(('pack'))
 
-        assert raised.exception.args[0] == "args must be a list"
+        self.assertEqual(raised.exception.args[0], "args must be a list")
 
     def test_raises_ValueError_if_args_empty(self):
 
         with self.assertRaises(ValueError) as raised:
             self.under_test.run([])
 
-        assert raised.exception.args[0] == "requires at least one arg"
+        self.assertEqual(raised.exception.args[0], "requires at least one arg")

@@ -48,7 +48,7 @@ class TestNodejsNpmPackAction(TestCase):
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
 
-        assert raised.exception.args[0] == "NPM Failed: boom!"
+        self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
 
 
 class TestNodejsNpmInstallAction(TestCase):
@@ -79,4 +79,4 @@ class TestNodejsNpmInstallAction(TestCase):
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
 
-        assert raised.exception.args[0] == "NPM Failed: boom!"
+        self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
