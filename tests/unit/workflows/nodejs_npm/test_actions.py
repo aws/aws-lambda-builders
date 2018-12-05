@@ -1,9 +1,7 @@
-
 from unittest import TestCase
 from mock import patch
 
 from aws_lambda_builders.actions import ActionFailedError
-
 from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmPackAction, NodejsNpmInstallAction
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 

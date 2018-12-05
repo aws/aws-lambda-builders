@@ -1,7 +1,7 @@
-
 import os
 import shutil
 import tempfile
+
 from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder

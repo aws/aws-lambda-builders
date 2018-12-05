@@ -3,6 +3,7 @@ Action to resolve NodeJS dependencies using NPM
 """
 
 import logging
+
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .npm import NpmExecutionError
 
