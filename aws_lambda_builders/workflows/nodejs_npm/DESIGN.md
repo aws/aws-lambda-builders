@@ -28,9 +28,19 @@ just the ones relevant for production. To identify production dependencies,
 this packager needs to copy the source to a clean temporary directory and re-run
 dependency installation there.
   
-It's reasonable to expect that some developers will not carefully separate
-production dependencies from test resources, so this packager will need to
-support overriding the categories of dependencies to include.
+A frequently used trick to speed up NodeJS Lambda deployment is to avoid 
+bundling the `aws-sdk`, since it is already available on the Lambda VM.
+This makes deployment significantly faster for single-file lambdas, for
+example. Although this is not good from a consistency and compatibility
+perspective (as the version of the API used in production might be different
+from what was used during testing), people do this frequently enough that the
+packager should handle it in some way. A common way of marking this with ClaudiaJS
+is to include `aws-sdk` as an optional dependency, then deploy without optional
+dependencies. 
+
+Other runtimes do not have this flexibility, so instead of adding a specific
+parameter to the SAM CLI, the packager should support a flag to include or
+exclude optional dependencies through environment variables. 
 
 NPM also provides support for running user-defined scripts as part of the build
 process, so this packager needs to support standard NPM script execution.
@@ -43,7 +53,7 @@ far from optimal to create a stand-alone module. Copying would lead to significa
 larger packages than necessary, as sub-modules might still have test resources, and
 common references from multiple projects would be duplicated.
 
-NPM also uses a locking mechanism (package-lock.json) that's in many ways more
+NPM also uses a locking mechanism (`package-lock.json`) that's in many ways more
 broken than functional, as it in some cases hard-codes locks to local disk
 paths, and gets confused by including the same package as a dependency
 throughout the project tree in different dependency categories
@@ -75,9 +85,10 @@ Execute `npm pack` to perform project-specific packaging using the supplied
 test resources and other source files unnecessary for running in a production 
 environment.
 
-This will produce a `tar` archive that needs to be unpacked into the artefacts directory.
-Note that the archive will actually contain a `package` subdirectory containing the files, 
-so it's not enough to just directly unpack files. 
+This will produce a `tar` archive that needs to be unpacked into the artifacts
+directory.  Note that the archive will actually contain a `package`
+subdirectory containing the files, so it's not enough to just directly unpack
+files. 
 
 #### Step 2: Rewrite local dependencies
 
