@@ -99,6 +99,11 @@ dependency.  This will make NPM unpack and install a copy correctly. Once the
 packager produces all `tar` archives required by local dependencies, rewrite
 the manifest to point to `tar` files instead of the original location.
 
+If the project contains a package lock file, this will cause NPM to ignore changes
+to the package.json manifest. In this case, the packager will need to remove 
+`package-lock.json` so that dependency rewrites take effect. 
+_(out of scope for the current version)_
+
 #### Step 3: Install dependencies
 
 The packager should then run `npm install` to download an expand all dependencies to
