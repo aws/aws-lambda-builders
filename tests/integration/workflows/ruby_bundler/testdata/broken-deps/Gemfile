@@ -1,0 +1,4 @@
+source 'https://rubygems.org'
+
+gem 'aws-record', '~> 2' # Requires aws-sdk-core v3
+gem 'aws-sdk-core', '~> 2' # Incompatible
