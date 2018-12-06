@@ -66,16 +66,40 @@ class BaseWorkflow(object):
 		...
 		...
 	
-	def get_executable():
+	def get_executable(self):
 		return PathResolver(language=x, runtime=x.y).path
 	
-	def get_validator():
+	def get_validator(self):
 		return RuntimeValidator(runtime_path=/usr/bin/x.y, language=x)
+		
+	@sanitize(executable_path=self.get_executable(),validator=self.get_validator())
+	def run(self):
 ```
 
 This way we have de-coupled validtion of the path and the actual finding of the path to the executable. Both of these methods can be over-riden in any workflow that subclasses BaseWorkflow.
 
+There will be default implementations of ```PathResolver``` and ```RuntimeValidator``` that can still be used by workflow authors if they dont want to specialize them. 
+
+A decorator on top of run, would actually execute validation on the resolved path to ensure that its safe to actually start the workflow.
+
 ### Implementation
+
+Here is an Example of Python workflow that has ```get_executable``` and ```get_validator``` defined.
+
+```python
+class PythonPipWorkflow(object):
+		...
+		...
+		...
+	
+	def get_executable(self):
+		return PythonPathResolver(language=python, runtime=python3.6).path
+	
+	def get_validator(self):
+		return PythonRuntimeValidator(runtime_path=/usr/bin/python3.6, language=python)
+```
+
+Finding the executable path and validation of the path occurs before the Workflow's ```run``` method is invoked. This way failure is detected early before workflow actions are executed.
 
 There is a work in progress PR that partially follows this design doc, except it adds the the runtime_path in the per-language workflow. This will be changed to make it align with this design doc.
 
