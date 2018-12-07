@@ -39,4 +39,44 @@ Off hand, I envision the following commands as a starting point:
 - `sam build`: Shorthand for the 2-liner build at the top of the document.
 - `sam build --use-container`: Provides a build container for native extensions.
 
-I also envision Ruby tie-ins for layer commands following the same pattern. I don't yet have a mental model for how we should do shared library code as a layer, that may be an option that goes into `sam init` perhaps? Like `sam init --library-layer`?
+I also envision Ruby tie-ins for layer commands following the same pattern. I don't yet have a mental model for how we should do shared library code as a layer, that may be an option that goes into `sam init` perhaps? Like `sam init --library-layer`? Layer implementations will be solved at a later date.
+
+### sam build
+
+First, validates that `ruby --version` matches a `ruby 2.5.x` pattern, and exits if not. When in doubt, container builds will not have this issue.
+
+```shell
+# exit with error if vendor/bundle and/or .bundle directory exists and is non-empty
+bundle install # if no Gemfile.lock is present
+bundle install --deployment
+```
+
+This build could also include an optional cleanout of existing `vendor/bundle` and `.bundle` directories, via the `--clobber-bundle` command or similar. That would behave as follows:
+
+```shell
+rm -rf vendor/bundle*
+rm -rf .bundle*
+bundle install # if no Gemfile.lock is present
+bundle install --deployment
+```
+
+### sam build --use-container
+
+This command would use some sort of container, such as `lambci/lambda:build-ruby2.5`.
+
+```shell
+# exit with error if vendor/bundle and/or .bundle directory exists and is non-empty
+bundle install # if no Gemfile.lock is present
+docker run -v `pwd`:`pwd` -w `pwd` -i -t $CONTAINER_ID bundle install --deployment
+```
+
+This approach does not need to validate the version of Ruby being used, as the container would use Ruby 2.5.
+
+This build could also include an optional cleanout of existing `vendor/bundle` and `.bundle` directories, via the `--clobber-bundle` command or similar. That would behave as follows:
+
+```shell
+rm -rf vendor/bundle*
+rm -rf .bundle*
+bundle install # if no Gemfile.lock is present
+docker run -v `pwd`:`pwd` -w `pwd` -i -t $CONTAINER_ID bundle install --deployment
+```
