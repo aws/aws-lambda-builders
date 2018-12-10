@@ -19,7 +19,7 @@ class TestBuilderWithHelloWorkflow(TestCase):
 
         self.source_dir = tempfile.mkdtemp()
         self.artifacts_dir = tempfile.mkdtemp()
-        self.scratch_dir = "/tmp/scratch"
+        self.scratch_dir = os.path.join(tempfile.mkdtemp(), "scratch")
         self.hello_builder = LambdaBuilder(language="test",
                                            dependency_manager="test",
                                            application_framework="test",
