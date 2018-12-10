@@ -1,0 +1,9 @@
+{
+  "name": "nodeps",
+  "version": "1.0.0",
+  "description": "",
+  "files": ["included.js"],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0"
+}

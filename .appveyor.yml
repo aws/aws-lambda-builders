@@ -13,6 +13,9 @@ environment:
 build: off
 
 install:
+# To run Nodejs workflow integ tests
+- ps: Install-Product node 8.10
+
 - "set PATH=%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
 - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
 - "%PYTHON%\\python.exe -m pip install -e ."
