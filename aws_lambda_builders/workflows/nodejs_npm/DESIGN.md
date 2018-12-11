@@ -124,7 +124,6 @@ a clean copy of the source files.
 Note that NPM can be configured to use proxies or local company repositories using 
 a local file, `.npmrc`. The packaging process from step 1 normally excludes this file, so it may
 need to be copied additionally before dependency installation, and then removed. 
-_(out of scope for the current version)_
 
 Some users may want to exclude optional dependencies, or even include development dependencies. 
 To avoid incompatible flags in the `sam` CLI, the packager should allow users to specify 
