@@ -122,8 +122,8 @@ the local `node_modules` subdirectory. This has to be executed in the directory 
 a clean copy of the source files.
 
 Note that NPM can be configured to use proxies or local company repositories using 
-a local file, `.npmrc`. The packaging process from step 1 normally excludes this file, so it may
-need to be copied additionally before dependency installation, and then removed. 
+a local file, `.npmrc`. The packaging process from step 1 normally excludes this file, so it needs 
+to be copied before dependency installation, and then removed. 
 
 Some users may want to exclude optional dependencies, or even include development dependencies. 
 To avoid incompatible flags in the `sam` CLI, the packager should allow users to specify 
