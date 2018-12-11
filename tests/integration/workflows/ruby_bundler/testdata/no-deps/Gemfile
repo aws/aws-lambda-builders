@@ -1,0 +1,4 @@
+source 'https://rubygems.org'
+
+# This shouldn't even need to exist, that's a pending feature request.
+# If no dependencies, leave blank.

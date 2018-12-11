@@ -1,7 +1,7 @@
 from unittest import TestCase
 from mock import patch
 
-from aws_lambda_builders.workflows.ruby.bundler import SubprocessBundler, BundlerExecutionError
+from aws_lambda_builders.workflows.ruby_bundler.bundler import SubprocessBundler, BundlerExecutionError
 
 class FakePopen:
     def __init__(self, out=b'out', err=b'err', retcode=0):
@@ -14,7 +14,7 @@ class FakePopen:
                                                 
 class TestSubprocessBundler(TestCase):
 
-    @patch("aws_lambda_builders.workflows.ruby.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.ruby_bundler.utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
         self.osutils.pipe = 'PIPE'

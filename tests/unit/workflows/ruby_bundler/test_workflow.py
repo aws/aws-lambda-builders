@@ -1,8 +1,8 @@
 from unittest import TestCase
 
 from aws_lambda_builders.actions import CopySourceAction
-from aws_lambda_builders.workflows.ruby.workflow import RubyBundlerWorkflow
-from aws_lambda_builders.workflows.ruby.actions import RubyBundlerInstallAction, RubyBundlerVendorAction
+from aws_lambda_builders.workflows.ruby_bundler.workflow import RubyBundlerWorkflow
+from aws_lambda_builders.workflows.ruby_bundler.actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 
 class TestRubyBundlerWorkflow(TestCase):
     """
