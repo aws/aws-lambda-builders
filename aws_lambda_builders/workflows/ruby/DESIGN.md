@@ -41,6 +41,8 @@ Off hand, I envision the following commands as a starting point:
 
 I also envision Ruby tie-ins for layer commands following the same pattern. I don't yet have a mental model for how we should do shared library code as a layer, that may be an option that goes into `sam init` perhaps? Like `sam init --library-layer`? Layer implementations will be solved at a later date.
 
+Some other open issues include more complex Gemfiles, where a user might want to specify certain bundle groups to explicitly include or exclude. We could also build out ways to switch back and forth between deployment and no-deployment modes.
+
 ### sam build
 
 First, validates that `ruby --version` matches a `ruby 2.5.x` pattern, and exits if not. When in doubt, container builds will not have this issue.
