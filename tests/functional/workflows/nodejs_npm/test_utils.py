@@ -14,6 +14,58 @@ class TestOSUtils(TestCase):
 
         self.osutils = utils.OSUtils()
 
+    def test_copy_file_copies_existing_file_into_a_dir(self):
+
+        test_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
+
+        test_dir = tempfile.mkdtemp()
+
+        self.osutils.copy_file(test_file, test_dir)
+
+        output_files = set(os.listdir(test_dir))
+
+        shutil.rmtree(test_dir)
+
+        self.assertEqual({"test.tgz"}, output_files)
+
+    def test_copy_file_copies_existing_file_into_a_dir(self):
+
+        test_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
+
+        test_dir = tempfile.mkdtemp()
+
+        self.osutils.copy_file(test_file, os.path.join(test_dir, "copied_test.tgz"))
+
+        output_files = set(os.listdir(test_dir))
+
+        shutil.rmtree(test_dir)
+
+        self.assertEqual({"copied_test.tgz"}, output_files)
+
+    def test_remove_file_removes_existing_file(self):
+
+        test_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
+
+        test_dir = tempfile.mkdtemp()
+
+        copied_file = os.path.join(test_dir, "copied_test.tgz")
+
+        shutil.copy(test_file, copied_file)
+
+        self.osutils.remove_file(copied_file)
+
+        self.assertFalse(os.path.isfile(copied_file))
+
+    def test_file_exists_checking_if_file_exists_in_a_dir(self):
+
+        existing_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
+
+        nonexisting_file = os.path.join(os.path.dirname(__file__), "test_data", "nonexisting.tgz")
+
+        self.assertTrue(self.osutils.file_exists(existing_file))
+
+        self.assertFalse(self.osutils.file_exists(nonexisting_file))
+   
     def test_extract_tarfile_unpacks_a_tar(self):
 
         test_tar = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")

@@ -56,6 +56,22 @@ class TestNodejsNpmWorkflow(TestCase):
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEquals(expected_modules, output_modules)
 
+    def test_builds_project_with_npmrc(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "npmrc")
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           os.path.join(source_dir, "package.json"),
+                           runtime=self.runtime)
+
+        expected_files = {"package.json", "included.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEquals(expected_files, output_files)
+
+        expected_modules = {"fake-http-request"}
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertEquals(expected_modules, output_modules)
+
     def test_fails_if_npm_cannot_resolve_dependencies(self):
 
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-deps")
