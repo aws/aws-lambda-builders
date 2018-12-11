@@ -25,14 +25,17 @@ class RubyBundlerWorkflow(BaseWorkflow):
 
     def __init__(self,
                  source_dir,
+                 artifacts_dir,
+                 scratch_dir,
+                 manifest_path,
                  runtime=None,
                  osutils=None,
                  **kwargs):
 
         super(RubyBundlerWorkflow, self).__init__(source_dir,
-                                                  artifacts_dir=None,
-                                                  scratch_dir=None,
-                                                  manifest_path=None,
+                                                  artifacts_dir,
+                                                  scratch_dir,
+                                                  manifest_path,
                                                   runtime=runtime,
                                                   **kwargs)
 
@@ -40,19 +43,15 @@ class RubyBundlerWorkflow(BaseWorkflow):
             osutils = OSUtils()
 
         subprocess_bundler = SubprocessBundler(osutils)
-
-        tar_dest_dir = osutils.joinpath(scratch_dir, 'unpacked')
-        tar_package_dir = osutils.joinpath(tar_dest_dir, 'package')
-
-        bundle_install = RubyBundlerInstallAction(source_dir,
+        bundle_install = RubyBundlerInstallAction(artifacts_dir,
                                                   osutils=osutils,
                                                   subprocess_bundler=subprocess_bundler)
 
-        bundle_deployment = RubyBundlerVendorAction(source_dir,
+        bundle_deployment = RubyBundlerVendorAction(artifacts_dir,
                                                     osutils=osutils,
                                                     subprocess_bundler=subprocess_bundler)
         self.actions = [
-            CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
+            CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
             bundle_install,
             bundle_deployment,
         ]
