@@ -44,11 +44,9 @@ class RubyBundlerWorkflow(BaseWorkflow):
 
         subprocess_bundler = SubprocessBundler(osutils)
         bundle_install = RubyBundlerInstallAction(artifacts_dir,
-                                                  osutils=osutils,
                                                   subprocess_bundler=subprocess_bundler)
 
         bundle_deployment = RubyBundlerVendorAction(artifacts_dir,
-                                                    osutils=osutils,
                                                     subprocess_bundler=subprocess_bundler)
         self.actions = [
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
