@@ -11,6 +11,11 @@ matrix:
       dist: xenial
       sudo: true
 install:
+
+  # To run Nodejs workflow integ tests
+  - nvm install 8.10.0
+  - nvm use 8.10.0
+
   # Install the code requirements
   - make init
 script:
