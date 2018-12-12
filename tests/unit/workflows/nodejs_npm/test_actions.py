@@ -128,7 +128,7 @@ class TestNodejsNpmrcCopyAction(TestCase):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
-        osutils.copy_file.side_effect = FileNotFoundError()
+        osutils.copy_file.side_effect = OSError()
 
         action = NodejsNpmrcCopyAction("artifacts",
                                        "source",
