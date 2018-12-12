@@ -7,6 +7,7 @@ from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
+
 class TestRubyWorkflow(TestCase):
     """
     Verifies that `ruby` workflow works by building a Lambda using Bundler
@@ -21,7 +22,7 @@ class TestRubyWorkflow(TestCase):
         self.builder = LambdaBuilder(language="ruby",
                                      dependency_manager="bundler",
                                      application_framework=None)
-        self.runtime="ruby2.5"
+        self.runtime = "ruby2.5"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)

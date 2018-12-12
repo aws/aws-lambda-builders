@@ -4,6 +4,7 @@ from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.ruby_bundler.workflow import RubyBundlerWorkflow
 from aws_lambda_builders.workflows.ruby_bundler.actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 
+
 class TestRubyBundlerWorkflow(TestCase):
     """
     the workflow requires an external utility (bundler) to run, so it is extensively tested in integration tests.

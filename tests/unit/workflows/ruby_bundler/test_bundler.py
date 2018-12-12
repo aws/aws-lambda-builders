@@ -3,6 +3,7 @@ from mock import patch
 
 from aws_lambda_builders.workflows.ruby_bundler.bundler import SubprocessBundler, BundlerExecutionError
 
+
 class FakePopen:
     def __init__(self, out=b'out', err=b'err', retcode=0):
         self.out = out
@@ -11,7 +12,8 @@ class FakePopen:
 
     def communicate(self):
         return self.out, self.err
-                                                
+
+
 class TestSubprocessBundler(TestCase):
 
     @patch("aws_lambda_builders.workflows.ruby_bundler.utils.OSUtils")
@@ -21,7 +23,7 @@ class TestSubprocessBundler(TestCase):
         self.popen = FakePopen()
         self.osutils.popen.side_effect = [self.popen]
         self.under_test = SubprocessBundler(self.osutils, bundler_exe="/a/b/c/bundler")
-                                                        
+
     def test_run_executes_bundler_on_nixes(self):
         self.osutils.is_windows.side_effect = [False]
         self.under_test = SubprocessBundler(self.osutils)
