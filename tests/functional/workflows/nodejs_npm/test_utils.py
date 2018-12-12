@@ -28,7 +28,7 @@ class TestOSUtils(TestCase):
 
         self.assertEqual({"test.tgz"}, output_files)
 
-    def test_copy_file_copies_existing_file_into_a_dir(self):
+    def test_copy_file_copies_existing_file_into_a_file(self):
 
         test_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
 
