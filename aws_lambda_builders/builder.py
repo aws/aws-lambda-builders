@@ -3,6 +3,7 @@ Entrypoint for the AWS Lambda Builder library
 """
 
 import importlib
+import os
 import logging
 
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
@@ -93,6 +94,8 @@ class LambdaBuilder(object):
         if runtime:
             self._validate_runtime(runtime)
 
+        if not os.path.exists(scratch_dir):
+            os.makedirs(scratch_dir)
 
         workflow = self.selected_workflow_cls(source_dir,
                                               artifacts_dir,

@@ -1,6 +1,7 @@
 
 from unittest import TestCase
 from mock import patch, call, Mock
+from parameterized import parameterized, param
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.workflow import Capability, BaseWorkflow
@@ -99,11 +100,18 @@ class TesetLambdaBuilder_build(TestCase):
         self.lang_framework = "pip"
         self.app_framework = "chalice"
 
+    @parameterized.expand([
+        param(True),
+        param(False)
+    ])
+    @patch('aws_lambda_builders.builder.os')
     @patch('aws_lambda_builders.builder.importlib')
     @patch('aws_lambda_builders.builder.get_workflow')
-    def test_with_mocks(self, get_workflow_mock, importlib_mock):
+    def test_with_mocks(self, scratch_dir_exists, get_workflow_mock, importlib_mock, os_mock):
         workflow_cls = Mock()
         workflow_instance = workflow_cls.return_value = Mock()
+
+        os_mock.path.exists.return_value = scratch_dir_exists
 
         get_workflow_mock.return_value = workflow_cls
 
@@ -116,3 +124,8 @@ class TesetLambdaBuilder_build(TestCase):
             workflow_cls.assert_called_with("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                             runtime="runtime", optimizations="optimizations", options="options")
             workflow_instance.run.assert_called_once()
+            os_mock.path.exists.assert_called_once_with("scratch_dir")
+            if scratch_dir_exists:
+                os_mock.makedirs.not_called()
+            else:
+                os_mock.makedirs.assert_called_once_with("scratch_dir")

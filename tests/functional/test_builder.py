@@ -19,6 +19,7 @@ class TestBuilderWithHelloWorkflow(TestCase):
 
         self.source_dir = tempfile.mkdtemp()
         self.artifacts_dir = tempfile.mkdtemp()
+        self.scratch_dir = os.path.join(tempfile.mkdtemp(), "scratch")
         self.hello_builder = LambdaBuilder(language="test",
                                            dependency_manager="test",
                                            application_framework="test",
@@ -34,6 +35,7 @@ class TestBuilderWithHelloWorkflow(TestCase):
         self.hello_builder._clear_workflows()
         shutil.rmtree(self.source_dir)
         shutil.rmtree(self.artifacts_dir)
+        shutil.rmtree(self.scratch_dir)
 
         # Remove the workflows folder from PYTHONPATH
         sys.path.remove(self.TEST_WORKFLOWS_FOLDER)
@@ -42,7 +44,7 @@ class TestBuilderWithHelloWorkflow(TestCase):
 
         self.hello_builder.build(self.source_dir,
                                  self.artifacts_dir,
-                                 "/ignored",
+                                 self.scratch_dir,
                                  "/ignored")
 
         self.assertTrue(os.path.exists(self.expected_filename))

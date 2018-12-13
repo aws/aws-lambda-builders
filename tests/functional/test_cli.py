@@ -19,6 +19,7 @@ class TestCliWithHelloWorkflow(TestCase):
 
         self.source_dir = tempfile.mkdtemp()
         self.artifacts_dir = tempfile.mkdtemp()
+        self.scratch_dir = os.path.join(tempfile.mkdtemp(), "scratch")
 
         # Capabilities supported by the Hello workflow
         self.language = "test"
@@ -38,6 +39,7 @@ class TestCliWithHelloWorkflow(TestCase):
     def tearDown(self):
         shutil.rmtree(self.source_dir)
         shutil.rmtree(self.artifacts_dir)
+        shutil.rmtree(self.scratch_dir)
 
     @parameterized.expand([
         ("request_through_stdin"),
@@ -58,7 +60,7 @@ class TestCliWithHelloWorkflow(TestCase):
                 "supported_workflows": [self.HELLO_WORKFLOW_MODULE],
                 "source_dir": self.source_dir,
                 "artifacts_dir": self.artifacts_dir,
-                "scratch_dir": "/ignored",
+                "scratch_dir": self.scratch_dir,
                 "manifest_path": "/ignored",
                 "runtime": "ignored",
                 "optimizations": {},
