@@ -26,8 +26,8 @@ class SubprocessBundler(object):
     def __init__(self, osutils, bundler_exe=None):
         self.osutils = osutils
         if bundler_exe is None:
-            # TODO: Check Windows issues.
-            bundler_exe = 'bundler'
+            # No special logic needed for Windows
+            bundler_exe = 'bundle'
 
         self.bundler_exe = bundler_exe
 

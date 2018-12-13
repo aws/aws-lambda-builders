@@ -22,21 +22,21 @@ class TestSubprocessBundler(TestCase):
         self.osutils.pipe = 'PIPE'
         self.popen = FakePopen()
         self.osutils.popen.side_effect = [self.popen]
-        self.under_test = SubprocessBundler(self.osutils, bundler_exe="/a/b/c/bundler")
+        self.under_test = SubprocessBundler(self.osutils, bundler_exe="/a/b/c/bundle")
 
     def test_run_executes_bundler_on_nixes(self):
         self.osutils.is_windows.side_effect = [False]
         self.under_test = SubprocessBundler(self.osutils)
         self.under_test.run(['install'])
-        self.osutils.popen.assert_called_with(['bundler', 'install'], cwd=None, stderr='PIPE', stdout='PIPE')
+        self.osutils.popen.assert_called_with(['bundle', 'install'], cwd=None, stderr='PIPE', stdout='PIPE')
 
     def test_uses_custom_bundler_path_if_supplied(self):
         self.under_test.run(['install'])
-        self.osutils.popen.assert_called_with(['/a/b/c/bundler', 'install'], cwd=None, stderr='PIPE', stdout='PIPE')
+        self.osutils.popen.assert_called_with(['/a/b/c/bundle', 'install'], cwd=None, stderr='PIPE', stdout='PIPE')
 
     def test_uses_cwd_if_supplied(self):
         self.under_test.run(['install'], cwd='/a/cwd')
-        self.osutils.popen.assert_called_with(['/a/b/c/bundler', 'install'],
+        self.osutils.popen.assert_called_with(['/a/b/c/bundle', 'install'],
                                               cwd='/a/cwd', stderr='PIPE', stdout='PIPE')
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
