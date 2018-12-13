@@ -19,17 +19,7 @@ install:
 - "set PATH=%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
 - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
 - "%PYTHON%\\python.exe -m pip install -e ."
-- "$version = \"Ruby 2.5.3-1\""
-- "$install_path = \"C:\\Ruby25\""
-- "$download_url = \"https://github.com/oneclick/rubyinstaller2/releases/download/rubyinstaller-2.5.3-1/rubyinstaller-2.5.3-1-x86.exe\""
-- "$exePath = \"$($env:TEMP)\\rubyinstaller.exe\""
-- "Write-Host \"  Downloading $($version) from $($download_url)\" -ForegroundColor Gray"
-- "(New-Object Net.WebClient).DownloadFile($download_url, $exePath)"
-- "Write-Host \"Installing...\" -ForegroundColor Gray"
-- "cmd /c start /wait $exePath /verysilent /dir=\"$($install_path.replace('\', '/'))\" /tasks=\"noassocfiles,nomodpath,noridkinstall\""
-- "del $exePath"
-- "Write-Host \"Installed\" -ForegroundColor Green"
-- "set PATH=C:\\Ruby2.5\\bin;%PATH%"
+- "set PATH=C:\\Ruby25\\bin;%PATH%"
 - "gem install bundler"
 
 test_script:
