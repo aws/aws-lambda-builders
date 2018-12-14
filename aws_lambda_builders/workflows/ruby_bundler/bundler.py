@@ -41,7 +41,6 @@ class SubprocessBundler(object):
         invoke_bundler = [self.bundler_exe] + args
 
         LOG.debug("executing Bundler: %s", invoke_bundler)
-        print("executing Bundler: %s", invoke_bundler)
 
         p = self.osutils.popen(invoke_bundler,
                                stdout=self.osutils.pipe,
@@ -49,6 +48,10 @@ class SubprocessBundler(object):
                                cwd=cwd)
 
         out, err = p.communicate()
+
+        print("bundle STDOUT: " + out)
+        print("bundle STDERR: " + err)
+        print("bundle retcode: " + p.returncode)
 
         if p.returncode != 0:
             raise BundlerExecutionError(message=err.decode('utf8').strip())
