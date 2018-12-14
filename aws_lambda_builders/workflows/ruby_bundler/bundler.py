@@ -26,8 +26,10 @@ class SubprocessBundler(object):
     def __init__(self, osutils, bundler_exe=None):
         self.osutils = osutils
         if bundler_exe is None:
-            # No special logic needed for Windows
-            bundler_exe = 'bundle'
+            if osutils.is_windows():
+                bundler_exe = 'C:\\Ruby25-x64\\bin\\bundle'
+            else:
+                bundler_exe = 'bundle'
 
         self.bundler_exe = bundler_exe
 
@@ -48,10 +50,6 @@ class SubprocessBundler(object):
                                cwd=cwd)
 
         out, err = p.communicate()
-
-        print("bundle STDOUT: " + out)
-        print("bundle STDERR: " + err)
-        print("bundle retcode: " + str(p.returncode))
 
         if p.returncode != 0:
             raise BundlerExecutionError(message=err.decode('utf8').strip())
