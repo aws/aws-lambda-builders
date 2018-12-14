@@ -19,12 +19,12 @@ class OSUtils(object):
         with tarfile.open(tarfile_path, 'r:*') as tar:
             tar.extractall(unpack_dir)
 
-    def joinpath(self, *args):
-        return os.path.join(*args)
-
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
         return p
+
+    def joinpath(self, *args):
+        return os.path.join(*args)
 
     @property
     def pipe(self):
