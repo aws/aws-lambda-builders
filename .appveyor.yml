@@ -19,7 +19,7 @@ install:
 - "set PATH=%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
 - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
 - "%PYTHON%\\python.exe -m pip install -e ."
-- "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
+- "set PATH=C:\\Ruby25\\bin;%PATH%"
 - "gem install bundler --no-ri --no-rdoc"
 - "bundler --version"
 

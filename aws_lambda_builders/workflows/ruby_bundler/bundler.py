@@ -26,10 +26,7 @@ class SubprocessBundler(object):
     def __init__(self, osutils, bundler_exe=None):
         self.osutils = osutils
         if bundler_exe is None:
-            if osutils.is_windows():
-                bundler_exe = "C:\\Ruby25-x64\\bin\\bundle"
-            else:
-                bundler_exe = 'bundle'
+            bundler_exe = 'bundle'
 
         self.bundler_exe = bundler_exe
 
