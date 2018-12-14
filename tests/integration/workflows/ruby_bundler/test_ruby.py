@@ -30,8 +30,6 @@ class TestRubyWorkflow(TestCase):
 
     def test_builds_project_without_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
-        print("source_dir: " + source_dir)
-        print("PATH: " + os.environ['PATH'])
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                            os.path.join(source_dir, "Gemfile"),
                            runtime=self.runtime)

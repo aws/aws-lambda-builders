@@ -20,8 +20,8 @@ install:
 - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
 - "%PYTHON%\\python.exe -m pip install -e ."
 - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
-- "gem install bundler"
-- "bundle -v"
+- "gem install bundler --no-ri --no-rdoc"
+- "bundler --version"
 
 test_script:
 - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"

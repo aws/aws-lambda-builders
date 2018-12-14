@@ -41,6 +41,7 @@ class SubprocessBundler(object):
         invoke_bundler = [self.bundler_exe] + args
 
         LOG.debug("executing Bundler: %s", invoke_bundler)
+        print("executing Bundler: %s", invoke_bundler)
 
         p = self.osutils.popen(invoke_bundler,
                                stdout=self.osutils.pipe,
