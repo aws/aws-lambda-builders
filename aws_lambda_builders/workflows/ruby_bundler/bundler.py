@@ -51,7 +51,7 @@ class SubprocessBundler(object):
 
         print("bundle STDOUT: " + out)
         print("bundle STDERR: " + err)
-        print("bundle retcode: " + p.returncode)
+        print("bundle retcode: " + str(p.returncode))
 
         if p.returncode != 0:
             raise BundlerExecutionError(message=err.decode('utf8').strip())
