@@ -23,7 +23,9 @@ class OSUtils(object):
         return os.path.join(*args)
 
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
+        print("About to run command: " + command)
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
+        print("Completed command: " + command)
         return p
 
     @property
