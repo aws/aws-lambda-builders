@@ -11,7 +11,6 @@ from aws_lambda_builders.workflows.ruby_bundler import utils
 class TestOSUtils(TestCase):
 
     def setUp(self):
-
         self.osutils = utils.OSUtils()
 
     def test_extract_tarfile_unpacks_a_tar(self):
