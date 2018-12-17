@@ -13,7 +13,7 @@ class TestRubyBundlerInstallAction(TestCase):
         action = RubyBundlerInstallAction("source_dir",
                                           subprocess_bundler=subprocess_bundler)
         action.execute()
-        subprocess_bundler.run.assert_called_with(['install'], cwd="source_dir")
+        subprocess_bundler.run.assert_called_with(['install', '--without', 'development', 'test'], cwd="source_dir")
 
     @patch("aws_lambda_builders.workflows.ruby_bundler.bundler.SubprocessBundler")
     def test_raises_action_failed_on_failure(self, SubprocessBundlerMock):
@@ -34,7 +34,9 @@ class TestRubyBundlerVendorAction(TestCase):
         action = RubyBundlerVendorAction("source_dir",
                                          subprocess_bundler=subprocess_bundler)
         action.execute()
-        subprocess_bundler.run.assert_called_with(['install', '--deployment'], cwd="source_dir")
+        subprocess_bundler.run.assert_called_with([
+            'install', '--deployment', '--without', 'development', 'test'
+        ], cwd="source_dir")
 
     @patch("aws_lambda_builders.workflows.ruby_bundler.bundler.SubprocessBundler")
     def test_raises_action_failed_on_failure(self, SubprocessBundlerMock):

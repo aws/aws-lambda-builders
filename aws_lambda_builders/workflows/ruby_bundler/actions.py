@@ -28,7 +28,7 @@ class RubyBundlerInstallAction(BaseAction):
         try:
             LOG.debug("Running bundle install in %s", self.source_dir)
             self.subprocess_bundler.run(
-                ['install'],
+                ['install', '--without', 'development', 'test'],
                 cwd=self.source_dir
             )
         except BundlerExecutionError as ex:
@@ -52,7 +52,7 @@ class RubyBundlerVendorAction(BaseAction):
         try:
             LOG.debug("Running bundle install --deployment in %s", self.source_dir)
             self.subprocess_bundler.run(
-                ['install', '--deployment'],
+                ['install', '--deployment', '--without', 'development', 'test'],
                 cwd=self.source_dir
             )
         except BundlerExecutionError as ex:
