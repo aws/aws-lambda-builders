@@ -139,3 +139,15 @@ class TestNodejsCleanUpAction(TestCase):
         action.execute()
 
         osutils.remove_file.assert_called_with("artifacts/.npmrc")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_skips_npmrc_removal_if_npmrc_doesnt_exist(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
+
+        action = NodejsCleanUpAction("artifacts",
+                                     osutils=osutils)
+        osutils.file_exists.side_effect = [False]
+        action.execute()
+
+        osutils.remove_file.assert_not_called()
