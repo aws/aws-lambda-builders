@@ -3,7 +3,7 @@ from mock import patch
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.actions import \
-    NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsCleanUpAction
+    NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
 
@@ -126,14 +126,15 @@ class TestNodejsNpmrcCopyAction(TestCase):
             action.execute()
 
 
-class TestNodejsCleanUpAction(TestCase):
+class TestNodejsNpmrcCleanUpAction(TestCase):
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     def test_removes_npmrc_if_npmrc_exists(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
-        action = NodejsCleanUpAction("artifacts",
+        action = NodejsNpmrcCleanUpAction(
+                                     "artifacts",
                                      osutils=osutils)
         osutils.file_exists.side_effect = [True]
         action.execute()
@@ -145,7 +146,8 @@ class TestNodejsCleanUpAction(TestCase):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
-        action = NodejsCleanUpAction("artifacts",
+        action = NodejsNpmrcCleanUpAction(
+                                     "artifacts",
                                      osutils=osutils)
         osutils.file_exists.side_effect = [False]
         action.execute()

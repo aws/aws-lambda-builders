@@ -156,13 +156,13 @@ class NodejsNpmrcCopyAction(BaseAction):
         except OSError as ex:
             raise ActionFailedError(str(ex))
 
-class NodejsCleanUpAction(BaseAction):
+class NodejsNpmrcCleanUpAction(BaseAction):
 
     """
     A Lambda Builder Action that cleans NPM config file .npmrc
     """
 
-    NAME = 'CleanUpNPM'
+    NAME = 'CleanUpNpmrc'
     DESCRIPTION = "Cleans artifacts dir"
     PURPOSE = Purpose.COPY_SOURCE
 
@@ -176,7 +176,7 @@ class NodejsCleanUpAction(BaseAction):
         :param osutils: An instance of OS Utilities for file manipulation
         """
 
-        super(NodejsCleanUpAction, self).__init__()
+        super(NodejsNpmrcCleanUpAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.osutils = osutils
 
