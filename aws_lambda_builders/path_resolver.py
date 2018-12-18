@@ -1,8 +1,6 @@
 """
-Basic Path Resolver that just looks for the language in the path.
+Basic Path Resolver that just returns the runtime.
 """
-
-from whichcraft import which
 
 
 class PathResolver(object):
@@ -12,4 +10,4 @@ class PathResolver(object):
 
     @property
     def path(self):
-        return which(self.runtime)
+        return self.runtime

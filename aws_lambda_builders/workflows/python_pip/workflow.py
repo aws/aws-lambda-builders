@@ -4,6 +4,8 @@ Python PIP Workflow
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.workflows.python_pip.path_resolver import PythonPathResolver
+from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
 
@@ -65,6 +67,12 @@ class PythonPipWorkflow(BaseWorkflow):
 
         self.actions = [
             PythonPipBuildAction(artifacts_dir, scratch_dir,
-                                 manifest_path, runtime),
+                                 manifest_path, runtime, runtime_path=self.get_executable()),
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
+
+    def get_executable(self):
+        return PythonPathResolver(runtime=self.runtime).path
+
+    def get_validator(self):
+        return PythonRuntimeValidator(runtime=self.runtime, runtime_path=self.get_executable())

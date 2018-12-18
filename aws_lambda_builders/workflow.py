@@ -166,7 +166,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
         No-op validator that does not validate the runtime_path.
         """
-        return RuntimeValidator(runtime_path=self.get_executable())
+        return RuntimeValidator(runtime_path=self.get_executable(), runtime=self.runtime)
 
     @sanitize
     def run(self):

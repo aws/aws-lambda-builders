@@ -9,7 +9,8 @@ LOG = logging.getLogger(__name__)
 
 class RuntimeValidator(object):
 
-    def __init__(self, runtime_path):
+    def __init__(self, runtime, runtime_path):
+        self.runtime = runtime
         self.runtime_path = runtime_path
 
     def validate_runtime(self):
