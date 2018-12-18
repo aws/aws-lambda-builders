@@ -1,13 +1,15 @@
 """
 Implementation of a base workflow
 """
-
+import functools
 import os
 import logging
 
 from collections import namedtuple
 import six
 
+from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
 from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError
 from aws_lambda_builders.actions import ActionFailedError
@@ -20,6 +22,22 @@ LOG = logging.getLogger(__name__)
 # ``LangageFramework`` is the framework of particular language. Ex: PIP
 # ``ApplicationFramework`` is the specific application framework used to write the code. Ex: Chalice
 Capability = namedtuple('Capability', ["language", "dependency_manager", "application_framework"])
+
+
+# TODO: Move sanitize out to its own class.
+def sanitize(func):
+    """
+    sanitize the executable path of the runtime specified by validating it.
+    :param func: Workflow's run method is sanitized
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # NOTE: we need to access workflow object to get the validator.
+        validator = args[0].get_validator()
+        validator.validate_runtime()
+        func(*args, **kwargs)
+    return wrapper
 
 
 class _WorkflowMetaClass(type):
@@ -138,6 +156,19 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         return True
 
+    def get_executable(self):
+        """
+        Non specialized path resolver that just returns the first executable for the runtime on the path.
+        """
+        return PathResolver(runtime=self.runtime).path
+
+    def get_validator(self):
+        """
+        No-op validator that does not validate the runtime_path.
+        """
+        return RuntimeValidator(runtime_path=self.get_executable())
+
+    @sanitize
     def run(self):
         """
         Actually perform the build by executing registered actions.
