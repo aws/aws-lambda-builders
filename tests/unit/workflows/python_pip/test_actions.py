@@ -1,3 +1,4 @@
+import sys
 
 from unittest import TestCase
 from mock import patch
@@ -15,7 +16,7 @@ class TestPythonPipBuildAction(TestCase):
         builder_instance = PythonPipDependencyBuilderMock.return_value
 
         action = PythonPipBuildAction("artifacts", "scratch_dir",
-                                      "manifest", "runtime")
+                                      "manifest", "runtime", sys.executable)
         action.execute()
 
         builder_instance.build_dependencies.assert_called_with("artifacts",
@@ -28,7 +29,7 @@ class TestPythonPipBuildAction(TestCase):
         builder_instance.build_dependencies.side_effect = PackagerError()
 
         action = PythonPipBuildAction("artifacts", "scratch_dir",
-                                      "manifest", "runtime")
+                                      "manifest", "runtime", sys.executable)
 
         with self.assertRaises(ActionFailedError):
             action.execute()
