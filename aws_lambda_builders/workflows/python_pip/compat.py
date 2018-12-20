@@ -8,7 +8,7 @@ def pip_import_string(python_exe):
     cmd = [
         python_exe,
         "-c",
-        "import pip; assert pip.__version__.split('.')[0] == 9"
+        "import pip; assert int(pip.__version__.split('.')[0]) <= 9"
     ]
     p = os_utils.popen(cmd,stdout=os_utils.pipe, stderr=os_utils.pipe)
     p.communicate()
