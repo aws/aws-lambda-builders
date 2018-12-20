@@ -162,6 +162,9 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
+# Except test file
+!tests/functional/workflows/ruby_bundler/test_data/test.tgz
+
 # Yarn Integrity file
 .yarn-integrity
 
