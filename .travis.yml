@@ -15,6 +15,9 @@ install:
   # To run Nodejs workflow integ tests
   - nvm install 8.10.0
   - nvm use 8.10.0
+  # To run Ruby workflow integ tests
+  - rvm install ruby-2.5.3
+  - rvm use ruby-2.5.3
 
   # Install the code requirements
   - make init
