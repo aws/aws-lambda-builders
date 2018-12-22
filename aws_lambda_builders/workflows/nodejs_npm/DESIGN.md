@@ -78,7 +78,11 @@ Lambda environment.
 The general algorithm for preparing a node package for use on AWS Lambda
 is as follows.
 
-#### Step 1: Prepare a clean copy of the project source files
+#### Step 1: Execute prebuild scripts
+
+For situations where precompilation is required, such as typescript, users can define `sam:prebuild` npm script which will be executed in the source directory before packaging. (Note: development dependencies may be available at this point if the developer installs them in the source folder)
+
+#### Step 2: Prepare a clean copy of the project source files
 
 Execute `npm pack` to perform project-specific packaging using the supplied
 `package.json` manifest, which will automatically exclude temporary files, 
@@ -90,7 +94,7 @@ directory.  Note that the archive will actually contain a `package`
 subdirectory containing the files, so it's not enough to just directly unpack
 files. 
 
-#### Step 2: Rewrite local dependencies
+#### Step 3: Rewrite local dependencies
 
 _(out of scope for the current version)_
 
@@ -115,7 +119,7 @@ to the package.json manifest. In this case, the packager will need to remove
 `package-lock.json` so that dependency rewrites take effect. 
 _(out of scope for the current version)_
 
-#### Step 3: Install dependencies
+#### Step 4: Install dependencies
 
 The packager should then run `npm install` to download an expand all dependencies to
 the local `node_modules` subdirectory. This has to be executed in the directory with
@@ -133,5 +137,7 @@ _(out of scope for the current version)_
 
 To fully support dependencies that download or compile binaries for a target platform, this step
 needs to be executed inside a Docker image compatible with AWS Lambda. 
-_(out of scope for the current version)_
 
+#### Step 5: Execute postbuild scripts
+
+For situations where postcompilation actions are required, such as removing postinstall artifacts or downloading binaries required by npm dependencies, users can define `sam:postbuild` npm script which will be executed in the artifacts directory after installing dependencies. (Note: only production dependencies are available at this point)
