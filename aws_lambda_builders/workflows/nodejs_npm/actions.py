@@ -2,6 +2,7 @@
 Action to resolve NodeJS dependencies using NPM
 """
 
+import json
 import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
@@ -111,3 +112,65 @@ class NodejsNpmInstallAction(BaseAction):
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
+
+class NodejsNpmScriptAction(BaseAction):
+
+    """
+    A Lambda Builder Action that conditionally runs a script in the package.json manifest
+    """
+
+    NAME = 'NpmScriptAction'
+    DESCRIPTION = "Running a script"
+    PURPOSE = Purpose.COPY_SOURCE
+
+    def __init__(self, working_dir, manifest_path, script_name, subprocess_npm, osutils):
+        """
+        :type working_dir: str
+        :param working_dir: Directory where the command will be executed.
+
+        :type manifest_path: str
+        :param manifest_path: Path to package.json
+
+        :type script_name: str
+        :param script_name: Name of an NPM script to execute
+
+        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+        :param subprocess_npm: An instance of the NPM process wrapper
+
+        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :param osutils: An instance of OS Utilities for file manipulation
+        """
+
+        super(NodejsNpmScriptAction, self).__init__()
+        self.working_dir = working_dir
+        self.subprocess_npm = subprocess_npm
+        self.manifest_path = manifest_path
+        self.script_name = script_name
+        self.osutils = osutils
+
+    def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
+        """
+
+        try:
+            manifest_contents = self.osutils.get_text_contents(self.manifest_path)
+            parsed_json = json.loads(manifest_contents)
+
+            if "scripts" in parsed_json.keys() and self.script_name in parsed_json["scripts"].keys():
+                LOG.debug("NODEJS running 'npm run %s' in %s", self.script_name, self.working_dir)
+
+                result = self.subprocess_npm.run(
+                    ['run', self.script_name],
+                    cwd=self.working_dir
+                )
+
+                LOG.debug("NODEJS 'npm run %s' result: %s", self.script_name, result)
+
+        except NpmExecutionError as ex:
+            raise ActionFailedError(str(ex))
+
+        except json.decoder.JSONDecodeError as ex:
+            raise ActionFailedError("{} is not valid json: {}".format(self.manifest_path, str(ex)))

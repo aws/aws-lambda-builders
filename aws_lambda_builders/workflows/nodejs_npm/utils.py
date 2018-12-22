@@ -6,7 +6,7 @@ import os
 import platform
 import tarfile
 import subprocess
-
+import io
 
 class OSUtils(object):
 
@@ -38,3 +38,7 @@ class OSUtils(object):
 
     def is_windows(self):
         return platform.system().lower() == 'windows'
+
+    def get_text_contents(self, filename, encoding='utf-8'):
+        with io.open(filename, 'r', encoding=encoding) as f:
+            return f.read()

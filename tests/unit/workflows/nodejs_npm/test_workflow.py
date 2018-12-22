@@ -2,7 +2,8 @@ from unittest import TestCase
 
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
-from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmPackAction, NodejsNpmInstallAction
+from aws_lambda_builders.workflows.nodejs_npm.actions import \
+    NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmScriptAction
 
 
 class TestNodejsNpmWorkflow(TestCase):
@@ -16,10 +17,14 @@ class TestNodejsNpmWorkflow(TestCase):
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
-        self.assertEqual(len(workflow.actions), 3)
+        self.assertEqual(len(workflow.actions), 5)
 
-        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmScriptAction)
 
-        self.assertIsInstance(workflow.actions[1], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmPackAction)
 
-        self.assertIsInstance(workflow.actions[2], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+
+        self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
+
+        self.assertIsInstance(workflow.actions[4], NodejsNpmScriptAction)

@@ -76,4 +76,55 @@ class TestNodejsNpmWorkflow(TestCase):
                                os.path.join(source_dir, "package.json"),
                                runtime=self.runtime)
 
-        self.assertIn("Unexpected end of JSON input", str(ctx.exception))
+        self.assertIn("package.json is not valid json:", str(ctx.exception))
+
+    def test_fails_if_prebuild_fails(self):
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "prebuild-broken")
+
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                               os.path.join(source_dir, "package.json"),
+                               runtime=self.runtime)
+
+        self.assertIn("Error: Some error", str(ctx.exception))
+
+    def test_runs_prebuild_command(self):
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "prebuild")
+        file_path = os.path.join(source_dir, "prebuild.js")
+
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           os.path.join(source_dir, "package.json"),
+                           runtime=self.runtime)
+
+        expected_files = {"package.json", "script.js", "prebuild.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEquals(expected_files, output_files)
+
+    def test_fails_if_postbuild_fails(self):
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "postbuild-broken")
+
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                               os.path.join(source_dir, "package.json"),
+                               runtime=self.runtime)
+
+        self.assertIn("Error: Some JS error", str(ctx.exception))
+
+    def test_runs_postbuild_command(self):
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "postbuild")
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           os.path.join(source_dir, "package.json"),
+                           runtime=self.runtime)
+
+        expected_files = {"package.json", "script.js", "postbuild.txt"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEquals(expected_files, output_files)
+        self.assertFalse(os.path.isfile(os.path.join(source_dir, 'postbuild.txt')))

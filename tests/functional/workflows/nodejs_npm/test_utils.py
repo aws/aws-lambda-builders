@@ -75,3 +75,11 @@ class TestOSUtils(TestCase):
         self.assertEqual(p.returncode, 0)
 
         self.assertEqual(out.decode('utf8').strip(), os.path.abspath(testdata_dir))
+
+    def test_get_text_contents_reads_text_file(self):
+
+        test_txt = os.path.join(os.path.dirname(__file__), "test_data", "test.txt")
+
+        result = self.osutils.get_text_contents(test_txt)
+
+        self.assertEqual(result, "Sample text file")

@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "name": "postbuild",
+  "private": true,
+  "scripts": {
+    "sam:postbuild": "node script.js"
+  },
+  "files": ["*.js"]
+}

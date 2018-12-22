@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "name": "prebuild",
+  "private": true,
+  "scripts": {
+    "sam:prebuild": "node script.js"
+  },
+  "files": ["*.js"]
+}
