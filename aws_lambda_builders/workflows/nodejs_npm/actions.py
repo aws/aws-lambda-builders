@@ -172,5 +172,6 @@ class NodejsNpmScriptAction(BaseAction):
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
 
-        except json.decoder.JSONDecodeError as ex:
+        except ValueError as ex:
+            # Python 2.7 doesn't have JSONDecoderError
             raise ActionFailedError("{} is not valid json: {}".format(self.manifest_path, str(ex)))
