@@ -258,6 +258,9 @@ wheels/
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Pipenv
+Pipfile*
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
