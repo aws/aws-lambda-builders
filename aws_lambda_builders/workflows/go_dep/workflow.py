@@ -2,8 +2,17 @@
 Go Dep Workflow
 """
 
+import logging
+import os
+
+from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 
+from .actions import DepEnsureAction, GoBuildAction
+from .utils import OSUtils
+from .exec import SubprocessExec
+
+LOG = logging.getLogger(__name__)
 
 class GoDepWorkflow(BaseWorkflow):
     """
@@ -34,3 +43,21 @@ class GoDepWorkflow(BaseWorkflow):
                                             manifest_path,
                                             runtime=runtime,
                                             **kwargs)
+
+        options = kwargs["options"] if "options" in kwargs else {}
+        handler = options.get("handler", None)
+
+        if osutils is None:
+            osutils = OSUtils()
+
+        # project base name, where the Gopkg.toml and vendor dir are.
+        base_dir = osutils.abspath(osutils.dirname(manifest_path))
+        output_path = osutils.joinpath(osutils.abspath(artifacts_dir), handler)
+
+        subprocess_dep = SubprocessExec(osutils, "dep")
+        subprocess_go = SubprocessExec(osutils, "go")
+
+        self.actions = [
+            DepEnsureAction(base_dir, subprocess_dep),
+            GoBuildAction(base_dir, osutils.abspath(source_dir), output_path, subprocess_go)
+        ]

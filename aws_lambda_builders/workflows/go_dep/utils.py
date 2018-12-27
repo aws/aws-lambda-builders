@@ -17,10 +17,6 @@ class OSUtils(object):
     TODO: move to somewhere generic
     """
 
-    def extract_tarfile(self, tarfile_path, unpack_dir):
-        with tarfile.open(tarfile_path, 'r:*') as tar:
-            tar.extractall(unpack_dir)
-
     def joinpath(self, *args):
         return os.path.join(*args)
 
