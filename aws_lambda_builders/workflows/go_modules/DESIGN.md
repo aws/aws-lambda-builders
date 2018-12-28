@@ -16,7 +16,7 @@ will be one public method `build`, which takes the provided arguments and
 builds a static binary using standard go tools.
 
 ```python
-def build(self, source_dir_path, artifacts_dir_path, ui=None, config=None):
+def build(self, source_dir_path, artifacts_dir_path, executable_name):
     """Builds a go project into an artifact directory.
 
     :type source_dir_path: str
@@ -27,18 +27,6 @@ def build(self, source_dir_path, artifacts_dir_path, ui=None, config=None):
 
     :type executable_name: str
     :param executable_name: Name of the executable to create from the build.
-
-    :type ui: :class:`lambda_builders.utils.UI` or None
-    :param ui: A class that traps all progress information such as status
-        and errors. If injected by the caller, it can be used to monitor
-        the status of the build process or forward this information
-        elsewhere.
-
-    :type config: :class:`lambda_builders.utils.Config` or None
-    :param config: To be determined. This is an optional config object
-        we can extend at a later date to add more options to how modules is
-        called.
-    """
 ```
 
 ### Implementation

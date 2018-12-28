@@ -35,17 +35,6 @@ class GoModulesBuilder(object):
 
         :type executable_name: str
         :param executable_name: Name of the executable to create from the build.
-
-        :type ui: :class:`lambda_builders.utils.UI` or None
-        :param ui: A class that traps all progress information such as status
-            and errors. If injected by the caller, it can be used to monitor
-            the status of the build process or forward this information
-            elsewhere.
-
-        :type config: :class:`lambda_builders.utils.Config` or None
-        :param config: To be determined. This is an optional config object
-            we can extend at a later date to add more options to how modules is
-            called.
         """
         env = {}
         env.update(self.osutils.environ)
