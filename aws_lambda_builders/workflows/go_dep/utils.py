@@ -28,6 +28,10 @@ class OSUtils(object):
     def pipe(self):
         return subprocess.PIPE
 
+    @property
+    def environ(self):
+        return os.environ
+
     def dirname(self, path):
         return os.path.dirname(path)
 

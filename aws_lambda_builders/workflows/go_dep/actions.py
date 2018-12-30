@@ -47,7 +47,7 @@ class GoBuildAction(BaseAction):
     DESCRIPTION = "Builds final binary"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, base_dir, source_path, output_path, subprocess_go):
+    def __init__(self, base_dir, source_path, output_path, subprocess_go, env=None):
         super(GoBuildAction, self).__init__()
 
         self.base_dir = base_dir
@@ -55,10 +55,10 @@ class GoBuildAction(BaseAction):
         self.output_path = output_path
 
         self.subprocess_go = subprocess_go
+        self.env = env if not env is None else {}
 
     def execute(self):
-        env = {}
-        env.update(os.environ)
+        env = self.env
         env.update({"GOOS": "linux", "GOARCH": "amd64"})
 
         try:
