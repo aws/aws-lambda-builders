@@ -3,6 +3,7 @@ from unittest import TestCase
 from aws_lambda_builders.workflows.go_dep.workflow import GoDepWorkflow
 from aws_lambda_builders.workflows.go_dep.actions import DepEnsureAction, GoBuildAction
 
+
 class TestGoDepWorkflow(TestCase):
     """
     The workflow requires an external tool, dep to run. It will need to be tested with integration

@@ -4,7 +4,8 @@ from mock import patch
 from aws_lambda_builders.actions import ActionFailedError
 
 from aws_lambda_builders.workflows.go_dep.actions import DepEnsureAction, GoBuildAction
-from aws_lambda_builders.workflows.go_dep.exec import SubprocessExec, ExecutionError
+from aws_lambda_builders.workflows.go_dep.exec import ExecutionError
+
 
 class TestDepEnsureAction(TestCase):
     @patch("aws_lambda_builders.workflows.go_dep.exec.SubprocessExec")
@@ -35,6 +36,7 @@ class TestDepEnsureAction(TestCase):
 
         self.assertEqual(raised.exception.args[0], "Exec Failed: boom!")
 
+
 class TestGoBuildAction(TestCase):
     @patch("aws_lambda_builders.workflows.go_dep.exec.SubprocessExec")
     def test_runs_go_build(self, SubProcMock):
@@ -47,7 +49,9 @@ class TestGoBuildAction(TestCase):
 
         action.execute()
 
-        sub_proc_go.run.assert_called_with(["build", "-o", "output", "source"], cwd="source", env={"GOOS": "linux", "GOARCH": "amd64"})
+        sub_proc_go.run.assert_called_with(["build", "-o", "output", "source"],
+                                           cwd="source",
+                                           env={"GOOS": "linux", "GOARCH": "amd64"})
 
     @patch("aws_lambda_builders.workflows.go_dep.exec.SubprocessExec")
     def test_fails_go_build(self, SubProcMock):

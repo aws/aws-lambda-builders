@@ -7,6 +7,7 @@ from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
+
 class TestGoDep(TestCase):
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
 
@@ -44,13 +45,14 @@ class TestGoDep(TestCase):
 
         with self.assertRaises(WorkflowFailedError) as ex:
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                            os.path.join(source_dir, "Gopkg.toml"),
-                            runtime=self.runtime,
-                            options={"handler": "main"})
+                               os.path.join(source_dir, "Gopkg.toml"),
+                               runtime=self.runtime,
+                               options={"handler": "main"})
 
         self.assertEquals(
-            "GoDepBuilder:DepEnsure - Exec Failed: could not find project Gopkg.toml, use dep init to initiate a manifest",
-            str(ex.exception))
+                          "GoDepBuilder:DepEnsure - Exec Failed: could not find project Gopkg.toml," +
+                          " use dep init to initiate a manifest",
+                          str(ex.exception))
 
     def test_builds_project_with_remote_deps(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "remote-deps")
@@ -70,9 +72,9 @@ class TestGoDep(TestCase):
 
         with self.assertRaises(WorkflowFailedError) as ex:
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                            os.path.join(source_dir, "Gopkg.toml"),
-                            runtime=self.runtime,
-                            options={"handler": "main"})
+                               os.path.join(source_dir, "Gopkg.toml"),
+                               runtime=self.runtime,
+                               options={"handler": "main"})
 
         # The full message is super long, so part of it is fine.
         self.assertNotEqual(str(ex.exception).find('unable to deduce repository and source type for'), -1)

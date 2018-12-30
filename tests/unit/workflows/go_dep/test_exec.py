@@ -35,13 +35,13 @@ class TestSubprocessExec(TestCase):
         self.under_test.run(["did", "thing"], cwd="/a/cwd")
 
         self.osutils.popen.assert_called_with(["bin", "did", "thing"],
-                                            cwd="/a/cwd", env=None, stderr="PIPE", stdout="PIPE")
+                                              cwd="/a/cwd", env=None, stderr="PIPE", stdout="PIPE")
 
     def test_uses_env_if_supplied(self):
         self.under_test.run(["did", "thing"], env={"foo": "bar"})
 
         self.osutils.popen.assert_called_with(["bin", "did", "thing"],
-                                            cwd=None, env={"foo": "bar"}, stderr="PIPE", stdout="PIPE")
+                                              cwd=None, env={"foo": "bar"}, stderr="PIPE", stdout="PIPE")
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
         self.popen.out = b"some encoded text\n\n"
