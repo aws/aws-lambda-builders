@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from aws_lambda_builders.workflows.go_dep import GoDepWorkflow
+from aws_lambda_builders.workflows.go_dep.workflow import GoDepWorkflow
+from aws_lambda_builders.workflows.go_dep.actions import DepEnsureAction, GoBuildAction
 
 class TestGoDepWorkflow(TestCase):
     """
@@ -9,4 +10,7 @@ class TestGoDepWorkflow(TestCase):
     """
 
     def test_workflow_sets_up_workflow(self):
-        workflow = GoDepWorkflow("source", "artifacts", "scratch", "manifest")
+        workflow = GoDepWorkflow("source", "artifacts", "scratch", "manifest", options={"handler": "foo"})
+        self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], DepEnsureAction)
+        self.assertIsInstance(workflow.actions[1], GoBuildAction)
