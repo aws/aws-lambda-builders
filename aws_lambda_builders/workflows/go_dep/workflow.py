@@ -59,5 +59,5 @@ class GoDepWorkflow(BaseWorkflow):
 
         self.actions = [
             DepEnsureAction(base_dir, subprocess_dep),
-            GoBuildAction(base_dir, osutils.abspath(source_dir), output_path, subprocess_go)
+            GoBuildAction(base_dir, osutils.abspath(source_dir), output_path, subprocess_go, env=osutils.environ)
         ]
