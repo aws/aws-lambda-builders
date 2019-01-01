@@ -8,7 +8,7 @@ from unittest import TestCase
 from aws_lambda_builders.workflows.go_dep import utils
 
 
-class TestOSUtils(TestCase):
+class TestGoDepOSUtils(TestCase):
 
     def setUp(self):
 

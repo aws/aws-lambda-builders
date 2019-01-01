@@ -10,7 +10,7 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 
 from .actions import DepEnsureAction, GoBuildAction
 from .utils import OSUtils
-from .exec import SubprocessExec
+from .subproc_exec import SubprocessExec
 
 LOG = logging.getLogger(__name__)
 

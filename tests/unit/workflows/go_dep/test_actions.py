@@ -4,11 +4,11 @@ from mock import patch
 from aws_lambda_builders.actions import ActionFailedError
 
 from aws_lambda_builders.workflows.go_dep.actions import DepEnsureAction, GoBuildAction
-from aws_lambda_builders.workflows.go_dep.exec import ExecutionError
+from aws_lambda_builders.workflows.go_dep.subproc_exec import ExecutionError
 
 
 class TestDepEnsureAction(TestCase):
-    @patch("aws_lambda_builders.workflows.go_dep.exec.SubprocessExec")
+    @patch("aws_lambda_builders.workflows.go_dep.subproc_exec.SubprocessExec")
     def test_runs_dep_ensure(self, SubProcMock):
         """
         tests the happy path of running `dep ensure`
@@ -21,7 +21,7 @@ class TestDepEnsureAction(TestCase):
 
         sub_proc_dep.run.assert_called_with(["ensure", "-v"], cwd="base")
 
-    @patch("aws_lambda_builders.workflows.go_dep.exec.SubprocessExec")
+    @patch("aws_lambda_builders.workflows.go_dep.subproc_exec.SubprocessExec")
     def test_fails_dep_ensure(self, SubProcMock):
         """
         tests failure, something being returned on stderr
@@ -38,7 +38,7 @@ class TestDepEnsureAction(TestCase):
 
 
 class TestGoBuildAction(TestCase):
-    @patch("aws_lambda_builders.workflows.go_dep.exec.SubprocessExec")
+    @patch("aws_lambda_builders.workflows.go_dep.subproc_exec.SubprocessExec")
     def test_runs_go_build(self, SubProcMock):
         """
         tests the happy path of running `dep ensure`
@@ -53,7 +53,7 @@ class TestGoBuildAction(TestCase):
                                            cwd="source",
                                            env={"GOOS": "linux", "GOARCH": "amd64"})
 
-    @patch("aws_lambda_builders.workflows.go_dep.exec.SubprocessExec")
+    @patch("aws_lambda_builders.workflows.go_dep.subproc_exec.SubprocessExec")
     def test_fails_go_build(self, SubProcMock):
         """
         tests failure, something being returned on stderr

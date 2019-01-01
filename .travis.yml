@@ -16,6 +16,12 @@ install:
   - nvm install 8.10.0
   - nvm use 8.10.0
 
+  # Go workflow integ tests require Go 1.11+
+  - eval "$(gimme 1.11.2)"
+  - go version
+
+  - go get -u github.com/golang/dep/cmd/dep
+
   # Install the code requirements
   - make init
 script:

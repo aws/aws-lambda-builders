@@ -5,11 +5,9 @@ Actions for Go dependency resolution with dep
 import logging
 import os
 
-from shutil import copyfile, SameFileError
-
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 
-from .exec import ExecutionError
+from .subproc_exec import ExecutionError
 
 
 LOG = logging.getLogger(__name__)

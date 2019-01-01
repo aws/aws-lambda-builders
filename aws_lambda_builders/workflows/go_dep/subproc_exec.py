@@ -3,6 +3,7 @@ Wrapper around calling dep through a subprocess.
 """
 
 import logging
+import sys
 
 LOG = logging.getLogger(__name__)
 
@@ -81,6 +82,9 @@ class SubprocessExec(object):
         out, err = p.communicate()
 
         if p.returncode != 0:
-            raise ExecutionError(message=err.decode("utf8").strip())
+            if sys.version_info[0] < 3:
+                raise ExecutionError(message=err.strip())
+            else:
+                raise ExecutionError(message=err.decode("utf8").strip())
 
         return out.decode("utf8").strip()

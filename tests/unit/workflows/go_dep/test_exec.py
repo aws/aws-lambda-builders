@@ -1,7 +1,7 @@
 from unittest import TestCase
 from mock import patch
 
-from aws_lambda_builders.workflows.go_dep.exec import SubprocessExec, ExecutionError
+from aws_lambda_builders.workflows.go_dep.subproc_exec import SubprocessExec, ExecutionError
 
 
 class FakePopen:

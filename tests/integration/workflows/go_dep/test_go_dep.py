@@ -15,7 +15,9 @@ class TestGoDep(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
 
-        self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "nodeps")
+        os.environ["GOPATH"] = self.TEST_DATA_FOLDER
+
+        self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "src", "nodeps")
 
         self.builder = LambdaBuilder(language="go",
                                      dependency_manager="dep",
@@ -28,7 +30,7 @@ class TestGoDep(TestCase):
         shutil.rmtree(self.scratch_dir)
 
     def test_builds_project_with_no_deps(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "nodeps")
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "nodeps")
 
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                            os.path.join(source_dir, "Gopkg.toml"),
@@ -41,7 +43,7 @@ class TestGoDep(TestCase):
         self.assertEquals(expected_files, output_files)
 
     def test_builds_project_with_no_gopkg_file(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-gopkg")
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "no-gopkg")
 
         with self.assertRaises(WorkflowFailedError) as ex:
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
@@ -55,7 +57,7 @@ class TestGoDep(TestCase):
                           str(ex.exception))
 
     def test_builds_project_with_remote_deps(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "remote-deps")
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "remote-deps")
 
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                            os.path.join(source_dir, "Gopkg.toml"),
@@ -68,7 +70,7 @@ class TestGoDep(TestCase):
         self.assertEquals(expected_files, output_files)
 
     def test_builds_project_with_failed_remote_deps(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "failed-remote")
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "failed-remote")
 
         with self.assertRaises(WorkflowFailedError) as ex:
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
