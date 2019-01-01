@@ -19,7 +19,7 @@ class TestDepEnsureAction(TestCase):
 
         action.execute()
 
-        sub_proc_dep.run.assert_called_with(["ensure", "-v"], cwd="base")
+        sub_proc_dep.run.assert_called_with(["ensure"], cwd="base")
 
     @patch("aws_lambda_builders.workflows.go_dep.subproc_exec.SubprocessExec")
     def test_fails_dep_ensure(self, SubProcMock):

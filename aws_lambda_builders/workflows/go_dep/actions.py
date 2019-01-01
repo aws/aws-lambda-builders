@@ -30,7 +30,7 @@ class DepEnsureAction(BaseAction):
 
     def execute(self):
         try:
-            self.subprocess_dep.run(["ensure", "-v"],
+            self.subprocess_dep.run(["ensure"],
                                     cwd=self.base_dir)
         except ExecutionError as ex:
             raise ActionFailedError(str(ex))
