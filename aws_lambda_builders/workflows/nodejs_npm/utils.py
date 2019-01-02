@@ -6,6 +6,7 @@ import os
 import platform
 import tarfile
 import subprocess
+import shutil
 
 
 class OSUtils(object):
@@ -15,9 +16,15 @@ class OSUtils(object):
     unit test actions in memory
     """
 
+    def copy_file(self, file_path, destination_path):
+        return shutil.copy2(file_path, destination_path)
+
     def extract_tarfile(self, tarfile_path, unpack_dir):
         with tarfile.open(tarfile_path, 'r:*') as tar:
             tar.extractall(unpack_dir)
+
+    def file_exists(self, filename):
+        return os.path.isfile(filename)
 
     def joinpath(self, *args):
         return os.path.join(*args)
@@ -32,6 +39,9 @@ class OSUtils(object):
 
     def dirname(self, path):
         return os.path.dirname(path)
+
+    def remove_file(self, filename):
+        return os.remove(filename)
 
     def abspath(self, path):
         return os.path.abspath(path)

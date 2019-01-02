@@ -4,7 +4,7 @@ NodeJS NPM Workflow
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
-from .actions import NodejsNpmPackAction, NodejsNpmInstallAction
+from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
 
@@ -55,8 +55,13 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         npm_install = NodejsNpmInstallAction(artifacts_dir,
                                              subprocess_npm=subprocess_npm)
+
+        npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
+
         self.actions = [
             npm_pack,
+            npm_copy_npmrc,
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
             npm_install,
+            NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils)
         ]
