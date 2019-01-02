@@ -2,6 +2,7 @@
 from unittest import TestCase
 from mock import Mock, call
 
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
 from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError
@@ -151,8 +152,17 @@ class TestBaseWorkflow_run(TestCase):
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
+    def test_get_executable_path(self):
+        self.assertIsNotNone(self.work.get_executable())
+
+    def test_get_validator(self):
+        self.assertTrue(isinstance(self.work.get_validator(), RuntimeValidator))
+
     def test_must_execute_actions_in_sequence(self):
         action_mock = Mock()
+        validator_mock = Mock()
+
+        self.work.get_validator = lambda: validator_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
 
         self.work.run()
@@ -160,6 +170,7 @@ class TestBaseWorkflow_run(TestCase):
         self.assertEquals(action_mock.method_calls, [
             call.action1.execute(), call.action2.execute(), call.action3.execute()
         ])
+        self.assertTrue(validator_mock.validate_runtime.call_count, 1)
 
     def test_must_raise_with_no_actions(self):
         self.work.actions = []

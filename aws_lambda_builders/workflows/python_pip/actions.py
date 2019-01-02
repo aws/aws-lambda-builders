@@ -19,12 +19,13 @@ class PythonPipBuildAction(BaseAction):
         self.scratch_dir = scratch_dir
         self.runtime = runtime
         self.runtime_path = runtime_path
-        self.pip = SubprocessPip(osutils=OSUtils(), python_exe=runtime_path)
+        self.os_utils = OSUtils()
+        self.pip = SubprocessPip(osutils=self.os_utils, python_exe=runtime_path)
         self.pip_runner = PipRunner(python_exe=runtime_path, pip=self.pip)
-        self.dependency_builder = DependencyBuilder(osutils=OSUtils(), pip_runner=self.pip_runner,
+        self.dependency_builder = DependencyBuilder(osutils=self.os_utils, pip_runner=self.pip_runner,
                                                     runtime=runtime)
 
-        self.package_builder = PythonPipDependencyBuilder(osutils=OSUtils(),
+        self.package_builder = PythonPipDependencyBuilder(osutils=self.os_utils,
                                                           runtime=runtime,
                                                           dependency_builder=self.dependency_builder)
 

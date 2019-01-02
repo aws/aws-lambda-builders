@@ -12,9 +12,9 @@ LOG = logging.getLogger(__name__)
 
 
 class RubyRuntimeValidator(object):
-    SUPPORTED_RUNTIMES = [
+    SUPPORTED_RUNTIMES = {
         "ruby2.5"
-    ]
+    }
 
     def __init__(self, runtime, runtime_path):
         self.language = "ruby"

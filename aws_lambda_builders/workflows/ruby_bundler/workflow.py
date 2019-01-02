@@ -57,7 +57,7 @@ class RubyBundlerWorkflow(BaseWorkflow):
         ]
 
     def get_executable(self):
-        return RubyPathResolver(runtime=self.runtime).path
+        return RubyPathResolver(runtime=self.runtime).exec_path
 
     def get_validator(self):
         return RubyRuntimeValidator(runtime=self.runtime, runtime_path=self.get_executable())

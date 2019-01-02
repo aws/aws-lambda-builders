@@ -32,11 +32,11 @@ def sanitize(func):
     """
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(self, *args, **kwargs):
         # NOTE: we need to access workflow object to get the validator.
-        validator = args[0].get_validator()
+        validator = self.get_validator()
         validator.validate_runtime()
-        func(*args, **kwargs)
+        func(self, *args, **kwargs)
     return wrapper
 
 
@@ -160,7 +160,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
         Non specialized path resolver that just returns the first executable for the runtime on the path.
         """
-        return PathResolver(runtime=self.runtime).path
+        return PathResolver(runtime=self.runtime).exec_path
 
     def get_validator(self):
         """

@@ -72,7 +72,7 @@ class PythonPipWorkflow(BaseWorkflow):
         ]
 
     def get_executable(self):
-        return PythonPathResolver(runtime=self.runtime).path
+        return PythonPathResolver(runtime=self.runtime).exec_path
 
     def get_validator(self):
         return PythonRuntimeValidator(runtime=self.runtime, runtime_path=self.get_executable())

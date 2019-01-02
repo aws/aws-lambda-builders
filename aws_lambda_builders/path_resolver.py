@@ -9,5 +9,5 @@ class PathResolver(object):
         self.runtime = runtime
 
     @property
-    def path(self):
+    def exec_path(self):
         return self.runtime

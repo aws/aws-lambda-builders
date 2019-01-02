@@ -12,11 +12,11 @@ LOG = logging.getLogger(__name__)
 
 
 class PythonRuntimeValidator(object):
-    SUPPORTED_RUNTIMES = [
+    SUPPORTED_RUNTIMES = {
         "python2.7",
         "python3.6",
         "python3.7"
-    ]
+    }
 
     def __init__(self, runtime, runtime_path):
         self.language = "python"
