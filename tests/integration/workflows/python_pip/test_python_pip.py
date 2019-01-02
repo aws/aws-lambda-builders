@@ -55,12 +55,12 @@ class TestPythonPipWorkflow(TestCase):
         self.assertEquals(expected_files, output_files)
 
     def test_mismatch_runtime_python_project(self):
-        # NOTE : Build still works if other versions of python are accesible on the path. eg: /usr/bin/python2.7
+        # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python2.7
         # is still accessible within a python 3 virtualenv.
         try:
             self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                                runtime=self.runtime_mismatch[self.runtime])
-        except MisMatchRuntimeError as ex:
+        except MisMatchRuntimeError:
             self.assertIsNone(which(self.runtime_mismatch[self.runtime]))
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
