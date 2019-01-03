@@ -366,6 +366,8 @@ Thumbs.db
 ehthumbs.db
 ehthumbs_vista.db
 
+tests/integration/workflows/go_dep/data/src/*/vendor/*
+
 # Folder config file
 Desktop.ini
 
