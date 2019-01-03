@@ -1,8 +1,8 @@
 """
 Wrapper around calling dep through a subprocess.
 """
-from __future__ import unicode_literals
 
+import sys
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -80,6 +80,9 @@ class SubprocessExec(object):
         out, err = p.communicate()
 
         if p.returncode != 0:
-            raise ExecutionError(message=str(err).decode('utf-8').replace('\u2717', '').strip())
+            if sys.version_info[0] < 3:
+                raise ExecutionError(message=str(err.strip()))
+            else:
+                raise ExecutionError(message=str(err.decode("utf8").strip()))
 
         return out.strip()

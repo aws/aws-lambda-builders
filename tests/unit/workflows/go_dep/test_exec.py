@@ -48,7 +48,7 @@ class TestSubprocessExec(TestCase):
 
         result = self.under_test.run(["did"])
 
-        self.assertEqual(result, "some encoded text")
+        self.assertEqual(result, b"some encoded text")
 
     def test_raises_ExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
