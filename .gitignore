@@ -366,8 +366,6 @@ Thumbs.db
 ehthumbs.db
 ehthumbs_vista.db
 
-tests/integration/workflows/go_dep/data/src/*/vendor/*
-
 # Folder config file
 Desktop.ini
 
@@ -384,5 +382,7 @@ $RECYCLE.BIN/
 *.lnk
 
 /Dockerfile
+
+tests/integration/workflows/go_dep/data/src/*/vendor/*
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode
