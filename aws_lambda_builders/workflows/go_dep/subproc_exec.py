@@ -2,7 +2,6 @@
 Wrapper around calling dep through a subprocess.
 """
 
-import sys
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -17,7 +16,14 @@ class ExecutionError(Exception):
     MESSAGE = "Exec Failed: {}"
 
     def __init__(self, message):
-        Exception.__init__(self, self.MESSAGE.format(message))
+        raw_message = message
+        if isinstance(message, bytes):
+            message = message.decode('utf-8')
+
+        try:
+            Exception.__init__(self, self.MESSAGE.format(message.strip()))
+        except UnicodeError:
+            Exception.__init__(self, self.MESSAGE.format(raw_message.strip()))
 
 class SubprocessExec(object):
 
@@ -80,9 +86,6 @@ class SubprocessExec(object):
         out, err = p.communicate()
 
         if p.returncode != 0:
-            if sys.version_info[0] < 3:
-                raise ExecutionError(message=str(err.strip()))
-            else:
-                raise ExecutionError(message=str(err.decode("utf8").strip()))
+            raise ExecutionError(message=err)
 
         return out.strip()

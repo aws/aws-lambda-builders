@@ -44,20 +44,20 @@ class TestSubprocessExec(TestCase):
                                               cwd=None, env={"foo": "bar"}, stderr="PIPE", stdout="PIPE")
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
-        self.popen.out = b"some encoded text\n\n"
+        self.popen.out = "some encoded text\n\n"
 
         result = self.under_test.run(["did"])
 
-        self.assertEqual(result, b"some encoded text")
+        self.assertEqual(result, "some encoded text")
 
     def test_raises_ExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
-        self.popen.err = b"some error text\n\n"
+        self.popen.err = "some error text\n\n"
 
         with self.assertRaises(ExecutionError) as raised:
             self.under_test.run(["did"])
 
-        self.assertEqual(raised.exception.args[0], u"Exec Failed: some error text")
+        self.assertEqual(raised.exception.args[0], "Exec Failed: some error text")
 
     def test_raises_ValueError_if_args_not_a_list(self):
         with self.assertRaises(ValueError) as raised:
