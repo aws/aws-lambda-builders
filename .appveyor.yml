@@ -31,7 +31,7 @@ install:
 - "choco install golang"
 - "choco install bzr"
 - "choco install dep"
-- setx /s PATH=C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;
+- setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
 - "go version"
 - "go env"
 
