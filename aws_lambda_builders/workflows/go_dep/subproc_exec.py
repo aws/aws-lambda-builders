@@ -88,4 +88,6 @@ class SubprocessExec(object):
         if p.returncode != 0:
             raise ExecutionError(message=err)
 
+        out = out.decode('utf-8') if isinstance(out, bytes) else out
+
         return out.strip()
