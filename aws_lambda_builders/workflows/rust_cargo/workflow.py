@@ -1,5 +1,5 @@
 """
-Python PIP Workflow
+Rust Cargo Workflow
 """
 import os
 
