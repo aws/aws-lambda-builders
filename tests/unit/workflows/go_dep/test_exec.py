@@ -57,7 +57,7 @@ class TestSubprocessExec(TestCase):
         with self.assertRaises(ExecutionError) as raised:
             self.under_test.run(["did"])
 
-        self.assertEqual(raised.exception.args[0], "Exec Failed: some error text")
+        self.assertEqual(raised.exception.args[0], u"Exec Failed: some error text")
 
     def test_raises_ValueError_if_args_not_a_list(self):
         with self.assertRaises(ValueError) as raised:

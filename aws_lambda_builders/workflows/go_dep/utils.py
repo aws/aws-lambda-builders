@@ -30,7 +30,7 @@ class OSUtils(object):
 
     @property
     def environ(self):
-        return os.environ
+        return os.environ.copy()
 
     def dirname(self, path):
         return os.path.dirname(path)
