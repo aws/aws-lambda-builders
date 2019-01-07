@@ -1,0 +1,7 @@
+[[constraint]]
+  name = "not-really-a-git-repo.com/pkg/log"
+  version = "1.0.0"
+
+[prune]
+  go-tests = true
+  unused-packages = true

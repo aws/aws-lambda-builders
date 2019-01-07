@@ -2,6 +2,8 @@ version: 1.0.{build}
 image: Visual Studio 2017
 
 environment:
+  GOPATH: c:\gopath
+  GOVERSION: 1.11
 
   matrix:
 
@@ -23,6 +25,15 @@ install:
 - "gem --version"
 - "gem install bundler -v 1.17.3 --no-ri --no-rdoc"
 - "bundler --version"
+
+# setup go
+- rmdir c:\go /s /q
+- "choco install golang"
+- "choco install bzr"
+- "choco install dep"
+- setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+- "go version"
+- "go env"
 
 test_script:
 - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
