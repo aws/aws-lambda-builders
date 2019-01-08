@@ -39,7 +39,7 @@ If your build action implementation requires 3rd party libraries, here is how yo
 
 Each build action has its own design document. 
 
-* [python-pip](./lambda_builders/actions/python_pip/DESIGN.md)
+* [python-pip](./aws_lambda_builders/workflows/python_pip/DESIGN.md)
 
 
 ### Builders Library
