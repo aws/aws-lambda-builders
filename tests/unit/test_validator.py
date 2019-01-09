@@ -6,11 +6,10 @@ from aws_lambda_builders.validator import RuntimeValidator
 class TestRuntimeValidator(TestCase):
 
     def setUp(self):
-        self.validator = RuntimeValidator(runtime="chitti2.0", runtime_path="/usr/bin/chitti2.0")
+        self.validator = RuntimeValidator(runtime="chitti2.0")
 
     def test_inits(self):
         self.assertEquals(self.validator.runtime, "chitti2.0")
-        self.assertEquals(self.validator.runtime_path, "/usr/bin/chitti2.0")
 
     def test_validate_runtime(self):
-        self.validator.validate_runtime()
+        self.validator.validate("/usr/bin/chitti")

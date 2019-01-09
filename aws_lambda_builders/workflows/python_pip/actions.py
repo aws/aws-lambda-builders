@@ -12,26 +12,30 @@ class PythonPipBuildAction(BaseAction):
     NAME = 'ResolveDependencies'
     DESCRIPTION = "Installing dependencies from PIP"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
+    LANGUAGE = 'python'
 
-    def __init__(self, artifacts_dir, manifest_path, scratch_dir, runtime, runtime_path):
+    def __init__(self, artifacts_dir, manifest_path, scratch_dir, runtime, binaries):
         self.artifacts_dir = artifacts_dir
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
         self.runtime = runtime
-        self.runtime_path = runtime_path
-        self.os_utils = OSUtils()
-        self.pip = SubprocessPip(osutils=self.os_utils, python_exe=runtime_path)
-        self.pip_runner = PipRunner(python_exe=runtime_path, pip=self.pip)
-        self.dependency_builder = DependencyBuilder(osutils=self.os_utils, pip_runner=self.pip_runner,
-                                                    runtime=runtime)
-
-        self.package_builder = PythonPipDependencyBuilder(osutils=self.os_utils,
-                                                          runtime=runtime,
-                                                          dependency_builder=self.dependency_builder)
+        self.binaries = binaries
 
     def execute(self):
+        os_utils = OSUtils()
+        # import ipdb
+        # ipdb.set_trace()
+        python_path = [binary.binary_path for binary in self.binaries if getattr(binary, self.LANGUAGE)][0]
+        pip = SubprocessPip(osutils=os_utils, python_exe=python_path)
+        pip_runner = PipRunner(python_exe=python_path, pip=pip)
+        dependency_builder = DependencyBuilder(osutils=os_utils, pip_runner=pip_runner,
+                                               runtime=self.runtime)
+
+        package_builder = PythonPipDependencyBuilder(osutils=os_utils,
+                                                     runtime=self.runtime,
+                                                     dependency_builder=dependency_builder)
         try:
-            self.package_builder.build_dependencies(
+            package_builder.build_dependencies(
                 self.artifacts_dir,
                 self.manifest_path,
                 self.scratch_dir

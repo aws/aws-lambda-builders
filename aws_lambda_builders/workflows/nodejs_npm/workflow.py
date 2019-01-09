@@ -1,7 +1,7 @@
 """
 NodeJS NPM Workflow
 """
-
+from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction
@@ -60,3 +60,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
             npm_install,
         ]
+
+    def get_resolvers(self):
+        """
+        specialized path resolver that just returns the list of executable for the runtime on the path.
+        """
+        return [PathResolver(runtime=self.runtime, binary="node")]

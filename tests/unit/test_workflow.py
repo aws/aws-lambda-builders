@@ -2,6 +2,7 @@
 from unittest import TestCase
 from mock import Mock, call
 
+from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
@@ -152,25 +153,38 @@ class TestBaseWorkflow_run(TestCase):
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
-    def test_get_executable_path(self):
-        self.assertIsNotNone(self.work.get_executable())
+    def test_get_binaries(self):
+        self.assertIsNotNone(self.work.get_binaries())
+        for binary_path in self.work.get_binaries():
+            self.assertTrue(isinstance(binary_path, BinaryPath))
 
     def test_get_validator(self):
-        self.assertTrue(isinstance(self.work.get_validator(), RuntimeValidator))
+        self.assertIsNotNone(self.work.get_validators())
+        for validator in self.work.get_validators():
+            self.assertTrue(isinstance(validator, RuntimeValidator))
 
     def test_must_execute_actions_in_sequence(self):
         action_mock = Mock()
         validator_mock = Mock()
+        validator_mock.validate = Mock()
+        validator_mock.validate.return_value = '/usr/bin/binary'
+        resolver_mock = Mock()
+        resolver_mock.exec_paths = ['/usr/bin/binary']
+        binaries_mock = Mock()
+        binaries_mock.return_value = []
 
-        self.work.get_validator = lambda: validator_mock
+        self.work.get_validators = lambda: validator_mock
+        self.work.get_resolvers = lambda: resolver_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-
+        self.work.binaries = [BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")]
+        # with patch(PathResolver, 'exec_paths') as mock_exec:
+        #     mock_exec.return_value = '/usr/bin/binary'
         self.work.run()
 
         self.assertEquals(action_mock.method_calls, [
             call.action1.execute(), call.action2.execute(), call.action3.execute()
         ])
-        self.assertTrue(validator_mock.validate_runtime.call_count, 1)
+        self.assertTrue(validator_mock.validate.call_count, 1)
 
     def test_must_raise_with_no_actions(self):
         self.work.actions = []

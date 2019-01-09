@@ -18,10 +18,10 @@ class PythonRuntimeValidator(object):
         "python3.7"
     }
 
-    def __init__(self, runtime, runtime_path):
+    def __init__(self, runtime):
         self.language = "python"
         self.runtime = runtime
-        self.runtime_path = runtime_path
+        self._valid_runtime_path = None
 
     def has_runtime(self):
         """
@@ -31,7 +31,7 @@ class PythonRuntimeValidator(object):
         """
         return self.runtime in self.SUPPORTED_RUNTIMES
 
-    def validate_runtime(self):
+    def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
         :param string runtime_path: runtime to check eg: /usr/bin/python3.6
@@ -39,9 +39,11 @@ class PythonRuntimeValidator(object):
         """
         if not self.has_runtime():
             LOG.warning("'%s' runtime is not "
-                        "a supported runtime", self.runtime_path)
+                        "a supported runtime", self.runtime)
             return
-        cmd = self._validate_python_cmd(self.runtime_path)
+        # import ipdb
+        # ipdb.set_trace()
+        cmd = self._validate_python_cmd(runtime_path)
 
         p = subprocess.Popen(cmd,
                              cwd=os.getcwd(),
@@ -50,7 +52,10 @@ class PythonRuntimeValidator(object):
         if p.returncode != 0:
             raise MisMatchRuntimeError(language=self.language,
                                        required_runtime=self.runtime,
-                                       runtime_path=self.runtime_path)
+                                       runtime_path=runtime_path)
+        else:
+            self._valid_runtime_path = runtime_path
+            return self._valid_runtime_path
 
     def _validate_python_cmd(self, runtime_path):
         major, minor = self.runtime.replace(self.language, "").split('.')
@@ -63,3 +68,9 @@ class PythonRuntimeValidator(object):
                 major=major,
                 minor=minor)]
         return cmd
+
+    @property
+    def validated_runtime_path(self):
+        return self._valid_runtime_path if self._valid_runtime_path is not None else None
+
+

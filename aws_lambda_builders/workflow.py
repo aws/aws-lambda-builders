@@ -8,6 +8,7 @@ import logging
 from collections import namedtuple
 import six
 
+from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
@@ -33,9 +34,24 @@ def sanitize(func):
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
+        valid_paths = []
         # NOTE: we need to access workflow object to get the validator.
-        validator = self.get_validator()
-        validator.validate_runtime()
+        self.get_binaries()
+        # import ipdb
+        # ipdb.set_trace()
+        for binary_path in self.binaries:
+            validator = binary_path.validator
+            exec_paths = binary_path.resolver.exec_paths if not binary_path.path_provided else binary_path.binary_path
+            for executable_path in exec_paths:
+                valid_path = validator.validate(executable_path)
+                if valid_path:
+                    binary_path.binary_path = valid_path
+                    valid_paths.append(valid_path)
+                    break
+        if not valid_paths:
+            raise WorkflowFailedError(workflow_name=self.NAME,
+                                      action_name=None,
+                                      reason='Binary validation failed!')
         func(self, *args, **kwargs)
     return wrapper
 
@@ -144,6 +160,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
+        self.binaries = None
 
     def is_supported(self):
         """
@@ -156,17 +173,25 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         return True
 
-    def get_executable(self):
+    def get_resolvers(self):
         """
-        Non specialized path resolver that just returns the first executable for the runtime on the path.
+        Non specialized path resolver that just returns the list of executable for the runtime on the path.
         """
-        return PathResolver(runtime=self.runtime).exec_path
+        return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language)]
 
-    def get_validator(self):
+    def get_validators(self):
         """
         No-op validator that does not validate the runtime_path.
         """
-        return RuntimeValidator(runtime_path=self.get_executable(), runtime=self.runtime)
+        return [RuntimeValidator(runtime=self.runtime)]
+
+    def get_binaries(self):
+        if not self.binaries:
+            resolvers = self.get_resolvers()
+            validators = self.get_validators()
+            self.binaries = [BinaryPath(resolver=resolver, validator=validator, binary=resolver.binary)
+                             for resolver, validator in zip(resolvers, validators)]
+        return self.binaries
 
     @sanitize
     def run(self):

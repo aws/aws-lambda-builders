@@ -1,5 +1,5 @@
 """
-Supported Runtimes and their validations.
+Ruby Runtime Validation
 """
 
 import logging
@@ -16,10 +16,9 @@ class RubyRuntimeValidator(object):
         "ruby2.5"
     }
 
-    def __init__(self, runtime, runtime_path):
+    def __init__(self, runtime):
         self.language = "ruby"
         self.runtime = runtime
-        self.runtime_path = runtime_path
 
     def has_runtime(self):
         """
@@ -29,7 +28,7 @@ class RubyRuntimeValidator(object):
         """
         return self.runtime in self.SUPPORTED_RUNTIMES
 
-    def validate_runtime(self):
+    def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
         :param string runtime_path: runtime to check eg: /Users/{user}/.rvm/rubies/ruby-2.5.0/bin/ruby
@@ -37,9 +36,9 @@ class RubyRuntimeValidator(object):
         """
         if not self.has_runtime():
             LOG.warning("'%s' runtime is not "
-                        "a supported runtime", self.runtime_path)
+                        "a supported runtime", runtime_path)
             return
-        cmd = self._validate_ruby(self.runtime_path)
+        cmd = self._validate_ruby(runtime_path)
 
         p = subprocess.Popen(cmd,
                              cwd=os.getcwd(),
@@ -48,7 +47,9 @@ class RubyRuntimeValidator(object):
         if p.returncode != 0:
             raise MisMatchRuntimeError(language=self.language,
                                        required_runtime=self.runtime,
-                                       runtime_path=self.runtime_path)
+                                       runtime_path=runtime_path)
+        else:
+            return runtime_path
 
     def _validate_ruby(self, runtime_path):
         major, minor = self.runtime.replace(self.language, "").split('.')
