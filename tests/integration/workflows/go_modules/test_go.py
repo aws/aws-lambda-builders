@@ -21,6 +21,7 @@ class TestGoWorkflow(TestCase):
         self.builder = LambdaBuilder(language="go",
                                      dependency_manager="modules",
                                      application_framework=None)
+        self.runtime = "go1.x"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -29,8 +30,10 @@ class TestGoWorkflow(TestCase):
     def test_builds_project_without_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                           os.path.join(source_dir, "go.mod"))
-        expected_files = {"no-deps"}
+                           os.path.join(source_dir, "go.mod"),
+                           runtime=self.runtime,
+                           options={"handler": "no-deps-main"})
+        expected_files = {"no-deps-main"}
         output_files = set(os.listdir(self.artifacts_dir))
         print(output_files)
         self.assertEquals(expected_files, output_files)
@@ -38,8 +41,10 @@ class TestGoWorkflow(TestCase):
     def test_builds_project_with_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps")
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                           os.path.join(source_dir, "go.mod"))
-        expected_files = {"with-deps"}
+                           os.path.join(source_dir, "go.mod"),
+                           runtime=self.runtime,
+                           options={"handler": "with-deps-main"})
+        expected_files = {"with-deps-main"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEquals(expected_files, output_files)
 
@@ -47,6 +52,8 @@ class TestGoWorkflow(TestCase):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-deps")
         with self.assertRaises(WorkflowFailedError) as ctx:
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                               os.path.join(source_dir, "go.mod"))
+                               os.path.join(source_dir, "go.mod"),
+                               runtime=self.runtime,
+                               options={"handler": "failed"})
         self.assertIn("GoModulesBuilder:Build - Builder Failed: ",
                       str(ctx.exception))

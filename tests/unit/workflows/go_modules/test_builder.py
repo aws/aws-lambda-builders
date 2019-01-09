@@ -14,7 +14,7 @@ class FakePopen:
         return self.out, self.err
 
 
-class TestSubprocessBundler(TestCase):
+class TestGoBuilder(TestCase):
 
     @patch("aws_lambda_builders.workflows.go_modules.utils.OSUtils")
     def setUp(self, OSUtilMock):
@@ -22,15 +22,14 @@ class TestSubprocessBundler(TestCase):
         self.osutils.pipe = 'PIPE'
         self.popen = FakePopen()
         self.osutils.popen.side_effect = [self.popen]
-        self.under_test = GoModulesBuilder(self.osutils)
+        self.under_test = GoModulesBuilder(self.osutils, "go")
 
     def test_run_executes_bundler_on_nixes(self):
         self.osutils.is_windows.side_effect = [False]
-        self.under_test = GoModulesBuilder(self.osutils)
-        self.under_test.build("source_dir", "artifacts_dir", "executable_name")
+        self.under_test = GoModulesBuilder(self.osutils, "go")
+        self.under_test.build("source_dir", "output_path")
         self.osutils.popen.assert_called_with(
-            ["go", "build", "-o",
-             self.osutils.joinpath("artifacts_dir", "executable_name"), "source_dir"],
+            ["go", "build", "-o", "output_path", "source_dir"],
             cwd="source_dir",
             env={'GOOS': 'linux', 'GOARCH': 'amd64'},
             stderr='PIPE',
@@ -39,12 +38,12 @@ class TestSubprocessBundler(TestCase):
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
         self.popen.out = b'some encoded text\n\n'
-        result = self.under_test.build("source_dir", "artifacts_dir", "executable_name")
+        result = self.under_test.build("source_dir", "output_path")
         self.assertEqual(result, 'some encoded text')
 
     def test_raises_BuilderError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
         self.popen.err = b'some error text\n\n'
         with self.assertRaises(BuilderError) as raised:
-            self.under_test.build("source_dir", "artifacts_dir", "executable_name")
+            self.under_test.build("source_dir", "output_path")
         self.assertEqual(raised.exception.args[0], "Builder Failed: some error text")

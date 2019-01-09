@@ -13,13 +13,10 @@ class OSUtils(object):
     """
     @property
     def environ(self):
-        return os.environ
+        return os.environ.copy()
 
     def joinpath(self, *args):
         return os.path.join(*args)
-
-    def basename(self, *args):
-        return os.path.basename(*args)
 
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)

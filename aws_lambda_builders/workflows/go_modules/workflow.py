@@ -2,10 +2,11 @@
 Go Modules Workflow
 """
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction
 
 from .actions import GoModulesBuildAction
 from .builder import GoModulesBuilder
+from .path_resolver import GoPathResolver
+from .validator import GoRuntimeValidator
 from .utils import OSUtils
 
 
@@ -37,9 +38,18 @@ class GoModulesWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
-        executable_name = osutils.basename(source_dir)
-        builder = GoModulesBuilder(osutils)
+        options = kwargs.get("options") or {}
+        handler = options.get("handler", None)
+
+        output_path = osutils.joinpath(artifacts_dir, handler)
+
+        builder = GoModulesBuilder(osutils, runtime_path=self.get_executable())
         self.actions = [
-            GoModulesBuildAction(source_dir, artifacts_dir, executable_name, builder),
-            CopySourceAction(source_dir, artifacts_dir, only=[executable_name]),
+            GoModulesBuildAction(source_dir, output_path, builder),
         ]
+
+    def get_executable(self):
+        return GoPathResolver(runtime=self.runtime).exec_path
+
+    def get_validator(self):
+        return GoRuntimeValidator(runtime=self.runtime, runtime_path=self.get_executable())

@@ -17,16 +17,13 @@ builds a static binary using standard go tools.
 
 ```python
 def build(self, source_dir_path, artifacts_dir_path, executable_name):
-    """Builds a go project into an artifact directory.
+    """Builds a go project onto an output path.
 
     :type source_dir_path: str
     :param source_dir_path: Directory with the source files.
 
-    :type artifacts_dir_path: str
-    :param artifacts_dir_path: Directory to write dependencies into.
-
-    :type executable_name: str
-    :param executable_name: Name of the executable to create from the build.
+    :type output_path: str
+    :param output_path: Filename to write the executable output to.
 ```
 
 ### Implementation

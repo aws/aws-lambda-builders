@@ -19,10 +19,6 @@ class TestOSUtils(TestCase):
         result = self.osutils.joinpath('a', 'b', 'c')
         self.assertEqual(result, os.path.join('a', 'b', 'c'))
 
-    def test_basename_returns_path_basename(self):
-        result = self.osutils.basename(os.path.dirname(__file__))
-        self.assertEqual(result, 'go_modules')
-
     def test_popen_runs_a_process_and_returns_outcome(self):
         cwd_py = os.path.join(os.path.dirname(__file__), '..', '..', 'testdata', 'cwd.py')
         p = self.osutils.popen([sys.executable, cwd_py],

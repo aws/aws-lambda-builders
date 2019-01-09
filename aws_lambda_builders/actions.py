@@ -92,16 +92,10 @@ class CopySourceAction(BaseAction):
 
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self, source_dir, dest_dir, only=None, excludes=None):
+    def __init__(self, source_dir, dest_dir, excludes=None):
         self.source_dir = source_dir
         self.dest_dir = dest_dir
-        self.only = only
         self.excludes = excludes or []
 
     def execute(self):
-        if self.only:
-            def ignore(source, names):
-                return [name for name in names if name not in self.only]
-        else:
-            ignore = shutil.ignore_patterns(*self.excludes)
-        copytree(self.source_dir, self.dest_dir, ignore=ignore)
+        copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
