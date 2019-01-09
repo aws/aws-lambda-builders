@@ -16,5 +16,3 @@ class RuntimeValidator(object):
     def validate(self, runtime_path):
         self._runtime_path = runtime_path
         return runtime_path
-
-

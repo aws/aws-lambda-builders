@@ -154,8 +154,8 @@ class TestBaseWorkflow_run(TestCase):
                                     options={"c": "d"})
 
     def test_get_binaries(self):
-        self.assertIsNotNone(self.work.get_binaries())
-        for binary_path in self.work.get_binaries():
+        self.assertIsNotNone(self.work.binaries)
+        for binary, binary_path in self.work.binaries.items():
             self.assertTrue(isinstance(binary_path, BinaryPath))
 
     def test_get_validator(self):
@@ -176,7 +176,7 @@ class TestBaseWorkflow_run(TestCase):
         self.work.get_validators = lambda: validator_mock
         self.work.get_resolvers = lambda: resolver_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-        self.work.binaries = [BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")]
+        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         self.work.run()
 
         self.assertEquals(action_mock.method_calls, [

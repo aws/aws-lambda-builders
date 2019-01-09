@@ -17,8 +17,11 @@ class TestPythonPipBuildAction(TestCase):
         builder_instance = PythonPipDependencyBuilderMock.return_value
 
         action = PythonPipBuildAction("artifacts", "scratch_dir",
-                                      "manifest", "runtime", [BinaryPath(resolver=Mock(), validator=Mock(),
-                                                                         binary="python", binary_path=sys.executable)])
+                                      "manifest", "runtime",
+                                      {
+                                          "python": BinaryPath(resolver=Mock(), validator=Mock(),
+                                                               binary="python", binary_path=sys.executable)
+                                      })
         action.execute()
 
         builder_instance.build_dependencies.assert_called_with("artifacts",
@@ -31,8 +34,11 @@ class TestPythonPipBuildAction(TestCase):
         builder_instance.build_dependencies.side_effect = PackagerError()
 
         action = PythonPipBuildAction("artifacts", "scratch_dir",
-                                      "manifest", "runtime", [BinaryPath(resolver=Mock(), validator=Mock(),
-                                                                         binary="python", binary_path=sys.executable)])
+                                      "manifest", "runtime",
+                                      {
+                                          "python": BinaryPath(resolver=Mock(), validator=Mock(),
+                                                               binary="python", binary_path=sys.executable)
+                                      })
 
         with self.assertRaises(ActionFailedError):
             action.execute()

@@ -59,8 +59,12 @@ def copytree(source, destination, ignore=None):
         else:
             shutil.copy2(new_source, new_destination)
 
+# NOTE: The below function is copied from Python source code and modified
+# slightly to return a list of paths that match a given command
+#  instead of returning just the first match
 
-def which(cmd, mode=os.F_OK | os.X_OK, path=None):
+
+def which(cmd, mode=os.F_OK | os.X_OK, path=None):  # pragma: no cover
     """Given a command, mode, and a PATH string, return the paths which
     conforms to the given mode on the PATH, or None if there is no such
     file.

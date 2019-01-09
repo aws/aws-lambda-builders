@@ -1,8 +1,6 @@
 """
 Python PIP Workflow
 """
-from aws_lambda_builders.binary_path import BinaryPath
-from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
@@ -67,22 +65,9 @@ class PythonPipWorkflow(BaseWorkflow):
 
         self.actions = [
             PythonPipBuildAction(artifacts_dir, scratch_dir,
-                                 manifest_path, runtime, binaries=self.get_binaries()),
+                                 manifest_path, runtime, binaries=self.binaries),
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
 
-    # def get_resolvers(self):
-    #     """
-    #     specialized path resolver that just returns the list of executable for the runtime on the path.
-    #     """
-    #     return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language)]
-
     def get_validators(self):
         return [PythonRuntimeValidator(runtime=self.runtime)]
-
-    # def get_binaries(self):
-    #     resolvers = self.get_resolvers()
-    #     validators = self.get_validators()
-    #     self.binaries = [BinaryPath(resolver=resolver, validator=validator, binary=resolver.binary)
-    #                      for resolver, validator in zip(resolvers, validators)]
-    #     return self.binaries

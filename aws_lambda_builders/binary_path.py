@@ -9,7 +9,6 @@ class BinaryPath(object):
         self.resolver = resolver
         self.validator = validator
         self.binary = binary
-        setattr(self, binary, binary)
         self._binary_path = binary_path
         self.path_provided = True if self._binary_path else False
 

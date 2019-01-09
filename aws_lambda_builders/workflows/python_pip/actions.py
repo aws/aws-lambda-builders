@@ -23,7 +23,7 @@ class PythonPipBuildAction(BaseAction):
 
     def execute(self):
         os_utils = OSUtils()
-        python_path = [binary.binary_path for binary in self.binaries if getattr(binary, self.LANGUAGE)][0]
+        python_path = self.binaries[self.LANGUAGE].binary_path
         pip = SubprocessPip(osutils=os_utils, python_exe=python_path)
         pip_runner = PipRunner(python_exe=python_path, pip=pip)
         dependency_builder = DependencyBuilder(osutils=os_utils, pip_runner=pip_runner,

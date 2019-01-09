@@ -4,7 +4,6 @@ Ruby Bundler Workflow
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
-from aws_lambda_builders.workflows.ruby_bundler.validator import RubyRuntimeValidator
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 from .utils import OSUtils
 from .bundler import SubprocessBundler
@@ -54,6 +53,3 @@ class RubyBundlerWorkflow(BaseWorkflow):
             bundle_install,
             bundle_deployment,
         ]
-
-    def get_validators(self):
-        return [RubyRuntimeValidator(runtime=self.runtime)]

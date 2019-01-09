@@ -36,8 +36,8 @@ def sanitize(func):
     def wrapper(self, *args, **kwargs):
         valid_paths = []
         # NOTE: we need to access binaries to get paths and resolvers, before validating.
-        self.get_binaries()
-        for binary_path in self.binaries:
+        binaries_copy = self.binaries
+        for binary, binary_path in binaries_copy.items():
             validator = binary_path.validator
             exec_paths = binary_path.resolver.exec_paths if not binary_path.path_provided else binary_path.binary_path
             for executable_path in exec_paths:
@@ -46,12 +46,13 @@ def sanitize(func):
                     valid_path = validator.validate(executable_path)
                 except MisMatchRuntimeError as ex:
                     LOG.debug("Invalid executable for %s at %s",
-                              binary_path.binary, executable_path, exc_info=str(ex))
+                              binary, executable_path, exc_info=str(ex))
                 if valid_path:
                     binary_path.binary_path = valid_path
                     valid_paths.append(valid_path)
                     break
-        if not valid_paths:
+        self.binaries = binaries_copy
+        if len(self.binaries) != len(valid_paths):
             raise WorkflowFailedError(workflow_name=self.NAME,
                                       action_name=None,
                                       reason='Binary validation failed!')
@@ -163,7 +164,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
-        self.binaries = None
+        self._binaries = {}
 
     def is_supported(self):
         """
@@ -188,13 +189,18 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
         return [RuntimeValidator(runtime=self.runtime)]
 
-    def get_binaries(self):
-        if not self.binaries:
+    @property
+    def binaries(self):
+        if not self._binaries:
             resolvers = self.get_resolvers()
             validators = self.get_validators()
-            self.binaries = [BinaryPath(resolver=resolver, validator=validator, binary=resolver.binary)
-                             for resolver, validator in zip(resolvers, validators)]
-        return self.binaries
+            self._binaries = {resolver.binary: BinaryPath(resolver=resolver, validator=validator, binary=resolver.binary)
+                             for resolver, validator in zip(resolvers, validators)}
+        return self._binaries
+
+    @binaries.setter
+    def binaries(self, binaries):
+        self._binaries = binaries
 
     @sanitize
     def run(self):

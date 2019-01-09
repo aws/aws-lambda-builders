@@ -65,4 +65,4 @@ class NodejsNpmWorkflow(BaseWorkflow):
         """
         specialized path resolver that just returns the list of executable for the runtime on the path.
         """
-        return [PathResolver(runtime=self.runtime, binary="node")]
+        return [PathResolver(runtime=self.runtime, binary="npm")]
