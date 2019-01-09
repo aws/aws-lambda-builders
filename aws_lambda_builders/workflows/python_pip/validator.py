@@ -41,8 +41,7 @@ class PythonRuntimeValidator(object):
             LOG.warning("'%s' runtime is not "
                         "a supported runtime", self.runtime)
             return
-        # import ipdb
-        # ipdb.set_trace()
+
         cmd = self._validate_python_cmd(runtime_path)
 
         p = subprocess.Popen(cmd,

@@ -177,8 +177,6 @@ class TestBaseWorkflow_run(TestCase):
         self.work.get_resolvers = lambda: resolver_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
         self.work.binaries = [BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")]
-        # with patch(PathResolver, 'exec_paths') as mock_exec:
-        #     mock_exec.return_value = '/usr/bin/binary'
         self.work.run()
 
         self.assertEquals(action_mock.method_calls, [

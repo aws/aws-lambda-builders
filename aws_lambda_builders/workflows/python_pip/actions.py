@@ -23,8 +23,6 @@ class PythonPipBuildAction(BaseAction):
 
     def execute(self):
         os_utils = OSUtils()
-        # import ipdb
-        # ipdb.set_trace()
         python_path = [binary.binary_path for binary in self.binaries if getattr(binary, self.LANGUAGE)][0]
         pip = SubprocessPip(osutils=os_utils, python_exe=python_path)
         pip_runner = PipRunner(python_exe=python_path, pip=pip)
