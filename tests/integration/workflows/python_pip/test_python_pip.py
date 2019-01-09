@@ -60,7 +60,7 @@ class TestPythonPipWorkflow(TestCase):
         try:
             self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                                runtime=self.runtime_mismatch[self.runtime])
-        except MisMatchRuntimeError:
+        except WorkflowFailedError:
             self.assertIsNone(which(self.runtime_mismatch[self.runtime]))
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):

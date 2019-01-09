@@ -12,7 +12,7 @@ from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
-from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError
+from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError, MisMatchRuntimeError
 from aws_lambda_builders.actions import ActionFailedError
 
 LOG = logging.getLogger(__name__)
@@ -35,15 +35,18 @@ def sanitize(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         valid_paths = []
-        # NOTE: we need to access workflow object to get the validator.
+        # NOTE: we need to access binaries to get paths and resolvers, before validating.
         self.get_binaries()
-        # import ipdb
-        # ipdb.set_trace()
         for binary_path in self.binaries:
             validator = binary_path.validator
             exec_paths = binary_path.resolver.exec_paths if not binary_path.path_provided else binary_path.binary_path
             for executable_path in exec_paths:
-                valid_path = validator.validate(executable_path)
+                valid_path = None
+                try:
+                    valid_path = validator.validate(executable_path)
+                except MisMatchRuntimeError as ex:
+                    LOG.debug("Invalid executable for %s at %s",
+                              binary_path.binary, executable_path, exc_info=str(ex))
                 if valid_path:
                     binary_path.binary_path = valid_path
                     valid_paths.append(valid_path)
