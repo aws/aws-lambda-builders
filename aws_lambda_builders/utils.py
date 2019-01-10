@@ -63,6 +63,10 @@ def copytree(source, destination, ignore=None):
 # slightly to return a list of paths that match a given command
 #  instead of returning just the first match
 
+# The function "which" at <file> was copied from https://github.com/python/cpython/blob/3.7/Lib/shutil.py
+# SPDX-License-Identifier: Python-2.0
+# Copyright 2019 by the Python Software Foundation
+
 
 def which(cmd, mode=os.F_OK | os.X_OK, path=None):  # pragma: no cover
     """Given a command, mode, and a PATH string, return the paths which
