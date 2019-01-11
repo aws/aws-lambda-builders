@@ -19,13 +19,7 @@ dependencies' to avoid any file collisions. However, this incurs some overhead
 as the ZIP must be unpacked before the code can run.
 
 To avoid the problem of colliding files, we will choose the second option and
-create distribution ZIP's by default. We can further provide the `--uber-jar`
-option for customers to force the creation of an uber JAR if necessary. This
-distribution will only contain the libraries needed at runtime (i.e. the runtime
-classpath libraries).
-
-Finally, a `--use-container` option will be provided to address potential issues
-with environment-dependent build scripts (see Challenges).
+create distribution ZIP.
 
 ## Challenges
 
@@ -47,71 +41,128 @@ Gradle DSL. This presents a similar problem to `setup.py` in the Python world in
 that arbitrary logic can be executed during build time that could affect both
 how the customer's artifact is built, and which dependencies are chosen.
 
-To solve the issue where the build environment could affect the `build.gradle`
-script, a `--use-container` option will be provided, to give the option of
-building in an environment that closely mimics the Lambda environment.
+An interesting challenge is dealing with single build and multi build projects.
+Consider the following different projects structures:
+
+**Project A**
+```
+ProjectA
+├── build.gradle
+├── gradlew
+├── src
+└── template.yaml
+```
+
+**Project B**
+```
+ProjectB
+├── common
+│   └── build.gradle
+├── lambda1
+│   └── build.gradle
+├── lambda2
+│   └── build.gradle
+├── build.gradle
+├── gradlew
+├── settings.gradle
+└── template.yaml
+```
+
+Building Project A is relatively simple since we just need to issue `gradlew
+build` and place the built ZIP within the artifact directory.
+
+Building Project B is a little more complicated. Starting at the top of the
+directory, we begin by issuing `gradlew build` as before. However, since we have
+now built multiple functions, we need *multiple* artifact directories, one for
+each function. The build workflow must have some way of mapping each function's
+artifact to the correct artifact directory.
 
 ## Implementation
 
-We leverage Gradle to do all the heavy lifting for executing the `build.gradle`
-script which will resolve and download the dependencies and build the project.
-To create the distribution ZIP, we insert a new Gradle `task` that packages the
-compiled classes, resouces, and dependencies into a ZIP.
+### Source directory, and artifact directory semantics
 
-### sam build
+To enable the multi build projects where a Gradle project can contain multiple
+Lambdas as individual child projects, the builder behavior will change depending
+on whether the `options` provided to the build command contains a map called
+`artifact_mapping`.
+
+When this map is **not** present, the semantics of `source_dir` and
+`artifact_dir` are not changed.
+
+If this map is present, then `source_dir` is treated as the root directory of
+the parent project. Additionally, `artifact_dir` will not be the path under
+which the artifact will be copied to, but just the parent of the final
+directory. `artifact_mapping` will be a mapping from a source subdirectory under
+`source_dir` (i.e. the location of the inidividual function code), to a sub
+directory under the given `artifact_dir` where the function's artifacts will be
+copied to.
+
+### Build Workflow
+
+We leverage Gradle to do all the heavy lifting for executing the
+`build.gradle` script which will resolve and download the dependencies and
+build the project. To create the distribution ZIP, we use the help of a
+Gradle init script to insert a post-build action to do this.
+
 
 #### Step 1: Check Java version and emit warning
 
 Check whether the local JDK version is <= Java 8, and if it is not, emit a
 warning that the built artifact may not run in Lambda unless a) the project is
 properly configured (i.e. using `targetCompatibility`) or b) the project is
-build within the Lambda-compatibile container.
+built within a Lambda-compatibile environment like `lambci`.
 
-#### Step 2: Synthesize a new build script
+The [path resolver][path resolver] will be used for help in validating.
+
+#### Step 2: Copy custom init file to temporary location
 
 There is no standard task in Gradle to create a distribution ZIP (or uber JAR).
-We must synthesize a new build script that we will run to actually produce the
-Lambda artifact. This is so we can insert a new task that will assemble the
-distribution ZIP. The new script is identical to the customer's original
-`build.gradle` except that it imports our own `sam-ext.gradle` file provided by
-this package.
+We add this functionality through the use of a Gradle init script. The script
+will be responsible for adding a post-build action that creates the distribution
+ZIP.
 
 It will do something similar to:
 
 ```sh
-cp build.gradle build.gradle.sam-build
-
-cp /path/to/sam-ext.gradle /tmp
-
-echo 'apply from: "/tmp/sam-ext.gradle"' >> build.gradle.sam-build
+cp /path/to/lambda-build-init.gradle /$SCRATCH_DIR/
 ```
 
-where the contents of `sam-ext.gradle` contains the definition of the
-`samBuildZip` task:
+where the contents of `lambda-build-init.gradle` contains the code for defining
+the post-build action:
 
 ```gradle
 // Include the project classes and resources in the root, and the dependencies
 // under lib
-task samBuildZip(type: Zip) {
-    depends on build
-    from sourceSets.main.output
-    dependsOn configurations.runtimeClasspath
-    into('lib') {
-        from configurations.runtimeClasspath
+gradle.taskGraph.afterTask { t ->
+    if (t.name != 'build') {
+        return
     }
+
+    // Step 1: Open ZIP file in $buildDir/distributions
+    // Step 2: Copy project class files and resources to ZIP root
+    // Step 3: Copy libs in configurations.runtimeClasspath into 'lib'
+    // subdirectory in ZIP
 }
 ```
+
+#### Step 3: Resolve Gradle executable to use
+
+A popular way to author and distribute a Gradle project is to include a
+`gradlew` or Gradle Wrapper file within the root of the project. This
+essentially locks in the version of Gradle for the project and uses an
+executable that is independent of any local installations.
+
+The `gradlew` script, if it is included, will be located at the root of the
+project. We make the assumption that `source_dir` is always at the project root,
+so we simply check if `gradlew` exists under `source_dir`.
+
+We give precedence to this `gradlew` file, and if isn't found, we use the
+`gradle` executable found using the [path resolver][path resolver].
 
 #### Step 3: Build and package
 
 ```sh
-gradle -b build.gradle.sam-build samBuildZip
+$GRADLE_EXECUTABLE --init-script /$SCRATCH_DIR/lambda-build-init.gradle build
 ```
 
-The `samBuildZip` task depends on the `build` task so we just run the
-`samBuildZip` task.
-
-### sam build --use-container
-
-This will essentially be the same as `sam build` but run within the context of a
-Lambda-like container, e.g. `lambci/lambda:java8`
+[path resolver]: https://github.com/awslabs/aws-lambda-builders/pull/55
