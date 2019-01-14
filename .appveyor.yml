@@ -18,13 +18,14 @@ install:
 # To run Nodejs workflow integ tests
 - ps: Install-Product node 8.10
 
-- "set PATH=%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+- "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
 - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
 - "%PYTHON%\\python.exe -m pip install -e ."
 - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
 - "gem --version"
 - "gem install bundler -v 1.17.3 --no-ri --no-rdoc"
 - "bundler --version"
+- "echo %PATH%"
 
 # setup go
 - rmdir c:\go /s /q
