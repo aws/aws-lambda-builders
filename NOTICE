@@ -1,6 +1,6 @@
 AWS Lambda Builders
 Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
-The function "which" at <file> was copied from https://github.com/python/cpython/blob/3.7/Lib/shutil.py
+The function "which" at aws_lambda_builders/utils.py was copied from https://github.com/python/cpython/blob/3.7/Lib/shutil.py
 SPDX-License-Identifier: Python-2.0
 Copyright 2019 by the Python Software Foundation
