@@ -8,7 +8,7 @@ this by hand, you would perform these commands:
     - `GOOS=linux GOARCH=amd64 go build -o handler main.go`
     - `zip -r source.zip`
 
-The scope of `sam build` would be to create a macro for these commands to ensure that spelling and paths are correct.
+The scope of the Go dep builder is to create a macro for these commands to ensure that spelling and paths are correct.
 We don't have to care about versioning of the tooling of either Go or dep since Lambda doesn't have to care, and so it becomes
 user preference.
 
