@@ -68,6 +68,10 @@ ProjectB
 └── template.yaml
 ```
 
+*Here `Project A` is a a single lambda function, and `Project B` is a
+multi-build project where sub directories `lambda1` and `lambda2` are each a
+lambda function*.
+
 Building Project A is relatively simple since we just need to issue `gradlew
 build` and place the built ZIP within the artifact directory.
 
