@@ -15,18 +15,21 @@ class BuilderError(Exception):
 
 
 class GoModulesBuilder(object):
-    def __init__(self, osutils, runtime_path):
+
+    LANGUAGE = "go"
+
+    def __init__(self, osutils, binaries):
         """Initialize a GoModulesBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
         :param osutils: A class used for all interactions with the
             outside OS.
 
-        :type runtime_path: str
-        :param runtime_path: The path to the go runtime.
+        :type binaries: dict
+        :param binaries: A dict of language binaries
         """
         self.osutils = osutils
-        self.runtime_path = runtime_path
+        self.binaries = binaries
 
     def build(self, source_dir_path, output_path):
         """Builds a go project onto an output path.
@@ -40,7 +43,8 @@ class GoModulesBuilder(object):
         env = {}
         env.update(self.osutils.environ)
         env.update({"GOOS": "linux", "GOARCH": "amd64"})
-        cmd = [self.runtime_path, "build", "-o", output_path, source_dir_path]
+        runtime_path = self.binaries[self.LANGUAGE].binary_path
+        cmd = [runtime_path, "build", "-o", output_path, source_dir_path]
 
         p = self.osutils.popen(
             cmd,

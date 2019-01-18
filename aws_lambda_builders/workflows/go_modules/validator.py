@@ -16,10 +16,10 @@ class GoRuntimeValidator(object):
         "go1.x"
     }
 
-    def __init__(self, runtime, runtime_path):
+    def __init__(self, runtime):
         self.language = "go"
         self.runtime = runtime
-        self.runtime_path = runtime_path
+        self._valid_runtime_path = None
 
     def has_runtime(self):
         """
@@ -29,7 +29,7 @@ class GoRuntimeValidator(object):
         """
         return self.runtime in self.SUPPORTED_RUNTIMES
 
-    def validate_runtime(self):
+    def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
         :param string runtime_path: runtime to check eg: /usr/bin/go
@@ -37,21 +37,27 @@ class GoRuntimeValidator(object):
         """
         if not self.has_runtime():
             LOG.warning("'%s' runtime is not "
-                        "a supported runtime", self.runtime_path)
-            return
+                        "a supported runtime", self.runtime)
+            return None
 
         expected_major_version = self.runtime.replace(self.language, "").split('.')[0]
 
-        p = subprocess.Popen([self.runtime_path, "version"],
+        p = subprocess.Popen([runtime_path, "version"],
                              cwd=os.getcwd(),
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, _ = p.communicate()
 
         mismatched = p.returncode != 0 \
             or len(out.split()) < 3 \
-            or out.split()[2].replace(self.language, "").split('.')[0] != expected_major_version
+            or out.split()[2].decode().replace(self.language, "").split('.')[0] != expected_major_version
         if mismatched:
             raise MisMatchRuntimeError(language=self.language,
-                                       found_runtime=self.runtime_path,
                                        required_runtime=self.runtime,
-                                       runtime_path=self.runtime_path)
+                                       runtime_path=runtime_path)
+        else:
+            self._valid_runtime_path = runtime_path
+            return self._valid_runtime_path
+
+    @property
+    def validated_runtime_path(self):
+        return self._valid_runtime_path if self._valid_runtime_path is not None else None

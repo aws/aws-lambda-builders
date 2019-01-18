@@ -10,7 +10,7 @@ class GoModulesBuildAction(BaseAction):
 
     NAME = "Build"
     DESCRIPTION = "Building Go package with Go Modules"
-    PURPOSE = Purpose.RESOLVE_DEPENDENCIES
+    PURPOSE = Purpose.COMPILE_SOURCE
 
     def __init__(self, source_dir, output_path, builder):
         self.source_dir = source_dir

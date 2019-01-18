@@ -5,7 +5,6 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 
 from .actions import GoModulesBuildAction
 from .builder import GoModulesBuilder
-from .path_resolver import GoPathResolver
 from .validator import GoRuntimeValidator
 from .utils import OSUtils
 
@@ -43,13 +42,10 @@ class GoModulesWorkflow(BaseWorkflow):
 
         output_path = osutils.joinpath(artifacts_dir, handler)
 
-        builder = GoModulesBuilder(osutils, runtime_path=self.get_executable())
+        builder = GoModulesBuilder(osutils, binaries=self.binaries)
         self.actions = [
             GoModulesBuildAction(source_dir, output_path, builder),
         ]
 
-    def get_executable(self):
-        return GoPathResolver(runtime=self.runtime).exec_path
-
-    def get_validator(self):
-        return GoRuntimeValidator(runtime=self.runtime, runtime_path=self.get_executable())
+    def get_validators(self):
+        return [GoRuntimeValidator(runtime=self.runtime)]
