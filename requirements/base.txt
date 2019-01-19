@@ -1,2 +1,1 @@
 six~=1.11
-whichcraft~=0.5.2

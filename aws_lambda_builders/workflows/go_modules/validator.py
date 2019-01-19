@@ -12,12 +12,13 @@ LOG = logging.getLogger(__name__)
 
 
 class GoRuntimeValidator(object):
+
+    LANGUAGE = "go"
     SUPPORTED_RUNTIMES = {
         "go1.x"
     }
 
     def __init__(self, runtime):
-        self.language = "go"
         self.runtime = runtime
         self._valid_runtime_path = None
 
@@ -40,23 +41,27 @@ class GoRuntimeValidator(object):
                         "a supported runtime", self.runtime)
             return None
 
-        expected_major_version = self.runtime.replace(self.language, "").split('.')[0]
+        expected_major_version = int(self.runtime.replace(self.LANGUAGE, "").split('.')[0])
+        min_expected_minor_version = 11 if expected_major_version == 1 else 0
 
         p = subprocess.Popen([runtime_path, "version"],
                              cwd=os.getcwd(),
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, _ = p.communicate()
 
-        mismatched = p.returncode != 0 \
-            or len(out.split()) < 3 \
-            or out.split()[2].decode().replace(self.language, "").split('.')[0] != expected_major_version
-        if mismatched:
-            raise MisMatchRuntimeError(language=self.language,
-                                       required_runtime=self.runtime,
-                                       runtime_path=runtime_path)
-        else:
-            self._valid_runtime_path = runtime_path
-            return self._valid_runtime_path
+        if p.returncode == 0:
+            out_parts = out.decode().split()
+            if len(out_parts) >= 3:
+                version_parts = [int(x) for x in out_parts[2].replace(self.LANGUAGE, "").split('.')]
+                if len(version_parts) == 3:
+                    if version_parts[0] == expected_major_version and version_parts[1] >= min_expected_minor_version:
+                        self._valid_runtime_path = runtime_path
+                        return self._valid_runtime_path
+
+        # otherwise, raise mismatch exception
+        raise MisMatchRuntimeError(language=self.LANGUAGE,
+                                   required_runtime=self.runtime,
+                                   runtime_path=runtime_path)
 
     @property
     def validated_runtime_path(self):
