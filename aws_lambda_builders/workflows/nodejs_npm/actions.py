@@ -195,3 +195,32 @@ class NodejsNpmrcCleanUpAction(BaseAction):
 
         except OSError as ex:
             raise ActionFailedError(str(ex))
+
+class NodejsNpmRewriteLocalDependenciesAction(BaseAction):
+
+    """
+    A Lambda Builder Action that rewrites local dependencies
+    """
+
+    NAME = 'RewriteLocalDependencies'
+    DESCRIPTION = "Rewrites local dependencies"
+    PURPOSE = Purpose.RESOLVE_DEPENDENCIES
+
+    def __init__(
+        self,
+        work_dir,
+        original_package_dir,
+        scratch_dir,
+        npm_modules_utils
+    ):
+        super(NodejsNpmRewriteLocalDependenciesAction, self).__init__()
+        self.work_dir = work_dir
+        self.original_package_dir = original_package_dir
+        self.scratch_dir = scratch_dir
+        self.npm_modules_utils = npm_modules_utils
+
+    def execute(self):
+        try:
+            self.npm_modules_utils.rewrite_local_dependencies(self.work_dir, self.original_package_dir)
+        except OSError as ex:
+            raise ActionFailedError(str(ex))
