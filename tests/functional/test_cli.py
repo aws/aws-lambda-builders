@@ -22,7 +22,7 @@ class TestCliWithHelloWorkflow(TestCase):
         self.scratch_dir = os.path.join(tempfile.mkdtemp(), "scratch")
 
         # Capabilities supported by the Hello workflow
-        self.language = "test"
+        self.language = "python"
         self.dependency_manager = "test"
         self.application_framework = "test"
 

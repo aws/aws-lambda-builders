@@ -1,9 +1,9 @@
 """
 Python PIP Workflow
 """
-
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
 
@@ -65,6 +65,9 @@ class PythonPipWorkflow(BaseWorkflow):
 
         self.actions = [
             PythonPipBuildAction(artifacts_dir, scratch_dir,
-                                 manifest_path, runtime),
+                                 manifest_path, runtime, binaries=self.binaries),
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
+
+    def get_validators(self):
+        return [PythonRuntimeValidator(runtime=self.runtime)]
