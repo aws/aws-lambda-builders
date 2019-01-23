@@ -1,0 +1,74 @@
+import groovy.io.FileType
+import java.nio.file.FileAlreadyExistsException
+import java.nio.file.Files
+import java.nio.file.FileVisitOption
+import java.nio.file.FileVisitResult
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.SimpleFileVisitor
+import java.util.zip.ZipOutputStream
+import java.util.zip.ZipEntry
+
+gradle.taskGraph.afterTask{ t ->
+    if (t.name != 'build') {
+        return;
+    }
+
+    def mainSourcesDirs = t.project.sourceSets.main.output.files
+
+    def runtimeCpJars = t.project.configurations.runtimeClasspath.files
+
+    def zipArtifact = createArtifactDir(t.project).resolve("${t.project.name}.zip")
+
+    createLambdaArtifact(zipArtifact, mainSourcesDirs, runtimeCpJars)
+}
+
+def createArtifactDir(project) {
+    def distsDir = project.buildDir.toPath().resolve(project.distsDirName).resolve('lambda-build')
+    try {
+        Files.createDirectories(distsDir)
+    } catch (FileAlreadyExistsException e) {
+        // ignored
+    }
+    return distsDir
+}
+
+def createLambdaArtifact(artifactPath, mainSourceDirs, classPathJars) {
+    artifactPath.withOutputStream({ artifactOs ->
+        def zipOs = new ZipOutputStream(artifactOs)
+
+        mainSourceDirs.each {
+            copyTree(zipOs, it.toPath());
+        }
+
+        classPathJars.each {
+            it.withInputStream({ jis ->
+                copyToZip(zipOs, "lib/$it.name", jis)
+            })
+        }
+
+        zipOs.close()
+    })
+}
+
+def copyTree(zipOs, sourceDir) {
+    if (!Files.exists(sourceDir)) {
+        return
+    }
+
+    sourceDir.eachFileRecurse(FileType.FILES, {f ->
+        f.withInputStream({ fileIs ->
+            copyToZip(zipOs, sourceDir.relativize(f).toString(), fileIs)
+        })
+    })
+}
+
+def copyToZip(zipOs, name, fileIs) {
+    zipOs.putNextEntry(new ZipEntry(name))
+    byte[] buff = new byte[4096]
+    int bytesRead
+    while ((bytesRead = fileIs.read(buff)) != -1) {
+        zipOs.write(buff, 0, bytesRead)
+    }
+    zipOs.closeEntry()
+}
