@@ -22,8 +22,9 @@ class TestJavaGradleBuildAction(TestCase):
         action = JavaGradleBuildAction(self.source_dir, self.artifacts_dir, {}, self.subprocess_gradle,
                                        self.scratch_dir, self.os_utils)
         action.execute()
-        self.subprocess_gradle.build.assert_called_with(self.source_dir, os.path.join(self.scratch_dir,
-                                                                                      JavaGradleBuildAction.INIT_SCRIPT))
+        self.subprocess_gradle.build.assert_called_with(self.source_dir,
+                                                        os.path.join(self.scratch_dir,
+                                                                     JavaGradleBuildAction.INIT_SCRIPT))
 
     def test_copies_artifacts(self):
         mapping = {'lambda1': 'artifact_lambda1', 'lambda2': 'artifact_lambda2'}
