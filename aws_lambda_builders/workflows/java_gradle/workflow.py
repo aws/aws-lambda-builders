@@ -2,11 +2,11 @@
 Java Gradle Workflow
 """
 
+import os
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from .actions import JavaGradleBuildAction
 from .gradle import SubprocessGradle
 from .utils import OSUtils
-import os
 
 
 class JavaGradleWorkflow(BaseWorkflow):
@@ -57,9 +57,8 @@ class JavaGradleWorkflow(BaseWorkflow):
         gradlew = os.path.join(self.source_dir, gradlew_name)
         if os.path.exists(gradlew):
             return gradlew
-        else:
-            # assume Gradle is available on the PATH
-            return 'gradle'
+        # assume Gradle is available on the PATH
+        return 'gradle'
 
     def _resolve_artifact_mapping(self):
         """

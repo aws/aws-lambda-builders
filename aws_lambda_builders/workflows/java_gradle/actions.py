@@ -2,9 +2,9 @@
 Actions for the Java Gradle Workflow
 """
 
+import os
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from .gradle import GradleExecutionError
-import os
 
 
 class JavaGradleBuildAction(BaseAction):
