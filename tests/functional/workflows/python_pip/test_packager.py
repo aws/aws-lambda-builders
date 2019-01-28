@@ -201,7 +201,9 @@ def empty_env_osutils():
 @pytest.fixture
 def pip_runner(empty_env_osutils):
     pip = FakePip()
-    pip_runner = PipRunner(pip, osutils=empty_env_osutils)
+    pip_runner = PipRunner(python_exe=sys.executable,
+                           pip=pip,
+                           osutils=empty_env_osutils)
     return pip, pip_runner
 
 
@@ -871,7 +873,7 @@ class TestDependencyBuilder(object):
 
 class TestSubprocessPip(object):
     def test_can_invoke_pip(self):
-        pip = SubprocessPip()
+        pip = SubprocessPip(python_exe=sys.executable)
         rc, out, err = pip.main(['--version'])
         # Simple assertion that we can execute pip and it gives us some output
         # and nothing on stderr.
@@ -879,7 +881,7 @@ class TestSubprocessPip(object):
         assert err == b''
 
     def test_does_error_code_propagate(self):
-        pip = SubprocessPip()
+        pip = SubprocessPip(python_exe=sys.executable)
         rc, _, err = pip.main(['badcommand'])
         assert rc != 0
         # Don't want to depend on a particular error message from pip since it

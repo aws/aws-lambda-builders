@@ -177,7 +177,7 @@ class DependencyBuilder(object):
         """
         self._osutils = osutils
         if pip_runner is None:
-            pip_runner = PipRunner(SubprocessPip(osutils))
+            pip_runner = PipRunner(python_exe=None, pip=SubprocessPip(osutils))
         self._pip = pip_runner
         self.runtime = runtime
 
@@ -546,12 +546,13 @@ class SDistMetadataFetcher(object):
 
 class SubprocessPip(object):
     """Wrapper around calling pip through a subprocess."""
-    def __init__(self, osutils=None, import_string=None):
+    def __init__(self, osutils=None, python_exe=None, import_string=None):
         if osutils is None:
             osutils = OSUtils()
         self._osutils = osutils
+        self.python_exe = python_exe
         if import_string is None:
-            import_string = pip_import_string()
+            import_string = pip_import_string(python_exe=self.python_exe)
         self._import_string = import_string
 
     def main(self, args, env_vars=None, shim=None):
@@ -559,12 +560,11 @@ class SubprocessPip(object):
             env_vars = self._osutils.environ()
         if shim is None:
             shim = ''
-        python_exe = sys.executable
         run_pip = (
             'import sys; %s; sys.exit(main(%s))'
         ) % (self._import_string, args)
         exec_string = '%s%s' % (shim, run_pip)
-        invoke_pip = [python_exe, '-c', exec_string]
+        invoke_pip = [self.python_exe, '-c', exec_string]
         p = self._osutils.popen(invoke_pip,
                                 stdout=self._osutils.pipe,
                                 stderr=self._osutils.pipe,
@@ -581,9 +581,10 @@ class PipRunner(object):
                             "  Link is a directory,"
                             " ignoring download_dir")
 
-    def __init__(self, pip, osutils=None):
+    def __init__(self, python_exe, pip, osutils=None):
         if osutils is None:
             osutils = OSUtils()
+        self.python_exe = python_exe
         self._wrapped_pip = pip
         self._osutils = osutils
 
