@@ -4,6 +4,7 @@ image: Visual Studio 2017
 environment:
   GOPATH: c:\gopath
   GOVERSION: 1.11
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
 
   matrix:
 
@@ -36,7 +37,7 @@ install:
 - "go version"
 - "go env"
 
-# setup java
+# setup Gradle
 - "choco install gradle"
 
 test_script:

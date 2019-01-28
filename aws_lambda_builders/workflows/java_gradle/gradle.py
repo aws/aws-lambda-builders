@@ -36,5 +36,4 @@ class SubprocessGradle(object):
     def _run(self, args, cwd=None):
         p = self.os_utils.popen([self.gradle_exec] + args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
-        p.wait()
         return p.returncode, stdout, stderr
