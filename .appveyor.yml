@@ -36,6 +36,9 @@ install:
 - "go version"
 - "go env"
 
+# setup java
+- "choco install gradle"
+
 test_script:
 - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
 - "%PYTHON%\\python.exe -m pytest tests/integration"
