@@ -123,3 +123,48 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_modules = {'lambda', 'lib'}
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, 'node_modules')))
         self.assertEquals(expected_modules, output_modules)
+
+    def test_builds_project_with_locked_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, 'relative-dependencies', 'lambda_with_lock_file')
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           os.path.join(source_dir, 'package.json'),
+                           runtime=self.runtime)
+
+        expected_files = {'package.json', 'main_lambda_with_lock_file.js', 'node_modules'}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEquals(expected_files, output_files)
+
+        expected_modules = {'lib', 'lib_with_lock_file'}
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, 'node_modules')))
+        self.assertEquals(expected_modules, output_modules)
+
+    def test_builds_project_with_locked_sub_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, 'relative-dependencies', 'lambda_without_lock_file')
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           os.path.join(source_dir, 'package.json'),
+                           runtime=self.runtime)
+
+        expected_files = {'package.json', 'main_lambda_without_lock_file.js', 'node_modules'}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEquals(expected_files, output_files)
+
+        expected_modules = {'lib', 'lib_with_lock_file'}
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, 'node_modules')))
+        self.assertEquals(expected_modules, output_modules)
+
+    def test_builds_project_with_local_file_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, 'relative-dependencies', 'lambda_with_tar_dependency')
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           os.path.join(source_dir, 'package.json'),
+                           runtime=self.runtime)
+
+        expected_files = {'package.json', 'main_lambda_with_tar_dependency.js', 'node_modules'}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEquals(expected_files, output_files)
+
+        expected_modules = {'lib'}
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, 'node_modules')))
+        self.assertEquals(expected_modules, output_modules)

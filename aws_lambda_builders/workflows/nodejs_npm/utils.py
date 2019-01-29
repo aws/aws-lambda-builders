@@ -60,3 +60,6 @@ class OSUtils(object):
 
     def tempdir(self, parent_dir):
         return tempfile.mkdtemp(dir=parent_dir)
+
+    def is_dir(self, path):
+        return os.path.isdir(path)

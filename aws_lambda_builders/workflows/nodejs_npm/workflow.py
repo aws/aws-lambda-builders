@@ -67,7 +67,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
                 artifacts_dir,
                 source_dir,
                 tar_dest_dir,
-                npm_modules_utils=NpmModulesUtils(osutils, subprocess_npm, scratch_dir)
+                npm_modules_utils=NpmModulesUtils(osutils, subprocess_npm, scratch_dir),
+                osutils=osutils
             ),
             npm_install,
             NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils)

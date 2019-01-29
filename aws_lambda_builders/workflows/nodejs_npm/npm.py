@@ -101,7 +101,7 @@ class NpmModulesUtils(object):
         self.subprocess_npm = subprocess_npm
         self.scratch_dir = scratch_dir
 
-    def clean_copy(self, package_dir):
+    def clean_copy(self, package_dir, delete_package_lock=False):
         target_dir = self.osutils.tempdir(self.scratch_dir)
 
         package_path = 'file:{}'.format(self.osutils.abspath(package_dir))
@@ -117,6 +117,11 @@ class NpmModulesUtils(object):
         LOG.debug('NODEJS extracting to %s', target_dir)
 
         self.osutils.extract_tarfile(tarfile_path, target_dir)
+
+        package_lock = self.osutils.joinpath(target_dir, 'package', 'package-lock.json')
+        if delete_package_lock and self.osutils.file_exists(package_lock):
+            self.osutils.remove_file(package_lock)
+
         return self.osutils.joinpath(target_dir, 'package')
 
     def is_local_dependency(self, module_path):
@@ -149,18 +154,3 @@ class NpmModulesUtils(object):
         package_json[dependency_key][name] = module_path
 
         self.osutils.write_text_contents(package_json_path, json.dumps(package_json))
-
-    def rewrite_local_dependencies(self, work_dir, original_package_dir):
-        for dependency_key in ['dependencies', 'optionalDependencies']:
-            for (name, module_path) in self.get_local_dependencies(work_dir, dependency_key).items():
-                if module_path.startswith('file:'):
-                    module_path = module_path[5:]
-
-                physical_dir = self.osutils.joinpath(original_package_dir, module_path)
-                if self.has_local_dependencies(physical_dir):
-                    module_path = self.clean_copy(physical_dir)
-                    self.rewrite_local_dependencies(module_path, physical_dir)
-                    physical_dir = module_path
-
-                new_module_path = 'file:{}'.format(self.pack_to_tar(physical_dir))
-                self.update_dependency(work_dir, name, new_module_path, dependency_key)
