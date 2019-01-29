@@ -43,7 +43,7 @@ setup(
     author='Amazon Web Services',
     author_email='aws-sam-developers@amazon.com',
     url='https://github.com/awslabs/aws-lambda-builders',
-    license=read('LICENSE'),
+    license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
     keywords="AWS Lambda Functions Building",
     # Support Python 2.7 and 3.6 or greater
