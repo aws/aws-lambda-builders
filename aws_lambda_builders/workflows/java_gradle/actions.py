@@ -8,7 +8,7 @@ from .gradle import GradleExecutionError
 
 
 class JavaGradleBuildAction(BaseAction):
-    NAME = "JavaGradle"
+    NAME = "GradleBuild"
     DESCRIPTION = "Building the project using Gradle"
     PURPOSE = Purpose.COMPILE_SOURCE
 
@@ -16,14 +16,10 @@ class JavaGradleBuildAction(BaseAction):
 
     def __init__(self,
                  source_dir,
-                 artifacts_dir,
-                 artifact_mapping,
                  subprocess_gradle,
                  scratch_dir,
                  os_utils):
         self.source_dir = source_dir
-        self.artifacts_dir = artifacts_dir
-        self.artifact_mapping = artifact_mapping
         self.scratch_dir = scratch_dir
         self.subprocess_gradle = subprocess_gradle
         self.os_utils = os_utils
@@ -31,7 +27,6 @@ class JavaGradleBuildAction(BaseAction):
     def execute(self):
         init_script_file = self._copy_init_script()
         self._build_project(init_script_file)
-        self._copy_artifacts()
 
     def _copy_init_script(self):
         try:
@@ -46,6 +41,25 @@ class JavaGradleBuildAction(BaseAction):
             self.subprocess_gradle.build(self.source_dir, init_script_file)
         except GradleExecutionError as ex:
             raise ActionFailedError(str(ex))
+
+
+class JavaGradleCopyArtifactsAction(BaseAction):
+    NAME = "CopyArtifacts"
+    DESCRIPTION = "Copying the built artifacts"
+    PURPOSE = Purpose.COPY_SOURCE
+
+    def __init__(self,
+                 source_dir,
+                 artifacts_dir,
+                 artifact_mapping,
+                 os_utils):
+        self.source_dir = source_dir
+        self.artifacts_dir = artifacts_dir
+        self.artifact_mapping = artifact_mapping
+        self.os_utils = os_utils
+
+    def execute(self):
+        self._copy_artifacts()
 
     def _copy_artifacts(self):
         try:

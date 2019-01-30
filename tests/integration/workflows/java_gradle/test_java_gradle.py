@@ -17,6 +17,7 @@ class TestJavaGradle(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.builder = LambdaBuilder(language='java', dependency_manager='gradle', application_framework=None)
+        self.runtime = 'java'
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -25,7 +26,7 @@ class TestJavaGradle(TestCase):
     def test_build_single_build_with_deps(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps')
         manifest_path = os.path.join(source_dir, 'build.gradle')
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path)
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
         zip_name = 'with-deps.zip'
         expected_contents = ['aws/lambdabuilders/Main.class', 'lib/annotations-2.1.0.jar']
 
@@ -35,7 +36,7 @@ class TestJavaGradle(TestCase):
     def test_build_single_build_with_deps_gradlew(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps-gradlew')
         manifest_path = os.path.join(source_dir, 'build.gradle')
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path)
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
         zip_name = 'with-deps-gradlew.zip'
         expected_contents = ['aws/lambdabuilders/Main.class', 'lib/annotations-2.1.0.jar']
 
@@ -52,7 +53,8 @@ class TestJavaGradle(TestCase):
 
         options = {'artifact_mapping': artifact_mapping}
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, options=options)
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, options=options,
+                           runtime=self.runtime)
 
         lambda1_zip_name = 'lambda1.zip'
         lambda2_zip_name = 'lambda2.zip'
@@ -82,7 +84,8 @@ class TestJavaGradle(TestCase):
 
         options = {'artifact_mapping': artifact_mapping}
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, options=options)
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, options=options,
+                           runtime=self.runtime)
 
         lambda1_zip_name = 'lambda1.zip'
         lambda2_zip_name = 'lambda2.zip'
@@ -107,10 +110,10 @@ class TestJavaGradle(TestCase):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps-broken')
         manifest_path = os.path.join(source_dir, 'build.gradle')
         with self.assertRaises(WorkflowFailedError) as raised:
-            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path)
-        self.assertTrue(raised.exception.args[0].startswith('JavaGradleWorkflow:JavaGradle - Gradle Failed'))
+            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
+        self.assertTrue(raised.exception.args[0].startswith('JavaGradleWorkflow:GradleBuild - Gradle Failed'))
 
-    def assert_zip_contains(self, zip, files):
-        with ZipFile(zip) as z:
+    def assert_zip_contains(self, zip_path, files):
+        with ZipFile(zip_path) as z:
             zip_names = set(z.namelist())
             self.assertTrue(set(files).issubset(zip_names))

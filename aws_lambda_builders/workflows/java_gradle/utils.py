@@ -27,6 +27,9 @@ class OSUtils(object):
     def listdir(self, d):
         return os.listdir(d)
 
+    def exists(selfself, p):
+        return os.path.exists(p)
+
     @property
     def pipe(self):
         return subprocess.PIPE

@@ -46,6 +46,10 @@ class TestOSUtils(TestCase):
         self.assertEquals(expected, copy_ret)
         self.assertTrue('a' in os.listdir(self.dst))
 
+    def test_exists(self):
+        self.new_file(self.src, 'foo')
+        self.assertTrue(self.os_utils.exists(os.path.join(self.src, 'foo')))
+
     def new_file(self, d, name):
         p = os.path.join(d, name)
         with open(p, 'w') as f:

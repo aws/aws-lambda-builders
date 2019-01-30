@@ -2,10 +2,10 @@
 Java Gradle Workflow
 """
 
-import os
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from .actions import JavaGradleBuildAction
+from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
+from .gradle_resolver import GradleResolver
 from .utils import OSUtils
 
 
@@ -34,31 +34,26 @@ class JavaGradleWorkflow(BaseWorkflow):
                                                  **kwargs)
 
         self.os_utils = OSUtils()
-        gradle_exec = self._determine_gradle_exec()
-        subprocess_gradle = SubprocessGradle(gradle_exec, self.os_utils)
+        subprocess_gradle = SubprocessGradle(self.binaries['gradle'], self.os_utils)
         artifact_mapping = self._resolve_artifact_mapping()
 
         self.actions = [
             JavaGradleBuildAction(source_dir,
-                                  artifacts_dir,
-                                  artifact_mapping,
                                   subprocess_gradle,
                                   scratch_dir,
-                                  self.os_utils)
+                                  self.os_utils),
+            JavaGradleCopyArtifactsAction(source_dir,
+                                          artifacts_dir,
+                                          artifact_mapping,
+                                          self.os_utils)
         ]
 
-    def _determine_gradle_exec(self):
-        """
-        Determine the correct Gradle executable to use. The project's included gradlew script takes precedence.
+    def get_resolvers(self):
+        return [GradleResolver(self.source_dir, self.os_utils)]
 
-        :return: The Gradle executable to use for the build.
-        """
-        gradlew_name = 'gradlew.bat' if self.os_utils.is_windows() else 'gradlew'
-        gradlew = os.path.join(self.source_dir, gradlew_name)
-        if os.path.exists(gradlew):
-            return gradlew
-        # assume Gradle is available on the PATH
-        return 'gradle'
+    @property
+    def artifact_mapping(self):
+        return self._resolve_artifact_mapping()
 
     def _resolve_artifact_mapping(self):
         """
@@ -67,6 +62,6 @@ class JavaGradleWorkflow(BaseWorkflow):
 
         :return: The artifact mapping.
         """
-        if self.options is None or self.options['artifact_mapping'] is None:
+        if not self.options or not self.options.get('artifact_mapping'):
             return {'.': '.'}
         return self.options['artifact_mapping']
