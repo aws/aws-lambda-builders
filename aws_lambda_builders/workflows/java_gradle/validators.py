@@ -57,7 +57,7 @@ class JavaRuntimeValidator(object):
 
     def _get_major_version(self, runtime_path):
         vs = self._get_version_string(runtime_path)
-        m = re.search('java version "(.*)"', vs)
+        m = re.search('version "(.*)"', vs)
         version = m.group(1).split('.')
         # For Java 8 or earlier, version strings begin with 1.{Major Version}
         if version[0] == '1':
