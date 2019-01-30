@@ -3,6 +3,8 @@ from unittest import TestCase
 from aws_lambda_builders.workflows.java_gradle.workflow import JavaGradleWorkflow
 from aws_lambda_builders.workflows.java_gradle.actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from aws_lambda_builders.workflows.java_gradle.gradle_resolver import GradleResolver
+from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.workflows.java_gradle.validators import JavaRuntimeValidator, GradleBinaryValidator
 
 
 class TestJavaGradleWorkflow(TestCase):
@@ -20,13 +22,23 @@ class TestJavaGradleWorkflow(TestCase):
 
         self.assertIsInstance(workflow.actions[1], JavaGradleCopyArtifactsAction)
 
-    def test_workfow_sets_up_resolvers(self):
+    def test_workflow_sets_up_resolvers(self):
         workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
         resolvers = workflow.get_resolvers()
-        self.assertEqual(len(resolvers), 1)
+        self.assertEqual(len(resolvers), 2)
 
-        self.assertIsInstance(resolvers[0], GradleResolver)
+        self.assertIsInstance(resolvers[0], PathResolver)
+        self.assertIsInstance(resolvers[1], GradleResolver)
+
+    def test_workflow_sets_up_validators(self):
+        workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")
+
+        validators = workflow.get_validators()
+        self.assertEqual(len(validators), 2)
+
+        self.assertIsInstance(validators[0], JavaRuntimeValidator)
+        self.assertIsInstance(validators[1], GradleBinaryValidator)
 
     def test_no_options_workflow_creates_correct_mapping(self):
         workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")

@@ -3,10 +3,12 @@ Java Gradle Workflow
 """
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.path_resolver import PathResolver
 from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
 from .gradle_resolver import GradleResolver
 from .utils import OSUtils
+from .validators import JavaRuntimeValidator, GradleBinaryValidator
 
 
 class JavaGradleWorkflow(BaseWorkflow):
@@ -49,7 +51,12 @@ class JavaGradleWorkflow(BaseWorkflow):
         ]
 
     def get_resolvers(self):
-        return [GradleResolver(self.source_dir, self.os_utils)]
+        return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language),
+                GradleResolver(self.source_dir, self.os_utils)]
+
+    def get_validators(self):
+        return [JavaRuntimeValidator(runtime=self.runtime),
+                GradleBinaryValidator()]
 
     @property
     def artifact_mapping(self):

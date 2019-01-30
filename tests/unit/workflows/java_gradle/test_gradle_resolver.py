@@ -12,7 +12,6 @@ class TestGradleResolver(TestCase):
     def setUp(self, MockOSUtils):
         self.mock_os_utils = MockOSUtils.return_value
 
-
     @parameterized.expand([
         [True],
         [False]
