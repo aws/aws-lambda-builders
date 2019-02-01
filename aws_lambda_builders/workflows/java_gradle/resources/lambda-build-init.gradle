@@ -39,7 +39,7 @@ def createLambdaArtifact(artifactPath, artifactJars, classPathJars) {
 
         artifactJars.each {
             it.withInputStream({ jis ->
-                def ZipInputStream zipIs = new ZipInputStream(jis)
+                def zipIs = new ZipInputStream(jis)
                 for (def e = zipIs.getNextEntry(); e != null; e = zipIs.getNextEntry()) {
                     if (!e.isDirectory()) {
                         copyToZip(zipOs, e.name, zipIs)
@@ -57,18 +57,6 @@ def createLambdaArtifact(artifactPath, artifactJars, classPathJars) {
         }
 
         zipOs.close()
-    })
-}
-
-def copyTree(zipOs, sourceDir) {
-    if (!Files.exists(sourceDir)) {
-        return
-    }
-
-    sourceDir.eachFileRecurse(FileType.FILES, {f ->
-        f.withInputStream({ fileIs ->
-            copyToZip(zipOs, sourceDir.relativize(f).toString(), fileIs)
-        })
     })
 }
 
