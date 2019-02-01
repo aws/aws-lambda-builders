@@ -33,6 +33,28 @@ class TestJavaGradle(TestCase):
         self.assertTrue(zip_name in os.listdir(self.artifacts_dir))
         self.assert_zip_contains(os.path.join(self.artifacts_dir, zip_name), expected_contents)
 
+    def test_build_single_build_with_resources(self):
+        source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-resources')
+        manifest_path = os.path.join(source_dir, 'build.gradle')
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
+        zip_name = 'with-resources.zip'
+        expected_contents = ['aws/lambdabuilders/Main.class', 'some_data.txt', 'lib/annotations-2.1.0.jar']
+
+        self.assertTrue(zip_name in os.listdir(self.artifacts_dir))
+        self.assert_zip_contains(os.path.join(self.artifacts_dir, zip_name), expected_contents)
+
+    def test_build_single_build_with_test_deps_test_jars_not_included(self):
+        source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-test-deps')
+        manifest_path = os.path.join(source_dir, 'build.gradle')
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
+        zip_name = 'with-test-deps.zip'
+        expected_contents = ['aws/lambdabuilders/Main.class', 'lib/annotations-2.1.0.jar']
+
+        self.assertTrue(zip_name in os.listdir(self.artifacts_dir))
+        zip_path = os.path.join(self.artifacts_dir, zip_name)
+        self.assert_zip_contains(zip_path, expected_contents)
+        self.assert_zip_not_contains(zip_path, ['lib/s3-2.1.0.jar'])
+
     def test_build_single_build_with_deps_gradlew(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps-gradlew')
         manifest_path = os.path.join(source_dir, 'build.gradle')
@@ -117,3 +139,8 @@ class TestJavaGradle(TestCase):
         with ZipFile(zip_path) as z:
             zip_names = set(z.namelist())
             self.assertTrue(set(files).issubset(zip_names))
+
+    def assert_zip_not_contains(self, zip_path, files):
+        with ZipFile(zip_path) as z:
+            zip_names = set(z.namelist())
+            self.assertTrue(not set(files).issubset(zip_names))

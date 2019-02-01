@@ -6,6 +6,7 @@ import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
 
@@ -13,14 +14,13 @@ gradle.taskGraph.afterTask{ t ->
     if (t.name != 'build') {
         return;
     }
-
-    def mainSourcesDirs = t.project.sourceSets.main.output.files
+    def artifactJars = t.project.configurations.archives.artifacts.files.files
 
     def runtimeCpJars = t.project.configurations.runtimeClasspath.files
 
     def zipArtifact = createArtifactDir(t.project).resolve("${t.project.name}.zip")
 
-    createLambdaArtifact(zipArtifact, mainSourcesDirs, runtimeCpJars)
+    createLambdaArtifact(zipArtifact, artifactJars, runtimeCpJars)
 }
 
 def createArtifactDir(project) {
@@ -33,12 +33,21 @@ def createArtifactDir(project) {
     return distsDir
 }
 
-def createLambdaArtifact(artifactPath, mainSourceDirs, classPathJars) {
+def createLambdaArtifact(artifactPath, artifactJars, classPathJars) {
     artifactPath.withOutputStream({ artifactOs ->
         def zipOs = new ZipOutputStream(artifactOs)
 
-        mainSourceDirs.each {
-            copyTree(zipOs, it.toPath());
+        artifactJars.each {
+            it.withInputStream({ jis ->
+                def ZipInputStream zipIs = new ZipInputStream(jis)
+                for (def e = zipIs.getNextEntry(); e != null; e = zipIs.getNextEntry()) {
+                    if (!e.isDirectory()) {
+                        copyToZip(zipOs, e.name, zipIs)
+                    }
+                    zipIs.closeEntry()
+                }
+                zipIs.close()
+            })
         }
 
         classPathJars.each {
