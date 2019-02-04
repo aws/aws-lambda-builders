@@ -46,6 +46,7 @@ class RubyRuntimeValidator(object):
                              stderr=subprocess.PIPE)
         p.communicate() # don't care about the output
         if p.returncode == 0:
+            self._valid_runtime_path = runtime_path
             return self._valid_runtime_path
         else:
             raise MisMatchRuntimeError(
