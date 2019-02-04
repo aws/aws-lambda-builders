@@ -31,7 +31,7 @@ class RubyRuntimeValidator(object):
     def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
-        :param string runtime_path: runtime to check eg: /usr/bin/go
+        :param string runtime_path: path to bundler
         :raises MisMatchRuntimeError: Version mismatch of the language vs the required runtime
         """
         if not self.has_runtime():
@@ -40,7 +40,7 @@ class RubyRuntimeValidator(object):
             return None
 
         # bundle exec ruby -e "puts RUBY_VERSION"
-        p = subprocess.Popen([runtime_path, "exec", "ruby", "-e", '"unless RUBY_VERSION.match(/2\.5\.\d/); exit(1); end"'],
+        p = subprocess.Popen([runtime_path, "exec", "ruby", "-e", '"unless RUBY_VERSION.match(/2\\.5\\.\\d/); exit(1); end"'],
                              cwd=os.getcwd(),
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
