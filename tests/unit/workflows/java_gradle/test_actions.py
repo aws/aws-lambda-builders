@@ -27,7 +27,10 @@ class TestJavaGradleBuildAction(TestCase):
         action.execute()
         self.subprocess_gradle.build.assert_called_with(self.source_dir,
                                                         os.path.join(self.scratch_dir,
-                                                                     JavaGradleBuildAction.INIT_SCRIPT))
+                                                                     JavaGradleBuildAction.GRADLE_CACHE_DIR_NAME),
+                                                        os.path.join(self.scratch_dir,
+                                                                     JavaGradleBuildAction.INIT_SCRIPT),
+                                                        {JavaGradleBuildAction.SCRATCH_DIR_PROPERTY: self.scratch_dir})
 
     def test_error_in_init_file_copy_raises_action_error(self):
         self.os_utils.copy.side_effect = Exception("Copy failed!")
@@ -49,6 +52,14 @@ class TestJavaGradleBuildAction(TestCase):
             action.execute()
         self.assertEquals(raised.exception.args[0], 'Gradle Failed: Build failed!')
 
+    def test_computes_correct_cache_dir(self):
+        action = JavaGradleBuildAction(self.source_dir,
+                                       self.subprocess_gradle,
+                                       self.scratch_dir,
+                                       self.os_utils)
+        self.assertEquals(action.gradle_cache_dir,
+                          os.path.join(self.scratch_dir, JavaGradleBuildAction.GRADLE_CACHE_DIR_NAME))
+
 
 class TestJavaGradleCopyArtifactsAction(TestCase):
 
@@ -59,28 +70,26 @@ class TestJavaGradleCopyArtifactsAction(TestCase):
         self.source_dir = "source_dir"
         self.artifacts_dir = "artifacts_dir"
         self.scratch_dir = "scratch_dir"
+        self.build_dir = os.path.join(self.scratch_dir, 'build1')
 
     def test_copies_artifacts(self):
-        mapping = {'lambda1': 'artifact_lambda1', 'lambda2': 'artifact_lambda2'}
         self.os_utils.listdir.side_effect = lambda d: ['artifact.zip']
 
         action = JavaGradleCopyArtifactsAction(self.source_dir,
                                                self.artifacts_dir,
-                                               mapping,
+                                               self.build_dir,
                                                self.os_utils)
         action.execute()
 
         dist_dir = os.path.join('build', 'distributions', 'lambda-build')
-        for l, a in mapping.items():
-            self.os_utils.copy.assert_any_call(os.path.join(self.source_dir, l, dist_dir, 'artifact.zip'),
-                                               os.path.join(self.artifacts_dir, a, 'artifact.zip'))
+        self.os_utils.copy.assert_called_with(os.path.join(self.build_dir, dist_dir, 'artifact.zip'),
+                                              self.artifacts_dir)
 
     def test_error_in_artifact_copy_raises_action_error(self):
-        mapping = {'lambda1': 'artifact_lambda1', 'lambda2': 'artifact_lambda2'}
         self.os_utils.listdir.side_effect = Exception("listdir failed!")
         action = JavaGradleCopyArtifactsAction(self.source_dir,
                                                self.artifacts_dir,
-                                               mapping,
+                                               self.build_dir,
                                                self.os_utils)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()

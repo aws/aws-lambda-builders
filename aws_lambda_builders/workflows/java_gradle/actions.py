@@ -13,6 +13,8 @@ class JavaGradleBuildAction(BaseAction):
     PURPOSE = Purpose.COMPILE_SOURCE
 
     INIT_SCRIPT = 'lambda-build-init.gradle'
+    SCRATCH_DIR_PROPERTY = 'software.amazon.aws.lambdabuilders.scratch-dir'
+    GRADLE_CACHE_DIR_NAME = 'gradle-cache'
 
     def __init__(self,
                  source_dir,
@@ -23,10 +25,15 @@ class JavaGradleBuildAction(BaseAction):
         self.scratch_dir = scratch_dir
         self.subprocess_gradle = subprocess_gradle
         self.os_utils = os_utils
+        self.cache_dir = os.path.join(self.scratch_dir, self.GRADLE_CACHE_DIR_NAME)
 
     def execute(self):
         init_script_file = self._copy_init_script()
         self._build_project(init_script_file)
+
+    @property
+    def gradle_cache_dir(self):
+        return self.cache_dir
 
     def _copy_init_script(self):
         try:
@@ -38,7 +45,8 @@ class JavaGradleBuildAction(BaseAction):
 
     def _build_project(self, init_script_file):
         try:
-            self.subprocess_gradle.build(self.source_dir, init_script_file)
+            self.subprocess_gradle.build(self.source_dir, self.gradle_cache_dir, init_script_file,
+                                         {self.SCRATCH_DIR_PROPERTY: self.scratch_dir})
         except GradleExecutionError as ex:
             raise ActionFailedError(str(ex))
 
@@ -51,23 +59,20 @@ class JavaGradleCopyArtifactsAction(BaseAction):
     def __init__(self,
                  source_dir,
                  artifacts_dir,
-                 artifact_mapping,
+                 build_dir,
                  os_utils):
         self.source_dir = source_dir
         self.artifacts_dir = artifacts_dir
-        self.artifact_mapping = artifact_mapping
+        self.build_dir = build_dir
         self.os_utils = os_utils
 
     def execute(self):
         self._copy_artifacts()
 
     def _copy_artifacts(self):
+        lambda_build_output = os.path.join(self.build_dir, 'build', 'distributions', 'lambda-build')
         try:
-            zip_dir = os.path.join('build', 'distributions', 'lambda-build')
-            for src_sub_dir, artifacts_sub_dir in self.artifact_mapping.items():
-                src = os.path.join(self.source_dir, src_sub_dir, zip_dir)
-                dst = os.path.join(self.artifacts_dir, artifacts_sub_dir)
-                for f in self.os_utils.listdir(src):
-                    self.os_utils.copy(os.path.join(src, f), os.path.join(dst, f))
+            for f in self.os_utils.listdir(lambda_build_output):
+                self.os_utils.copy(os.path.join(lambda_build_output, f), self.artifacts_dir)
         except Exception as ex:
             raise ActionFailedError(str(ex))

@@ -68,38 +68,21 @@ ProjectB
 └── template.yaml
 ```
 
-*Here `Project A` is a a single lambda function, and `Project B` is a
-multi-build project where sub directories `lambda1` and `lambda2` are each a
-lambda function*.
+Here `ProjectA` is a a single lambda function, and `ProjectB` is a multi-build
+project where sub directories `lambda1` and `lambda2` are each a lambda
+function. In addition, suppose that `ProjectB/lambda1` has a dependency on its
+sibling project `ProjectB/common`.
 
 Building Project A is relatively simple since we just need to issue `gradlew
 build` and place the built ZIP within the artifact directory.
 
-Building Project B is a little more complicated. Starting at the top of the
-directory, we begin by issuing `gradlew build` as before. However, since we have
-now built multiple functions, we need *multiple* artifact directories, one for
-each function. The build workflow must have some way of mapping each function's
-artifact to the correct artifact directory.
+Building `ProjectB/lambda1` is very similar from the point of view of the
+workflow since it still issues the same command (`gradlew build`), but it
+requires that Gradle is able to find its way back up to the parent `ProjectB` so
+that it can also build `ProjectB/common` which can be a challenge when mounting
+within a container.
 
 ## Implementation
-
-### Source directory, and artifact directory semantics
-
-To enable the multi build projects where a Gradle project can contain multiple
-Lambdas as individual child projects, the builder behavior will change depending
-on whether the `options` provided to the build command contains a map called
-`artifact_mapping`.
-
-When this map is **not** present, the semantics of `source_dir` and
-`artifact_dir` are not changed.
-
-If this map is present, then `source_dir` is treated as the root directory of
-the parent project. Additionally, `artifact_dir` will not be the path under
-which the artifact will be copied to, but just the parent of the final
-directory. `artifact_mapping` will be a mapping from a source subdirectory under
-`source_dir` (i.e. the location of the inidividual function code), to a sub
-directory under the given `artifact_dir` where the function's artifacts will be
-copied to.
 
 ### Build Workflow
 
@@ -108,17 +91,7 @@ We leverage Gradle to do all the heavy lifting for executing the
 build the project. To create the distribution ZIP, we use the help of a
 Gradle init script to insert a post-build action to do this.
 
-
-#### Step 1: Check Java version and emit warning
-
-Check whether the local JDK version is <= Java 8, and if it is not, emit a
-warning that the built artifact may not run in Lambda unless a) the project is
-properly configured (i.e. using `targetCompatibility`) or b) the project is
-built within a Lambda-compatibile environment like `lambci`.
-
-The [path resolver][path resolver] will be used for help in validating.
-
-#### Step 2: Copy custom init file to temporary location
+#### Step 1: Copy custom init file to temporary location
 
 There is no standard task in Gradle to create a distribution ZIP (or uber JAR).
 We add this functionality through the use of a Gradle init script. The script
@@ -135,6 +108,10 @@ where the contents of `lambda-build-init.gradle` contains the code for defining
 the post-build action:
 
 ```gradle
+gradle.project.afterProject { p ->
+  // Set the give project's buildDir to one under SCRATCH_DIR
+}
+
 // Include the project classes and resources in the root, and the dependencies
 // under lib
 gradle.taskGraph.afterTask { t ->
@@ -142,31 +119,66 @@ gradle.taskGraph.afterTask { t ->
         return
     }
 
-    // Step 1: Open ZIP file in $buildDir/distributions
-    // Step 2: Copy project class files and resources to ZIP root
+    // Step 1: Find the directory under scratch_dir where the artifact for
+    // t.project is located
+    // Step 2: Open ZIP file in $buildDir/distributions/lambda_build
+    // Step 3: Copy project class files and resources to ZIP root
     // Step 3: Copy libs in configurations.runtimeClasspath into 'lib'
     // subdirectory in ZIP
 }
 ```
 
-#### Step 3: Resolve Gradle executable to use
+#### Step 2: Resolve Gradle executable to use
 
-A popular way to author and distribute a Gradle project is to include a
-`gradlew` or Gradle Wrapper file within the root of the project. This
-essentially locks in the version of Gradle for the project and uses an
-executable that is independent of any local installations.
+[The recommended
+way](https://docs.gradle.org/current/userguide/gradle_wrapper.html)  way to
+author and distribute a Gradle project is to include a `gradlew` or Gradle
+Wrapper file within the root of the project. This essentially locks in the
+version of Gradle for the project and uses an executable that is independent of
+any local installations. This helps ensure that builds are always consistent
+over different environments.
 
 The `gradlew` script, if it is included, will be located at the root of the
-project. We make the assumption that `source_dir` is always at the project root,
-so we simply check if `gradlew` exists under `source_dir`.
+project. We will rely on the invoker of the workflow to supply the path to the
+`gradlew` script.
 
 We give precedence to this `gradlew` file, and if isn't found, we use the
-`gradle` executable found using the [path resolver][path resolver].
+`gradle` executable found on the `PATH` using the [path resolver][path resolver].
 
-#### Step 3: Build and package
+#### Step 3: Check Java version and emit warning
+
+Check whether the local JDK version is <= Java 8, and if it is not, emit a
+warning that the built artifact may not run in Lambda unless a) the project is
+properly configured (i.e. using `targetCompatibility`) or b) the project is
+built within a Lambda-compatibile environment like `lambci`.
+
+We use the Gradle executable from Step 2 for this to ensure that we check the
+actual JVM version Gradle is using in case it has been configured to use a
+different one than can be found on the PATH.
+
+#### Step 4: Build and package
 
 ```sh
-$GRADLE_EXECUTABLE --init-script /$SCRATCH_DIR/lambda-build-init.gradle build
+$GRADLE_EXECUTABLE --project-cache-dir $SCRATCH_DIR/gradle-cache \
+    -Dsoftware.amazon.aws.lambdabuilders.scratch-dir=$SCRATCH_DIR \
+    --init-script $SCRATCH_DIR/lambda-build-init.gradle build
 ```
+
+We specify where Gradle should store its build-related files to avoid writing
+anything under `source_dir`, which is the default behavior.
+
+We also pass into the script the scratch directory. This allows it to correctly
+map the build directory for each sub-project within `scratch_dir`.  Going back
+to the `ProjectB` example, even though we may just be building `lambda1`, this
+also has the effect of building `common` because it's a dependency. So, within
+`scratch_dir` will be a sub directory for each project that gets built as a
+result of building `source_dir`; in this case there will be one for each of
+`lambda1` and `common`.
+
+#### Step 5: Copy to artifact directory
+
+The workflow implementation is aware of the mapping scheme used to map a
+`source_dir` to the correct directory under `scratch_dir` , so it knows where to
+find the built Lambda artifact when copying it to `artifacts_dir`.
 
 [path resolver]: https://github.com/awslabs/aws-lambda-builders/pull/55

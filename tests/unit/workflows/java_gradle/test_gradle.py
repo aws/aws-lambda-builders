@@ -51,7 +51,7 @@ class TestSubprocessGradle(TestCase):
 
     def test_build_with_init_script(self):
         gradle = SubprocessGradle(self.gradle_binary, self.os_utils)
-        gradle.build(self.source_dir, self.init_script)
+        gradle.build(self.source_dir, init_script_path=self.init_script)
         self.os_utils.popen.assert_called_with([self.gradle_path, 'build', '--init-script', self.init_script],
                                                cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
@@ -62,3 +62,10 @@ class TestSubprocessGradle(TestCase):
         with self.assertRaises(GradleExecutionError) as err:
             gradle.build(self.source_dir)
         self.assertEquals(err.exception.args[0], 'Gradle Failed: Some Error Message')
+
+    def test_includes_build_properties_in_command(self):
+        gradle = SubprocessGradle(self.gradle_binary, self.os_utils)
+        gradle.build(self.source_dir, init_script_path=self.init_script, properties={'foo': 'bar'})
+        self.os_utils.popen.assert_called_with(
+            [self.gradle_path, 'build', '-Dfoo=bar', '--init-script', self.init_script],
+            cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)

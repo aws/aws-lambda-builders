@@ -68,27 +68,23 @@ class TestJavaGradle(TestCase):
     def test_build_multi_build_with_deps(self):
         source_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps')
         manifest_path = os.path.join(source_dir, 'build.gradle')
-        artifact_mapping = {'lambda1': 'l1', 'lambda2': 'l2'}
 
-        for _, d in artifact_mapping.items():
-            os.mkdir(os.path.join(self.artifacts_dir, d))
+        lambda1_source = os.path.join(source_dir, 'lambda1')
+        self.builder.build(lambda1_source, self.artifacts_dir, self.scratch_dir, manifest_path,
+                           runtime=self.runtime)
 
-        options = {'artifact_mapping': artifact_mapping}
-
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, options=options,
+        lambda2_source = os.path.join(source_dir, 'lambda2')
+        self.builder.build(lambda2_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
         lambda1_zip_name = 'lambda1.zip'
         lambda2_zip_name = 'lambda2.zip'
 
-        lambda1_artifact_dir = os.path.join(self.artifacts_dir, artifact_mapping['lambda1'])
-        lambda2_artifact_dir = os.path.join(self.artifacts_dir, artifact_mapping['lambda2'])
+        self.assertTrue(lambda1_zip_name in os.listdir(self.artifacts_dir))
+        self.assertTrue(lambda2_zip_name in os.listdir(self.artifacts_dir))
 
-        self.assertTrue(lambda1_zip_name in os.listdir(lambda1_artifact_dir))
-        self.assertTrue(lambda2_zip_name in os.listdir(lambda2_artifact_dir))
-
-        lambda1_zip_path = os.path.join(lambda1_artifact_dir, lambda1_zip_name)
-        lambda2_zip_path = os.path.join(lambda2_artifact_dir, lambda2_zip_name)
+        lambda1_zip_path = os.path.join(self.artifacts_dir, lambda1_zip_name)
+        lambda2_zip_path = os.path.join(self.artifacts_dir, lambda2_zip_name)
 
         lambda1_expected_contents = ['aws/lambdabuilders/Lambda1_Main.class', 'lib/annotations-2.1.0.jar']
         self.assert_zip_contains(lambda1_zip_path, lambda1_expected_contents)
@@ -99,27 +95,23 @@ class TestJavaGradle(TestCase):
     def test_build_multi_build_with_deps_inter_module(self):
         source_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps-inter-module')
         manifest_path = os.path.join(source_dir, 'build.gradle')
-        artifact_mapping = {'lambda1': 'l1', 'lambda2': 'l2'}
 
-        for _, d in artifact_mapping.items():
-            os.mkdir(os.path.join(self.artifacts_dir, d))
+        lambda1_source = os.path.join(source_dir, 'lambda1')
+        self.builder.build(lambda1_source, self.artifacts_dir, self.scratch_dir, manifest_path,
+                           runtime=self.runtime)
 
-        options = {'artifact_mapping': artifact_mapping}
-
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, options=options,
+        lambda2_source = os.path.join(source_dir, 'lambda2')
+        self.builder.build(lambda2_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
         lambda1_zip_name = 'lambda1.zip'
         lambda2_zip_name = 'lambda2.zip'
 
-        lambda1_artifact_dir = os.path.join(self.artifacts_dir, artifact_mapping['lambda1'])
-        lambda2_artifact_dir = os.path.join(self.artifacts_dir, artifact_mapping['lambda2'])
+        self.assertTrue(lambda1_zip_name in os.listdir(self.artifacts_dir))
+        self.assertTrue(lambda2_zip_name in os.listdir(self.artifacts_dir))
 
-        self.assertTrue(lambda1_zip_name in os.listdir(lambda1_artifact_dir))
-        self.assertTrue(lambda2_zip_name in os.listdir(lambda2_artifact_dir))
-
-        lambda1_zip_path = os.path.join(lambda1_artifact_dir, lambda1_zip_name)
-        lambda2_zip_path = os.path.join(lambda2_artifact_dir, lambda2_zip_name)
+        lambda1_zip_path = os.path.join(self.artifacts_dir, lambda1_zip_name)
+        lambda2_zip_path = os.path.join(self.artifacts_dir, lambda2_zip_name)
 
         lambda1_expected_contents = ['aws/lambdabuilders/Lambda1_Main.class', 'lib/annotations-2.1.0.jar',
                                      'lib/common.jar']

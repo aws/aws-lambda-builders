@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+import hashlib
+import os
 from aws_lambda_builders.workflows.java_gradle.workflow import JavaGradleWorkflow
 from aws_lambda_builders.workflows.java_gradle.actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from aws_lambda_builders.workflows.java_gradle.gradle_resolver import GradleResolver
@@ -37,16 +39,12 @@ class TestJavaGradleWorkflow(TestCase):
 
         self.assertIsInstance(validators[0], GradleBinaryValidator)
 
-    def test_no_options_workflow_creates_correct_mapping(self):
+    def test_computes_correct_build_dir(self):
         workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")
-        self.assertEqual(workflow.artifact_mapping, {'.': '.'})
 
-    def test_no_artifact_mapping_option_workflow_creates_correct_mapping(self):
-        workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest", options={})
-        self.assertEqual(workflow.artifact_mapping, {'.': '.'})
+        sha1 = hashlib.sha1()
+        sha1.update(os.path.abspath(workflow.source_dir).encode('utf8'))
 
-    def test_options_provided_workflow_creates_correct_mapping(self):
-        artifact_mapping = {'lamda1': 'artifact1', 'lambda2': 'artfact2'}
-        options = {'artifact_mapping': artifact_mapping}
-        workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest", options=options)
-        self.assertEqual(workflow.artifact_mapping, artifact_mapping)
+        expected_build_dir = os.path.join(workflow.scratch_dir, sha1.hexdigest())
+
+        self.assertEqual(expected_build_dir, workflow.build_output_dir)

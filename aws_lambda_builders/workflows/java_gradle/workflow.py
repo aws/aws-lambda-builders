@@ -1,7 +1,8 @@
 """
 Java Gradle Workflow
 """
-
+import hashlib
+import os
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
@@ -35,8 +36,8 @@ class JavaGradleWorkflow(BaseWorkflow):
                                                  **kwargs)
 
         self.os_utils = OSUtils()
+        self.build_dir = None
         subprocess_gradle = SubprocessGradle(self.binaries['gradle'], self.os_utils)
-        artifact_mapping = self._resolve_artifact_mapping()
 
         self.actions = [
             JavaGradleBuildAction(source_dir,
@@ -45,7 +46,7 @@ class JavaGradleWorkflow(BaseWorkflow):
                                   self.os_utils),
             JavaGradleCopyArtifactsAction(source_dir,
                                           artifacts_dir,
-                                          artifact_mapping,
+                                          self.build_output_dir,
                                           self.os_utils)
         ]
 
@@ -56,16 +57,12 @@ class JavaGradleWorkflow(BaseWorkflow):
         return [GradleBinaryValidator(self.os_utils)]
 
     @property
-    def artifact_mapping(self):
-        return self._resolve_artifact_mapping()
+    def build_output_dir(self):
+        if self.build_dir is None:
+            self.build_dir = os.path.join(self.scratch_dir, self._compute_scratch_subdir())
+        return self.build_dir
 
-    def _resolve_artifact_mapping(self):
-        """
-        Creates the map from the source of a single Lambda function (under source_dir), to the sub-directory under
-        artifacts_dir where the function's artifact is to be placed.
-
-        :return: The artifact mapping.
-        """
-        if not self.options or not self.options.get('artifact_mapping'):
-            return {'.': '.'}
-        return self.options['artifact_mapping']
+    def _compute_scratch_subdir(self):
+        sha1 = hashlib.sha1()
+        sha1.update(os.path.abspath(self.source_dir).encode('utf8'))
+        return sha1.hexdigest()

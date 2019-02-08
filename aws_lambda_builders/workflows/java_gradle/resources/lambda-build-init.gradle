@@ -6,14 +6,26 @@ import java.nio.file.FileVisitResult
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
+import java.security.MessageDigest
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
+
+gradle.ext.SCRATCH_DIR_PROPERTY = 'software.amazon.aws.lambdabuilders.scratch-dir'
+
+// Called after the project has been evaluated
+gradle.afterProject({p ->
+    def buildDir = buildDirForProject(p)
+    p.buildDir = buildDir
+})
 
 gradle.taskGraph.afterTask{ t ->
     if (t.name != 'build') {
         return;
     }
+
+    assertExpectedBuildDir(t.project)
+
     def artifactJars = t.project.configurations.archives.artifacts.files.files
 
     def runtimeCpJars = t.project.configurations.runtimeClasspath.files
@@ -21,6 +33,26 @@ gradle.taskGraph.afterTask{ t ->
     def zipArtifact = createArtifactDir(t.project).resolve("${t.project.name}.zip")
 
     createLambdaArtifact(zipArtifact, artifactJars, runtimeCpJars)
+}
+
+def buildDirForProject(p) {
+    def scratchDir = System.properties[SCRATCH_DIR_PROPERTY]
+    if (scratchDir == null) {
+        throw new RuntimeException("Missing '${SCRATCH_DIR_PROPERTY}' value")
+    }
+    return Paths.get(scratchDir, scratchDirForProject(p), 'build')
+}
+
+def scratchDirForProject(p) {
+    def sha1 = MessageDigest.getInstance('SHA-1')
+    return sha1.digest(p.projectDir.toString().getBytes('UTF-8')).encodeHex().toString()
+}
+
+def assertExpectedBuildDir(p) {
+    def expected = buildDirForProject(p)
+    if (!expected.equals(p.buildDir.toPath())) {
+        throw new RuntimeException("Project buildDir was changed by the project build script! Expected $expected but found ${p.buildDir}")
+    }
 }
 
 def createArtifactDir(project) {
