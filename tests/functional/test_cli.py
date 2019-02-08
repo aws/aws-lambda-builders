@@ -65,6 +65,7 @@ class TestCliWithHelloWorkflow(TestCase):
                 "runtime": "ignored",
                 "optimizations": {},
                 "options": {},
+                "additional_paths": []
             }
         })
 

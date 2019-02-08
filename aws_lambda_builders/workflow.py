@@ -117,6 +117,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                  scratch_dir,
                  manifest_path,
                  runtime=None,
+                 additional_search_paths=None,
                  optimizations=None,
                  options=None):
         """
@@ -145,6 +146,10 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             Optional, name of the AWS Lambda runtime that you are building for. This is sent to the builder for
             informational purposes.
 
+        :type additional_search_paths: list
+        :param additional_search_paths:
+            Optional, Additional list of paths to search for executables required by the workflow.
+
         :type optimizations: dict
         :param optimizations:
             Optional dictionary of optimization flags to pass to the build action. **Not supported**.
@@ -161,6 +166,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.runtime = runtime
         self.optimizations = optimizations
         self.options = options
+        self.additional_search_paths = additional_search_paths
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
@@ -181,7 +187,8 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
         Non specialized path resolver that just returns the list of executable for the runtime on the path.
         """
-        return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language)]
+        return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language,
+                             additional_search_paths=self.additional_search_paths)]
 
     def get_validators(self):
         """

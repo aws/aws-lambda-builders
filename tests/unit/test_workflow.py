@@ -89,6 +89,7 @@ class TestBaseWorkflow_init(TestCase):
     def test_must_initialize_variables(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    additional_search_paths=[],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -113,6 +114,7 @@ class TestBaseWorkflow_is_supported(TestCase):
     def setUp(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    additional_search_paths=[],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -150,6 +152,7 @@ class TestBaseWorkflow_run(TestCase):
     def setUp(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    additional_search_paths=[],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -239,6 +242,7 @@ class TestBaseWorkflow_repr(TestCase):
 
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    additional_search_paths=[],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 

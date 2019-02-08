@@ -56,7 +56,7 @@ class LambdaBuilder(object):
         LOG.debug("Found workflow '%s' to support capabilities '%s'", self.selected_workflow_cls.NAME, self.capability)
 
     def build(self, source_dir, artifacts_dir, scratch_dir, manifest_path,
-              runtime=None, optimizations=None, options=None):
+              runtime=None, additional_search_paths=None, optimizations=None, options=None):
         """
         Actually build the code by running workflows
 
@@ -82,6 +82,10 @@ class LambdaBuilder(object):
             Optional, name of the AWS Lambda runtime that you are building for. This is sent to the builder for
             informational purposes.
 
+        :type additional_search_paths: list
+        :param additional_search_paths:
+            Additional list of paths to search for executables required by the workflow.
+
         :type optimizations: dict
         :param optimizations:
             Optional dictionary of optimization flags to pass to the build action. **Not supported**.
@@ -100,7 +104,8 @@ class LambdaBuilder(object):
                                               manifest_path,
                                               runtime=runtime,
                                               optimizations=optimizations,
-                                              options=options)
+                                              options=options,
+                                              additional_search_paths=additional_search_paths)
 
         return workflow.run()
 

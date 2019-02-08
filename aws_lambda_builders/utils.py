@@ -68,13 +68,12 @@ def copytree(source, destination, ignore=None):
 # Copyright 2019 by the Python Software Foundation
 
 
-def which(cmd, mode=os.F_OK | os.X_OK, path=None):  # pragma: no cover
-    """Given a command, mode, and a PATH string, return the paths which
-    conforms to the given mode on the PATH, or None if there is no such
-    file.
-    `mode` defaults to os.F_OK | os.X_OK. `path` defaults to the result
-    of os.environ.get("PATH"), or can be overridden with a custom search
-    path.
+def which(cmd, mode=os.F_OK | os.X_OK, additional_search_paths=None):  # pragma: no cover
+    """Given a command, mode, and an additional search paths list, return the paths which
+    conforms to the given mode on the PATH with the prepended additional search paths,
+    or None if there is no such file.
+    `mode` defaults to os.F_OK | os.X_OK. the default search `path` defaults
+    to the result of os.environ.get("PATH")
     Note: This function was backported from the Python 3 source code.
     """
     # Check that a given file can be accessed with the correct mode.
@@ -93,10 +92,11 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):  # pragma: no cover
 
         return None
 
-    if path is None:
-        path = os.environ.get("PATH", os.defpath)
-    if not path:
-        return None
+    path = os.environ.get("PATH", os.defpath)
+
+    if additional_search_paths:
+        for pth in additional_search_paths:
+            path.insert(0, pth)
 
     path = path.split(os.pathsep)
 
