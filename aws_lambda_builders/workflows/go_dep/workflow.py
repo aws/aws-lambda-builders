@@ -45,7 +45,7 @@ class GoDepWorkflow(BaseWorkflow):
                                             **kwargs)
 
         options = kwargs["options"] if "options" in kwargs else {}
-        handler = options.get("handler", None)
+        handler = options.get("output_executable_name", None)
 
         if osutils is None:
             osutils = OSUtils()
