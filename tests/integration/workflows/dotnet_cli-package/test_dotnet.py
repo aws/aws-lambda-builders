@@ -1,0 +1,38 @@
+import os
+import shutil
+import tempfile
+
+from unittest import TestCase
+
+from aws_lambda_builders.builder import LambdaBuilder
+from aws_lambda_builders.exceptions import WorkflowFailedError
+
+
+class TestDotnetDep(TestCase):
+    TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
+
+    def setUp(self):
+        self.artifacts_dir = tempfile.mkdtemp()
+        self.scratch_dir = tempfile.mkdtemp()
+
+        self.builder = LambdaBuilder(language="dotnet",
+                                     dependency_manager="cli-package",
+                                     application_framework=None)
+
+        self.runtime = "dotnetcore2.1"
+
+    def tearDown(self):
+        shutil.rmtree(self.artifacts_dir)
+        shutil.rmtree(self.scratch_dir)
+
+    def test_with_defaults_file(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "WithDefaultsFile")
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           source_dir,
+                           runtime=self.runtime)
+
+        expected_files = {"WithDefaultsFile.zip"}
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEquals(expected_files, output_files)
