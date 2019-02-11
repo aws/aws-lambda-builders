@@ -6,7 +6,7 @@ class BundlerResolver(object):
     def __init__(self, source_dir, os_utils, path_resolver=None):
         self.source_dir = source_dir
         self.os_utils = OSUtils() if not os_utils else os_utils
-        if osutils.is_windows():
+        if os_utils.is_windows():
             self.binary = 'bundler.bat'
         else:
             self.binary = 'bundler'

@@ -42,7 +42,8 @@ class RubyBundlerWorkflow(BaseWorkflow):
 
         if osutils is None:
             osutils = OSUtils()
-        self.osutils = osutils
+
+        self.os_utils = osutils
 
         subprocess_bundler = SubprocessBundler(osutils)
         bundle_install = RubyBundlerInstallAction(artifacts_dir,
