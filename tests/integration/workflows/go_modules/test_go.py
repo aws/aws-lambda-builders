@@ -32,7 +32,7 @@ class TestGoWorkflow(TestCase):
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                            os.path.join(source_dir, "go.mod"),
                            runtime=self.runtime,
-                           options={"handler": "no-deps-main"})
+                           options={"artifact_executable_name": "no-deps-main"})
         expected_files = {"no-deps-main"}
         output_files = set(os.listdir(self.artifacts_dir))
         print(output_files)
@@ -43,7 +43,7 @@ class TestGoWorkflow(TestCase):
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                            os.path.join(source_dir, "go.mod"),
                            runtime=self.runtime,
-                           options={"handler": "with-deps-main"})
+                           options={"artifact_executable_name": "with-deps-main"})
         expected_files = {"with-deps-main"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEquals(expected_files, output_files)
@@ -54,6 +54,6 @@ class TestGoWorkflow(TestCase):
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                                os.path.join(source_dir, "go.mod"),
                                runtime=self.runtime,
-                               options={"handler": "failed"})
+                               options={"artifact_executable_name": "failed"})
         self.assertIn("GoModulesBuilder:Build - Builder Failed: ",
                       str(ctx.exception))
