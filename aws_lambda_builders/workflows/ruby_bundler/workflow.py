@@ -8,7 +8,7 @@ from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 from .utils import OSUtils
 from .bundler import SubprocessBundler
 from .validator import RubyRuntimeValidator
-
+from .bundler_resolver import BundlerResolver
 
 class RubyBundlerWorkflow(BaseWorkflow):
 
@@ -54,6 +54,9 @@ class RubyBundlerWorkflow(BaseWorkflow):
             bundle_install,
             bundle_deployment,
         ]
+
+    def get_resolvers(self):
+        return [BundlerResolver(self.source_dir, self.os_utils)]
 
     def get_validators(self):
         return [RubyRuntimeValidator(runtime=self.runtime)]
