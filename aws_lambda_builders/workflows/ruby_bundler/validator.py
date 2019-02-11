@@ -49,6 +49,7 @@ class RubyRuntimeValidator(object):
             self._valid_runtime_path = runtime_path
             return self._valid_runtime_path
         else:
+            print("The command '" + runtime_path + " exec ruby' returned exit code" + str(p.returncode))
             raise MisMatchRuntimeError(
                 language=self.LANGUAGE,
                 required_runtime=self.runtime,
