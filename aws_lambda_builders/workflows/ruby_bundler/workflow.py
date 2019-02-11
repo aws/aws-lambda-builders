@@ -44,6 +44,7 @@ class RubyBundlerWorkflow(BaseWorkflow):
             osutils = OSUtils()
 
         subprocess_bundler = SubprocessBundler(osutils)
+        self.subprocess_bundler = subprocess_bundler
         bundle_install = RubyBundlerInstallAction(artifacts_dir,
                                                   subprocess_bundler=subprocess_bundler)
 
@@ -56,4 +57,7 @@ class RubyBundlerWorkflow(BaseWorkflow):
         ]
 
     def get_validators(self):
-        return [RubyRuntimeValidator(runtime=self.runtime)]
+        return [RubyRuntimeValidator(
+            runtime=self.runtime,
+            bundler=self.subprocess_bundler
+        )]
