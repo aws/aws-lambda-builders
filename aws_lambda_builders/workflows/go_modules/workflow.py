@@ -3,7 +3,8 @@ Go Modules Workflow
 """
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 
-from .actions import GoModulesBuildAction
+from aws_lambda_builders.actions import CopySourceAction
+from .actions import GoModulesBuildAction, CopyGoSumAction
 from .builder import GoModulesBuilder
 from .validator import GoRuntimeValidator
 from .utils import OSUtils
@@ -44,7 +45,9 @@ class GoModulesWorkflow(BaseWorkflow):
 
         builder = GoModulesBuilder(osutils, binaries=self.binaries)
         self.actions = [
-            GoModulesBuildAction(source_dir, output_path, builder),
+            CopySourceAction(source_dir, scratch_dir),
+            GoModulesBuildAction(scratch_dir, output_path, builder),
+            CopyGoSumAction(scratch_dir, artifacts_dir, osutils)
         ]
 
     def get_validators(self):
