@@ -55,6 +55,3 @@ class SubprocessBundler(object):
             raise BundlerExecutionError(message=err.decode('utf8').strip())
 
         return out.decode('utf8').strip()
-
-    def bundler_exe():
-        return self.bundler_exe

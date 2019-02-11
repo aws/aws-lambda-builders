@@ -16,9 +16,8 @@ class RubyRuntimeValidator(object):
         "ruby2.5"
     }
 
-    def __init__(self, runtime, bundler):
+    def __init__(self, runtime):
         self.runtime = runtime
-        self.bundler = bundler
         self._valid_runtime_path = None
 
     def has_runtime(self):
@@ -41,20 +40,20 @@ class RubyRuntimeValidator(object):
             return None
 
         # bundle exec ruby -e "puts RUBY_VERSION"
-        p = subprocess.Popen([self.bundler.bundler_exe, "exec", "ruby", "-e", '"unless RUBY_VERSION.match(/2\\.5\\.\\d/); exit(1); end"'],
+        p = subprocess.Popen([runtime_path, "exec", "ruby", "-e", '"unless RUBY_VERSION.match(/2\\.5\\.\\d/); exit(1); end"'],
                              cwd=os.getcwd(),
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         p.communicate() # don't care about the output
         if p.returncode == 0:
-            self._valid_runtime_path = self.bundler.bundler_exe
+            self._valid_runtime_path = runtime_path
             return self._valid_runtime_path
         else:
-            print("The command '" + self.bundler.bundler_exe + " exec ruby' returned exit code " + str(p.returncode))
+            print("The command '" + runtime_path + " exec ruby' returned exit code" + str(p.returncode))
             raise MisMatchRuntimeError(
                 language=self.LANGUAGE,
                 required_runtime=self.runtime,
-                runtime_path=self.bundler.bundler_exe)
+                runtime_path=runtime_path)
 
     @property
     def validated_runtime_path(self):
