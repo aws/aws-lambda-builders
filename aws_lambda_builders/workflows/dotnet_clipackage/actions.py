@@ -4,6 +4,7 @@ Actions for Ruby dependency resolution with Bundler
 
 import os
 import logging
+import zipfile
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .dotnetcli import DotnetCLIExecutionError
@@ -48,22 +49,38 @@ class RunPackageAction(BaseAction):
     DESCRIPTION = "Execute the `dotnet lambda package` command."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir):
+    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options):
         super(RunPackageAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_dotnet = subprocess_dotnet
         self.artifacts_dir = artifacts_dir
+        self.options = options
 
     def execute(self):
         try:
             LOG.debug("Running bundle install --deployment in %s", self.source_dir)
 
+            zipfilename = os.path.basename(os.path.normpath(self.source_dir)) + ".zip"
+            zipfullpath = os.path.join(self.artifacts_dir, zipfilename)
 
-            zipfile = os.path.basename(os.path.normpath(self.source_dir)) + ".zip"
-            ziplocation = os.path.join(self.artifacts_dir, zipfile)
+            arguments = ['lambda', 'package', '--output-package', zipfullpath]
+
+            for key in self.options:
+                if str.startswith(key, "-"):
+                    arguments.append(key)
+                    arguments.append(self.options[key])
+
             self.subprocess_dotnet.run(
-                ['lambda', 'package', '--output-package', ziplocation],
+                arguments,
                 cwd=self.source_dir
             )
+
+            # The dotnet lambda package command outputs a zip file for the package. To make this compatible
+            # with the workflow, unzip the zip file into the artifacts directory and then delete the zip archive.
+            ziparchive = zipfile.ZipFile(zipfullpath, 'r')
+            ziparchive.extractall(self.artifacts_dir)
+            ziparchive.close()
+            os.remove(zipfullpath)
+
         except DotnetCLIExecutionError as ex:
             raise ActionFailedError(str(ex))

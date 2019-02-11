@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 
+
 from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
@@ -32,7 +33,34 @@ class TestDotnetDep(TestCase):
                            source_dir,
                            runtime=self.runtime)
 
-        expected_files = {"WithDefaultsFile.zip"}
+        expected_files = {"Amazon.Lambda.Core.dll",
+                          "Amazon.Lambda.Serialization.Json.dll",
+                          "Newtonsoft.Json.dll",
+                          "WithDefaultsFile.deps.json",
+                          "WithDefaultsFile.dll",
+                          "WithDefaultsFile.pdb",
+                          "WithDefaultsFile.runtimeconfig.json"}
+
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEquals(expected_files, output_files)
+
+    def test_require_parameters(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "RequireParameters")
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
+                           source_dir,
+                           runtime=self.runtime,
+                           options={"--framework": "netcoreapp2.1", "--configuration": "Debug"})
+
+        expected_files = {"Amazon.Lambda.Core.dll",
+                          "Amazon.Lambda.Serialization.Json.dll",
+                          "Newtonsoft.Json.dll",
+                          "RequireParameters.deps.json",
+                          "RequireParameters.dll",
+                          "RequireParameters.pdb",
+                          "RequireParameters.runtimeconfig.json"}
+
         output_files = set(os.listdir(self.artifacts_dir))
 
         self.assertEquals(expected_files, output_files)
