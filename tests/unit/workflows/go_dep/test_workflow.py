@@ -15,7 +15,7 @@ class TestGoDepWorkflow(TestCase):
                                  "artifacts",
                                  "scratch",
                                  "manifest",
-                                 options={"output_executable_name": "foo"})
+                                 options={"artifact_executable_name": "foo"})
         self.assertEqual(len(workflow.actions), 2)
         self.assertIsInstance(workflow.actions[0], DepEnsureAction)
         self.assertIsInstance(workflow.actions[1], GoBuildAction)
