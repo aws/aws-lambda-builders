@@ -5,9 +5,18 @@ import shutil
 import tempfile
 import subprocess
 import copy
+import sys
 
 from unittest import TestCase
 from parameterized import parameterized
+
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
+
+
+from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 
 
 class TestCliWithHelloWorkflow(TestCase):
@@ -39,7 +48,6 @@ class TestCliWithHelloWorkflow(TestCase):
     def tearDown(self):
         shutil.rmtree(self.source_dir)
         shutil.rmtree(self.artifacts_dir)
-        shutil.rmtree(self.scratch_dir)
 
     @parameterized.expand([
         ("request_through_stdin"),
@@ -52,6 +60,7 @@ class TestCliWithHelloWorkflow(TestCase):
             "id": 1234,
             "method": "LambdaBuilder.build",
             "params": {
+                "__protocol_version": lambda_builders_protocol_version,
                 "capability": {
                     "language": self.language,
                     "dependency_manager": self.dependency_manager,
@@ -65,7 +74,7 @@ class TestCliWithHelloWorkflow(TestCase):
                 "runtime": "ignored",
                 "optimizations": {},
                 "options": {},
-                "additional_paths": []
+                "executable_search_paths": [str(pathlib.Path(sys.executable).parent)]
             }
         })
 
@@ -95,4 +104,52 @@ class TestCliWithHelloWorkflow(TestCase):
             contents = fp.read()
 
         self.assertEquals(contents, self.expected_contents)
+        shutil.rmtree(self.scratch_dir)
 
+    @parameterized.expand([
+        ("request_through_stdin"),
+        ("request_through_argument")
+    ])
+    def test_run_hello_workflow_incompatible(self, flavor):
+
+        request_json = json.dumps({
+            "jsonschema": "2.0",
+            "id": 1234,
+            "method": "LambdaBuilder.build",
+            "params": {
+                "__protocol_version": "2.0",
+                "capability": {
+                    "language": self.language,
+                    "dependency_manager": self.dependency_manager,
+                    "application_framework": self.application_framework
+                },
+                "supported_workflows": [self.HELLO_WORKFLOW_MODULE],
+                "source_dir": self.source_dir,
+                "artifacts_dir": self.artifacts_dir,
+                "scratch_dir": self.scratch_dir,
+                "manifest_path": "/ignored",
+                "runtime": "ignored",
+                "optimizations": {},
+                "options": {},
+                "executable_search_paths": [str(pathlib.Path(sys.executable).parent)]
+            }
+        })
+
+
+        env = copy.deepcopy(os.environ)
+        env["PYTHONPATH"] = self.python_path
+
+        stdout_data = None
+        if flavor == "request_through_stdin":
+            p = subprocess.Popen([self.command_name], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            stdout_data = p.communicate(input=request_json.encode('utf-8'))[0]
+        elif flavor == "request_through_argument":
+            p = subprocess.Popen([self.command_name, request_json], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            stdout_data = p.communicate()[0]
+        else:
+            raise ValueError("Invalid test flavor")
+
+        # Validate the response object. It should be error response
+        response = json.loads(stdout_data)
+        self.assertIn('error', response)
+        self.assertEquals(response['error']['code'], 505)

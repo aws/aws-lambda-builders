@@ -68,14 +68,27 @@ def copytree(source, destination, ignore=None):
 # Copyright 2019 by the Python Software Foundation
 
 
-def which(cmd, mode=os.F_OK | os.X_OK, additional_search_paths=None):  # pragma: no cover
-    """Given a command, mode, and an additional search paths list, return the paths which
+def which(cmd, mode=os.F_OK | os.X_OK, executable_search_paths=None):  # pragma: no cover
+    """Given a command, mode, and executable search paths list, return the paths which
     conforms to the given mode on the PATH with the prepended additional search paths,
     or None if there is no such file.
     `mode` defaults to os.F_OK | os.X_OK. the default search `path` defaults
     to the result of os.environ.get("PATH")
     Note: This function was backported from the Python 3 source code.
+
+    :type cmd: str
+    :param cmd:
+        Executable to be looked up in PATH.
+
+    :type mode: str
+    :param mode:
+        Modes of access for the executable.
+
+    :type executable_search_paths: list
+    :param executable_search_paths:
+        List of paths to look for `cmd` in preference order.
     """
+
     # Check that a given file can be accessed with the correct mode.
     # Additionally check that `file` is not a directory, as on Windows
     # directories pass the os.access check.
@@ -94,11 +107,13 @@ def which(cmd, mode=os.F_OK | os.X_OK, additional_search_paths=None):  # pragma:
 
     path = os.environ.get("PATH", os.defpath)
 
-    if additional_search_paths:
-        for pth in additional_search_paths:
-            path.insert(0, pth)
+    if not path:
+        return None
 
     path = path.split(os.pathsep)
+
+    if executable_search_paths:
+        path = executable_search_paths + path
 
     if sys.platform == "win32":
         # The current directory takes precedence on Windows.
