@@ -164,21 +164,32 @@ $GRADLE_EXECUTABLE --project-cache-dir $SCRATCH_DIR/gradle-cache \
     --init-script $SCRATCH_DIR/lambda-build-init.gradle build
 ```
 
-We specify where Gradle should store its build-related files to avoid writing
-anything under `source_dir`, which is the default behavior.
+Since by default, Gradle stores its build-related metadata in a `.gradle`
+directory under the source directory, we specify an alternative directory under
+`scratch_dir` to avoid writing anything under `source_dir`. This is simply a
+`gradle-cache` directory under `scratch_dir`.
 
-We also pass into the script the scratch directory. This allows it to correctly
-map the build directory for each sub-project within `scratch_dir`.  Going back
-to the `ProjectB` example, even though we may just be building `lambda1`, this
-also has the effect of building `common` because it's a dependency. So, within
-`scratch_dir` will be a sub directory for each project that gets built as a
-result of building `source_dir`; in this case there will be one for each of
-`lambda1` and `common`.
+Next, we also pass the location of the `scratch_dir` as a Java system
+property so that it's availabe to our init script. This allows it to correctly
+map the build directory for each sub-project within `scratch_dir`. Again, this
+ensures that we are not writing anything under the source directory.
+
+One important detail here is that the init script may create *multiple*
+subdirectories under `scratch_dir`, one for each project involved in building
+the lambda located at `source_dir`. Going back to the `ProjectB` example, if
+we're building `lambda1`, this also has the effect of building `common` because
+it's a declared dependency in its `build.gradle`. So, within `scratch_dir` will
+be a sub directory for each project that gets built as a result of building
+`source_dir`; in this case there will be one for each of `lambda1` and `common`.
+The init file uses some way of mapping the source root of each project involved
+to a unique directory under `scratch_dir`, like a hashing function.
 
 #### Step 5: Copy to artifact directory
 
 The workflow implementation is aware of the mapping scheme used to map a
-`source_dir` to the correct directory under `scratch_dir` , so it knows where to
-find the built Lambda artifact when copying it to `artifacts_dir`.
+`source_dir` to the correct directory under `scratch_dir` (described in step 4),
+so it knows where to find the built Lambda artifact when copying it to
+`artifacts_dir`. They will be located in
+`$SCRATCH_DIR/<mapping for source_dir>/build/distributions/lambda-build`.
 
 [path resolver]: https://github.com/awslabs/aws-lambda-builders/pull/55

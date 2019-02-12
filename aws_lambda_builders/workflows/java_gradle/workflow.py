@@ -63,6 +63,12 @@ class JavaGradleWorkflow(BaseWorkflow):
         return self.build_dir
 
     def _compute_scratch_subdir(self):
+        """
+        Compute where the init script will instruct Gradle to place the built artifacts for the lambda within
+        `scratch_dir`; i.e. the that it will set for 'project.buildDir`.
+
+        :return: The path of the buildDir used for building the lambda.
+        """
         sha1 = hashlib.sha1()
         sha1.update(os.path.abspath(self.source_dir).encode('utf8'))
         return sha1.hexdigest()
