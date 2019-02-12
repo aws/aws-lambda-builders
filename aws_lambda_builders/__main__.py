@@ -54,7 +54,9 @@ def _parse_version(version_string):
     if VERSION_REGEX.match(version_string):
         return float(version_string)
     else:
-        raise ValueError("Protocol Version does not match : {}".format(VERSION_REGEX.pattern))
+        ex = "Protocol Version does not match : {}".format(VERSION_REGEX.pattern)
+        LOG.debug(ex)
+        raise ValueError(ex)
 
 
 def version_compatibility_check(version):

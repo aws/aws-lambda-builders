@@ -50,17 +50,19 @@ class TestCliWithHelloWorkflow(TestCase):
         shutil.rmtree(self.artifacts_dir)
 
     @parameterized.expand([
-        ("request_through_stdin"),
-        ("request_through_argument")
+        ("request_through_stdin", lambda_builders_protocol_version),
+        ("request_through_argument", lambda_builders_protocol_version),
+        ("request_through_stdin", "0.1"),
+        ("request_through_argument", "0.1"),
     ])
-    def test_run_hello_workflow(self, flavor):
+    def test_run_hello_workflow_with_backcompat(self, flavor, protocol_version):
 
         request_json = json.dumps({
             "jsonschema": "2.0",
             "id": 1234,
             "method": "LambdaBuilder.build",
             "params": {
-                "__protocol_version": lambda_builders_protocol_version,
+                "__protocol_version": protocol_version,
                 "capability": {
                     "language": self.language,
                     "dependency_manager": self.dependency_manager,
