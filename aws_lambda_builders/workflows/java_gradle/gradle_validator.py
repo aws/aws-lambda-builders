@@ -6,6 +6,7 @@ import logging
 import re
 
 from .utils import OSUtils
+from .gradlew_resolver import GradlewResolver
 
 LOG = logging.getLogger(__name__)
 
@@ -25,6 +26,12 @@ class GradleBinaryValidator(object):
         self.log = LOG if not log else log
 
     def validate(self, gradle_path):
+        # The gradlew resolver returned the dummy path, which means it didn't find a gradle wrapper file in the search
+        # paths. Just pretend it's valid.
+        if gradle_path is GradlewResolver.DUMMY_PATH:
+            self._valid_binary_path = gradle_path
+            return self._valid_binary_path
+
         jvm_mv = self._get_major_version(gradle_path)
 
         if jvm_mv:

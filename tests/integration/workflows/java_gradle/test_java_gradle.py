@@ -58,7 +58,8 @@ class TestJavaGradle(TestCase):
     def test_build_single_build_with_deps_gradlew(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps-gradlew')
         manifest_path = os.path.join(source_dir, 'build.gradle')
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime,
+                           executable_search_paths=[source_dir])
         zip_name = 'with-deps-gradlew.zip'
         expected_contents = ['aws/lambdabuilders/Main.class', 'lib/annotations-2.1.0.jar']
 
@@ -66,14 +67,14 @@ class TestJavaGradle(TestCase):
         self.assert_zip_contains(os.path.join(self.artifacts_dir, zip_name), expected_contents)
 
     def test_build_multi_build_with_deps(self):
-        source_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps')
-        manifest_path = os.path.join(source_dir, 'build.gradle')
+        parent_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps')
+        manifest_path = os.path.join(parent_dir, 'build.gradle')
 
-        lambda1_source = os.path.join(source_dir, 'lambda1')
+        lambda1_source = os.path.join(parent_dir, 'lambda1')
         self.builder.build(lambda1_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
-        lambda2_source = os.path.join(source_dir, 'lambda2')
+        lambda2_source = os.path.join(parent_dir, 'lambda2')
         self.builder.build(lambda2_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
@@ -93,14 +94,14 @@ class TestJavaGradle(TestCase):
         self.assert_zip_contains(lambda2_zip_path, lambda2_expected_contents)
 
     def test_build_multi_build_with_deps_inter_module(self):
-        source_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps-inter-module')
-        manifest_path = os.path.join(source_dir, 'build.gradle')
+        parent_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps-inter-module')
+        manifest_path = os.path.join(parent_dir, 'build.gradle')
 
-        lambda1_source = os.path.join(source_dir, 'lambda1')
+        lambda1_source = os.path.join(parent_dir, 'lambda1')
         self.builder.build(lambda1_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
-        lambda2_source = os.path.join(source_dir, 'lambda2')
+        lambda2_source = os.path.join(parent_dir, 'lambda2')
         self.builder.build(lambda2_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 

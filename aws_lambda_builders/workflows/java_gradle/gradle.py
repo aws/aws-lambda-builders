@@ -4,6 +4,7 @@ Wrapper around calls to Gradle through a subprocess.
 
 import logging
 import subprocess
+from aws_lambda_builders.workflows.java_gradle.gradlew_resolver import GradlewResolver
 
 LOG = logging.getLogger(__name__)
 
@@ -17,10 +18,11 @@ class GradleExecutionError(Exception):
 
 class SubprocessGradle(object):
 
-    def __init__(self, binary_path, os_utils=None):
-        if binary_path is None:
+    def __init__(self, gradlew, gradle_binary, os_utils=None):
+        if gradlew is None and gradle_binary is None:
             raise ValueError("Must provide Gradle BinaryPath")
-        self.binary_path = binary_path
+        self.gradlew = gradlew
+        self.gradle_binary = gradle_binary
         if os_utils is None:
             raise ValueError("Must provide OSUtils")
         self.os_utils = os_utils
@@ -38,7 +40,12 @@ class SubprocessGradle(object):
             raise GradleExecutionError(message=stderr.decode('utf8').strip())
 
     def _run(self, args, cwd=None):
-        p = self.os_utils.popen([self.binary_path.binary_path] + args, cwd=cwd, stdout=subprocess.PIPE,
+        p = self.os_utils.popen([self._gradle_path().binary_path] + args, cwd=cwd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
         return p.returncode, stdout, stderr
+
+    def _gradle_path(self):
+        if self.gradlew and self.gradlew.binary_path is GradlewResolver.DUMMY_PATH:
+            return self.gradle_binary
+        return self.gradlew

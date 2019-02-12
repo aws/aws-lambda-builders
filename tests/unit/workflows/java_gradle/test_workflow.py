@@ -2,9 +2,10 @@ from unittest import TestCase
 
 import hashlib
 import os
+from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflows.java_gradle.workflow import JavaGradleWorkflow
 from aws_lambda_builders.workflows.java_gradle.actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
-from aws_lambda_builders.workflows.java_gradle.gradle_resolver import GradleResolver
+from aws_lambda_builders.workflows.java_gradle.gradlew_resolver import GradlewResolver
 from aws_lambda_builders.workflows.java_gradle.gradle_validator import GradleBinaryValidator
 
 
@@ -27,17 +28,19 @@ class TestJavaGradleWorkflow(TestCase):
         workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
         resolvers = workflow.get_resolvers()
-        self.assertEqual(len(resolvers), 1)
+        self.assertEqual(len(resolvers), 2)
 
-        self.assertIsInstance(resolvers[0], GradleResolver)
+        self.assertIsInstance(resolvers[0], GradlewResolver)
+        self.assertIsInstance(resolvers[1], PathResolver)
 
     def test_workflow_sets_up_validators(self):
         workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
         validators = workflow.get_validators()
-        self.assertEqual(len(validators), 1)
+        self.assertEqual(len(validators), 2)
 
         self.assertIsInstance(validators[0], GradleBinaryValidator)
+        self.assertIsInstance(validators[1], GradleBinaryValidator)
 
     def test_computes_correct_build_dir(self):
         workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")

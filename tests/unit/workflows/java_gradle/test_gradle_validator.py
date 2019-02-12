@@ -3,6 +3,7 @@ from unittest import TestCase
 from mock import patch, Mock
 from parameterized import parameterized
 from aws_lambda_builders.workflows.java_gradle.gradle_validator import GradleBinaryValidator
+from aws_lambda_builders.workflows.java_gradle.gradlew_resolver import GradlewResolver
 
 
 class FakePopen(object):
@@ -73,3 +74,7 @@ class TestGradleBinaryValidator(TestCase):
         validator = GradleBinaryValidator(os_utils=self.mock_os_utils, log=self.mock_log)
         validator.validate(gradle_path=self.gradle_path)
         self.mock_log.warning.assert_called_with(GradleBinaryValidator.VERSION_STRING_WARNING, self.gradle_path)
+
+    def test_accepts_dummy_path_from_gradlew_resolver(self):
+        validator = GradleBinaryValidator(os_utils=self.mock_os_utils)
+        self.assertEquals(GradlewResolver.DUMMY_PATH, validator.validate(GradlewResolver.DUMMY_PATH))
