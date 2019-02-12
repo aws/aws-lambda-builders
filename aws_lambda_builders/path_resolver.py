@@ -7,15 +7,16 @@ from aws_lambda_builders.utils import which
 
 class PathResolver(object):
 
-    def __init__(self, binary, runtime):
+    def __init__(self, binary, runtime, executable_search_paths=None):
         self.binary = binary
         self.runtime = runtime
         self.executables = [self.runtime, self.binary]
+        self.executable_search_paths = executable_search_paths
 
     def _which(self):
         exec_paths = []
         for executable in [executable for executable in self.executables if executable is not None]:
-            paths = which(executable)
+            paths = which(executable, executable_search_paths=self.executable_search_paths)
             exec_paths.extend(paths)
 
         if not exec_paths:
