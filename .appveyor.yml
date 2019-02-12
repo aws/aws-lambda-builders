@@ -24,7 +24,7 @@ install:
 - "%PYTHON%\\python.exe -m pip install -e ."
 - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
 - "gem --version"
-- "gem install bundler -v 1.17.3 --no-ri --no-rdoc"
+- "gem install bundler -v 1.17.3"
 - "bundler --version"
 - "echo %PATH%"
 

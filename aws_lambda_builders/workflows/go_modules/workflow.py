@@ -38,7 +38,7 @@ class GoModulesWorkflow(BaseWorkflow):
             osutils = OSUtils()
 
         options = kwargs.get("options") or {}
-        handler = options.get("handler", None)
+        handler = options.get("artifact_executable_name", None)
 
         output_path = osutils.joinpath(artifacts_dir, handler)
 

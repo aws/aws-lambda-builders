@@ -56,7 +56,7 @@ class LambdaBuilder(object):
         LOG.debug("Found workflow '%s' to support capabilities '%s'", self.selected_workflow_cls.NAME, self.capability)
 
     def build(self, source_dir, artifacts_dir, scratch_dir, manifest_path,
-              runtime=None, optimizations=None, options=None):
+              runtime=None, optimizations=None, options=None, executable_search_paths=None):
         """
         Actually build the code by running workflows
 
@@ -89,6 +89,10 @@ class LambdaBuilder(object):
         :type options: dict
         :param options:
             Optional dictionary of options ot pass to build action. **Not supported**.
+
+        :type executable_search_paths: list
+        :param executable_search_paths:
+            Additional list of paths to search for executables required by the workflow.
         """
 
         if not os.path.exists(scratch_dir):
@@ -100,7 +104,8 @@ class LambdaBuilder(object):
                                               manifest_path,
                                               runtime=runtime,
                                               optimizations=optimizations,
-                                              options=options)
+                                              options=options,
+                                              executable_search_paths=executable_search_paths)
 
         return workflow.run()
 

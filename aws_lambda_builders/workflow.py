@@ -117,6 +117,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                  scratch_dir,
                  manifest_path,
                  runtime=None,
+                 executable_search_paths=None,
                  optimizations=None,
                  options=None):
         """
@@ -152,6 +153,10 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         :type options: dict
         :param options:
             Optional dictionary of options ot pass to build action. **Not supported**.
+
+        :type executable_search_paths: list
+        :param executable_search_paths:
+            Optional, Additional list of paths to search for executables required by the workflow.
         """
 
         self.source_dir = source_dir
@@ -161,6 +166,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.runtime = runtime
         self.optimizations = optimizations
         self.options = options
+        self.executable_search_paths = executable_search_paths
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
@@ -181,7 +187,8 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
         Non specialized path resolver that just returns the list of executable for the runtime on the path.
         """
-        return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language)]
+        return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language,
+                             executable_search_paths=self.executable_search_paths)]
 
     def get_validators(self):
         """
