@@ -14,7 +14,7 @@ class PythonPipBuildAction(BaseAction):
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
     LANGUAGE = 'python'
 
-    def __init__(self, artifacts_dir, manifest_path, scratch_dir, runtime, binaries):
+    def __init__(self, artifacts_dir, scratch_dir, manifest_path, runtime, binaries):
         self.artifacts_dir = artifacts_dir
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
@@ -35,8 +35,8 @@ class PythonPipBuildAction(BaseAction):
         try:
             package_builder.build_dependencies(
                 self.artifacts_dir,
-                self.manifest_path,
-                self.scratch_dir
+                self.scratch_dir,
+                self.manifest_path
             )
         except PackagerError as ex:
             raise ActionFailedError(str(ex))
