@@ -60,6 +60,13 @@ def _parse_version(version_string):
 
 
 def version_compatibility_check(version):
+    # The following check is between current protocol version vs version of the protocol
+    # with which aws-lambda-builders is called.
+    # Example:
+    # 0.2 < 0.2 comparison will fail, don't throw a value Error saying incompatible version.
+    # 0.2 < 0.3 comparison will pass, throwing a ValueError
+    # 0.2 < 0.1 comparison will fail, don't throw a value Error saying incompatible version
+
     if _parse_version(lambda_builders_protocol_version) < version:
         ex = "Incompatible Protocol Version : {}, " \
              "Current Protocol Version: {}".format(version, lambda_builders_protocol_version)
