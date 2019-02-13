@@ -27,99 +27,70 @@ class TestJavaGradle(TestCase):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps')
         manifest_path = os.path.join(source_dir, 'build.gradle')
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
-        zip_name = 'with-deps.zip'
-        expected_contents = ['aws/lambdabuilders/Main.class', 'lib/annotations-2.1.0.jar']
+        expected_files = [p('aws', 'lambdabuilders', 'Main.class'), p('lib', 'annotations-2.1.0.jar')]
 
-        self.assertTrue(zip_name in os.listdir(self.artifacts_dir))
-        self.assert_zip_contains(os.path.join(self.artifacts_dir, zip_name), expected_contents)
+        self.assert_artifact_contains_files(expected_files)
 
     def test_build_single_build_with_resources(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-resources')
         manifest_path = os.path.join(source_dir, 'build.gradle')
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
-        zip_name = 'with-resources.zip'
-        expected_contents = ['aws/lambdabuilders/Main.class', 'some_data.txt', 'lib/annotations-2.1.0.jar']
+        expected_files = [p('aws', 'lambdabuilders', 'Main.class'), p('some_data.txt'),
+                          p('lib', 'annotations-2.1.0.jar')]
 
-        self.assertTrue(zip_name in os.listdir(self.artifacts_dir))
-        self.assert_zip_contains(os.path.join(self.artifacts_dir, zip_name), expected_contents)
+        self.assert_artifact_contains_files(expected_files)
 
     def test_build_single_build_with_test_deps_test_jars_not_included(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-test-deps')
         manifest_path = os.path.join(source_dir, 'build.gradle')
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
-        zip_name = 'with-test-deps.zip'
-        expected_contents = ['aws/lambdabuilders/Main.class', 'lib/annotations-2.1.0.jar']
+        expected_files = [p('aws', 'lambdabuilders', 'Main.class'), p('lib', 'annotations-2.1.0.jar')]
 
-        self.assertTrue(zip_name in os.listdir(self.artifacts_dir))
-        zip_path = os.path.join(self.artifacts_dir, zip_name)
-        self.assert_zip_contains(zip_path, expected_contents)
-        self.assert_zip_not_contains(zip_path, ['lib/s3-2.1.0.jar'])
+        self.assert_artifact_contains_files(expected_files)
+        self.assert_artifact_not_contains_file(p('lib', 's3-2.1.0.jar'))
 
     def test_build_single_build_with_deps_gradlew(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps-gradlew')
         manifest_path = os.path.join(source_dir, 'build.gradle')
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime,
                            executable_search_paths=[source_dir])
-        zip_name = 'with-deps-gradlew.zip'
-        expected_contents = ['aws/lambdabuilders/Main.class', 'lib/annotations-2.1.0.jar']
+        expected_files = [p('aws', 'lambdabuilders', 'Main.class'), p('lib', 'annotations-2.1.0.jar')]
 
-        self.assertTrue(zip_name in os.listdir(self.artifacts_dir))
-        self.assert_zip_contains(os.path.join(self.artifacts_dir, zip_name), expected_contents)
+        self.assert_artifact_contains_files(expected_files)
 
-    def test_build_multi_build_with_deps(self):
+    def test_build_multi_build_with_deps_lambda1(self):
         parent_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps')
-        manifest_path = os.path.join(parent_dir, 'build.gradle')
+        manifest_path = os.path.join(parent_dir, 'lambda1', 'build.gradle')
 
         lambda1_source = os.path.join(parent_dir, 'lambda1')
         self.builder.build(lambda1_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
+        lambda1_expected_files = [p('aws', 'lambdabuilders', 'Lambda1_Main.class'), p('lib', 'annotations-2.1.0.jar')]
+        self.assert_artifact_contains_files(lambda1_expected_files)
+
+    def test_build_multi_build_with_deps_lambda2(self):
+        parent_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps')
+        manifest_path = os.path.join(parent_dir, 'lambda2', 'build.gradle')
+
         lambda2_source = os.path.join(parent_dir, 'lambda2')
         self.builder.build(lambda2_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
-        lambda1_zip_name = 'lambda1.zip'
-        lambda2_zip_name = 'lambda2.zip'
-
-        self.assertTrue(lambda1_zip_name in os.listdir(self.artifacts_dir))
-        self.assertTrue(lambda2_zip_name in os.listdir(self.artifacts_dir))
-
-        lambda1_zip_path = os.path.join(self.artifacts_dir, lambda1_zip_name)
-        lambda2_zip_path = os.path.join(self.artifacts_dir, lambda2_zip_name)
-
-        lambda1_expected_contents = ['aws/lambdabuilders/Lambda1_Main.class', 'lib/annotations-2.1.0.jar']
-        self.assert_zip_contains(lambda1_zip_path, lambda1_expected_contents)
-
-        lambda2_expected_contents = ['aws/lambdabuilders/Lambda2_Main.class', 'lib/annotations-2.1.0.jar']
-        self.assert_zip_contains(lambda2_zip_path, lambda2_expected_contents)
+        lambda2_expected_files = [p('aws', 'lambdabuilders', 'Lambda2_Main.class'), p('lib', 'annotations-2.1.0.jar')]
+        self.assert_artifact_contains_files(lambda2_expected_files)
 
     def test_build_multi_build_with_deps_inter_module(self):
         parent_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, 'with-deps-inter-module')
-        manifest_path = os.path.join(parent_dir, 'build.gradle')
+        manifest_path = os.path.join(parent_dir, 'lambda1', 'build.gradle')
 
         lambda1_source = os.path.join(parent_dir, 'lambda1')
         self.builder.build(lambda1_source, self.artifacts_dir, self.scratch_dir, manifest_path,
                            runtime=self.runtime)
 
-        lambda2_source = os.path.join(parent_dir, 'lambda2')
-        self.builder.build(lambda2_source, self.artifacts_dir, self.scratch_dir, manifest_path,
-                           runtime=self.runtime)
-
-        lambda1_zip_name = 'lambda1.zip'
-        lambda2_zip_name = 'lambda2.zip'
-
-        self.assertTrue(lambda1_zip_name in os.listdir(self.artifacts_dir))
-        self.assertTrue(lambda2_zip_name in os.listdir(self.artifacts_dir))
-
-        lambda1_zip_path = os.path.join(self.artifacts_dir, lambda1_zip_name)
-        lambda2_zip_path = os.path.join(self.artifacts_dir, lambda2_zip_name)
-
-        lambda1_expected_contents = ['aws/lambdabuilders/Lambda1_Main.class', 'lib/annotations-2.1.0.jar',
-                                     'lib/common.jar']
-        self.assert_zip_contains(lambda1_zip_path, lambda1_expected_contents)
-
-        lambda2_expected_contents = ['aws/lambdabuilders/Lambda2_Main.class', 'lib/annotations-2.1.0.jar']
-        self.assert_zip_contains(lambda2_zip_path, lambda2_expected_contents)
+        lambda1_expected_files = [p('aws', 'lambdabuilders', 'Lambda1_Main.class'), p('lib', 'annotations-2.1.0.jar'),
+                                  p('lib', 'common.jar')]
+        self.assert_artifact_contains_files(lambda1_expected_files)
 
     def test_build_single_build_with_deps_broken(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps-broken')
@@ -128,12 +99,21 @@ class TestJavaGradle(TestCase):
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
         self.assertTrue(raised.exception.args[0].startswith('JavaGradleWorkflow:GradleBuild - Gradle Failed'))
 
+    def assert_artifact_contains_files(self, files):
+        for f in files:
+            self.assert_artifact_contains_file(f)
+
+    def assert_artifact_contains_file(self, p):
+        self.assertTrue(os.path.exists(os.path.join(self.artifacts_dir, p)))
+
+    def assert_artifact_not_contains_file(self, p):
+        self.assertFalse(os.path.exists(os.path.join(self.artifacts_dir, p)))
+
     def assert_zip_contains(self, zip_path, files):
         with ZipFile(zip_path) as z:
             zip_names = set(z.namelist())
             self.assertTrue(set(files).issubset(zip_names))
 
-    def assert_zip_not_contains(self, zip_path, files):
-        with ZipFile(zip_path) as z:
-            zip_names = set(z.namelist())
-            self.assertTrue(not set(files).issubset(zip_names))
+
+def p(path, *comps):
+    return os.path.join(path, *comps)

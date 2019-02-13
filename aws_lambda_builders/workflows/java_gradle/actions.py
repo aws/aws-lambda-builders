@@ -18,10 +18,12 @@ class JavaGradleBuildAction(BaseAction):
 
     def __init__(self,
                  source_dir,
+                 build_file,
                  subprocess_gradle,
                  scratch_dir,
                  os_utils):
         self.source_dir = source_dir
+        self.build_file = build_file
         self.scratch_dir = scratch_dir
         self.subprocess_gradle = subprocess_gradle
         self.os_utils = os_utils
@@ -45,8 +47,10 @@ class JavaGradleBuildAction(BaseAction):
 
     def _build_project(self, init_script_file):
         try:
-            self.subprocess_gradle.build(self.source_dir, self.gradle_cache_dir, init_script_file,
-                                         {self.SCRATCH_DIR_PROPERTY: self.scratch_dir})
+            self.os_utils.makedirs(self.scratch_dir)
+            self.subprocess_gradle.build(self.source_dir, self.build_file, self.gradle_cache_dir,
+                                         init_script_file,
+                                         {self.SCRATCH_DIR_PROPERTY: os.path.abspath(self.scratch_dir)})
         except GradleExecutionError as ex:
             raise ActionFailedError(str(ex))
 
@@ -72,7 +76,13 @@ class JavaGradleCopyArtifactsAction(BaseAction):
     def _copy_artifacts(self):
         lambda_build_output = os.path.join(self.build_dir, 'build', 'distributions', 'lambda-build')
         try:
-            for f in self.os_utils.listdir(lambda_build_output):
-                self.os_utils.copy(os.path.join(lambda_build_output, f), self.artifacts_dir)
+            self.os_utils.makedirs(self.artifacts_dir)
+            for e in self.os_utils.scandir(lambda_build_output):
+                src = e.path
+                dst = os.path.join(self.artifacts_dir, e.name)
+                if e.is_dir():
+                    self.os_utils.copytree(src, dst)
+                else:
+                    self.os_utils.copy(src, dst)
         except Exception as ex:
             raise ActionFailedError(str(ex))

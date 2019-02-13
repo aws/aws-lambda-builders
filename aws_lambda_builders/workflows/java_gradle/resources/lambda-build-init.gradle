@@ -24,15 +24,13 @@ gradle.taskGraph.afterTask{ t ->
         return;
     }
 
-    assertExpectedBuildDir(t.project)
-
     def artifactJars = t.project.configurations.archives.artifacts.files.files
 
     def runtimeCpJars = t.project.configurations.runtimeClasspath.files
 
-    def zipArtifact = createArtifactDir(t.project).resolve("${t.project.name}.zip")
+    def artifactDir = createArtifactDir(t.project)
 
-    createLambdaArtifact(zipArtifact, artifactJars, runtimeCpJars)
+    copyToArtifactDir(artifactDir, artifactJars, runtimeCpJars)
 }
 
 def buildDirForProject(p) {
@@ -57,47 +55,51 @@ def assertExpectedBuildDir(p) {
 
 def createArtifactDir(project) {
     def distsDir = project.buildDir.toPath().resolve(project.distsDirName).resolve('lambda-build')
+    return makeDirs(distsDir)
+}
+
+def copyToArtifactDir(artifactDir, artifactJars, classPathJars) {
+    artifactJars.each {
+        it.withInputStream({ jis ->
+            def zipIs = new ZipInputStream(jis)
+            for (def e = zipIs.getNextEntry(); e != null; e = zipIs.getNextEntry()) {
+                def entryPath = artifactDir.resolve(e.name)
+                if (e.isDirectory()) {
+                    makeDirs(entryPath)
+                } else {
+                    copyToFile(zipIs, entryPath)
+                }
+                zipIs.closeEntry()
+            }
+            zipIs.close()
+        })
+    }
+
+    def libDir = artifactDir.resolve('lib')
+    makeDirs(libDir)
+    classPathJars.each {
+        def jarPath = libDir.resolve(it.name)
+        it.withInputStream({ jIs ->
+            copyToFile(jIs, jarPath)
+        })
+    }
+}
+
+def makeDirs(p) {
     try {
-        Files.createDirectories(distsDir)
+        Files.createDirectories(p)
     } catch (FileAlreadyExistsException e) {
         // ignored
     }
-    return distsDir
+    return p
 }
 
-def createLambdaArtifact(artifactPath, artifactJars, classPathJars) {
-    artifactPath.withOutputStream({ artifactOs ->
-        def zipOs = new ZipOutputStream(artifactOs)
-
-        artifactJars.each {
-            it.withInputStream({ jis ->
-                def zipIs = new ZipInputStream(jis)
-                for (def e = zipIs.getNextEntry(); e != null; e = zipIs.getNextEntry()) {
-                    if (!e.isDirectory()) {
-                        copyToZip(zipOs, e.name, zipIs)
-                    }
-                    zipIs.closeEntry()
-                }
-                zipIs.close()
-            })
+def copyToFile(zipIs, path) {
+    path.withOutputStream({ fos ->
+        byte[] buff = new byte[4096]
+        int bytesRead
+        while ((bytesRead = zipIs.read(buff)) != -1) {
+            fos.write(buff, 0, bytesRead)
         }
-
-        classPathJars.each {
-            it.withInputStream({ jis ->
-                copyToZip(zipOs, "lib/$it.name", jis)
-            })
-        }
-
-        zipOs.close()
     })
-}
-
-def copyToZip(zipOs, name, fileIs) {
-    zipOs.putNextEntry(new ZipEntry(name))
-    byte[] buff = new byte[4096]
-    int bytesRead
-    while ((bytesRead = fileIs.read(buff)) != -1) {
-        zipOs.write(buff, 0, bytesRead)
-    }
-    zipOs.closeEntry()
 }

@@ -4,7 +4,6 @@ Wrapper around calls to Gradle through a subprocess.
 
 import logging
 import subprocess
-from aws_lambda_builders.workflows.java_gradle.gradlew_resolver import GradlewResolver
 
 LOG = logging.getLogger(__name__)
 
@@ -16,19 +15,27 @@ class GradleExecutionError(Exception):
         Exception.__init__(self, self.MESSAGE.format(**kwargs))
 
 
+class BuildFileNotFoundError(GradleExecutionError):
+    def __init__(self, build_file_path):
+        super(BuildFileNotFoundError, self).__init__(
+            message='Gradle build file not found: %s' % build_file_path)
+
+
 class SubprocessGradle(object):
 
-    def __init__(self, gradlew, gradle_binary, os_utils=None):
-        if gradlew is None and gradle_binary is None:
+    def __init__(self, gradle_binary, os_utils=None):
+        if gradle_binary is None:
             raise ValueError("Must provide Gradle BinaryPath")
-        self.gradlew = gradlew
         self.gradle_binary = gradle_binary
         if os_utils is None:
             raise ValueError("Must provide OSUtils")
         self.os_utils = os_utils
 
-    def build(self, source_dir, cache_dir=None, init_script_path=None, properties=None):
-        args = ['build']
+    def build(self, source_dir, build_file, cache_dir=None, init_script_path=None, properties=None):
+        if not self.os_utils.exists(build_file):
+            raise BuildFileNotFoundError(build_file)
+
+        args = ['build', '--build-file', build_file]
         if cache_dir is not None:
             args.extend(['--project-cache-dir', cache_dir])
         if properties is not None:
@@ -40,12 +47,7 @@ class SubprocessGradle(object):
             raise GradleExecutionError(message=stderr.decode('utf8').strip())
 
     def _run(self, args, cwd=None):
-        p = self.os_utils.popen([self._gradle_path().binary_path] + args, cwd=cwd, stdout=subprocess.PIPE,
+        p = self.os_utils.popen([self.gradle_binary.binary_path] + args, cwd=cwd, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
         return p.returncode, stdout, stderr
-
-    def _gradle_path(self):
-        if self.gradlew and self.gradlew.binary_path is GradlewResolver.DUMMY_PATH:
-            return self.gradle_binary
-        return self.gradlew

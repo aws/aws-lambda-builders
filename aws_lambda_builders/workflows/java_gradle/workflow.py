@@ -3,13 +3,12 @@ Java Gradle Workflow
 """
 import hashlib
 import os
-from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
 from .utils import OSUtils
-from .gradlew_resolver import GradlewResolver
-from .gradle_validator import GradleBinaryValidator
+from .gradle_resolver import GradleResolver
+from .gradle_validator import GradleValidator
 
 
 class JavaGradleWorkflow(BaseWorkflow):
@@ -38,12 +37,11 @@ class JavaGradleWorkflow(BaseWorkflow):
 
         self.os_utils = OSUtils()
         self.build_dir = None
-        subprocess_gradle = SubprocessGradle(gradlew=self.binaries[self._wrapper_name()],
-                                             gradle_binary=self.binaries['gradle'],
-                                             os_utils=self.os_utils)
+        subprocess_gradle = SubprocessGradle(gradle_binary=self.binaries['gradle'], os_utils=self.os_utils)
 
         self.actions = [
             JavaGradleBuildAction(source_dir,
+                                  manifest_path,
                                   subprocess_gradle,
                                   scratch_dir,
                                   self.os_utils),
@@ -54,22 +52,16 @@ class JavaGradleWorkflow(BaseWorkflow):
         ]
 
     def get_resolvers(self):
-        gradlew_resolver = GradlewResolver(binary=self._wrapper_name(),
-                                           executable_search_paths=self.executable_search_paths)
-        return [gradlew_resolver,
-                PathResolver(binary='gradle', runtime=None, executable_search_paths=self.executable_search_paths)]
+        return [GradleResolver(executable_search_paths=self.executable_search_paths)]
 
     def get_validators(self):
-        return [GradleBinaryValidator(self.os_utils), GradleBinaryValidator(self.os_utils)]
+        return [GradleValidator(self.os_utils)]
 
     @property
     def build_output_dir(self):
         if self.build_dir is None:
             self.build_dir = os.path.join(self.scratch_dir, self._compute_scratch_subdir())
         return self.build_dir
-
-    def _wrapper_name(self):
-        return 'gradlew.bat' if self.os_utils.is_windows() else 'gradlew'
 
     def _compute_scratch_subdir(self):
         """
