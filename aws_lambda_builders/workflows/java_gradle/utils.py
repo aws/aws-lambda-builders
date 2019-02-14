@@ -47,7 +47,7 @@ class OSUtils(object):
                 self.copy(new_source, new_destination)
 
     def makedirs(self, d):
-        return os.makedirs(d, exist_ok=True)
+        return os.makedirs(d)
 
     @property
     def pipe(self):

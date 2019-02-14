@@ -47,7 +47,8 @@ class JavaGradleBuildAction(BaseAction):
 
     def _build_project(self, init_script_file):
         try:
-            self.os_utils.makedirs(self.scratch_dir)
+            if not self.os_utils.exists(self.scratch_dir):
+                self.os_utils.makedirs(self.scratch_dir)
             self.subprocess_gradle.build(self.source_dir, self.build_file, self.gradle_cache_dir,
                                          init_script_file,
                                          {self.SCRATCH_DIR_PROPERTY: os.path.abspath(self.scratch_dir)})
@@ -76,7 +77,8 @@ class JavaGradleCopyArtifactsAction(BaseAction):
     def _copy_artifacts(self):
         lambda_build_output = os.path.join(self.build_dir, 'build', 'distributions', 'lambda-build')
         try:
-            self.os_utils.makedirs(self.artifacts_dir)
+            if not self.os_utils.exists(self.artifacts_dir):
+                self.os_utils.makedirs(self.artifacts_dir)
             self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
         except Exception as ex:
             raise ActionFailedError(str(ex))
