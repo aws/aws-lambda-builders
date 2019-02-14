@@ -57,7 +57,7 @@ class TestCliWithHelloWorkflow(TestCase):
     ])
     def test_run_hello_workflow_with_backcompat(self, flavor, protocol_version):
 
-        request_json = json.dumps({
+        request = {
             "jsonschema": "2.0",
             "id": 1234,
             "method": "LambdaBuilder.build",
@@ -75,11 +75,14 @@ class TestCliWithHelloWorkflow(TestCase):
                 "manifest_path": "/ignored",
                 "runtime": "ignored",
                 "optimizations": {},
-                "options": {},
-                "executable_search_paths": [str(pathlib.Path(sys.executable).parent)]
+                "options": {}
             }
-        })
+        }
 
+        if protocol_version == lambda_builders_protocol_version:
+            request["executable_search_paths"] = [str(pathlib.Path(sys.executable).parent)]
+
+        request_json = json.dumps(request)
 
         env = copy.deepcopy(os.environ)
         env["PYTHONPATH"] = self.python_path
