@@ -68,16 +68,6 @@ class TestJavaGradleBuildAction(TestCase):
                           os.path.join(self.scratch_dir, JavaGradleBuildAction.GRADLE_CACHE_DIR_NAME))
 
 
-class FakeDirEntry(object):
-    def __init__(self, path=None, is_dir=False, name=None):
-        self.path = path
-        self._is_dir = is_dir
-        self.name = name
-
-    def is_dir(self):
-        return self._is_dir
-
-
 class TestJavaGradleCopyArtifactsAction(TestCase):
 
     @patch("aws_lambda_builders.workflows.java_gradle.utils.OSUtils")
@@ -92,12 +82,6 @@ class TestJavaGradleCopyArtifactsAction(TestCase):
     def test_copies_artifacts(self):
         self.os_utils.copytree.side_effect = lambda src, dst: None
         self.os_utils.copy.side_effect = lambda src, dst: None
-        resource_path = os.path.join('someresource.txt')
-        classes_path = os.path.join('path', 'to', 'com')
-        lib_path = os.path.join('path', 'to', 'lib')
-        self.os_utils.scandir.side_effect = lambda d: [FakeDirEntry(path=classes_path, is_dir=True, name='com'),
-                                                       FakeDirEntry(path=lib_path, is_dir=True, name='lib'),
-                                                       FakeDirEntry(resource_path, name='someresource.txt')]
 
         action = JavaGradleCopyArtifactsAction(self.source_dir,
                                                self.artifacts_dir,
@@ -105,12 +89,11 @@ class TestJavaGradleCopyArtifactsAction(TestCase):
                                                self.os_utils)
         action.execute()
 
-        self.os_utils.copytree.assert_any_call(classes_path, os.path.join(self.artifacts_dir, 'com'))
-        self.os_utils.copytree.assert_any_call(lib_path, os.path.join(self.artifacts_dir, 'lib'))
-        self.os_utils.copy.assert_any_call(resource_path, os.path.join(self.artifacts_dir, 'someresource.txt'))
+        self.os_utils.copytree.assert_called_with(
+            os.path.join(self.build_dir, 'build', 'distributions', 'lambda-build'), self.artifacts_dir)
 
     def test_error_in_artifact_copy_raises_action_error(self):
-        self.os_utils.scandir.side_effect = Exception("scandir failed!")
+        self.os_utils.copytree.side_effect = Exception("scandir failed!")
         action = JavaGradleCopyArtifactsAction(self.source_dir,
                                                self.artifacts_dir,
                                                self.build_dir,

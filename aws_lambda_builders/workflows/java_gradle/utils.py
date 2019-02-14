@@ -28,17 +28,23 @@ class OSUtils(object):
     def listdir(self, d):
         return os.listdir(d)
 
-    def scandir(self, d):
-        return os.scandir(d)
-
     def exists(self, p):
         return os.path.exists(p)
 
     def which(self, executable, executable_search_paths=None):
         return which(executable, executable_search_paths=executable_search_paths)
 
-    def copytree(self, src, dst):
-        return shutil.copytree(src, dst)
+    def copytree(self, source, destination):
+        if not os.path.exists(destination):
+            self.makedirs(destination)
+        names = self.listdir(source)
+        for name in names:
+            new_source = os.path.join(source, name)
+            new_destination = os.path.join(destination, name)
+            if os.path.isdir(new_source):
+                self.copytree(new_source, new_destination)
+            else:
+                self.copy(new_source, new_destination)
 
     def makedirs(self, d):
         return os.makedirs(d, exist_ok=True)

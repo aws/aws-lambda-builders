@@ -77,12 +77,6 @@ class JavaGradleCopyArtifactsAction(BaseAction):
         lambda_build_output = os.path.join(self.build_dir, 'build', 'distributions', 'lambda-build')
         try:
             self.os_utils.makedirs(self.artifacts_dir)
-            for e in self.os_utils.scandir(lambda_build_output):
-                src = e.path
-                dst = os.path.join(self.artifacts_dir, e.name)
-                if e.is_dir():
-                    self.os_utils.copytree(src, dst)
-                else:
-                    self.os_utils.copy(src, dst)
+            self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
         except Exception as ex:
             raise ActionFailedError(str(ex))
