@@ -130,7 +130,7 @@ def main():  # pylint: disable=too-many-statements
                       params["artifacts_dir"],
                       params["scratch_dir"],
                       params["manifest_path"],
-                      executable_search_paths=params['executable_search_paths'],
+                      executable_search_paths=params.get('executable_search_paths', None),
                       runtime=params["runtime"],
                       optimizations=params["optimizations"],
                       options=params["options"])
