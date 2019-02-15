@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 class GlobalToolInstallAction(BaseAction):
 
     """
-    A Lambda Builder Action which runs bundle install in order to build a full Gemfile.lock
+    A Lambda Builder Action which installs the Amazon.Lambda.Tools .NET Core Global Tool
     """
 
     NAME = 'GlobalToolInstall'
@@ -42,7 +42,7 @@ class GlobalToolInstallAction(BaseAction):
 
 class RunPackageAction(BaseAction):
     """
-    A Lambda Builder Action which vendors dependencies to the vendor/bundle directory.
+    A Lambda Builder Action which builds the .NET Core project using the Amazon.Lambda.Tools .NET Core Global Tool
     """
 
     NAME = 'RunPackageAction'
@@ -58,7 +58,7 @@ class RunPackageAction(BaseAction):
 
     def execute(self):
         try:
-            LOG.debug("Running bundle install --deployment in %s", self.source_dir)
+            LOG.debug("Running `dotnet lambda package` in %s", self.source_dir)
 
             zipfilename = os.path.basename(os.path.normpath(self.source_dir)) + ".zip"
             zipfullpath = os.path.join(self.artifacts_dir, zipfilename)
