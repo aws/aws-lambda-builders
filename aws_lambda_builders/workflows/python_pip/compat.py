@@ -1,13 +1,21 @@
 import os
 
+from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
-def pip_import_string():
-    import pip
-    pip_major_version = pip.__version__.split('.')[0]
+
+def pip_import_string(python_exe):
+    os_utils = OSUtils()
+    cmd = [
+        python_exe,
+        "-c",
+        "import pip; assert int(pip.__version__.split('.')[0]) <= 9"
+    ]
+    p = os_utils.popen(cmd,stdout=os_utils.pipe, stderr=os_utils.pipe)
+    p.communicate()
     # Pip moved its internals to an _internal module in version 10.
     # In order to be compatible with version 9 which has it at at the
     # top level we need to figure out the correct import path here.
-    if pip_major_version == '9':
+    if p.returncode == 0:
         return 'from pip import main'
     else:
         return 'from pip._internal import main'

@@ -1,3 +1,4 @@
+import sys
 from collections import namedtuple
 
 import mock
@@ -47,7 +48,9 @@ class FakePip(object):
 def pip_factory():
     def create_pip_runner(osutils=None):
         pip = FakePip()
-        pip_runner = PipRunner(pip, osutils=osutils)
+        pip_runner = PipRunner(python_exe=sys.executable,
+                               pip=pip,
+                               osutils=osutils)
         return pip, pip_runner
     return create_pip_runner
 

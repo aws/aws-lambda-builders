@@ -10,10 +10,11 @@ import sys
 import json
 import os
 import logging
+import re
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowNotFoundError, WorkflowUnknownError, WorkflowFailedError
-
+from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 
 log_level = int(os.environ.get("LAMBDA_BUILDERS_LOG_LEVEL", logging.INFO))
 
@@ -23,6 +24,8 @@ logging.basicConfig(stream=sys.stderr,
                     format='%(message)s')
 
 LOG = logging.getLogger(__name__)
+
+VERSION_REGEX = re.compile("^([0-9])+.([0-9]+)$")
 
 
 def _success_response(request_id, artifacts_dir):
@@ -44,6 +47,31 @@ def _error_response(request_id, http_status_code, message):
             "message": message
         }
     })
+
+
+def _parse_version(version_string):
+
+    if VERSION_REGEX.match(version_string):
+        return float(version_string)
+    else:
+        ex = "Protocol Version does not match : {}".format(VERSION_REGEX.pattern)
+        LOG.debug(ex)
+        raise ValueError(ex)
+
+
+def version_compatibility_check(version):
+    # The following check is between current protocol version vs version of the protocol
+    # with which aws-lambda-builders is called.
+    # Example:
+    # 0.2 < 0.2 comparison will fail, don't throw a value Error saying incompatible version.
+    # 0.2 < 0.3 comparison will pass, throwing a ValueError
+    # 0.2 < 0.1 comparison will fail, don't throw a value Error saying incompatible version
+
+    if _parse_version(lambda_builders_protocol_version) < version:
+        ex = "Incompatible Protocol Version : {}, " \
+             "Current Protocol Version: {}".format(version, lambda_builders_protocol_version)
+        LOG.error(ex)
+        raise ValueError(ex)
 
 
 def _write_response(response, exit_code):
@@ -77,11 +105,20 @@ def main():  # pylint: disable=too-many-statements
         response = _error_response(request_id, -32601, "Method unavailable")
         return _write_response(response, 1)
 
+    try:
+        protocol_version = _parse_version(params.get("__protocol_version"))
+        version_compatibility_check(protocol_version)
+
+    except ValueError:
+        response = _error_response(request_id, 505, "Unsupported Protocol Version")
+        return _write_response(response, 1)
+
     capabilities = params["capability"]
     supported_workflows = params.get("supported_workflows")
 
     exit_code = 0
     response = None
+
     try:
         builder = LambdaBuilder(language=capabilities["language"],
                                 dependency_manager=capabilities["dependency_manager"],
@@ -93,6 +130,7 @@ def main():  # pylint: disable=too-many-statements
                       params["artifacts_dir"],
                       params["scratch_dir"],
                       params["manifest_path"],
+                      executable_search_paths=params.get('executable_search_paths', None),
                       runtime=params["runtime"],
                       optimizations=params["optimizations"],
                       options=params["options"])

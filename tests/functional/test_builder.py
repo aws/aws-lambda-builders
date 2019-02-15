@@ -4,6 +4,11 @@ import os
 import shutil
 import tempfile
 
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
+
 from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
 
@@ -20,7 +25,7 @@ class TestBuilderWithHelloWorkflow(TestCase):
         self.source_dir = tempfile.mkdtemp()
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = os.path.join(tempfile.mkdtemp(), "scratch")
-        self.hello_builder = LambdaBuilder(language="test",
+        self.hello_builder = LambdaBuilder(language="python",
                                            dependency_manager="test",
                                            application_framework="test",
                                            supported_workflows=[
@@ -40,12 +45,13 @@ class TestBuilderWithHelloWorkflow(TestCase):
         # Remove the workflows folder from PYTHONPATH
         sys.path.remove(self.TEST_WORKFLOWS_FOLDER)
 
-    def test_run_hello_workflow(self):
+    def test_run_hello_workflow_with_exec_paths(self):
 
         self.hello_builder.build(self.source_dir,
                                  self.artifacts_dir,
                                  self.scratch_dir,
-                                 "/ignored")
+                                 "/ignored",
+                                 executable_search_paths=[str(pathlib.Path(sys.executable).parent)])
 
         self.assertTrue(os.path.exists(self.expected_filename))
         contents = ''
