@@ -34,9 +34,9 @@ class PythonPipBuildAction(BaseAction):
                                                      dependency_builder=dependency_builder)
         try:
             package_builder.build_dependencies(
-                self.artifacts_dir,
-                self.scratch_dir,
-                self.manifest_path
+                artifacts_dir_path=self.artifacts_dir,
+                scratch_dir_path=self.scratch_dir,
+                requirements_path=self.manifest_path
             )
         except PackagerError as ex:
             raise ActionFailedError(str(ex))
