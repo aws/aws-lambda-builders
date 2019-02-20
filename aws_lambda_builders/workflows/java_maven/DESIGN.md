@@ -7,7 +7,7 @@ projects managed using the Maven build tool.
 
 ## Challenges
 
-- Java Version compatibility mentioned in the java_grade Design doc.
+- Java Version compatibility mentioned in the [Gradle Lambda Builder] Design doc.
 
 - Building Multimodule project
 
@@ -52,18 +52,7 @@ assumes aws-lambda-builders have knowledge of the root package path for multimod
 
 ### Build Workflow
 
-We leverage Maven to do all the heavy lifting for executing the
-`mvn package` which will resolve and download the dependencies and
-build the project.
-
-#### Step 1: Copy source project to scratch directory
-
-By default, Maven stores its build-related metadata in a `target`
-directory under the source directory and there is no way to change the output 
-directory from command line. To avoid writing anything under `source_dir`, 
-we copy the source project to scratch directory and build it from there.
-
-#### Step 2: Check Java version and emit warning
+#### Step 1: Check Java version and emit warning
 
 Check whether the local JDK version is <= Java 8, and if it is not, emit a
 warning that the built artifact may not run in Lambda unless a) the project is
@@ -73,26 +62,66 @@ built within a Lambda-compatibile environment like `lambci`.
 We use Maven to check the actual JVM version Maven is using in case it has been 
 configured to use a different one than can be found on the PATH.
 
-#### Step 3: Build and package
+#### Step 2: Build and package
+
+We leverage Maven to do all the heavy lifting for executing the`mvn package` which
+will resolve and download the dependencies and build the project. Generate java classes 
+will be located in `target/classes`. Then we use `mvn dependency:copy-dependenceis` to copy
+the dependencies and the dependencies will be located in `target/dependency` under the 
+source directory in `scratch_dir`.
+
+##### Single project
 
 ```sh
-# Single Project
-mvn package
+mvn package 
 mvn dependency:copy-dependencies
-
-# Multimodule Project
-cd /path/to/rootdirectory
-mvn install -pl :MODULE_TO_BUILD -also-make
-mvn dependency:copy-dependencies -pl :MODULE_TO_BUILD
 ```
 
-Generate java classes will be located in `target/classes` and dependencies 
-will be located in `target/dependency` under the source directory in `scratch_dir`.
+##### Multimodule project
 
-#### Step 4: Copy to artifact directory
+```bash
+cd /path/to/rootdirectory
+mvn install -pl :$SOURCE_DIRECTORY_NAME --also-make
+mvn dependency:copy-dependencies -pl :$SOURCE_DIRECTORY_NAME
+```
+
+Here `$SOURCE_DIRECTORY_NAME` is the name of the source directory of the project. Maven
+will build the dependencies of that project in the reactor and then build the project itself.
+Note that `mvn install` is being used for multimodule project and this is because 
+`dependency:copy-dependencies`  requires all dependencies being installed in the local repository.
+
+```bash
+# Example commands to build ProjectB/lambda1
+cd ..
+mvn install -pl :lambda1 --also-make # build common first then lambda1
+mvn dependency:copy-dependencies -pl :lambda1
+```
+
+#### Step 3: Copy to artifact directory
 
 The workflow implementation is aware of the mapping scheme used to map a
 `source_dir` to the correct directory under `scratch_dir` (described in step 4),
 so it knows where to find the built Lambda artifact when copying it to
 `artifacts_dir`. They will be located in
 `$SCRATCH_DIR/<mapping for source_dir>/target`.
+
+#### Step 4: Clean up target directory
+
+By default, Maven stores its build-related metadata in a `target`
+directory under the source directory and we will run `mvn clean` to clean up
+the directory.
+
+##### Single project
+
+```sh
+mvn clean 
+```
+
+##### Multimodule project
+
+```sh
+cd /path/to/rootdirectory
+mvn clean
+```
+
+[Gradle Lambda Builder]:https://github.com/awslabs/aws-lambda-builders/blob/develop/aws_lambda_builders/workflows/java_gradle/DESIGN.md
