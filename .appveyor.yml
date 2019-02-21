@@ -4,6 +4,7 @@ image: Visual Studio 2017
 environment:
   GOPATH: c:\gopath
   GOVERSION: 1.11
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
 
   matrix:
 
@@ -23,7 +24,7 @@ install:
 - "%PYTHON%\\python.exe -m pip install -e ."
 - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
 - "gem --version"
-- "gem install bundler -v 1.17.3 --no-ri --no-rdoc"
+- "gem install bundler -v 1.17.3"
 - "bundler --version"
 - "echo %PATH%"
 
@@ -35,6 +36,9 @@ install:
 - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
 - "go version"
 - "go env"
+
+# setup Gradle
+- "choco install gradle"
 
 test_script:
 - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"

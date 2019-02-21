@@ -35,7 +35,7 @@ class TestGoDep(TestCase):
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                            os.path.join(source_dir, "Gopkg.toml"),
                            runtime=self.runtime,
-                           options={"handler": "main"})
+                           options={"artifact_executable_name": "main"})
 
         expected_files = {"main"}
         output_files = set(os.listdir(self.artifacts_dir))
@@ -49,7 +49,7 @@ class TestGoDep(TestCase):
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                                os.path.join(source_dir, "Gopkg.toml"),
                                runtime=self.runtime,
-                               options={"handler": "main"})
+                               options={"artifact_executable_name": "main"})
 
         self.assertEquals(
                           "GoDepBuilder:DepEnsure - Exec Failed: could not find project Gopkg.toml," +
@@ -62,7 +62,7 @@ class TestGoDep(TestCase):
         self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                            os.path.join(source_dir, "Gopkg.toml"),
                            runtime=self.runtime,
-                           options={"handler": "main"})
+                           options={"artifact_executable_name": "main"})
 
         expected_files = {"main"}
         output_files = set(os.listdir(self.artifacts_dir))
@@ -76,7 +76,7 @@ class TestGoDep(TestCase):
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
                                os.path.join(source_dir, "Gopkg.toml"),
                                runtime=self.runtime,
-                               options={"handler": "main"})
+                               options={"artifact_executable_name": "main"})
 
         # The full message is super long, so part of it is fine.
         self.assertNotEqual(str(ex.exception).find('unable to deduce repository and source type for'), -1)

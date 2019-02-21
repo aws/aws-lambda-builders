@@ -78,9 +78,11 @@ class TesetLambdaBuilder_init(TestCase):
                          manifest_path,
                          runtime=None,
                          optimizations=None,
-                         options=None):
+                         options=None,
+                         executable_search_paths=None):
                 super(MyWorkflow, self).__init__(source_dir, artifacts_dir, scratch_dir, manifest_path,
-                                                 runtime=runtime, optimizations=optimizations, options=options)
+                                                 runtime=runtime, optimizations=optimizations, options=options,
+                                                 executable_search_paths=executable_search_paths)
 
         # Don't load any other workflows. The above class declaration will automatically load the workflow into registry
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=[])
@@ -118,10 +120,12 @@ class TesetLambdaBuilder_build(TestCase):
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=[])
 
         builder.build("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                      runtime="runtime", optimizations="optimizations", options="options")
+                      runtime="runtime", optimizations="optimizations", options="options",
+                      executable_search_paths="executable_search_paths")
 
         workflow_cls.assert_called_with("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                                        runtime="runtime", optimizations="optimizations", options="options")
+                                        runtime="runtime", optimizations="optimizations", options="options",
+                                        executable_search_paths="executable_search_paths")
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")
         if scratch_dir_exists:

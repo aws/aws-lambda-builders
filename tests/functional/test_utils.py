@@ -40,6 +40,7 @@ class TestCopyTree(TestCase):
         self.assertEquals(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
         self.assertEquals(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
 
+
 def file(*args):
     path = os.path.join(*args)
     basedir = os.path.dirname(path)
