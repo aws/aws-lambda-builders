@@ -65,10 +65,10 @@ configured to use a different one than can be found on the PATH.
 #### Step 2: Build and package
 
 We leverage Maven to do all the heavy lifting for executing the`mvn package` which
-will resolve and download the dependencies and build the project. Generate java classes 
+will resolve and download the dependencies and build the project. Built java classes 
 will be located in `target/classes`. Then we use `mvn dependency:copy-dependenceis` to copy
 the dependencies and the dependencies will be located in `target/dependency` under the 
-source directory in `scratch_dir`.
+source directory.
 
 ##### Single project
 
@@ -99,16 +99,13 @@ mvn dependency:copy-dependencies -pl :lambda1
 
 #### Step 3: Copy to artifact directory
 
-The workflow implementation is aware of the mapping scheme used to map a
-`source_dir` to the correct directory under `scratch_dir` (described in step 4),
-so it knows where to find the built Lambda artifact when copying it to
-`artifacts_dir`. They will be located in
-`$SCRATCH_DIR/<mapping for source_dir>/target`.
+Built Java classes and depedenceis are copied from `source_dir/target/classes` and `source_dir/target/dependency`
+respectively to the artifact directory.
 
 #### Step 4: Clean up target directory
 
 By default, Maven stores its build-related metadata in a `target`
-directory under the source directory and we will run `mvn clean` to clean up
+directory under the source directory and we run `mvn clean` to clean up
 the directory.
 
 ##### Single project
