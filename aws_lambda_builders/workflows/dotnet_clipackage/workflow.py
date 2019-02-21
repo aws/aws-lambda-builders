@@ -5,6 +5,7 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 
 from .actions import GlobalToolInstallAction, RunPackageAction
 from .dotnetcli import SubprocessDotnetCLI
+from .dotnetcli_resolver import DotnetCliResolver
 
 
 
@@ -44,3 +45,6 @@ class DotnetCliPackageWorkflow(BaseWorkflow):
             dotnetcli_install,
             dotnetcli_deployment,
         ]
+
+    def get_resolvers(self):
+        return [DotnetCliResolver(executable_search_paths=self.executable_search_paths)]

@@ -65,10 +65,11 @@ class RunPackageAction(BaseAction):
 
             arguments = ['lambda', 'package', '--output-package', zipfullpath]
 
-            for key in self.options:
-                if str.startswith(key, "-"):
-                    arguments.append(key)
-                    arguments.append(self.options[key])
+            if self.options is not None:
+                for key in self.options:
+                    if str.startswith(key, "-"):
+                        arguments.append(key)
+                        arguments.append(self.options[key])
 
             self.subprocess_dotnet.run(
                 arguments,
