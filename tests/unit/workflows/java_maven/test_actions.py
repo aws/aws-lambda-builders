@@ -97,7 +97,7 @@ class TestJavaMavenCopyArtifactsAction(TestCase):
         action.execute()
         self.os_utils.copytree.assert_has_calls([
             call(os.path.join(self.source_dir, 'target', 'classes'), self.artifacts_dir),
-            call(os.path.join('source_dir/target/dependency'), 'artifacts_dir/lib')])
+            call(os.path.join(self.source_dir, 'target', 'dependency'), os.path.join(self.artifacts_dir, 'lib'))])
 
     def test_error_in_artifact_copy_raises_action_error(self):
         self.os_utils.copytree.side_effect = Exception("copy failed!")
