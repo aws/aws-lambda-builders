@@ -32,7 +32,7 @@ install:
   - chmod +x /tmp/dotnet-install.sh
   - /tmp/dotnet-install.sh -v 2.1.504
   - export DOTNET_ROOT=/home/travis/.dotnet
-  - export PATH=/home/travis/.dotnet:/home/travis/.dotnet/tools:$PATH:
+  - export PATH=/home/travis/.dotnet:/home/travis/.dotnet/tools:$PATH
   - dotnet --info
 
   # Install the code requirements
