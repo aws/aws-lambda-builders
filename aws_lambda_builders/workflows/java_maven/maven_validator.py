@@ -1,5 +1,5 @@
 """
-Gradle Binary Validation
+Maven Binary Validation
 """
 
 import logging

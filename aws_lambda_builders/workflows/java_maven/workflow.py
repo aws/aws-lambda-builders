@@ -5,8 +5,8 @@ import os
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.workflows.java_gradle.utils import OSUtils
-from .actions import JavaMavenBuildAction, JavaMavenCopyDependencyAction, JavaMavenCopyArtifactsAction, \
-    JavaMavenCleanupAction
+from aws_lambda_builders.actions import CopySourceAction
+from .actions import JavaMavenBuildAction, JavaMavenCopyDependencyAction, JavaMavenCopyArtifactsAction
 from .maven import SubprocessMaven
 from .maven_resolver import MavenResolver
 from .maven_validator import MavenValidator
@@ -22,6 +22,8 @@ class JavaMavenWorkflow(BaseWorkflow):
                             dependency_manager="maven",
                             application_framework=None)
 
+    EXCLUDED_FILES = (".aws-sam")
+
     def __init__(self,
                  source_dir,
                  artifacts_dir,
@@ -36,28 +38,26 @@ class JavaMavenWorkflow(BaseWorkflow):
 
         self.os_utils = OSUtils()
 
-        # TODO: Fix this
+        # TODO: Fix root_dir and module_name for multimodule project
         root_dir = None
+        # module_name = os.path.basename(os.path.dirname(source_dir))
+        module_name = None
 
-        subprocess_maven = SubprocessMaven(maven_binary=self.binaries['maven'], os_utils=self.os_utils)
-        module_name = os.path.basename(os.path.dirname(source_dir))
+        subprocess_maven = SubprocessMaven(maven_binary=self.binaries['mvn'], os_utils=self.os_utils)
 
         self.actions = [
-            JavaMavenBuildAction(source_dir,
+            CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES),
+            JavaMavenBuildAction(scratch_dir,
                                  subprocess_maven,
                                  module_name,
                                  root_dir),
-            JavaMavenCopyDependencyAction(source_dir,
+            JavaMavenCopyDependencyAction(scratch_dir,
                                           subprocess_maven,
                                           module_name,
                                           root_dir),
-            JavaMavenCopyArtifactsAction(artifacts_dir,
-                                         source_dir,
-                                         self.os_utils),
-            JavaMavenCleanupAction(source_dir,
-                                   subprocess_maven,
-                                   module_name,
-                                   root_dir)
+            JavaMavenCopyArtifactsAction(scratch_dir,
+                                         artifacts_dir,
+                                         self.os_utils)
         ]
 
     def get_resolvers(self):

@@ -52,7 +52,17 @@ assumes aws-lambda-builders have knowledge of the root package path for multimod
 
 ### Build Workflow
 
-#### Step 1: Check Java version and emit warning
+#### Step 1: Copy source project to scratch directory
+
+By default, Maven stores its build-related metadata in a `target`
+directory under the source directory and there is no way to change the output 
+directory from command line. To avoid writing anything under `source_dir`, 
+we copy the source project to scratch directory and build it from there.
+
+*TODO*: For multi-module project, we need to know the root directory
+in order to copy the whole project.
+
+#### Step 2: Check Java version and emit warning
 
 Check whether the local JDK version is <= Java 8, and if it is not, emit a
 warning that the built artifact may not run in Lambda unless a) the project is
@@ -62,7 +72,7 @@ built within a Lambda-compatibile environment like `lambci`.
 We use Maven to check the actual JVM version Maven is using in case it has been 
 configured to use a different one than can be found on the PATH.
 
-#### Step 2: Build and package
+#### Step 3: Build and package
 
 We leverage Maven to do all the heavy lifting for executing the`mvn package` which
 will resolve and download the dependencies and build the project. Built java classes 
@@ -70,19 +80,19 @@ will be located in `target/classes`. Then we use `mvn dependency:copy-dependence
 the dependencies and the dependencies will be located in `target/dependency` under the 
 source directory.
 
-##### Single project
+##### Single-module project
 
-```sh
-mvn package 
-mvn dependency:copy-dependencies
+```bash
+mvn clean package 
+mvn dependency:copy-dependencies -DincludeScope=compile
 ```
 
-##### Multimodule project
+##### Multi-module project
 
 ```bash
 cd /path/to/rootdirectory
-mvn install -pl :$SOURCE_DIRECTORY_NAME --also-make
-mvn dependency:copy-dependencies -pl :$SOURCE_DIRECTORY_NAME
+mvn clean install -pl :$SOURCE_DIRECTORY_NAME --also-make
+mvn dependency:copy-dependencies -pl :$SOURCE_DIRECTORY_NAME -DincludeScope=compile
 ```
 
 Here `$SOURCE_DIRECTORY_NAME` is the name of the source directory of the project. Maven
@@ -93,32 +103,13 @@ Note that `mvn install` is being used for multimodule project and this is becaus
 ```bash
 # Example commands to build ProjectB/lambda1
 cd ..
-mvn install -pl :lambda1 --also-make # build common first then lambda1
-mvn dependency:copy-dependencies -pl :lambda1
+mvn clean install -pl :lambda1 --also-make # build common first then lambda1
+mvn dependency:copy-dependencies -pl :lambda1 -DincludeScope=compile
 ```
 
-#### Step 3: Copy to artifact directory
+#### Step 4: Copy to artifact directory
 
-Built Java classes and depedenceis are copied from `source_dir/target/classes` and `source_dir/target/dependency`
-respectively to the artifact directory.
-
-#### Step 4: Clean up target directory
-
-By default, Maven stores its build-related metadata in a `target`
-directory under the source directory and we run `mvn clean` to clean up
-the directory.
-
-##### Single project
-
-```sh
-mvn clean 
-```
-
-##### Multimodule project
-
-```sh
-cd /path/to/rootdirectory
-mvn clean
-```
+Built Java classes and dependencies are copied from `scratch_dir/target/classes` and `scratch_dir/target/dependency`
+to `artifact_dir` and `artifact_dir/lib` respectively.
 
 [Gradle Lambda Builder]:https://github.com/awslabs/aws-lambda-builders/blob/develop/aws_lambda_builders/workflows/java_gradle/DESIGN.md

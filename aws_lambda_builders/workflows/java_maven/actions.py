@@ -16,8 +16,8 @@ class JavaMavenBuildAction(BaseAction):
     def __init__(self,
                  source_dir,
                  subprocess_maven,
-                 module_name,
-                 root_dir):
+                 module_name=None,
+                 root_dir=None):
         self.source_dir = source_dir
         self.subprocess_maven = subprocess_maven
         self.module_name = module_name
@@ -39,8 +39,8 @@ class JavaMavenCopyDependencyAction(BaseAction):
     def __init__(self,
                  source_dir,
                  subprocess_maven,
-                 module_name,
-                 root_dir):
+                 module_name=None,
+                 root_dir=None):
         self.source_dir = source_dir
         self.subprocess_maven = subprocess_maven
         self.module_name = module_name
@@ -55,13 +55,13 @@ class JavaMavenCopyDependencyAction(BaseAction):
             raise ActionFailedError(str(ex))
 
 class JavaMavenCopyArtifactsAction(BaseAction):
-    NAME = "CopyArtifacts"
+    NAME = "MavenCopyArtifacts"
     DESCRIPTION = "Copying the built artifacts"
     PURPOSE = Purpose.COPY_SOURCE
 
     def __init__(self,
-                 artifacts_dir,
                  source_dir,
+                 artifacts_dir,
                  os_utils):
         self.artifacts_dir = artifacts_dir
         self.source_dir = source_dir
@@ -73,31 +73,10 @@ class JavaMavenCopyArtifactsAction(BaseAction):
     def _copy_artifacts(self):
         lambda_build_output = os.path.join(self.source_dir, 'target', 'classes')
         dependency_output = os.path.join(self.source_dir, 'target', 'dependency')
+
         try:
-            if not self.os_utils.exists(self.artifacts_dir):
-                self.os_utils.makedirs(self.artifacts_dir)
             self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
-            self.os_utils.copytree(dependency_output, self.artifacts_dir)
+            if self.os_utils.exists(dependency_output):
+                self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, 'lib'))
         except Exception as ex:
-            raise ActionFailedError(str(ex))
-
-class JavaMavenCleanupAction(BaseAction):
-    NAME = "CleanUpArtifacts"
-    DESCRIPTION = "Clean up target directory"
-    PURPOSE = Purpose.COPY_SOURCE
-
-    def __init__(self,
-                 source_dir,
-                 subprocess_maven,
-                 module_name,
-                 root_dir):
-        self.source_dir = source_dir
-        self.subprocess_maven = subprocess_maven
-        self.module_name = module_name
-        self.root_dir = root_dir
-
-    def execute(self):
-        try:
-            self.subprocess_maven.cleanup(self.source_dir, self.module_name, self.root_dir)
-        except MavenExecutionError as ex:
             raise ActionFailedError(str(ex))

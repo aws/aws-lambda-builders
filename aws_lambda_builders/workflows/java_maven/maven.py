@@ -25,11 +25,9 @@ class SubprocessMaven(object):
             raise ValueError("Must provide OSUtils")
         self.os_utils = os_utils
 
-    def build(self, source_dir, module_name=None, root_dir=None, properties=None):
+    def build(self, source_dir, module_name=None, root_dir=None):
 
         args = ['clean']
-        if properties is not None:
-            args.extend(['-D%s=%s' % (n, v) for n, v in properties.items()])
         if module_name is not None:
             args.extend(['install', '-pl', module_name, '--also-make'])
         else:
@@ -42,19 +40,9 @@ class SubprocessMaven(object):
 
     def copy_dependency(self, source_dir, module_name=None, root_dir=None):
 
-        args = ['dependency:copy-dependencies']
+        args = ['dependency:copy-dependencies', '-DincludeScope=compile']
         if module_name is not None:
-            args.extend(['-pl', module_name, '--also-make'])
-        if root_dir is not None:
-            source_dir = root_dir
-        ret_code, _, stderr = self._run(args, source_dir)
-        if ret_code != 0:
-            raise MavenExecutionError(message=stderr.decode('utf8').strip())
-
-    def cleanup(self, source_dir, module_name=None, root_dir=None):
-        args = ['clean']
-        if module_name is not None:
-            args.extend(['-pl', module_name, '--also-make'])
+            args.extend(['-pl', module_name])
         if root_dir is not None:
             source_dir = root_dir
         ret_code, _, stderr = self._run(args, source_dir)

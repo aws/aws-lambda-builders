@@ -2,7 +2,8 @@ from unittest import TestCase
 
 from aws_lambda_builders.workflows.java_maven.workflow import JavaMavenWorkflow
 from aws_lambda_builders.workflows.java_maven.actions import \
-    JavaMavenBuildAction, JavaMavenCopyArtifactsAction, JavaMavenCopyDependencyAction, JavaMavenCleanupAction
+    JavaMavenBuildAction, JavaMavenCopyArtifactsAction, JavaMavenCopyDependencyAction
+from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolver
 from aws_lambda_builders.workflows.java_maven.maven_validator import MavenValidator
 
@@ -18,13 +19,13 @@ class TestJavaMavenWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 4)
 
-        self.assertIsInstance(workflow.actions[0], JavaMavenBuildAction)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
 
-        self.assertIsInstance(workflow.actions[1], JavaMavenCopyDependencyAction)
+        self.assertIsInstance(workflow.actions[1], JavaMavenBuildAction)
 
-        self.assertIsInstance(workflow.actions[2], JavaMavenCopyArtifactsAction)
+        self.assertIsInstance(workflow.actions[2], JavaMavenCopyDependencyAction)
 
-        self.assertIsInstance(workflow.actions[3], JavaMavenCleanupAction)
+        self.assertIsInstance(workflow.actions[3], JavaMavenCopyArtifactsAction)
 
     def test_workflow_sets_up_resolvers(self):
         workflow = JavaMavenWorkflow("source", "artifacts", "scratch_dir", "manifest")
