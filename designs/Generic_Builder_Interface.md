@@ -1,6 +1,6 @@
 Generic Builder Interface
 =========================
-This proposal suggests we evolve `aws-lambda-builders` to become a generic library for building all AWS projects. The `aws-lambda-builders` project stands as a testament to the breadth of this problem domain, revealing an opportunity for teams across AWS to contribute their respective workflows to a single library.
+This proposal suggests we evolve `aws-lambda-builders` to become a generic library for building all AWS code project types such as Lambda and ECS, providing a common library through which customer facing tools such as the CDK, SAM and ECS's CLI build and deploy customer's code.
 
 What is the problem?
 --------------------
@@ -25,7 +25,9 @@ Taking a dependency on Docker is justified as follows:
 
 Success criteria for the change
 -------------------------------
-A single library and CLI exists, encapsulating the logic of building deployable artifacts from source without inspecting the project's internal structure (e.g. looking for `pom.xml` or `build.gradle`). This CLI may be installed directly into the developer's environment or consumable as encapsulated Docker images specific to various langauges/environments.
+A single library and CLI exists, encapsulating the logic to build deployable artifacts from arbitrary code workspaces. It should attempt to infer boiler-plate details such as maven vs gradle for building java, requiring only the language target from the caller. "This is a java 1.8 project, build it for me".
+
+This CLI may be installed directly into the developer's environment or consumable as encapsulated Docker images specific to various langauges/environments.
 
 User Experience Walkthrough
 ---------------------------
@@ -40,7 +42,7 @@ const myFunction = new lambda.JavaFunction(stack, 'MyJavaFunction', {
 });
 ```
 
-Then as part of the CLI command, `cdk synth` or `cdk deploy`, the toolkit will run a docker command to build the project into the `cdk.out` folder. In this example, we know to select the image for Java 1.8 because we know the function's runtime. 
+The CLI command `cdk synth` or `cdk deploy` will run a docker command to build the project into the `cdk.out` folder. In this example, we know to select the image for Java 1.8 because we know the function's runtime. 
 
 The payload is a stripped down version of the existing RPC format,
 ```json
