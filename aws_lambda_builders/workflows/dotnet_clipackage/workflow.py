@@ -6,7 +6,7 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from .actions import GlobalToolInstallAction, RunPackageAction
 from .dotnetcli import SubprocessDotnetCLI
 from .dotnetcli_resolver import DotnetCliResolver
-
+from .utils import OSUtils
 
 
 class DotnetCliPackageWorkflow(BaseWorkflow):
@@ -37,7 +37,7 @@ class DotnetCliPackageWorkflow(BaseWorkflow):
             **kwargs)
 
         options = kwargs["options"] if "options" in kwargs else {}
-        subprocess_dotnetcli = SubprocessDotnetCLI()
+        subprocess_dotnetcli = SubprocessDotnetCLI(os_utils=OSUtils())
         dotnetcli_install = GlobalToolInstallAction(subprocess_dotnet=subprocess_dotnetcli)
 
         dotnetcli_deployment = RunPackageAction(source_dir, subprocess_dotnet=subprocess_dotnetcli, artifacts_dir=artifacts_dir, options=options)

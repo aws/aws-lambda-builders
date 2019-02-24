@@ -3,8 +3,9 @@ Wrapper around calls to dotent CLI through a subprocess.
 """
 
 import platform
-import subprocess
 import logging
+
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
@@ -25,9 +26,10 @@ class SubprocessDotnetCLI(object):
     execution results.
     """
 
-    def __init__(self, dotnet_exe=None):
+    def __init__(self, dotnet_exe=None, os_utils=None):
+        self.os_utils = os_utils if os_utils else OSUtils()
         if dotnet_exe is None:
-            if platform.system().lower() == 'windows':
+            if self.os_utils.is_windows():
                 dotnet_exe = 'dotnet.exe'
             else:
                 dotnet_exe = 'dotnet'
@@ -45,11 +47,12 @@ class SubprocessDotnetCLI(object):
 
         LOG.debug("executing dotnet: %s", invoke_dotnet)
 
-        p = subprocess.Popen(invoke_dotnet,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
+        p = self.os_utils.popen(invoke_dotnet,
+                             stdout=self.os_utils.pipe,
+                             stderr=self.os_utils.pipe,
                              cwd=cwd)
 
+        p.communicate()
         out, err = p.communicate()
 
         # The package command contains lots of useful information on how the package was created and

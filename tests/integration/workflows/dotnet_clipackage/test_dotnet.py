@@ -6,7 +6,6 @@ import tempfile
 from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.exceptions import WorkflowFailedError
 
 
 class TestDotnetDep(TestCase):
