@@ -34,6 +34,12 @@ class OSUtils(object):
     def which(self, executable, executable_search_paths=None):
         return which(executable, executable_search_paths=executable_search_paths)
 
+    def expand_zip(self, zipfile):
+        ziparchive = zipfile.ZipFile(zipfile, 'r')
+        ziparchive.extractall(self.artifacts_dir)
+        ziparchive.close()
+        os.remove(zipfile)
+
     @property
     def pipe(self):
         return subprocess.PIPE

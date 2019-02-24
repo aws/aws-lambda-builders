@@ -1,6 +1,7 @@
 from unittest import TestCase
 from mock import patch
 import os
+import platform
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
@@ -40,14 +41,50 @@ class TestGlobalToolInstallAction(TestCase):
 class TestRunPackageAction(TestCase):
 
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
-    def setUp(self, MockSubprocessDotnetCLI):
+    @patch("aws_lambda_builders.workflows.dotnet_clipackage.utils.OSUtils")
+    def setUp(self, MockSubprocessDotnetCLI, MockOSUtils):
         self.subprocess_dotnet = MockSubprocessDotnetCLI.return_value
-        self.source_dir = os.path.join('source_dir')
-        self.artifacts_dir = os.path.join('artifacts_dir')
-        self.scratch_dir = os.path.join('scratch_dir')
+        self.os_utils = MockOSUtils
+        self.source_dir = os.path.join('/source_dir')
+        self.artifacts_dir = os.path.join('/artifacts_dir')
+        self.scratch_dir = os.path.join('/scratch_dir')
 
-    def test_package_success(self):
+    def test_build_package(self):
         self.subprocess_dotnet.reset_mock()
 
         options = {}
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, self.os_utils)
+
+        action.execute()
+
+        if  platform.system().lower() == 'windows':
+            zipFilePath = '/artifacts_dir\\source_dir.zip'
+        else:
+            zipFilePath = '/artifacts_dir/source_dir.zip'
+
+        self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package', zipFilePath], cwd='/source_dir')
+
+    def test_build_package_arguments(self):
+        self.subprocess_dotnet.reset_mock()
+
+        options = {"--framework":"netcoreapp2.1"}
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, self.os_utils)
+
+        action.execute()
+
+        if  platform.system().lower() == 'windows':
+            zipFilePath = '/artifacts_dir\\source_dir.zip'
+        else:
+            zipFilePath = '/artifacts_dir/source_dir.zip'
+
+        self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package', zipFilePath, '--framework', 'netcoreapp2.1'], cwd='/source_dir')
+
+    def test_build_error(self):
+        self.subprocess_dotnet.reset_mock()
+
+        self.subprocess_dotnet.run.side_effect = DotnetCLIExecutionError(message="Failed Package")
+        options = {}
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, self.os_utils)
+
+        self.assertRaises(ActionFailedError, action.execute)
+

@@ -4,10 +4,10 @@ Actions for Ruby dependency resolution with Bundler
 
 import os
 import logging
-import zipfile
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from .utils import OSUtils
 from .dotnetcli import DotnetCLIExecutionError
+from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 
 LOG = logging.getLogger(__name__)
 
@@ -49,12 +49,13 @@ class RunPackageAction(BaseAction):
     DESCRIPTION = "Execute the `dotnet lambda package` command."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options):
+    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options, os_utils=None):
         super(RunPackageAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_dotnet = subprocess_dotnet
         self.artifacts_dir = artifacts_dir
         self.options = options
+        self.os_utils = os_utils if os_utils else OSUtils()
 
     def execute(self):
         try:
@@ -78,10 +79,7 @@ class RunPackageAction(BaseAction):
 
             # The dotnet lambda package command outputs a zip file for the package. To make this compatible
             # with the workflow, unzip the zip file into the artifacts directory and then delete the zip archive.
-            ziparchive = zipfile.ZipFile(zipfullpath, 'r')
-            ziparchive.extractall(self.artifacts_dir)
-            ziparchive.close()
-            os.remove(zipfullpath)
+            self.os_utils.expand_zip(zipfullpath)
 
         except DotnetCLIExecutionError as ex:
             raise ActionFailedError(str(ex))
