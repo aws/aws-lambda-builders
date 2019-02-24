@@ -1,6 +1,6 @@
 from unittest import TestCase
 from mock import patch
-from unittest.mock import MagicMock
+from mock import MagicMock
 
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import SubprocessDotnetCLI, DotnetCLIExecutionError
 
