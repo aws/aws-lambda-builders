@@ -1,10 +1,10 @@
 from unittest import TestCase
 
 from aws_lambda_builders.workflows.dotnet_clipackage.workflow import DotnetCliPackageWorkflow
-from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction,RunPackageAction
+from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
+
 
 class TestDotnetCliPackageWorkflow(TestCase):
-
 
     def test_actions(self):
         workflow = DotnetCliPackageWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path")

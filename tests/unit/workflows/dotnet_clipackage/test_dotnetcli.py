@@ -4,6 +4,7 @@ from mock import MagicMock
 
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import SubprocessDotnetCLI, DotnetCLIExecutionError
 
+
 class TestSubprocessDotnetCLI(TestCase):
 
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.utils.OSUtils")
