@@ -22,16 +22,6 @@ class OSUtils(object):
     def is_windows(self):
         return platform.system().lower() == 'windows'
 
-    def copy(self, src, dst):
-        shutil.copy2(src, dst)
-        return dst
-
-    def listdir(self, d):
-        return os.listdir(d)
-
-    def exists(self, p):
-        return os.path.exists(p)
-
     def which(self, executable, executable_search_paths=None):
         return which(executable, executable_search_paths=executable_search_paths)
 
