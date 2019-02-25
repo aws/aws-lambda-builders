@@ -52,7 +52,6 @@ class SubprocessDotnetCLI(object):
                              stderr=self.os_utils.pipe,
                              cwd=cwd)
 
-        p.communicate()
         out, err = p.communicate()
 
         # The package command contains lots of useful information on how the package was created and
