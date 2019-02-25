@@ -58,12 +58,13 @@ class TestRunPackageAction(TestCase):
 
         action.execute()
 
-        if  platform.system().lower() == 'windows':
+        if platform.system().lower() == 'windows':
             zipFilePath = '/artifacts_dir\\source_dir.zip'
         else:
             zipFilePath = '/artifacts_dir/source_dir.zip'
 
-        self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package', zipFilePath], cwd='/source_dir')
+        self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package', zipFilePath],
+                                                           cwd='/source_dir')
 
     def test_build_package_arguments(self):
         self.subprocess_dotnet.reset_mock()
@@ -73,7 +74,7 @@ class TestRunPackageAction(TestCase):
 
         action.execute()
 
-        if  platform.system().lower() == 'windows':
+        if platform.system().lower() == 'windows':
             zipFilePath = '/artifacts_dir\\source_dir.zip'
         else:
             zipFilePath = '/artifacts_dir/source_dir.zip'
