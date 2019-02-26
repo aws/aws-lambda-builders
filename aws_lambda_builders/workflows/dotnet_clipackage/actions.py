@@ -5,9 +5,9 @@ Actions for Ruby dependency resolution with Bundler
 import os
 import logging
 
+from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .utils import OSUtils
 from .dotnetcli import DotnetCLIExecutionError
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 
 LOG = logging.getLogger(__name__)
 
