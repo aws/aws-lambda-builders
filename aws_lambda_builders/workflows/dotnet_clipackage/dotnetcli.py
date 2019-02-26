@@ -2,7 +2,7 @@
 Wrapper around calls to dotent CLI through a subprocess.
 """
 
-import platform
+import sys
 import logging
 
 from .utils import OSUtils
@@ -57,7 +57,7 @@ class SubprocessDotnetCLI(object):
         # The package command contains lots of useful information on how the package was created and
         # information when the package command was not successful. For that reason the output is
         # always written to the output to help developers diagnose issues.
-        print(out.decode('utf8').strip())
+        sys.stdout.write(out.decode('utf8').strip())
 
         if p.returncode != 0:
             raise DotnetCLIExecutionError(message=err.decode('utf8').strip())
