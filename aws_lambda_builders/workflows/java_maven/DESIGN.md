@@ -9,14 +9,14 @@ projects managed using the Maven build tool.
 
 - Java Version compatibility mentioned in the [Gradle Lambda Builder] Design doc.
 
-- Building Multimodule project
+- Building Multimodule project (out of scope for the current version)
 
 Here `ProjectA` is a a single lambda function, and `ProjectB` is a multimodule
 project where sub modules `lambda1` and `lambda2` are each a lambda
 function. In addition, suppose that `ProjectB/lambda1` has a dependency on its
 sibling module `ProjectB/common`.
 
-**Single Project A**
+**Single-module Project A**
 ```
 ProjectA
 ├── pom.xml
@@ -24,7 +24,7 @@ ProjectA
 └── template.yaml
 ```
 
-**Multmodule Project B**
+**Multi-module Project B**
 ```
 ProjectB
 ├── common
@@ -45,8 +45,8 @@ the root pom directory and use `--also-make` option to build necessary dependenc
 (`ProjectB/common`  in this case) first before building `ProjectB/lambda1`. This is because
 maven is not able to find its way back up to the parent `ProjectB` to
 also build `ProjectB/common`. The challenge part here is to find the parent pom directory 
-especially for the projects with multiple level of submodules. The following implementation 
-assumes aws-lambda-builders have knowledge of the root package path for multimodule project.
+especially for the projects with multiple level of submodules. Building multi-module project is
+out of scope for the current version.
 
 ## Implementation
 
@@ -58,9 +58,6 @@ By default, Maven stores its build-related metadata in a `target`
 directory under the source directory and there is no way to change the output 
 directory from command line. To avoid writing anything under `source_dir`, 
 we copy the source project to scratch directory and build it from there.
-
-*TODO*: For multi-module project, we need to know the root directory
-in order to copy the whole project.
 
 #### Step 2: Check Java version and emit warning
 
@@ -80,32 +77,14 @@ will be located in `target/classes`. Then we use `mvn dependency:copy-dependence
 the dependencies and the dependencies will be located in `target/dependency` under the 
 source directory.
 
-##### Single-module project
-
 ```bash
-mvn clean package 
-mvn dependency:copy-dependencies -DincludeScope=compile
+MODULE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' exec:exec --non-recursive)
+mvn clean package -pl :MODULE_NAME -f MANIFEST_PATH -am
+mvn dependency:copy-dependencies -DincludeScope=compile -pl :MODULE_NAME -f MANIFEST_PATH
 ```
 
-##### Multi-module project
-
-```bash
-cd /path/to/rootdirectory
-mvn clean install -pl :$SOURCE_DIRECTORY_NAME --also-make
-mvn dependency:copy-dependencies -pl :$SOURCE_DIRECTORY_NAME -DincludeScope=compile
-```
-
-Here `$SOURCE_DIRECTORY_NAME` is the name of the source directory of the project. Maven
+Here `MODULE_NAME` is the `artifactId` defined in the pom.xml of the project. Maven
 will build the dependencies of that project in the reactor and then build the project itself.
-Note that `mvn install` is being used for multimodule project and this is because 
-`dependency:copy-dependencies`  requires all dependencies being installed in the local repository.
-
-```bash
-# Example commands to build ProjectB/lambda1
-cd ..
-mvn clean install -pl :lambda1 --also-make # build common first then lambda1
-mvn dependency:copy-dependencies -pl :lambda1 -DincludeScope=compile
-```
 
 #### Step 4: Copy to artifact directory
 

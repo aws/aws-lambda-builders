@@ -40,8 +40,8 @@ class MavenValidator(object):
     def validated_binary_path(self):
         return self._valid_binary_path
 
-    def _get_major_version(self, gradle_path):
-        vs = self._get_jvm_string(gradle_path)
+    def _get_major_version(self, maven_path):
+        vs = self._get_jvm_string(maven_path)
         if vs:
             m = re.search(r'Java version:\s+(\d.*)', vs)
             version = m.group(1).split('.')

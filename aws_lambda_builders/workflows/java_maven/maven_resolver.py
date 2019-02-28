@@ -1,5 +1,5 @@
 """
-Gradle executable resolution
+Maven executable resolution
 """
 
 from aws_lambda_builders.workflows.java_gradle.utils import OSUtils

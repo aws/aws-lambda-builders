@@ -29,6 +29,7 @@ class TestJavaMaven(TestCase):
                           p('lib', 'annotations-2.1.0.jar')]
         self.assert_artifact_contains_files(expected_files)
         self.assert_artifact_not_contains_file(p('lib', 'junit-4.12.jar'))
+        self.assert_src_dir_not_touched(source_dir)
 
     def test_build_single_build_no_deps(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'no-deps')
@@ -37,6 +38,7 @@ class TestJavaMaven(TestCase):
         expected_files = [p('aws', 'lambdabuilders', 'Main.class'), p('some_data.txt')]
         self.assert_artifact_contains_files(expected_files)
         self.assert_artifact_not_contains_file(p('lib'))
+        self.assert_src_dir_not_touched(source_dir)
 
     def test_build_single_build_with_deps_broken(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, 'with-deps-broken')
@@ -44,6 +46,7 @@ class TestJavaMaven(TestCase):
         with self.assertRaises(WorkflowFailedError) as raised:
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
         self.assertTrue(raised.exception.args[0].startswith('JavaMavenWorkflow:MavenBuild - Maven Failed'))
+        self.assert_src_dir_not_touched(source_dir)
 
     def assert_artifact_contains_files(self, files):
         for f in files:
@@ -54,6 +57,9 @@ class TestJavaMaven(TestCase):
 
     def assert_artifact_not_contains_file(self, p):
         self.assertFalse(os.path.exists(os.path.join(self.artifacts_dir, p)))
+
+    def assert_src_dir_not_touched(self, source_dir):
+        self.assertFalse(os.path.exists(os.path.join(source_dir, 'target')))
 
 
 def p(path, *comps):

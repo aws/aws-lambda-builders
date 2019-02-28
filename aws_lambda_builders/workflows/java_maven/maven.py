@@ -25,27 +25,24 @@ class SubprocessMaven(object):
             raise ValueError("Must provide OSUtils")
         self.os_utils = os_utils
 
-    def build(self, source_dir, module_name=None, root_dir=None):
+    def retrieve_module_name(self, scratch_dir):
+        args = ['-q', '-Dexec.executable=echo', '-Dexec.args=${project.artifactId}',
+                'exec:exec', '--non-recursive']
+        ret_code, stdout, stderr = self._run(args, scratch_dir)
+        if ret_code != 0:
+            print(ret_code)
+            raise MavenExecutionError(message=stderr.decode('utf8').strip())
+        return stdout.decode('utf8').strip()
 
-        args = ['clean']
-        if module_name is not None:
-            args.extend(['install', '-pl', module_name, '--also-make'])
-        else:
-            args.extend(['package'])
-        if root_dir is not None:
-            source_dir = root_dir
-        ret_code, _, stderr = self._run(args, source_dir)
+    def build(self, scratch_dir, module_name):
+        args = ['clean', 'install', '-pl', ':' + module_name, '-am']
+        ret_code, _, stderr = self._run(args, scratch_dir)
         if ret_code != 0:
             raise MavenExecutionError(message=stderr.decode('utf8').strip())
 
-    def copy_dependency(self, source_dir, module_name=None, root_dir=None):
-
-        args = ['dependency:copy-dependencies', '-DincludeScope=compile']
-        if module_name is not None:
-            args.extend(['-pl', module_name])
-        if root_dir is not None:
-            source_dir = root_dir
-        ret_code, _, stderr = self._run(args, source_dir)
+    def copy_dependency(self, scratch_dir, module_name):
+        args = ['dependency:copy-dependencies', '-DincludeScope=compile', '-pl', ':' + module_name]
+        ret_code, _, stderr = self._run(args, scratch_dir)
         if ret_code != 0:
             raise MavenExecutionError(message=stderr.decode('utf8').strip())
 

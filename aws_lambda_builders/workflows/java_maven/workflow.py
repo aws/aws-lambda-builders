@@ -1,8 +1,6 @@
 """
 Java Maven Workflow
 """
-import os
-
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.workflows.java_gradle.utils import OSUtils
 from aws_lambda_builders.actions import CopySourceAction
@@ -37,24 +35,17 @@ class JavaMavenWorkflow(BaseWorkflow):
                                                 **kwargs)
 
         self.os_utils = OSUtils()
-
-        # TODO: Fix root_dir and module_name for multimodule project
-        root_dir = None
-        # module_name = os.path.basename(os.path.dirname(source_dir))
-        module_name = None
-
+        # Assuming root_dir is the same as source_dir for now
+        root_dir = source_dir
         subprocess_maven = SubprocessMaven(maven_binary=self.binaries['mvn'], os_utils=self.os_utils)
 
         self.actions = [
-            CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES),
+            CopySourceAction(root_dir, scratch_dir, excludes=self.EXCLUDED_FILES),
+
             JavaMavenBuildAction(scratch_dir,
-                                 subprocess_maven,
-                                 module_name,
-                                 root_dir),
+                                 subprocess_maven),
             JavaMavenCopyDependencyAction(scratch_dir,
-                                          subprocess_maven,
-                                          module_name,
-                                          root_dir),
+                                          subprocess_maven),
             JavaMavenCopyArtifactsAction(scratch_dir,
                                          artifacts_dir,
                                          self.os_utils)
