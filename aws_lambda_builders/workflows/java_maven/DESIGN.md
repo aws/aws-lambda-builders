@@ -79,8 +79,8 @@ source directory.
 
 ```bash
 MODULE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' exec:exec --non-recursive)
-mvn clean package -pl :MODULE_NAME -f MANIFEST_PATH -am
-mvn dependency:copy-dependencies -DincludeScope=compile -pl :MODULE_NAME -f MANIFEST_PATH
+mvn clean package -pl :MODULE_NAME -am
+mvn dependency:copy-dependencies -DincludeScope=compile -pl :MODULE_NAME
 ```
 
 Here `MODULE_NAME` is the `artifactId` defined in the pom.xml of the project. Maven

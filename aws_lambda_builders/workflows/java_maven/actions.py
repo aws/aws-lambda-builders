@@ -29,7 +29,7 @@ class JavaMavenBaseAction:
 
         return self.artifact_id
 
-class JavaMavenBuildAction(BaseAction, JavaMavenBaseAction):
+class JavaMavenBuildAction(JavaMavenBaseAction, BaseAction):
     NAME = "MavenBuild"
     DESCRIPTION = "Building the project using Maven"
     PURPOSE = Purpose.COMPILE_SOURCE
@@ -50,7 +50,7 @@ class JavaMavenBuildAction(BaseAction, JavaMavenBaseAction):
             raise ActionFailedError(str(ex))
 
 
-class JavaMavenCopyDependencyAction(BaseAction, JavaMavenBaseAction):
+class JavaMavenCopyDependencyAction(JavaMavenBaseAction, BaseAction):
     NAME = "MavenCopyDependency"
     DESCRIPTION = "Copy dependency jars to target directory"
     PURPOSE = Purpose.COPY_SOURCE
