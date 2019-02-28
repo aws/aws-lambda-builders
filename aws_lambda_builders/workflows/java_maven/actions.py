@@ -8,7 +8,7 @@ from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from .maven import MavenExecutionError
 
 
-class JavaMavenBaseAction:
+class JavaMavenBaseAction(object):
     """
     Base class for Java Maven actions. Provides property of the module name
     """
