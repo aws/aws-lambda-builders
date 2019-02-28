@@ -30,7 +30,6 @@ class SubprocessMaven(object):
                 'exec:exec', '--non-recursive']
         ret_code, stdout, stderr = self._run(args, scratch_dir)
         if ret_code != 0:
-            print(ret_code)
             raise MavenExecutionError(message=stderr.decode('utf8').strip())
         return stdout.decode('utf8').strip()
 
