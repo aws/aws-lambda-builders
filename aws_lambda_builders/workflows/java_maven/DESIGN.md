@@ -63,8 +63,8 @@ we copy the source project to scratch directory and build it from there.
 
 Check whether the local JDK version is <= Java 8, and if it is not, emit a
 warning that the built artifact may not run in Lambda unless a) the project is
-properly configured (i.e. using `targetCompatibility`) or b) the project is
-built within a Lambda-compatibile environment like `lambci`.
+properly configured (i.e. using `maven.compiler.target`) or b) the project is
+built within a Lambda-compatible environment like `lambci`.
 
 We use Maven to check the actual JVM version Maven is using in case it has been 
 configured to use a different one than can be found on the PATH.

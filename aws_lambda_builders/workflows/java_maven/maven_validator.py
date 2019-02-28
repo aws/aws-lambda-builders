@@ -16,7 +16,7 @@ class MavenValidator(object):
 
     MAJOR_VERSION_WARNING = "%s is using a JVM with major version %s which is newer than 8 that is supported by AWS " \
                             "Lambda. The compiled function code may not run in AWS Lambda unless the project has " \
-                            "been configured to be compatible with Java 8 using 'targetCompatibility' in Maven."
+                            "been configured to be compatible with Java 8 using 'maven.compiler.target' in Maven."
 
     def __init__(self, os_utils=None, log=None):
         self.language = 'java'
