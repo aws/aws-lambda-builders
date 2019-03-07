@@ -360,6 +360,10 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 
+### .NET Build Folders ###
+**/bin/
+**/obj/
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db
