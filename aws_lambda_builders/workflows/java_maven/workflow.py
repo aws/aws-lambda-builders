@@ -2,12 +2,12 @@
 Java Maven Workflow
 """
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.workflows.java_gradle.utils import OSUtils
 from aws_lambda_builders.actions import CopySourceAction
 from .actions import JavaMavenBuildAction, JavaMavenCopyDependencyAction, JavaMavenCopyArtifactsAction
 from .maven import SubprocessMaven
 from .maven_resolver import MavenResolver
 from .maven_validator import MavenValidator
+from .utils import OSUtils
 
 
 class JavaMavenWorkflow(BaseWorkflow):

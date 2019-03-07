@@ -2,7 +2,7 @@
 Maven executable resolution
 """
 
-from aws_lambda_builders.workflows.java_gradle.utils import OSUtils
+from .utils import OSUtils
 
 
 class MavenResolver(object):

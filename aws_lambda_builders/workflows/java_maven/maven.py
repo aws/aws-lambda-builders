@@ -35,7 +35,10 @@ class SubprocessMaven(object):
 
     def build(self, scratch_dir, module_name):
         args = ['clean', 'install', '-pl', ':' + module_name, '-am']
-        ret_code, _, stderr = self._run(args, scratch_dir)
+        ret_code, stdout, stderr = self._run(args, scratch_dir)
+
+        LOG.debug("Maven logs: %s", stdout.decode('utf8').strip())
+
         if ret_code != 0:
             raise MavenExecutionError(message=stderr.decode('utf8').strip())
 

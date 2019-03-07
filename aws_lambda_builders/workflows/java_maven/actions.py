@@ -3,9 +3,12 @@ Actions for the Java Maven Workflow
 """
 
 import os
+import logging
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from .maven import MavenExecutionError
+
+LOG = logging.getLogger(__name__)
 
 
 class JavaMavenBaseAction(object):
@@ -28,6 +31,7 @@ class JavaMavenBaseAction(object):
                 raise ActionFailedError(str(ex))
 
         return self.artifact_id
+
 
 class JavaMavenBuildAction(JavaMavenBaseAction, BaseAction):
     NAME = "MavenBuild"
@@ -70,6 +74,7 @@ class JavaMavenCopyDependencyAction(JavaMavenBaseAction, BaseAction):
         except MavenExecutionError as ex:
             raise ActionFailedError(str(ex))
 
+
 class JavaMavenCopyArtifactsAction(BaseAction):
     NAME = "MavenCopyArtifacts"
     DESCRIPTION = "Copying the built artifacts"
@@ -89,6 +94,9 @@ class JavaMavenCopyArtifactsAction(BaseAction):
     def _copy_artifacts(self):
         lambda_build_output = os.path.join(self.scratch_dir, 'target', 'classes')
         dependency_output = os.path.join(self.scratch_dir, 'target', 'dependency')
+
+        if not self.os_utils.exists(lambda_build_output):
+            raise ActionFailedError("Required target/classes directory was not produced from 'mvn package'")
 
         try:
             self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
