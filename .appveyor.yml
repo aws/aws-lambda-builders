@@ -30,7 +30,7 @@ install:
 
 # setup go
 - rmdir c:\go /s /q
-- "choco install golang"
+- "choco install golang --version 1.11.5"
 - "choco install bzr"
 - "choco install dep"
 - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
@@ -39,6 +39,9 @@ install:
 
 # setup Gradle
 - "choco install gradle"
+
+# Echo final Path
+- "echo %PATH%"
 
 test_script:
 - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
