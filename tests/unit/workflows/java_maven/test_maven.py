@@ -52,7 +52,7 @@ class TestSubprocessMaven(TestCase):
             cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
     def test_retrieve_module_name_raises_exception_if_retcode_not_0(self):
-        self.popen = FakePopen(retcode=1, err=b'Some Error Message')
+        self.popen = FakePopen(retcode=1, out=b'Some Error Message')
         self.os_utils.popen.side_effect = [self.popen]
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
@@ -67,7 +67,7 @@ class TestSubprocessMaven(TestCase):
             cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
     def test_build_raises_exception_if_retcode_not_0(self):
-        self.popen = FakePopen(retcode=1, err=b'Some Error Message')
+        self.popen = FakePopen(retcode=1, out=b'Some Error Message')
         self.os_utils.popen.side_effect = [self.popen]
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
@@ -82,7 +82,7 @@ class TestSubprocessMaven(TestCase):
             cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
     def test_copy_dependency_raises_exception_if_retcode_not_0(self):
-        self.popen = FakePopen(retcode=1, err=b'Some Error Message')
+        self.popen = FakePopen(retcode=1, out=b'Some Error Message')
         self.os_utils.popen.side_effect = [self.popen]
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
