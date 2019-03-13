@@ -25,7 +25,7 @@ class SubprocessMaven(object):
             raise ValueError("Must provide OSUtils")
         self.os_utils = os_utils
 
-    def build(self, scratch_dir, module_name):
+    def build(self, scratch_dir):
         args = ['clean', 'install']
         ret_code, stdout, _ = self._run(args, scratch_dir)
 
@@ -34,7 +34,7 @@ class SubprocessMaven(object):
         if ret_code != 0:
             raise MavenExecutionError(message=stdout.decode('utf8').strip())
 
-    def copy_dependency(self, scratch_dir, module_name):
+    def copy_dependency(self, scratch_dir):
         args = ['dependency:copy-dependencies', '-DincludeScope=compile']
         ret_code, stdout, _ = self._run(args, scratch_dir)
 
