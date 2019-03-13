@@ -30,7 +30,7 @@ install:
 
 # setup go
 - rmdir c:\go /s /q
-- "choco install golang --version 1.11.5"
+- "choco install golang"
 - "choco install bzr"
 - "choco install dep"
 - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"

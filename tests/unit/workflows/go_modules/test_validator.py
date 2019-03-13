@@ -40,6 +40,12 @@ class TestGoRuntimeValidator(TestCase):
             self.validator.validate(runtime_path="/usr/bin/go")
             self.assertTrue(mock_subprocess.call_count, 1)
 
+    def test_runtime_validate_supported_higher_than_min_version_runtime(self):
+        with mock.patch("subprocess.Popen") as mock_subprocess:
+            mock_subprocess.return_value = MockSubProcess(0, out=b"go version go1.12 test")
+            self.validator.validate(runtime_path="/usr/bin/go")
+            self.assertTrue(mock_subprocess.call_count, 1)
+
     def test_runtime_validate_mismatch_nonzero_exit(self):
         with mock.patch("subprocess.Popen") as mock_subprocess:
             mock_subprocess.return_value = MockSubProcess(1)
