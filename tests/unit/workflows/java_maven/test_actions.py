@@ -14,14 +14,12 @@ class TestJavaMavenBuildAction(TestCase):
         self.subprocess_maven = MockSubprocessMaven.return_value
         self.scratch_dir = os.path.join('scratch_dir')
         self.artifacts_dir = os.path.join('artifacts_dir')
-        self.module_name = "module"
 
     def test_calls_maven_build(self):
-        self.subprocess_maven.retrieve_module_name.side_effect = lambda scratch: self.module_name
         action = JavaMavenBuildAction(self.scratch_dir,
                                       self.subprocess_maven)
         action.execute()
-        self.subprocess_maven.build.assert_called_with(self.scratch_dir, self.module_name)
+        self.subprocess_maven.build.assert_called_with(self.scratch_dir)
 
     def test_error_building_project_raises_action_error(self):
         self.subprocess_maven.build.side_effect = MavenExecutionError(message='Build failed!')
@@ -39,14 +37,12 @@ class TestJavaMavenCopyDependencyAction(TestCase):
         self.subprocess_maven = MockSubprocessMaven.return_value
         self.scratch_dir = os.path.join('scratch_dir')
         self.artifacts_dir = os.path.join('artifacts_dir')
-        self.module_name = 'module_name'
 
     def test_calls_maven_copy_dependency(self):
-        self.subprocess_maven.retrieve_module_name.side_effect = lambda scratch: self.module_name
         action = JavaMavenCopyDependencyAction(self.scratch_dir,
                                                self.subprocess_maven)
         action.execute()
-        self.subprocess_maven.copy_dependency.assert_called_with(self.scratch_dir, self.module_name)
+        self.subprocess_maven.copy_dependency.assert_called_with(self.scratch_dir)
 
     def test_error_building_project_raises_action_error(self):
         self.subprocess_maven.copy_dependency.side_effect = MavenExecutionError(message='Build failed!')

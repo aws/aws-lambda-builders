@@ -43,27 +43,11 @@ class TestSubprocessMaven(TestCase):
             SubprocessMaven(None)
         self.assertEquals(err_assert.exception.args[0], 'Must provide Maven BinaryPath')
 
-    def test_retrieve_module_name(self):
-        maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
-        maven.retrieve_module_name(self.source_dir)
-        self.os_utils.popen.assert_called_with(
-            [self.maven_path, '-q', '-Dexec.executable=echo', '-Dexec.args=${project.artifactId}',
-             'exec:exec', '--non-recursive'],
-            cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-
-    def test_retrieve_module_name_raises_exception_if_retcode_not_0(self):
-        self.popen = FakePopen(retcode=1, out=b'Some Error Message')
-        self.os_utils.popen.side_effect = [self.popen]
-        maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
-        with self.assertRaises(MavenExecutionError) as err:
-            maven.retrieve_module_name(self.source_dir)
-        self.assertEquals(err.exception.args[0], 'Maven Failed: Some Error Message')
-
     def test_build_project(self):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
-        maven.build(self.source_dir, self.module_name)
+        maven.build(self.source_dir)
         self.os_utils.popen.assert_called_with(
-            [self.maven_path, 'clean', 'install', '-pl', ':' + self.module_name, '-am'],
+            [self.maven_path, 'clean', 'install'],
             cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
     def test_build_raises_exception_if_retcode_not_0(self):
@@ -71,14 +55,14 @@ class TestSubprocessMaven(TestCase):
         self.os_utils.popen.side_effect = [self.popen]
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
-            maven.build(self.source_dir, self.module_name)
+            maven.build(self.source_dir)
         self.assertEquals(err.exception.args[0], 'Maven Failed: Some Error Message')
 
     def test_copy_dependency(self):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
-        maven.copy_dependency(self.source_dir, self.module_name)
+        maven.copy_dependency(self.source_dir)
         self.os_utils.popen.assert_called_with(
-            [self.maven_path, 'dependency:copy-dependencies', '-DincludeScope=compile', '-pl', ':' + self.module_name],
+            [self.maven_path, 'dependency:copy-dependencies', '-DincludeScope=compile'],
             cwd=self.source_dir, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 
     def test_copy_dependency_raises_exception_if_retcode_not_0(self):
@@ -86,5 +70,5 @@ class TestSubprocessMaven(TestCase):
         self.os_utils.popen.side_effect = [self.popen]
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
-            maven.copy_dependency(self.source_dir, self.module_name)
+            maven.copy_dependency(self.source_dir)
         self.assertEquals(err.exception.args[0], 'Maven Failed: Some Error Message')
