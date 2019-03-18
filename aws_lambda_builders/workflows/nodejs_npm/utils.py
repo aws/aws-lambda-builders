@@ -7,7 +7,8 @@ import platform
 import tarfile
 import subprocess
 import shutil
-
+import io
+import tempfile
 
 class OSUtils(object):
 
@@ -48,3 +49,17 @@ class OSUtils(object):
 
     def is_windows(self):
         return platform.system().lower() == 'windows'
+
+    def get_text_contents(self, filename, encoding='utf-8'):
+        with io.open(filename, 'r', encoding=encoding) as f:
+            return f.read()
+
+    def write_text_contents(self, filename, contents, encoding='utf-8'):
+        with io.open(filename, 'w', encoding=encoding) as f:
+            f.write(contents)
+
+    def tempdir(self, parent_dir):
+        return tempfile.mkdtemp(dir=parent_dir)
+
+    def is_dir(self, path):
+        return os.path.isdir(path)

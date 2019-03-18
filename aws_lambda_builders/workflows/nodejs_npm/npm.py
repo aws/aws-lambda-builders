@@ -3,6 +3,7 @@ Wrapper around calling npm through a subprocess.
 """
 
 import logging
+import json
 
 LOG = logging.getLogger(__name__)
 
@@ -88,3 +89,68 @@ class SubprocessNpm(object):
             raise NpmExecutionError(message=err.decode('utf8').strip())
 
         return out.decode('utf8').strip()
+
+class NpmModulesUtils(object):
+
+    """
+
+    """
+
+    def __init__(self, osutils, subprocess_npm, scratch_dir):
+        self.osutils = osutils
+        self.subprocess_npm = subprocess_npm
+        self.scratch_dir = scratch_dir
+
+    def clean_copy(self, package_dir, delete_package_lock=False):
+        target_dir = self.osutils.tempdir(self.scratch_dir)
+
+        package_path = 'file:{}'.format(self.osutils.abspath(package_dir))
+
+        LOG.debug('NODEJS packaging %s to %s', package_path, self.scratch_dir)
+
+        tarfile_name = self.subprocess_npm.run(['pack', '-q', package_path], cwd=self.scratch_dir)
+
+        LOG.debug('NODEJS packed to %s', tarfile_name)
+
+        tarfile_path = self.osutils.joinpath(self.scratch_dir, tarfile_name)
+
+        LOG.debug('NODEJS extracting to %s', target_dir)
+
+        self.osutils.extract_tarfile(tarfile_path, target_dir)
+
+        package_lock = self.osutils.joinpath(target_dir, 'package', 'package-lock.json')
+        if delete_package_lock and self.osutils.file_exists(package_lock):
+            self.osutils.remove_file(package_lock)
+
+        return self.osutils.joinpath(target_dir, 'package')
+
+    def is_local_dependency(self, module_path):
+        return module_path.startswith('file:') or module_path.startswith('.') or module_path.startswith('/')
+
+    def get_local_dependencies(self, package_dir, dependency_key='dependencies'):
+        package_json = json.loads(self.osutils.get_text_contents(self.osutils.joinpath(package_dir, 'package.json')))
+        if not dependency_key in package_json.keys():
+            return {}
+
+        dependencies = package_json[dependency_key]
+
+        return dict([(name, module_path) for (name, module_path) in dependencies.items() if self.is_local_dependency(module_path)])
+
+    def has_local_dependencies(self, package_dir):
+        return len(self.get_local_dependencies(package_dir, 'dependencies')) > 0 or \
+            len(self.get_local_dependencies(package_dir, 'optionalDependencies')) > 0
+
+    def pack_to_tar(self, module_dir):
+        package_path = "file:{}".format(self.osutils.abspath(module_dir))
+
+        tarfile_name = self.subprocess_npm.run(['pack', '-q', package_path], cwd=self.scratch_dir)
+
+        return self.osutils.joinpath(self.scratch_dir, tarfile_name)
+
+    def update_dependency(self, package_dir, name, module_path, dependency_key):
+        package_json_path = self.osutils.joinpath(package_dir, 'package.json')
+        package_json = json.loads(self.osutils.get_text_contents(package_json_path))
+
+        package_json[dependency_key][name] = module_path
+
+        self.osutils.write_text_contents(package_json_path, json.dumps(package_json))

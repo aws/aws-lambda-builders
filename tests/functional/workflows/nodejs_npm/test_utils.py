@@ -65,7 +65,7 @@ class TestOSUtils(TestCase):
         self.assertTrue(self.osutils.file_exists(existing_file))
 
         self.assertFalse(self.osutils.file_exists(nonexisting_file))
-   
+
     def test_extract_tarfile_unpacks_a_tar(self):
 
         test_tar = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")

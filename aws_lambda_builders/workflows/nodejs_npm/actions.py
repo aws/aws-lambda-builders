@@ -195,3 +195,54 @@ class NodejsNpmrcCleanUpAction(BaseAction):
 
         except OSError as ex:
             raise ActionFailedError(str(ex))
+
+class NodejsNpmRewriteLocalDependenciesAction(BaseAction):
+
+    """
+    A Lambda Builder Action that rewrites local dependencies
+    """
+
+    NAME = 'RewriteLocalDependencies'
+    DESCRIPTION = "Rewrites local dependencies"
+    PURPOSE = Purpose.RESOLVE_DEPENDENCIES
+
+    def __init__(
+        self,
+        work_dir,
+        original_package_dir,
+        scratch_dir,
+        npm_modules_utils,
+        osutils
+    ):
+        super(NodejsNpmRewriteLocalDependenciesAction, self).__init__()
+        self.work_dir = work_dir
+        self.original_package_dir = original_package_dir
+        self.scratch_dir = scratch_dir
+        self.npm_modules_utils = npm_modules_utils
+        self.osutils = osutils
+
+    def __rewrite_local_dependencies(self, work_dir, original_package_dir):
+        for dependency_key in ['dependencies', 'optionalDependencies']:
+            for (name, module_path) in self.npm_modules_utils.get_local_dependencies(work_dir, dependency_key).items():
+                if module_path.startswith('file:'):
+                    module_path = module_path[5:]
+
+                actual_path = self.osutils.joinpath(original_package_dir, module_path)
+                if self.osutils.is_dir(actual_path):
+                    if self.npm_modules_utils.has_local_dependencies(actual_path):
+                        module_path = self.npm_modules_utils.clean_copy(actual_path, delete_package_lock=True)
+                        self.__rewrite_local_dependencies(module_path, actual_path)
+                        actual_path = module_path
+
+                    new_module_path = self.npm_modules_utils.pack_to_tar(actual_path)
+                else:
+                    new_module_path = actual_path
+
+                new_module_path = 'file:{}'.format(new_module_path)
+                self.npm_modules_utils.update_dependency(work_dir, name, new_module_path, dependency_key)
+
+    def execute(self):
+        try:
+            self.__rewrite_local_dependencies(self.work_dir, self.original_package_dir)
+        except OSError as ex:
+            raise ActionFailedError(str(ex))
