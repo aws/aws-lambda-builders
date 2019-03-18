@@ -1,6 +1,12 @@
-
+import os
+import sys
 from unittest import TestCase
 from mock import Mock, call
+
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.validator import RuntimeValidator
@@ -89,6 +95,7 @@ class TestBaseWorkflow_init(TestCase):
     def test_must_initialize_variables(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    executable_search_paths=[str(sys.executable)],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -97,6 +104,7 @@ class TestBaseWorkflow_init(TestCase):
         self.assertEquals(self.work.scratch_dir, "scratch_dir")
         self.assertEquals(self.work.manifest_path, "manifest_path")
         self.assertEquals(self.work.runtime, "runtime")
+        self.assertEquals(self.work.executable_search_paths, [str(sys.executable)])
         self.assertEquals(self.work.optimizations, {"a": "b"})
         self.assertEquals(self.work.options, {"c": "d"})
 
@@ -113,6 +121,7 @@ class TestBaseWorkflow_is_supported(TestCase):
     def setUp(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    executable_search_paths=[],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -150,6 +159,7 @@ class TestBaseWorkflow_run(TestCase):
     def setUp(self):
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    executable_search_paths=[],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 
@@ -216,6 +226,18 @@ class TestBaseWorkflow_run(TestCase):
 
         self.assertIn("somevalueerror", str(ctx.exception))
 
+    def test_supply_executable_path(self):
+        # Run workflow with supplied executable path to search for executables.
+        action_mock = Mock()
+
+        self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
+                                    runtime="runtime",
+                                    executable_search_paths=[str(pathlib.Path(os.getcwd()).parent)],
+                                    optimizations={"a": "b"},
+                                    options={"c": "d"})
+        self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.work.run()
+
 
 class TestBaseWorkflow_repr(TestCase):
 
@@ -239,6 +261,7 @@ class TestBaseWorkflow_repr(TestCase):
 
         self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
                                     runtime="runtime",
+                                    executable_search_paths=[],
                                     optimizations={"a": "b"},
                                     options={"c": "d"})
 

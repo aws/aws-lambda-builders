@@ -70,4 +70,4 @@ class PythonRuntimeValidator(object):
 
     @property
     def validated_runtime_path(self):
-        return self._valid_runtime_path if self._valid_runtime_path is not None else None
+        return self._valid_runtime_path
