@@ -71,20 +71,16 @@ configured to use a different one than can be found on the PATH.
 
 #### Step 3: Build and package
 
-We leverage Maven to do all the heavy lifting for executing the`mvn package` which
+We leverage Maven to do all the heavy lifting for executing the`mvn clean install` which
 will resolve and download the dependencies and build the project. Built java classes 
 will be located in `target/classes`. Then we use `mvn dependency:copy-dependenceis` to copy
 the dependencies and the dependencies will be located in `target/dependency` under the 
 source directory.
 
 ```bash
-MODULE_NAME=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.artifactId}' exec:exec --non-recursive)
-mvn clean package -pl :MODULE_NAME -am
-mvn dependency:copy-dependencies -DincludeScope=compile -pl :MODULE_NAME
+mvn clean install
+mvn dependency:copy-dependencies -DincludeScope=compile
 ```
-
-Here `MODULE_NAME` is the `artifactId` defined in the pom.xml of the project. Maven
-will build the dependencies of that project in the reactor and then build the project itself.
 
 #### Step 4: Copy to artifact directory
 

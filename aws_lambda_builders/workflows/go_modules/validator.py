@@ -53,7 +53,7 @@ class GoRuntimeValidator(object):
             out_parts = out.decode().split()
             if len(out_parts) >= 3:
                 version_parts = [int(x) for x in out_parts[2].replace(self.LANGUAGE, "").split('.')]
-                if len(version_parts) == 3:
+                if len(version_parts) >= 2:
                     if version_parts[0] == expected_major_version and version_parts[1] >= min_expected_minor_version:
                         self._valid_runtime_path = runtime_path
                         return self._valid_runtime_path

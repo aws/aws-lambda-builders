@@ -20,17 +20,6 @@ class JavaMavenBaseAction(object):
                  subprocess_maven):
         self.scratch_dir = scratch_dir
         self.subprocess_maven = subprocess_maven
-        self.artifact_id = None
-
-    @property
-    def module_name(self):
-        if self.artifact_id is None:
-            try:
-                self.artifact_id = self.subprocess_maven.retrieve_module_name(self.scratch_dir)
-            except MavenExecutionError as ex:
-                raise ActionFailedError(str(ex))
-
-        return self.artifact_id
 
 
 class JavaMavenBuildAction(JavaMavenBaseAction, BaseAction):
@@ -48,8 +37,7 @@ class JavaMavenBuildAction(JavaMavenBaseAction, BaseAction):
 
     def execute(self):
         try:
-            self.subprocess_maven.build(self.scratch_dir,
-                                        self.module_name)
+            self.subprocess_maven.build(self.scratch_dir)
         except MavenExecutionError as ex:
             raise ActionFailedError(str(ex))
 
@@ -69,8 +57,7 @@ class JavaMavenCopyDependencyAction(JavaMavenBaseAction, BaseAction):
 
     def execute(self):
         try:
-            self.subprocess_maven.copy_dependency(self.scratch_dir,
-                                                  self.module_name)
+            self.subprocess_maven.copy_dependency(self.scratch_dir)
         except MavenExecutionError as ex:
             raise ActionFailedError(str(ex))
 
