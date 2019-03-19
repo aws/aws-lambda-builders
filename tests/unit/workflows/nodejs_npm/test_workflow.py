@@ -3,7 +3,8 @@ from unittest import TestCase
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import \
-    NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction, NodejsNpmRewriteLocalDependenciesAction
+    NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, \
+    NodejsNpmrcCleanUpAction, NodejsNpmRewriteLocalDependenciesAction
 
 
 class TestNodejsNpmWorkflow(TestCase):
