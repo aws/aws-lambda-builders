@@ -6,7 +6,6 @@ import shutil
 import sys
 import os
 import logging
-import contextlib
 
 
 LOG = logging.getLogger(__name__)
@@ -148,27 +147,3 @@ def which(cmd, mode=os.F_OK | os.X_OK, executable_search_paths=None):  # pragma:
                 if _access_check(name, mode):
                     paths.append(name)
     return paths
-
-
-@contextlib.contextmanager
-def permissions(directory, entry_mode, exit_mode):
-    """Change permissions on directory to specified entry_mode and
-    then back to specified exit_mode
-
-    :type directory: str
-    :param directory:
-        Directory on which permissions manipulation is to happen.
-
-    :type entry_mode: oct
-    :param entry_mode:
-        permissions to be set on entry of context manager on directory.
-
-    :type exit_mode: oct
-    :param exit_mode:
-        permissions to be set on entry of context manager on directory.
-    """
-    try:
-        os.chmod(path=directory, mode=entry_mode)
-        yield
-    finally:
-        os.chmod(path=directory, mode=exit_mode)

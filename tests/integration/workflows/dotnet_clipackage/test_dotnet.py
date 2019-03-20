@@ -2,13 +2,11 @@ import os
 import shutil
 import tempfile
 
-
-from unittest import TestCase
-
 from aws_lambda_builders.builder import LambdaBuilder
+from tests.integration.workflows.test_integ_base import TestIntegBase
 
 
-class TestDotnetDep(TestCase):
+class TestDotnetDep(TestIntegBase):
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
 
     def setUp(self):
