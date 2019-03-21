@@ -43,7 +43,7 @@ class MavenValidator(object):
     def _get_major_version(self, maven_path):
         vs = self._get_jvm_string(maven_path)
         if vs:
-            m = re.search(r'Java version:\s+(\d.*)', vs)
+            m = re.search(r'Java version:\s+([\d\.]+)', vs)
             version = m.group(1).split('.')
             # For Java 8 or earlier, version strings begin with 1.{Major Version}
             if version[0] == '1':
