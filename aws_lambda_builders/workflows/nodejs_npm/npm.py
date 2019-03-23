@@ -90,18 +90,44 @@ class SubprocessNpm(object):
 
         return out.decode('utf8').strip()
 
+
 class NpmModulesUtils(object):
 
     """
-
+    Utility class that abstracts operations on NPM packages
+    and manifest files
     """
 
     def __init__(self, osutils, subprocess_npm, scratch_dir):
+        """
+        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :param osutils: An instance of OS Utilities for file manipulation
+
+        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+        :param subprocess_npm: An instance of NPM Subprocess for executing the NPM binary
+
+        :type scratch_dir: str
+        :param scratch_dir: a writable temporary directory
+        """
+
         self.osutils = osutils
         self.subprocess_npm = subprocess_npm
         self.scratch_dir = scratch_dir
 
     def clean_copy(self, package_dir, delete_package_lock=False):
+
+        """
+        Produces a clean copy of a NPM package source from a project directory,
+        so it can be packaged without temporary files, development or test resources
+        or dependencies.
+
+        :type package_dir: str
+        :param package_dir: Path to a NPM project directory
+
+        :type delete_package_lock: bool
+        :param delete_package_lock: If true, package-lock.json will be removed in the copy
+        """
+
         target_dir = self.osutils.tempdir(self.scratch_dir)
 
         package_path = 'file:{}'.format(self.osutils.abspath(package_dir))
@@ -125,29 +151,82 @@ class NpmModulesUtils(object):
         return self.osutils.joinpath(target_dir, 'package')
 
     def is_local_dependency(self, module_path):
+        """
+        Calculates if the module path from a dependency reference is
+        local or remote
+
+        :type module_path: str
+        :param module_path: Dependency reference value (from package.json)
+
+        """
+
         return module_path.startswith('file:') or module_path.startswith('.') or module_path.startswith('/')
 
     def get_local_dependencies(self, package_dir, dependency_key='dependencies'):
+        """
+        Returns a dictionary with only local dependencies from a package.json manifest
+
+        :type package_dir: str
+        :param package_dir: path to a NPM project directory (containing package.json)
+
+        :type dependency_key: str
+        :param dependency_key: dependency type to return, corresponds to a key of package.json.
+            (for example, 'dependencies' or 'optionalDependencies')
+        """
+
         package_json = json.loads(self.osutils.get_text_contents(self.osutils.joinpath(package_dir, 'package.json')))
-        if not dependency_key in package_json.keys():
+        if dependency_key not in package_json.keys():
             return {}
 
         dependencies = package_json[dependency_key]
 
-        return dict([(name, module_path) for (name, module_path) in dependencies.items() if self.is_local_dependency(module_path)])
+        return dict(
+            [(name, module_path) for (name, module_path) in dependencies.items()
+                if self.is_local_dependency(module_path)]
+        )
 
     def has_local_dependencies(self, package_dir):
+        """
+        Checks if a NPM project has local dependencies
+
+        :type package_dir: str
+        :param package_dir: path to a NPM project directory (containing package.json)
+        """
         return len(self.get_local_dependencies(package_dir, 'dependencies')) > 0 or \
             len(self.get_local_dependencies(package_dir, 'optionalDependencies')) > 0
 
-    def pack_to_tar(self, module_dir):
-        package_path = "file:{}".format(self.osutils.abspath(module_dir))
+    def pack_to_tar(self, package_dir):
+        """
+        Runs npm pack to produce a tar containing project sources, which can be used
+        as a target for project dependencies
+
+        :type package_dir: str
+        :param package_dir: path to a NPM project directory (containing package.json)
+        """
+        package_path = "file:{}".format(self.osutils.abspath(package_dir))
 
         tarfile_name = self.subprocess_npm.run(['pack', '-q', package_path], cwd=self.scratch_dir)
 
         return self.osutils.joinpath(self.scratch_dir, tarfile_name)
 
     def update_dependency(self, package_dir, name, module_path, dependency_key):
+        """
+        Updates package.json by rewriting a dependency to point to a specified module path
+
+        :type package_dir: str
+        :param package_dir: path to a NPM project directory (containing package.json)
+
+        :type name: str
+        :param name: the name of the dependency (sub-key in package.json)
+
+        :type module_path: str
+        :param module_path: new destination for the dependency
+
+        :type dependency_key: str
+        :param dependency_key: dependency type to return, corresponds to a key of package.json.
+            (for example, 'dependencies' or 'optionalDependencies')
+        """
+
         package_json_path = self.osutils.joinpath(package_dir, 'package.json')
         package_json = json.loads(self.osutils.get_text_contents(package_json_path))
 
