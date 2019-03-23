@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import tempfile
+import io
 
 from unittest import TestCase
 
@@ -127,3 +128,36 @@ class TestOSUtils(TestCase):
         self.assertEqual(p.returncode, 0)
 
         self.assertEqual(out.decode('utf8').strip(), os.path.abspath(testdata_dir))
+
+    def test_reads_file_content(self):
+        scratch_dir = tempfile.mkdtemp()
+        filename = scratch_dir + '/test_write.txt'
+
+        with io.open(filename, 'w', encoding='utf-8') as f:
+            f.write('hello')
+
+        content = self.osutils.get_text_contents(filename)
+        self.assertEqual(content, 'hello')
+
+    def test_writes_text_context(self):
+        scratch_dir = tempfile.mkdtemp()
+        filename = scratch_dir + '/test_write.txt'
+        self.osutils.write_text_contents(filename, 'hello')
+        with io.open(filename, 'r', encoding='utf-8') as f:
+            content = f.read()
+            self.assertEqual(content, 'hello')
+
+    def test_should_create_temporary_dir(self):
+        scratch_dir = tempfile.mkdtemp()
+        temp_dir = self.osutils.tempdir(scratch_dir)
+        os.path.isdir(temp_dir)
+
+    def test_is_dir_returns_true_if_dir_exists(self):
+        dir_exists = self.osutils.is_dir(os.path.dirname(__file__))
+
+        self.assertTrue(dir_exists)
+
+    def test_is_dir_returns_false_if_dir_does_not_exist(self):
+        dir_does_not_exist = self.osutils.is_dir(os.path.join(os.path.dirname(__file__), 'some_random_dirname'))
+
+        self.assertFalse(dir_does_not_exist)

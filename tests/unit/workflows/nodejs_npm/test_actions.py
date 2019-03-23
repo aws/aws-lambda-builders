@@ -1,9 +1,10 @@
 from unittest import TestCase
-from mock import patch
+from mock import patch, call
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.actions import \
-    NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
+    NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, \
+    NodejsNpmrcCleanUpAction, NodejsNpmRewriteLocalDependenciesAction
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
 
@@ -153,3 +154,99 @@ class TestNodejsNpmrcCleanUpAction(TestCase):
         action.execute()
 
         osutils.remove_file.assert_not_called()
+
+
+class TestNodejsNpmRewriteLocalDependenciesAction(TestCase):
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.NpmModulesUtils")
+    def setUp(self, OSUtilMock, NpmModulesUtils):
+        self.osutils = OSUtilMock.return_value
+        self.osutils.joinpath.side_effect = \
+            lambda original_package_dir, module_path: original_package_dir + '/' + module_path
+
+        self.npm_modules_utils = NpmModulesUtils.return_value
+        self.npm_modules_utils.pack_to_tar.side_effect = lambda actual_path: actual_path + '.tar'
+        self.npm_modules_utils.clean_copy.side_effect = lambda actual_path, delete_package_lock: actual_path + '_copy'
+
+        self.action = NodejsNpmRewriteLocalDependenciesAction(
+            'work_dir',
+            'original_package_dir',
+            'scratch_dir',
+            self.npm_modules_utils,
+            self.osutils
+        )
+
+    def test_does_not_rewrite_if_no_local_dependencies(self):
+        self.npm_modules_utils.get_local_dependencies.side_effect = [{}, {}]
+
+        self.action.execute()
+
+        self.npm_modules_utils.update_dependency.assert_not_called()
+
+    def test_rewrites_a_single_production_dependency(self):
+        def local_deps(work_dir, dependency_key):
+            if work_dir == "work_dir" and dependency_key == "dependencies":
+                return {"dep": "../dep"}
+            else:
+                return {}
+
+        self.npm_modules_utils.get_local_dependencies.side_effect = local_deps
+
+        self.action.execute()
+
+        self.npm_modules_utils.update_dependency.assert_called_with(
+            'work_dir', 'dep', 'file:original_package_dir/../dep_copy.tar', 'dependencies'
+        )
+
+    def test_rewrites_a_single_optional_dependency(self):
+        def local_deps(work_dir, dependency_key):
+            if work_dir == "work_dir" and dependency_key == "optionalDependencies":
+                return {"dep": "../opt_dep"}
+            else:
+                return {}
+
+        self.npm_modules_utils.get_local_dependencies.side_effect = local_deps
+
+        self.action.execute()
+
+        self.npm_modules_utils.update_dependency.assert_called_with(
+            'work_dir', 'dep', 'file:original_package_dir/../opt_dep_copy.tar', 'optionalDependencies'
+        )
+
+    def test_strips_file_prefix_when_rewriting_dependencies(self):
+        def local_deps(work_dir, dependency_key):
+            if work_dir == "work_dir" and dependency_key == "dependencies":
+                return {"dep": "file:/dep"}
+            else:
+                return {}
+
+        self.npm_modules_utils.get_local_dependencies.side_effect = local_deps
+
+        self.action.execute()
+
+        self.osutils.joinpath.assert_called_with('original_package_dir', '/dep')
+
+    def test_rewrites_production_dependencies_recursively(self):
+        def local_deps(work_dir, dependency_key):
+            if work_dir == 'work_dir' and dependency_key == 'dependencies':
+                return {"dep": "../dep"}
+            elif work_dir == 'original_package_dir/../dep_copy' and dependency_key == 'dependencies':
+                return {"subdep": "../subdep"}
+            else:
+                return {}
+
+        self.npm_modules_utils.get_local_dependencies.side_effect = local_deps
+
+        self.action.execute()
+
+        calls = [
+            call(
+                'original_package_dir/../dep_copy',
+                'subdep',
+                'file:original_package_dir/../dep/../subdep_copy.tar',
+                'dependencies'
+            ),
+            call('work_dir', 'dep', 'file:original_package_dir/../dep_copy.tar', 'dependencies')
+        ]
+        self.npm_modules_utils.update_dependency.assert_has_calls(calls)
