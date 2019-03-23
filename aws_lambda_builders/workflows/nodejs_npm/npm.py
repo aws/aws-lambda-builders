@@ -160,7 +160,10 @@ class NpmModulesUtils(object):
 
         """
 
-        return module_path.startswith('file:') or module_path.startswith('.') or module_path.startswith('/')
+        return module_path.startswith('file:') or \
+            module_path.startswith('.') or \
+            module_path.startswith('/') or \
+            module_path.startswith('~/')
 
     def get_local_dependencies(self, package_dir, dependency_key='dependencies'):
         """
@@ -209,7 +212,7 @@ class NpmModulesUtils(object):
 
         return self.osutils.joinpath(self.scratch_dir, tarfile_name)
 
-    def update_dependency(self, package_dir, name, module_path, dependency_key):
+    def update_dependency(self, package_dir, name, module_path, dependency_key='dependencies'):
         """
         Updates package.json by rewriting a dependency to point to a specified module path
 
