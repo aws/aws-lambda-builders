@@ -134,7 +134,7 @@ class TestOSUtils(TestCase):
         filename = os.path.join(scratch_dir, 'test_write.txt')
 
         with io.open(filename, 'w', encoding='utf-8') as f:
-            f.write('hello')
+            f.write(u'hello')
 
         content = self.osutils.get_text_contents(filename)
         self.assertEqual(content, 'hello')
