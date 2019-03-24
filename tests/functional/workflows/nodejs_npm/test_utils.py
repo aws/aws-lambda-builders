@@ -131,7 +131,7 @@ class TestOSUtils(TestCase):
 
     def test_reads_file_content(self):
         scratch_dir = tempfile.mkdtemp()
-        filename = scratch_dir + '/test_write.txt'
+        filename = os.path.join(scratch_dir, 'test_write.txt')
 
         with io.open(filename, 'w', encoding='utf-8') as f:
             f.write('hello')
@@ -141,7 +141,7 @@ class TestOSUtils(TestCase):
 
     def test_writes_text_context(self):
         scratch_dir = tempfile.mkdtemp()
-        filename = scratch_dir + '/test_write.txt'
+        filename = os.path.join(scratch_dir, 'test_write.txt')
         self.osutils.write_text_contents(filename, 'hello')
         with io.open(filename, 'r', encoding='utf-8') as f:
             content = f.read()
