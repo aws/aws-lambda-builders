@@ -142,10 +142,10 @@ class TestOSUtils(TestCase):
     def test_writes_text_context(self):
         scratch_dir = tempfile.mkdtemp()
         filename = os.path.join(scratch_dir, 'test_write.txt')
-        self.osutils.write_text_contents(filename, 'hello')
+        self.osutils.write_text_contents(filename, u'hello')
         with io.open(filename, 'r', encoding='utf-8') as f:
             content = f.read()
-            self.assertEqual(content, 'hello')
+            self.assertEqual(content, u'hello')
 
     def test_should_create_temporary_dir(self):
         scratch_dir = tempfile.mkdtemp()
