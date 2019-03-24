@@ -244,13 +244,13 @@ class TestNpmModulesUtils(TestCase):
         )
 
     def test_update_dependency_rewrites_production_dependencies_does_not_modify_other_dependencies(self):
-        package_manifest = '{"dependencies":{"express": "*", "claudia":"file:../claudia"}}'
+        package_manifest = '{"dependencies":{"claudia":"file:../claudia", "express": "*"}}'
         self.osutils.get_text_contents.side_effect = lambda path: package_manifest
         self.under_test.update_dependency('package_dir', 'claudia', 'file:/a.tar')
         self.osutils.get_text_contents.assert_called_with('package_dir/package.json')
         self.osutils.write_text_contents.assert_called_with(
             'package_dir/package.json',
-            '{"dependencies": {"express": "*", "claudia": "file:/a.tar"}}'
+            '{"dependencies": {"claudia": "file:/a.tar", "express": "*"}}'
         )
 
     def test_update_dependency_rewrites_production_dependencies_with_specific_dependency_key(self):

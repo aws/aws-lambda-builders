@@ -161,6 +161,7 @@ typings/
 
 # Output of 'npm pack'
 *.tgz
+!tests/integration/workflows/nodejs_npm/testdata/relative-dependencies/lib-1.0.0.tgz
 
 # Except test file
 !tests/functional/workflows/ruby_bundler/test_data/test.tgz
