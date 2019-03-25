@@ -234,5 +234,5 @@ class NpmModulesUtils(object):
         package_json = json.loads(self.osutils.get_text_contents(package_json_path))
 
         package_json[dependency_key][name] = module_path
-
-        self.osutils.write_text_contents(package_json_path, json.dumps(package_json))
+        package_json_contents = json.dumps(package_json, ensure_ascii=False)
+        self.osutils.write_text_contents(package_json_path, package_json_contents)
