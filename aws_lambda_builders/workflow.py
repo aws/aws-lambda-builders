@@ -25,6 +25,12 @@ LOG = logging.getLogger(__name__)
 Capability = namedtuple('Capability', ["language", "dependency_manager", "application_framework"])
 
 
+class BuildMode(object):
+
+    DEBUG = "debug"
+    RELEASE = "release"
+
+
 # TODO: Move sanitize out to its own class.
 def sanitize(func):
     """
@@ -120,7 +126,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                  executable_search_paths=None,
                  optimizations=None,
                  options=None,
-                 mode=None):
+                 mode=BuildMode.RELEASE):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
         build action must support at the minimum.

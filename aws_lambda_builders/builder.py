@@ -16,12 +16,6 @@ _SUPPORTED_WORKFLOWS = [
 ]
 
 
-class BuildMode(object):
-
-    DEBUG = "debug"
-    RELEASE = "release"
-
-
 class LambdaBuilder(object):
     """
     Helps you build AWS Lambda functions. This class is the primary entry point for this library.

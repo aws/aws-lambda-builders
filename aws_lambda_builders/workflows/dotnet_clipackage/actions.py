@@ -6,7 +6,7 @@ import os
 import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
-from aws_lambda_builders.builder import BuildMode
+from aws_lambda_builders.workflow import BuildMode
 from .utils import OSUtils
 from .dotnetcli import DotnetCLIExecutionError
 
