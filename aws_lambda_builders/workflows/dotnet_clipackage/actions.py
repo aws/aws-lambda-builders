@@ -6,6 +6,7 @@ import os
 import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.builder import BuildMode
 from .utils import OSUtils
 from .dotnetcli import DotnetCLIExecutionError
 
@@ -49,12 +50,13 @@ class RunPackageAction(BaseAction):
     DESCRIPTION = "Execute the `dotnet lambda package` command."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options, os_utils=None):
+    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options, mode, os_utils=None):
         super(RunPackageAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_dotnet = subprocess_dotnet
         self.artifacts_dir = artifacts_dir
         self.options = options
+        self.mode = mode
         self.os_utils = os_utils if os_utils else OSUtils()
 
     def execute(self):
@@ -65,6 +67,10 @@ class RunPackageAction(BaseAction):
             zipfullpath = os.path.join(self.artifacts_dir, zipfilename)
 
             arguments = ['lambda', 'package', '--output-package', zipfullpath]
+
+            if self.mode and self.mode.lower() == BuildMode.DEBUG:
+                LOG.debug("Debug build requested: Setting configuration to Debug")
+                arguments += ["--configuration", "Debug"]
 
             if self.options is not None:
                 for key in self.options:
