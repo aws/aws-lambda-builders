@@ -25,6 +25,12 @@ LOG = logging.getLogger(__name__)
 Capability = namedtuple('Capability', ["language", "dependency_manager", "application_framework"])
 
 
+class BuildMode(object):
+
+    DEBUG = "debug"
+    RELEASE = "release"
+
+
 # TODO: Move sanitize out to its own class.
 def sanitize(func):
     """
@@ -119,7 +125,8 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
                  runtime=None,
                  executable_search_paths=None,
                  optimizations=None,
-                 options=None):
+                 options=None,
+                 mode=BuildMode.RELEASE):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
         build action must support at the minimum.
@@ -157,6 +164,10 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         :type executable_search_paths: list
         :param executable_search_paths:
             Optional, Additional list of paths to search for executables required by the workflow.
+
+        :type mode: str
+        :param mode:
+            Optional, Mode the build should produce
         """
 
         self.source_dir = source_dir
@@ -167,6 +178,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.optimizations = optimizations
         self.options = options
         self.executable_search_paths = executable_search_paths
+        self.mode = mode
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
