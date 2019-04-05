@@ -133,7 +133,8 @@ def main():  # pylint: disable=too-many-statements
                       executable_search_paths=params.get('executable_search_paths', None),
                       runtime=params["runtime"],
                       optimizations=params["optimizations"],
-                      options=params["options"])
+                      options=params["options"],
+                      mode=params.get('mode', None))
 
         # Return a success response
         response = _success_response(request_id, artifacts_dir)
