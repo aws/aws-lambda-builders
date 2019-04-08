@@ -2,12 +2,12 @@
 Wrapper around calls to dotent CLI through a subprocess.
 """
 
-import sys
 import logging
 
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
+
 
 class DotnetCLIExecutionError(Exception):
     """
@@ -19,6 +19,7 @@ class DotnetCLIExecutionError(Exception):
 
     def __init__(self, **kwargs):
         Exception.__init__(self, self.MESSAGE.format(**kwargs))
+
 
 class SubprocessDotnetCLI(object):
     """

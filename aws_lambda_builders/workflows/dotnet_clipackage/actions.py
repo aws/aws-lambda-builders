@@ -12,6 +12,7 @@ from .dotnetcli import DotnetCLIExecutionError
 
 LOG = logging.getLogger(__name__)
 
+
 class GlobalToolInstallAction(BaseAction):
 
     """
@@ -64,7 +65,7 @@ class RunPackageAction(BaseAction):
             LOG.debug("Running `dotnet lambda package` in %s", self.source_dir)
 
             zipfilename = os.path.basename(os.path.normpath(self.source_dir)) + ".zip"
-            zipfullpath = os.path.join(self.artifacts_dir, zipfilename)
+            zipfullpath = os.path.abspath(os.path.join(self.artifacts_dir, zipfilename))
 
             arguments = ['lambda', 'package', '--output-package', zipfullpath]
 

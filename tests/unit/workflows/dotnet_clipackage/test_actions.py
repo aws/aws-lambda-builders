@@ -1,11 +1,11 @@
-from unittest import TestCase
-from mock import patch
 import os
-import platform
+from unittest import TestCase
+
+from mock import patch
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
 from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
+from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
 
 
 class TestGlobalToolInstallAction(TestCase):
@@ -43,9 +43,9 @@ class TestRunPackageAction(TestCase):
     def setUp(self, MockSubprocessDotnetCLI, MockOSUtils):
         self.subprocess_dotnet = MockSubprocessDotnetCLI.return_value
         self.os_utils = MockOSUtils
-        self.source_dir = os.path.join('/source_dir')
-        self.artifacts_dir = os.path.join('/artifacts_dir')
-        self.scratch_dir = os.path.join('/scratch_dir')
+        self.source_dir = os.path.join(os.getcwd(), 'source_dir')
+        self.artifacts_dir = os.path.join(os.getcwd(), 'artifacts_dir')
+        self.scratch_dir = os.path.join(os.getcwd(), 'scratch_dir')
 
     def tearDown(self):
         self.subprocess_dotnet.reset_mock()
@@ -59,10 +59,10 @@ class TestRunPackageAction(TestCase):
 
         action.execute()
 
-        zipFilePath = os.path.join('/', 'artifacts_dir', 'source_dir.zip')
+        zipFilePath = os.path.abspath(os.path.join(self.artifacts_dir, 'source_dir.zip'))
 
         self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package', zipFilePath],
-                                                           cwd='/source_dir')
+                                                           cwd=self.source_dir)
 
     def test_build_package_arguments(self):
         mode = "Release"
@@ -72,14 +72,11 @@ class TestRunPackageAction(TestCase):
 
         action.execute()
 
-        if platform.system().lower() == 'windows':
-            zipFilePath = '/artifacts_dir\\source_dir.zip'
-        else:
-            zipFilePath = '/artifacts_dir/source_dir.zip'
+        zipFilePath = os.path.abspath(os.path.join(self.artifacts_dir, 'source_dir.zip'))
 
         self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package',
                                                             zipFilePath, '--framework', 'netcoreapp2.1'],
-                                                           cwd='/source_dir')
+                                                           cwd=self.source_dir)
 
     def test_build_error(self):
         mode = "Release"
@@ -97,10 +94,10 @@ class TestRunPackageAction(TestCase):
         action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
                                   self.os_utils)
 
-        zipFilePath = os.path.join('/', 'artifacts_dir', 'source_dir.zip')
+        zipFilePath = os.path.abspath(os.path.join(self.artifacts_dir, 'source_dir.zip'))
 
         action.execute()
 
         self.subprocess_dotnet.run.assert_called_once_with(
             ['lambda', 'package', '--output-package', zipFilePath, '--configuration', 'Debug'],
-            cwd='/source_dir')
+            cwd=self.source_dir)
