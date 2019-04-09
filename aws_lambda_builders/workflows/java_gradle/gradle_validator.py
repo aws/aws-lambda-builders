@@ -43,7 +43,7 @@ class GradleValidator(object):
     def _get_major_version(self, gradle_path):
         vs = self._get_jvm_string(gradle_path)
         if vs:
-            m = re.search(r'JVM:\s+(\d.*)', vs)
+            m = re.search(r'JVM:\s+([\d\.]+)', vs)
             version = m.group(1).split('.')
             # For Java 8 or earlier, version strings begin with 1.{Major Version}
             if version[0] == '1':
