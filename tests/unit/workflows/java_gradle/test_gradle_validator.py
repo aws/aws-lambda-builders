@@ -30,7 +30,9 @@ class TestGradleBinaryValidator(TestCase):
     @parameterized.expand([
         '1.7.0',
         '1.8.9',
-        '11.0.0'
+        '11.0.0',
+        '12 (Fluff)',
+        '12'
     ])
     def test_accepts_any_jvm_mv(self, version):
         version_string = ('JVM:          %s' % version).encode()
