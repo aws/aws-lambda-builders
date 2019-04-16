@@ -39,6 +39,16 @@ class TestMavenBinaryValidator(TestCase):
         self.assertTrue(validator.validate(maven_path=self.maven_path))
         self.assertEqual(validator.validated_binary_path, self.maven_path)
 
+    @parameterized.expand([
+        '12'
+    ])
+    def test_accepts_major_version_only_jvm_mv(self, version):
+        version_string = ('Java version: %s, vendor: Oracle Corporation' % version).encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string)]
+        validator = MavenValidator(os_utils=self.mock_os_utils)
+        self.assertTrue(validator.validate(maven_path=self.maven_path))
+        self.assertEqual(validator.validated_binary_path, self.maven_path)
+
     def test_emits_warning_when_jvm_mv_greater_than_8(self):
         version_string = 'Java version: 10.0.1, vendor: Oracle Corporation'.encode()
         self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string)]

@@ -14,16 +14,15 @@ class TestGlobalToolInstallAction(TestCase):
     def setUp(self, MockSubprocessDotnetCLI):
         self.subprocess_dotnet = MockSubprocessDotnetCLI.return_value
 
-    def test_global_tool_install(self):
+    def tearDown(self):
         self.subprocess_dotnet.reset_mock()
 
+    def test_global_tool_install(self):
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         action.execute()
         self.subprocess_dotnet.run.assert_called_once_with(['tool', 'install', '-g', 'Amazon.Lambda.Tools'])
 
     def test_global_tool_update(self):
-        self.subprocess_dotnet.reset_mock()
-
         self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="Already Installed"), None]
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         action.execute()
@@ -31,8 +30,6 @@ class TestGlobalToolInstallAction(TestCase):
         self.subprocess_dotnet.run.assert_any_call(['tool', 'update', '-g', 'Amazon.Lambda.Tools'])
 
     def test_global_tool_update_failed(self):
-        self.subprocess_dotnet.reset_mock()
-
         self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="Already Installed"),
                                                   DotnetCLIExecutionError(message="Updated Failed")]
         action = GlobalToolInstallAction(self.subprocess_dotnet)
@@ -50,27 +47,28 @@ class TestRunPackageAction(TestCase):
         self.artifacts_dir = os.path.join('/artifacts_dir')
         self.scratch_dir = os.path.join('/scratch_dir')
 
-    def test_build_package(self):
+    def tearDown(self):
         self.subprocess_dotnet.reset_mock()
 
+    def test_build_package(self):
+        mode = "Release"
+
         options = {}
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, self.os_utils)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
+                                  self.os_utils)
 
         action.execute()
 
-        if platform.system().lower() == 'windows':
-            zipFilePath = '/artifacts_dir\\source_dir.zip'
-        else:
-            zipFilePath = '/artifacts_dir/source_dir.zip'
+        zipFilePath = os.path.join('/', 'artifacts_dir', 'source_dir.zip')
 
         self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package', zipFilePath],
                                                            cwd='/source_dir')
 
     def test_build_package_arguments(self):
-        self.subprocess_dotnet.reset_mock()
-
+        mode = "Release"
         options = {"--framework": "netcoreapp2.1"}
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, self.os_utils)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
+                                  self.os_utils)
 
         action.execute()
 
@@ -84,10 +82,25 @@ class TestRunPackageAction(TestCase):
                                                            cwd='/source_dir')
 
     def test_build_error(self):
-        self.subprocess_dotnet.reset_mock()
+        mode = "Release"
 
         self.subprocess_dotnet.run.side_effect = DotnetCLIExecutionError(message="Failed Package")
         options = {}
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, self.os_utils)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
+                                  self.os_utils)
 
         self.assertRaises(ActionFailedError, action.execute)
+
+    def test_debug_configuration_set(self):
+        mode = "Debug"
+        options = None
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
+                                  self.os_utils)
+
+        zipFilePath = os.path.join('/', 'artifacts_dir', 'source_dir.zip')
+
+        action.execute()
+
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ['lambda', 'package', '--output-package', zipFilePath, '--configuration', 'Debug'],
+            cwd='/source_dir')
