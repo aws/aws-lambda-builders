@@ -56,7 +56,7 @@ class NodejsNpmPackAction(BaseAction):
 
             LOG.debug("NODEJS packaging %s to %s", package_path, self.scratch_dir)
 
-            tarfile_name = self.subprocess_npm.run(["pack", "-q", package_path], cwd=self.scratch_dir)
+            tarfile_name = self.subprocess_npm.run(['pack', '-q', package_path], cwd=self.scratch_dir).splitlines()[-1]
 
             LOG.debug("NODEJS packed to %s", tarfile_name)
 
