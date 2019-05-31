@@ -36,7 +36,7 @@ def copytree(source, destination, ignore=None):
         try:
             # Let's try to copy the directory metadata from source to destination
             shutil.copystat(source, destination)
-        except WindowsError as ex:  # pylint: disable=undefined-variable
+        except OSError as ex:  # pylint: disable=undefined-variable
             # Can't copy file access times in Windows
             LOG.debug("Unable to copy file access times from %s to %s", source, destination, exc_info=ex)
 
