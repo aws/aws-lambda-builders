@@ -61,7 +61,7 @@ def sanitize(func):
         if len(self.binaries) != len(valid_paths):
             raise WorkflowFailedError(workflow_name=self.NAME,
                                       action_name=None,
-                                      reason='Binary validation failed!')
+                                      reason='Unable to find a valid executable for {}'.format(self.runtime))
         func(self, *args, **kwargs)
     return wrapper
 
