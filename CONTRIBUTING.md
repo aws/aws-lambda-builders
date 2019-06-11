@@ -46,7 +46,7 @@ Looking at the existing issues is a great way to find something to contribute on
 
 ## Testing with SAM CLI
 
-1. Activate Virtualenv that is used for SAM CLI development.
+1. [Activate Virtualenv](https://github.com/awslabs/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.md) that is used for SAM CLI development.
 2. Navigate to aws-lambda-builders project on your machine
 3. `pip install -e .` (This will install the editable version of the aws-lambda-builers into SAM CLI's Virtualenv)
 
