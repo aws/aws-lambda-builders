@@ -20,7 +20,7 @@ class JavaMavenWorkflow(BaseWorkflow):
                             dependency_manager="maven",
                             application_framework=None)
 
-    EXCLUDED_FILES = (".aws-sam")
+    EXCLUDED_FILES = (".aws-sam", ".git")
 
     def __init__(self,
                  source_dir,
