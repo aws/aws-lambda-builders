@@ -50,4 +50,4 @@ class TestJavaMavenWorkflow(TestCase):
 
         self.assertEqual(".aws-sam", workflow.actions[0].excludes[0])
 
-        self.assertEqual(".git", workflow.actions[0].excludes[0])
+        self.assertEqual(".git", workflow.actions[0].excludes[1])
