@@ -20,7 +20,7 @@ class TestJavaMavenWorkflow(TestCase):
         self.assertEqual(len(workflow.actions), 4)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        
+
         self.assertIsInstance(workflow.actions[1], JavaMavenBuildAction)
 
         self.assertIsInstance(workflow.actions[2], JavaMavenCopyDependencyAction)
@@ -47,7 +47,7 @@ class TestJavaMavenWorkflow(TestCase):
         workflow = JavaMavenWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        
+
         self.assertEqual(".aws-sam", workflow.actions[0].excludes[0])
-        
+
         self.assertEqual(".git", workflow.actions[0].excludes[0])
