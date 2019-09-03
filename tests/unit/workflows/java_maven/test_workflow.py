@@ -48,6 +48,6 @@ class TestJavaMavenWorkflow(TestCase):
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         
-        self.assertEqual(".aws_sam", workflow.actions[0].excludes[0])
+        self.assertEqual(".aws-sam", workflow.actions[0].excludes[0])
         
         self.assertEqual(".git", workflow.actions[0].excludes[0])
