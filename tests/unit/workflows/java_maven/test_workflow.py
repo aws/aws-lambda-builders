@@ -42,3 +42,12 @@ class TestJavaMavenWorkflow(TestCase):
         self.assertEqual(len(validators), 1)
 
         self.assertIsInstance(validators[0], MavenValidator)
+
+    def test_workflow_excluded_files(self):
+        workflow = JavaMavenWorkflow("source", "artifacts", "scratch_dir", "manifest")
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+
+        self.assertEqual(".aws-sam", workflow.actions[0].excludes[0])
+
+        self.assertEqual(".git", workflow.actions[0].excludes[1])
