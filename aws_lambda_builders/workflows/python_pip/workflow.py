@@ -39,7 +39,7 @@ class PythonPipWorkflow(BaseWorkflow):
                       ".python-version",
 
                       # mypy, Pyre
-                      ".mypy_cache", ".dmypy.json", ".pyre"
+                      ".mypy_cache", ".dmypy.json", ".pyre",
 
                       # environments
                       ".env", ".venv", "venv", "venv.bak", "env.bak", "ENV",
