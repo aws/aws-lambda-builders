@@ -44,15 +44,12 @@ class GoDepWorkflow(BaseWorkflow):
                                             runtime=runtime,
                                             **kwargs)
 
-        options = kwargs["options"] if "options" in kwargs else {}
-        handler = options.get("artifact_executable_name", None)
-
         if osutils is None:
             osutils = OSUtils()
 
         # project base name, where the Gopkg.toml and vendor dir are.
         base_dir = osutils.abspath(osutils.dirname(manifest_path))
-        output_path = osutils.joinpath(osutils.abspath(artifacts_dir), handler)
+        output_path = osutils.joinpath(artifacts_dir, source_dir)
 
         subprocess_dep = SubprocessExec(osutils, "dep")
         subprocess_go = SubprocessExec(osutils, "go")
