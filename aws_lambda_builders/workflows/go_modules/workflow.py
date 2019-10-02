@@ -37,10 +37,7 @@ class GoModulesWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
-        options = kwargs.get("options") or {}
-        handler = options.get("artifact_executable_name", None)
-
-        output_path = osutils.joinpath(artifacts_dir, handler)
+        output_path = osutils.joinpath(artifacts_dir, source_dir)
 
         builder = GoModulesBuilder(osutils, binaries=self.binaries)
         self.actions = [
