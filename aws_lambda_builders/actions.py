@@ -98,4 +98,4 @@ class CopySourceAction(BaseAction):
         self.excludes = excludes or []
 
     def execute(self):
-        copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(self.excludes))
+        copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
