@@ -21,6 +21,23 @@ def pip_import_string(python_exe):
         return 'from pip._internal import main'
 
 
+def pip_runner_string(python_exe):
+    os_utils = OSUtils()
+    cmd = [
+        python_exe,
+        "-c",
+        "import pip; assert (int(pip.__version__.split('.')[0]) <= 19 and int(pip.__version__.split('.')[1]) < 3)"
+    ]
+    p = os_utils.popen(cmd, stdout=os_utils.pipe, stderr=os_utils.pipe)
+    p.communicate()
+    # Pip changed main to be a module instead of a function from 19.3
+    # and added a separate main function within the main module.
+    if p.returncode == 0:
+        return 'import sys; %s; sys.exit(main(%s))'
+    else:
+        return 'import sys; %s; sys.exit(main.main(%s))'
+
+
 if os.name == 'nt':
     # windows
     # This is the actual patch used on windows to prevent distutils from

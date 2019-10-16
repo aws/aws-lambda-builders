@@ -9,7 +9,7 @@ import logging
 from email.parser import FeedParser
 
 
-from .compat import pip_import_string
+from .compat import pip_import_string, pip_runner_string
 from .compat import pip_no_compile_c_env_vars
 from .compat import pip_no_compile_c_shim
 from .utils import OSUtils
@@ -553,6 +553,7 @@ class SubprocessPip(object):
         self.python_exe = python_exe
         if import_string is None:
             import_string = pip_import_string(python_exe=self.python_exe)
+        self.run_pip_string = pip_runner_string(python_exe=self.python_exe)
         self._import_string = import_string
 
     def main(self, args, env_vars=None, shim=None):
@@ -561,7 +562,7 @@ class SubprocessPip(object):
         if shim is None:
             shim = ''
         run_pip = (
-            'import sys; %s; sys.exit(main(%s))'
+            self.run_pip_string
         ) % (self._import_string, args)
         exec_string = '%s%s' % (shim, run_pip)
         invoke_pip = [self.python_exe, '-c', exec_string]
