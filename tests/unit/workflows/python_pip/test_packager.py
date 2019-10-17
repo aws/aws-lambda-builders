@@ -1,5 +1,6 @@
 import sys
 from collections import namedtuple
+from unittest import TestCase
 
 import mock
 import pytest
@@ -70,7 +71,7 @@ def osutils():
 
 class FakePopen(object):
     def __init__(self, rc, out, err):
-        self.returncode = 0
+        self.returncode = rc
         self._out = out
         self._err = err
 
@@ -303,14 +304,24 @@ class TestPipRunner(object):
         assert str(einfo.value) == 'Unknown error'
 
 
-class TestSubprocessPip(object):
+class TestSubprocessPip(TestCase):
     def test_does_use_custom_pip_import_string(self):
         fake_osutils = FakePopenOSUtils([FakePopen(0, '', '')])
         expected_import_statement = 'foobarbaz'
         pip = SubprocessPip(osutils=fake_osutils,
-                            import_string=expected_import_statement)
+                            import_string=expected_import_statement,
+                            python_exe=sys.executable)
         pip.main(['--version'])
 
         pip_execution_string = fake_osutils.popens[0][0][0][2]
         import_statement = pip_execution_string.split(';')[1].strip()
         assert import_statement == expected_import_statement
+
+    def test_check_pip_runner_string_pip(self):
+        fake_osutils = FakePopenOSUtils([FakePopen(0, '', '')])
+        pip = SubprocessPip(osutils=fake_osutils,
+                            python_exe=sys.executable)
+        pip.main(['--version'])
+
+        pip_runner_string = fake_osutils.popens[0][0][0][2].split(";")[-1:][0]
+        self.assertIn("main", pip_runner_string)
