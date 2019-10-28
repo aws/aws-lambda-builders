@@ -23,7 +23,7 @@ def pip_import_string(python_exe):
         return 'from pip import main'
     # Pip changed their import structure again in 19.3
     # https://github.com/pypa/pip/commit/09fd200
-    elif pip_major_version >= 19 and pip_minor_version >= 3:
+    elif (pip_major_version, pip_minor_version)  >= (19, 3):
         return 'from pip._internal.main import main'
     else:
         return 'from pip._internal import main'
