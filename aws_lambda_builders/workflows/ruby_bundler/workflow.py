@@ -7,7 +7,8 @@ from aws_lambda_builders.actions import CopySourceAction
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 from .utils import OSUtils
 from .bundler import SubprocessBundler
-
+from .validator import RubyRuntimeValidator
+from .bundler_resolver import BundlerResolver
 
 class RubyBundlerWorkflow(BaseWorkflow):
 
@@ -42,6 +43,8 @@ class RubyBundlerWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
+        self.os_utils = osutils
+
         subprocess_bundler = SubprocessBundler(osutils)
         bundle_install = RubyBundlerInstallAction(artifacts_dir,
                                                   subprocess_bundler=subprocess_bundler)
@@ -53,3 +56,9 @@ class RubyBundlerWorkflow(BaseWorkflow):
             bundle_install,
             bundle_deployment,
         ]
+
+    def get_resolvers(self):
+        return [BundlerResolver(self.source_dir, self.os_utils)]
+
+    def get_validators(self):
+        return [RubyRuntimeValidator(runtime=self.runtime)]
