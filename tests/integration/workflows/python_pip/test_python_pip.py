@@ -36,8 +36,8 @@ class TestPythonPipWorkflow(TestCase):
         self.runtime_mismatch = {
             'python3.6': 'python2.7',
             'python3.7': 'python2.7',
-            'python2.7': 'python3.6'
-
+            'python2.7': 'python3.8',
+            'python3.8': 'python2.7'
         }
 
     def tearDown(self):
@@ -48,7 +48,10 @@ class TestPythonPipWorkflow(TestCase):
         self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                            runtime=self.runtime)
 
-        expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
+        if self.runtime == "python2.7":
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
+        else:
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEquals(expected_files, output_files)
 
@@ -72,7 +75,11 @@ class TestPythonPipWorkflow(TestCase):
             self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid,
                                runtime=self.runtime)
 
-        self.assertIn("Invalid requirement: 'adfasf=1.2.3'", str(ctx.exception))
+        # In Python2 a 'u' is now added to the exception string. To account for this, we see if either one is in the
+        # output
+        message_in_exception = "Invalid requirement: 'adfasf=1.2.3'" in str(ctx.exception) or \
+                               "Invalid requirement: u'adfasf=1.2.3'" in str(ctx.exception)
+        self.assertTrue(message_in_exception)
 
     def test_must_fail_if_requirements_not_found(self):
 
