@@ -14,22 +14,25 @@ class GradleValidator(object):
     VERSION_STRING_WARNING = "%s failed to return a version string using the '-v' option. The workflow is unable to " \
                              "check that the version of the JVM used is compatible with AWS Lambda."
 
-    MAJOR_VERSION_WARNING = "%s is using a JVM with major version %s which is newer than 8 that is supported by AWS " \
+    MAJOR_VERSION_WARNING = "%s is using a JVM with major version %s which is newer than %s that is supported by AWS " \
                             "Lambda. The compiled function code may not run in AWS Lambda unless the project has " \
-                            "been configured to be compatible with Java 8 using 'targetCompatibility' in Gradle."
+                            "been configured to be compatible with Java %s using 'targetCompatibility' in Gradle."
 
-    def __init__(self, os_utils=None, log=None):
+    def __init__(self, runtime, os_utils=None, log=None):
         self.language = 'java'
         self._valid_binary_path = None
+        self._runtime = runtime
         self.os_utils = OSUtils() if not os_utils else os_utils
         self.log = LOG if not log else log
 
     def validate(self, gradle_path):
         jvm_mv = self._get_major_version(gradle_path)
 
+        language_version = self._runtime.replace('java', '')
+
         if jvm_mv:
-            if int(jvm_mv) > 8:
-                self.log.warning(self.MAJOR_VERSION_WARNING, gradle_path, jvm_mv)
+            if int(jvm_mv) > int(language_version):
+                self.log.warning(self.MAJOR_VERSION_WARNING, gradle_path, jvm_mv, language_version, language_version)
         else:
             self.log.warning(self.VERSION_STRING_WARNING, gradle_path)
 
