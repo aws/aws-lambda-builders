@@ -55,7 +55,7 @@ class JavaGradleWorkflow(BaseWorkflow):
         return [GradleResolver(executable_search_paths=self.executable_search_paths)]
 
     def get_validators(self):
-        return [GradleValidator(self.os_utils)]
+        return [GradleValidator(self.runtime, self.os_utils)]
 
     @property
     def build_output_dir(self):

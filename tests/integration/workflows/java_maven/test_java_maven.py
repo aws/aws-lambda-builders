@@ -15,7 +15,7 @@ class TestJavaMaven(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.builder = LambdaBuilder(language='java', dependency_manager='maven', application_framework=None)
-        self.runtime = 'java'
+        self.runtime = 'java8'
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
