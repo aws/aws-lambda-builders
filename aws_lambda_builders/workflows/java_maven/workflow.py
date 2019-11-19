@@ -55,4 +55,4 @@ class JavaMavenWorkflow(BaseWorkflow):
         return [MavenResolver(executable_search_paths=self.executable_search_paths)]
 
     def get_validators(self):
-        return [MavenValidator(self.os_utils)]
+        return [MavenValidator(self.runtime, self.os_utils)]

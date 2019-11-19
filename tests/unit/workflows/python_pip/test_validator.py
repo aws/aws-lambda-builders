@@ -24,7 +24,8 @@ class TestPythonRuntimeValidator(TestCase):
     @parameterized.expand([
         "python2.7",
         "python3.6",
-        "python3.7"
+        "python3.7",
+        "python3.8",
     ])
     def test_supported_runtimes(self, runtime):
         validator = PythonRuntimeValidator(runtime=runtime)

@@ -1,48 +1,130 @@
 version: 1.0.{build}
-image: Visual Studio 2017
+image:
+  - Visual Studio 2017
+  - Ubuntu
 
 environment:
   GOPATH: c:\gopath
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
+  nodejs_version: "8.10.0"
 
   matrix:
 
   - PYTHON: "C:\\Python27-x64"
+    PYTHON_VERSION: '2.7.16'
+    PYTHON_ARCH: '64'
+    LINE_COVERAGE: '91'
+    NEW_FLAKE8: 0
+    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
   - PYTHON: "C:\\Python36-x64"
+    PYTHON_VERSION: '3.6.8'
+    PYTHON_ARCH: '64'
+    LINE_COVERAGE: '91'
+    NEW_FLAKE8: 0
+    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
   - PYTHON: "C:\\Python37-x64"
+    PYTHON_VERSION: '3.7.4'
+    PYTHON_ARCH: '64'
+    LINE_COVERAGE: '91'
+    NEW_FLAKE8: 0
+    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+  - PYTHON: "C:\\Python38-x64"
+    PYTHON_VERSION: '3.8.0'
+    PYTHON_ARCH: '64'
+    LINE_COVERAGE: '72'
+    NEW_FLAKE8: 1
+    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
 
 
 build: off
 
-install:
-# To run Nodejs workflow integ tests
-- ps: Install-Product node 8.10
+for:
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2017
 
-- "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
-- "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
-- "%PYTHON%\\python.exe -m pip install -e ."
-- "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
-- "gem --version"
-- "gem install bundler -v 1.17.3"
-- "bundler --version"
-- "echo %PATH%"
+    install:
+    # To run Nodejs workflow integ tests
+    - ps: Install-Product node 8.10
 
-# setup go
-- rmdir c:\go /s /q
-- "choco install golang"
-- "choco install bzr"
-- "choco install dep"
-- setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
-- "go version"
-- "go env"
+    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+    - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
+    - "%PYTHON%\\python.exe -m pip install -e ."
+    - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
+    - "gem --version"
+    - "gem install bundler -v 1.17.3"
+    - "bundler --version"
+    - "echo %PATH%"
 
-# setup Gradle
-- "choco install gradle"
+    # setup go
+    - rmdir c:\go /s /q
+    - "choco install golang"
+    - "choco install bzr"
+    - "choco install dep"
+    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+    - "go version"
+    - "go env"
 
-# Echo final Path
-- "echo %PATH%"
+    # setup Gradle
+    - "choco install gradle"
 
-test_script:
-- "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
-- "%PYTHON%\\python.exe -m pytest tests/integration"
+    # Echo final Path
+    - "echo %PATH%"
+
+    test_script:
+    - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
+    - "%PYTHON%\\python.exe -m pytest tests/integration"
+
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+
+    install:
+      - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
+      - sh: "PATH=$JAVA_HOME/bin:$PATH"
+      - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+      - sh: "rvm use 2.5"
+      - sh: "nvm install ${nodejs_version}"
+      - sh: "npm install npm@5.6.0 -g"
+      - sh: "npm -v"
+      - sh: "echo $PATH"
+      - sh: "java --version"
+
+      # Install latest gradle
+      - sh: "sudo apt-get -y remove gradle"
+      - sh: "sudo apt-get install go-dep"
+      - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
+      - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
+
+    build_script:
+      - "python -c \"import sys; print(sys.executable)\""
+      - "LAMBDA_BUILDERS_DEV=1 pip install -e \".[dev]\""
+
+    test_script:
+      - "LAMBDA_BUILDERS_DEV=1 pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under ${LINE_COVERAGE} tests/unit tests/functional"
+      - "pylint --rcfile .pylintrc aws_lambda_builders"
+
+      # Runs only in Linux
+      - "LAMBDA_BUILDERS_DEV=1 pytest -vv tests/integration"
+
+  -
+    matrix:
+      only:
+        - OLD_FLAKE8: 1
+
+    test_script:
+      - "flake8 lambda_builders"
+      - "flake8 tests/unit tests/integration"
+
+  -
+    matrix:
+      only:
+        - NEW_FLAKE8: 0
+
+    test_script:
+      - "flake8 lambda_builders"
+      - "flake8 tests/unit tests/integration --extend-ignore=W504"
