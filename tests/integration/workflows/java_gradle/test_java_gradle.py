@@ -17,7 +17,7 @@ class TestJavaGradle(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.builder = LambdaBuilder(language='java', dependency_manager='gradle', application_framework=None)
-        self.runtime = 'java'
+        self.runtime = 'java11'
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)

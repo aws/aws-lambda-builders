@@ -70,7 +70,8 @@ def get_lambda_abi(runtime):
     supported = {
         "python2.7": "cp27mu",
         "python3.6": "cp36m",
-        "python3.7": "cp37m"
+        "python3.7": "cp37m",
+        "python3.8": "cp38"
     }
 
     if runtime not in supported:

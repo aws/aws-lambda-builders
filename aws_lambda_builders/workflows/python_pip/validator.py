@@ -15,7 +15,8 @@ class PythonRuntimeValidator(object):
     SUPPORTED_RUNTIMES = {
         "python2.7",
         "python3.6",
-        "python3.7"
+        "python3.7",
+        "python3.8"
     }
 
     def __init__(self, runtime):

@@ -16,7 +16,7 @@ integ-test:
 flake:
 	# Make sure code conforms to PEP8 standards
 	flake8 lambda_builders
-	flake8 tests/unit tests/integration
+	flake8 tests/unit tests/integration --extend-ignore=W504
 
 lint:
 	# Liner performs static analysis to catch latent bugs
