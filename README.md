@@ -1,7 +1,6 @@
 ## Lambda Builders
 
-[![AppVeyor Status](https://ci.appveyor.com/api/projects/status/txv6gk69614727nu?svg=true)](https://ci.appveyor.com/project/sanathkr/aws-lambda-builders-3bxwl)
-[![Travis Status](https://travis-ci.org/awslabs/aws-lambda-builders.svg?branch=develop)](https://travis-ci.org/awslabs/aws-lambda-builders)
+[![Build status](https://ci.appveyor.com/api/projects/status/mrehrn5im0305lje/branch/develop?svg=true)](https://ci.appveyor.com/project/AWSSAMCLI/aws-lambda-builders/branch/develop)
 
 Lambda Builders is a Python library to compile, build and package AWS Lambda functions for several runtimes & 
 frameworks.
