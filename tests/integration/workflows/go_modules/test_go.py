@@ -2,13 +2,12 @@ import os
 import shutil
 import tempfile
 
-from unittest import TestCase
-
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from tests.integration.workflows.test_integ_base import TestIntegBase
 
 
-class TestGoWorkflow(TestCase):
+class TestGoWorkflow(TestIntegBase):
     """
     Verifies that `go` workflow works by building a Lambda using Go Modules
     """

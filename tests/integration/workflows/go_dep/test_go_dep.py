@@ -2,13 +2,12 @@ import os
 import shutil
 import tempfile
 
-from unittest import TestCase
-
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from tests.integration.workflows.test_integ_base import TestIntegBase
 
 
-class TestGoDep(TestCase):
+class TestGoDep(TestIntegBase):
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "data")
 
     def setUp(self):

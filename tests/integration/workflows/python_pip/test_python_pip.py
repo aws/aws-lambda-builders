@@ -3,13 +3,13 @@ import os
 import shutil
 import sys
 import tempfile
-from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from tests.integration.workflows.test_integ_base import TestIntegBase
 
 
-class TestPythonPipWorkflow(TestCase):
+class TestPythonPipWorkflow(TestIntegBase):
     """
     Verifies that `python_pip` workflow works by building a Lambda that requires Numpy
     """
@@ -17,7 +17,8 @@ class TestPythonPipWorkflow(TestCase):
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
 
     def setUp(self):
-        self.source_dir = self.TEST_DATA_FOLDER
+        super(TestPythonPipWorkflow, self).setUp()
+        self.ro_source(self.TEST_DATA_FOLDER)
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
 
@@ -43,9 +44,10 @@ class TestPythonPipWorkflow(TestCase):
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
+        super(TestPythonPipWorkflow, self).tearDown()
 
     def test_must_build_python_project(self):
-        self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
+        self.builder.build(self.ro_source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                            runtime=self.runtime)
 
         if self.runtime == "python2.7":
@@ -59,20 +61,19 @@ class TestPythonPipWorkflow(TestCase):
         # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python2.7
         # is still accessible within a python 3 virtualenv.
         try:
-            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
+            self.builder.build(self.ro_source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                                runtime=self.runtime_mismatch[self.runtime])
         except WorkflowFailedError as ex:
             self.assertIn("Binary validation failed!", str(ex))
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
         with self.assertRaises(WorkflowFailedError):
-            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
+            self.builder.build(self.ro_source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid,
                                runtime="python2.8")
 
     def test_must_fail_to_resolve_dependencies(self):
-
         with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid,
+            self.builder.build(self.ro_source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid,
                                runtime=self.runtime)
 
         # In Python2 a 'u' is now added to the exception string. To account for this, we see if either one is in the
@@ -82,13 +83,12 @@ class TestPythonPipWorkflow(TestCase):
         self.assertTrue(message_in_exception)
 
     def test_must_fail_if_requirements_not_found(self):
-
         with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(self.source_dir, self.artifacts_dir, self.scratch_dir,
+            self.builder.build(self.ro_source_dir, self.artifacts_dir, self.scratch_dir,
                                os.path.join("non", "existent", "manifest"),
                                runtime=self.runtime)
 
-            self.builder.build(self.source_dir, self.artifacts_dir,
+            self.builder.build(self.ro_source_dir, self.artifacts_dir,
                                self.scratch_dir,
                                os.path.join("non", "existent", "manifest"),
                                runtime=self.runtime)
