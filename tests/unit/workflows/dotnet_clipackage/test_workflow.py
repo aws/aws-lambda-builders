@@ -5,7 +5,6 @@ from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolIn
 
 
 class TestDotnetCliPackageWorkflow(TestCase):
-
     def test_actions(self):
         workflow = DotnetCliPackageWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path")
         self.assertEqual(workflow.actions.__len__(), 2)

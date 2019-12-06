@@ -6,7 +6,6 @@ from aws_lambda_builders.utils import which
 
 
 class PathResolver(object):
-
     def __init__(self, binary, runtime, executable_search_paths=None):
         self.binary = binary
         self.runtime = runtime
@@ -20,8 +19,9 @@ class PathResolver(object):
             exec_paths.extend(paths)
 
         if not exec_paths:
-            raise ValueError("Path resolution for runtime: {} of binary: "
-                             "{} was not successful".format(self.runtime, self.binary))
+            raise ValueError(
+                "Path resolution for runtime: {} of binary: " "{} was not successful".format(self.runtime, self.binary)
+            )
         return exec_paths
 
     @property

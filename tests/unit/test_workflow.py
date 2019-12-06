@@ -18,13 +18,11 @@ from aws_lambda_builders.actions import ActionFailedError
 
 class TestRegisteringWorkflows(TestCase):
 
-    CAPABILITY1 = Capability(language="test",
-                             dependency_manager="testframework",
-                             application_framework="appframework")
+    CAPABILITY1 = Capability(language="test", dependency_manager="testframework", application_framework="appframework")
 
-    CAPABILITY2 = Capability(language="test2",
-                             dependency_manager="testframework2",
-                             application_framework="appframework2")
+    CAPABILITY2 = Capability(
+        language="test2", dependency_manager="testframework2", application_framework="appframework2"
+    )
 
     def tearDown(self):
         DEFAULT_REGISTRY.clear()
@@ -41,7 +39,6 @@ class TestRegisteringWorkflows(TestCase):
         self.assertEquals(result_cls, TestWorkflow)
 
     def test_must_register_two_workflows(self):
-
         class TestWorkflow1(BaseWorkflow):
             NAME = "TestWorkflow"
             CAPABILITY = self.CAPABILITY1
@@ -57,6 +54,7 @@ class TestRegisteringWorkflows(TestCase):
     def test_must_fail_if_name_not_present(self):
 
         with self.assertRaises(ValueError) as ctx:
+
             class TestWorkflow1(BaseWorkflow):
                 CAPABILITY = self.CAPABILITY1
 
@@ -66,6 +64,7 @@ class TestRegisteringWorkflows(TestCase):
     def test_must_fail_if_capabilities_not_present(self):
 
         with self.assertRaises(ValueError) as ctx:
+
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
 
@@ -75,6 +74,7 @@ class TestRegisteringWorkflows(TestCase):
     def test_must_fail_if_capabilities_is_wrong_type(self):
 
         with self.assertRaises(ValueError) as ctx:
+
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
                 CAPABILITY = "wrong data type"
@@ -84,20 +84,24 @@ class TestRegisteringWorkflows(TestCase):
 
 
 class TestBaseWorkflow_init(TestCase):
-
     class MyWorkflow(BaseWorkflow):
         __TESTING__ = True
         NAME = "MyWorkflow"
-        CAPABILITY = Capability(language="test",
-                                dependency_manager="testframework",
-                                application_framework="appframework")
+        CAPABILITY = Capability(
+            language="test", dependency_manager="testframework", application_framework="appframework"
+        )
 
     def test_must_initialize_variables(self):
-        self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                                    runtime="runtime",
-                                    executable_search_paths=[str(sys.executable)],
-                                    optimizations={"a": "b"},
-                                    options={"c": "d"})
+        self.work = self.MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[str(sys.executable)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
 
         self.assertEquals(self.work.source_dir, "source_dir")
         self.assertEquals(self.work.artifacts_dir, "artifacts_dir")
@@ -110,20 +114,24 @@ class TestBaseWorkflow_init(TestCase):
 
 
 class TestBaseWorkflow_is_supported(TestCase):
-
     class MyWorkflow(BaseWorkflow):
         __TESTING__ = True
         NAME = "MyWorkflow"
-        CAPABILITY = Capability(language="test",
-                                dependency_manager="testframework",
-                                application_framework="appframework")
+        CAPABILITY = Capability(
+            language="test", dependency_manager="testframework", application_framework="appframework"
+        )
 
     def setUp(self):
-        self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                                    runtime="runtime",
-                                    executable_search_paths=[],
-                                    optimizations={"a": "b"},
-                                    options={"c": "d"})
+        self.work = self.MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
 
     def test_must_ignore_manifest_if_not_provided(self):
         self.work.SUPPORTED_MANIFESTS = []  # No manifest provided
@@ -148,20 +156,24 @@ class TestBaseWorkflow_is_supported(TestCase):
 
 
 class TestBaseWorkflow_run(TestCase):
-
     class MyWorkflow(BaseWorkflow):
         __TESTING__ = True
         NAME = "MyWorkflow"
-        CAPABILITY = Capability(language="test",
-                                dependency_manager="testframework",
-                                application_framework="appframework")
+        CAPABILITY = Capability(
+            language="test", dependency_manager="testframework", application_framework="appframework"
+        )
 
     def setUp(self):
-        self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                                    runtime="runtime",
-                                    executable_search_paths=[],
-                                    optimizations={"a": "b"},
-                                    options={"c": "d"})
+        self.work = self.MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
 
     def test_get_binaries(self):
         self.assertIsNotNone(self.work.binaries)
@@ -177,9 +189,9 @@ class TestBaseWorkflow_run(TestCase):
         action_mock = Mock()
         validator_mock = Mock()
         validator_mock.validate = Mock()
-        validator_mock.validate.return_value = '/usr/bin/binary'
+        validator_mock.validate.return_value = "/usr/bin/binary"
         resolver_mock = Mock()
-        resolver_mock.exec_paths = ['/usr/bin/binary']
+        resolver_mock.exec_paths = ["/usr/bin/binary"]
         binaries_mock = Mock()
         binaries_mock.return_value = []
 
@@ -189,9 +201,9 @@ class TestBaseWorkflow_run(TestCase):
         self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         self.work.run()
 
-        self.assertEquals(action_mock.method_calls, [
-            call.action1.execute(), call.action2.execute(), call.action3.execute()
-        ])
+        self.assertEquals(
+            action_mock.method_calls, [call.action1.execute(), call.action2.execute(), call.action3.execute()]
+        )
         self.assertTrue(validator_mock.validate.call_count, 1)
 
     def test_must_raise_with_no_actions(self):
@@ -230,23 +242,27 @@ class TestBaseWorkflow_run(TestCase):
         # Run workflow with supplied executable path to search for executables.
         action_mock = Mock()
 
-        self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                                    runtime="runtime",
-                                    executable_search_paths=[str(pathlib.Path(os.getcwd()).parent)],
-                                    optimizations={"a": "b"},
-                                    options={"c": "d"})
+        self.work = self.MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[str(pathlib.Path(os.getcwd()).parent)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
         self.work.run()
 
 
 class TestBaseWorkflow_repr(TestCase):
-
     class MyWorkflow(BaseWorkflow):
         __TESTING__ = True
         NAME = "MyWorkflow"
-        CAPABILITY = Capability(language="test",
-                                dependency_manager="testframework",
-                                application_framework="appframework")
+        CAPABILITY = Capability(
+            language="test", dependency_manager="testframework", application_framework="appframework"
+        )
 
     def setUp(self):
         self.action1 = Mock()
@@ -254,16 +270,21 @@ class TestBaseWorkflow_repr(TestCase):
         self.action3 = Mock()
 
         self.action1.__repr__ = Mock(return_value="Name=Action1, Purpose=COPY_SOURCE, Description=Copies source code")
-        self.action2.__repr__ = Mock(return_value="Name=Action2, Purpose=RESOLVE_DEPENDENCIES,"
-                                                  " Description=Resolves dependencies")
-        self.action3.__repr__ = Mock(return_value="Name=Action3, Purpose=COMPILE_SOURCE, "
-                                                  "Description=Compiles code")
+        self.action2.__repr__ = Mock(
+            return_value="Name=Action2, Purpose=RESOLVE_DEPENDENCIES," " Description=Resolves dependencies"
+        )
+        self.action3.__repr__ = Mock(return_value="Name=Action3, Purpose=COMPILE_SOURCE, " "Description=Compiles code")
 
-        self.work = self.MyWorkflow("source_dir", "artifacts_dir", "scratch_dir", "manifest_path",
-                                    runtime="runtime",
-                                    executable_search_paths=[],
-                                    optimizations={"a": "b"},
-                                    options={"c": "d"})
+        self.work = self.MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
 
     def test_must_pretty_print_workflow_info(self):
         self.work.actions = [self.action1, self.action2, self.action3]

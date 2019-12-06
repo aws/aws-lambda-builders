@@ -18,12 +18,13 @@ class ExecutionError(Exception):
     def __init__(self, message):
         raw_message = message
         if isinstance(message, bytes):
-            message = message.decode('utf-8')
+            message = message.decode("utf-8")
 
         try:
             Exception.__init__(self, self.MESSAGE.format(message.strip()))
         except UnicodeError:
             Exception.__init__(self, self.MESSAGE.format(raw_message.strip()))
+
 
 class SubprocessExec(object):
 
@@ -44,7 +45,6 @@ class SubprocessExec(object):
         self.osutils = osutils
 
         self.binary = binary
-
 
     def run(self, args, cwd=None, env=None):
 
@@ -77,17 +77,13 @@ class SubprocessExec(object):
 
         LOG.debug("executing binary: %s", invoke_bin)
 
-        p = self.osutils.popen(invoke_bin,
-                               stdout=self.osutils.pipe,
-                               stderr=self.osutils.pipe,
-                               cwd=cwd,
-                               env=env)
+        p = self.osutils.popen(invoke_bin, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd, env=env)
 
         out, err = p.communicate()
 
         if p.returncode != 0:
             raise ExecutionError(message=err)
 
-        out = out.decode('utf-8') if isinstance(out, bytes) else out
+        out = out.decode("utf-8") if isinstance(out, bytes) else out
 
         return out.strip()

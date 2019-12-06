@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 # ``Language`` is the programming language. Ex: Python
 # ``LangageFramework`` is the framework of particular language. Ex: PIP
 # ``ApplicationFramework`` is the specific application framework used to write the code. Ex: Chalice
-Capability = namedtuple('Capability', ["language", "dependency_manager", "application_framework"])
+Capability = namedtuple("Capability", ["language", "dependency_manager", "application_framework"])
 
 
 class BuildMode(object):
@@ -51,18 +51,16 @@ def sanitize(func):
                 try:
                     valid_path = validator.validate(executable_path)
                 except MisMatchRuntimeError as ex:
-                    LOG.debug("Invalid executable for %s at %s",
-                              binary, executable_path, exc_info=str(ex))
+                    LOG.debug("Invalid executable for %s at %s", binary, executable_path, exc_info=str(ex))
                 if valid_path:
                     binary_path.binary_path = valid_path
                     valid_paths.append(valid_path)
                     break
         self.binaries = binaries_copy
         if len(self.binaries) != len(valid_paths):
-            raise WorkflowFailedError(workflow_name=self.NAME,
-                                      action_name=None,
-                                      reason='Binary validation failed!')
+            raise WorkflowFailedError(workflow_name=self.NAME, action_name=None, reason="Binary validation failed!")
         func(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -80,7 +78,7 @@ class _WorkflowMetaClass(type):
 
         # We don't want to register the base classes, so we simply return here.
         # Also, skip further steps if the class is marked for testing
-        if cls.__name__ == 'BaseWorkflow' or cls.__TESTING__:
+        if cls.__name__ == "BaseWorkflow" or cls.__TESTING__:
             return cls
 
         # Validate class variables
@@ -117,16 +115,18 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
     # Optional list of manifests file/folder names supported by this workflow.
     SUPPORTED_MANIFESTS = []
 
-    def __init__(self,
-                 source_dir,
-                 artifacts_dir,
-                 scratch_dir,
-                 manifest_path,
-                 runtime=None,
-                 executable_search_paths=None,
-                 optimizations=None,
-                 options=None,
-                 mode=BuildMode.RELEASE):
+    def __init__(
+        self,
+        source_dir,
+        artifacts_dir,
+        scratch_dir,
+        manifest_path,
+        runtime=None,
+        executable_search_paths=None,
+        optimizations=None,
+        options=None,
+        mode=BuildMode.RELEASE,
+    ):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
         build action must support at the minimum.
@@ -199,8 +199,13 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
         Non specialized path resolver that just returns the list of executable for the runtime on the path.
         """
-        return [PathResolver(runtime=self.runtime, binary=self.CAPABILITY.language,
-                             executable_search_paths=self.executable_search_paths)]
+        return [
+            PathResolver(
+                runtime=self.runtime,
+                binary=self.CAPABILITY.language,
+                executable_search_paths=self.executable_search_paths,
+            )
+        ]
 
     def get_validators(self):
         """
@@ -213,8 +218,10 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         if not self._binaries:
             resolvers = self.get_resolvers()
             validators = self.get_validators()
-            self._binaries = {resolver.binary: BinaryPath(resolver=resolver, validator=validator, binary=resolver.binary)
-                             for resolver, validator in zip(resolvers, validators)}
+            self._binaries = {
+                resolver.binary: BinaryPath(resolver=resolver, validator=validator, binary=resolver.binary)
+                for resolver, validator in zip(resolvers, validators)
+            }
         return self._binaries
 
     @binaries.setter
@@ -235,9 +242,9 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         LOG.debug("Running workflow '%s'", self.NAME)
 
         if not self.actions:
-            raise WorkflowFailedError(workflow_name=self.NAME,
-                                      action_name=None,
-                                      reason="Workflow does not have any actions registered")
+            raise WorkflowFailedError(
+                workflow_name=self.NAME, action_name=None, reason="Workflow does not have any actions registered"
+            )
 
         for action in self.actions:
             action_info = "{}:{}".format(self.NAME, action.NAME)
@@ -252,15 +259,11 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             except ActionFailedError as ex:
                 LOG.debug("%s failed", action_info, exc_info=ex)
 
-                raise WorkflowFailedError(workflow_name=self.NAME,
-                                          action_name=action.NAME,
-                                          reason=str(ex))
+                raise WorkflowFailedError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))
             except Exception as ex:
                 LOG.debug("%s raised unhandled exception", action_info, exc_info=ex)
 
-                raise WorkflowUnknownError(workflow_name=self.NAME,
-                                           action_name=action.NAME,
-                                           reason=str(ex))
+                raise WorkflowUnknownError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))
 
     def __repr__(self):
         """

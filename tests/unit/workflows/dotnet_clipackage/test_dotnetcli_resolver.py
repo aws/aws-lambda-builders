@@ -5,7 +5,6 @@ from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli_resolver import D
 
 
 class TestDotnetCliResolver(TestCase):
-
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value

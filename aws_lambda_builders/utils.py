@@ -59,6 +59,7 @@ def copytree(source, destination, ignore=None):
         else:
             shutil.copy2(new_source, new_destination)
 
+
 # NOTE: The below function is copied from Python source code and modified
 # slightly to return a list of paths that match a given command
 #  instead of returning just the first match
