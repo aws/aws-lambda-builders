@@ -4,6 +4,7 @@ Wrapper around calls to dotent CLI through a subprocess.
 
 import sys
 import logging
+import os
 
 from .utils import OSUtils
 
@@ -36,7 +37,7 @@ class SubprocessDotnetCLI(object):
 
         self.dotnet_exe = dotnet_exe
 
-    def run(self, args, cwd=None):
+    def run(self, args, tool_dir=None, cwd=None):
         if not isinstance(args, list):
             raise ValueError('args must be a list')
 
@@ -47,9 +48,17 @@ class SubprocessDotnetCLI(object):
 
         LOG.debug("executing dotnet: %s", invoke_dotnet)
 
+        if tool_dir is None:
+            env = None
+        else:
+            env = SubprocessDotnetCLI._merge(
+                os.environ,
+                PATH=os.pathsep.join([tool_dir, os.environ['PATH']]))
+
         p = self.os_utils.popen(invoke_dotnet,
                              stdout=self.os_utils.pipe,
                              stderr=self.os_utils.pipe,
+                             env=env,
                              cwd=cwd)
 
         out, err = p.communicate()
@@ -61,3 +70,15 @@ class SubprocessDotnetCLI(object):
 
         if p.returncode != 0:
             raise DotnetCLIExecutionError(message=err.decode('utf8').strip())
+
+    # The {**x, **y} syntax will not work in Python 2.
+    @staticmethod
+    def _merge(left, **right):
+        """
+        Shallowly merges the elements of `right` onto a copy of `left`
+        and returns that copy.
+        """
+
+        output = left.copy()
+        output.update(right)
+        return output

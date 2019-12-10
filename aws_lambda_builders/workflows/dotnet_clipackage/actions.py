@@ -22,21 +22,22 @@ class GlobalToolInstallAction(BaseAction):
     DESCRIPTION = "Install or update the Amazon.Lambda.Tools .NET Core Global Tool."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, subprocess_dotnet):
+    def __init__(self, subprocess_dotnet, tool_dir):
         super(GlobalToolInstallAction, self).__init__()
         self.subprocess_dotnet = subprocess_dotnet
+        self.tool_dir = tool_dir
 
     def execute(self):
         try:
             LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
             self.subprocess_dotnet.run(
-                ['tool', 'install', '-g', 'Amazon.Lambda.Tools'],
+                ['tool', 'install', '--tool-path', self.tool_dir, 'Amazon.Lambda.Tools'],
             )
         except DotnetCLIExecutionError as ex:
             LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
             try:
                 self.subprocess_dotnet.run(
-                    ['tool', 'update', '-g', 'Amazon.Lambda.Tools'],
+                    ['tool', 'update', '--tool-path', self.tool_dir, 'Amazon.Lambda.Tools'],
                 )
             except DotnetCLIExecutionError as ex:
                 raise ActionFailedError("Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex))
@@ -50,11 +51,12 @@ class RunPackageAction(BaseAction):
     DESCRIPTION = "Execute the `dotnet lambda package` command."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options, mode, os_utils=None):
+    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, tool_dir, options, mode, os_utils=None):
         super(RunPackageAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_dotnet = subprocess_dotnet
         self.artifacts_dir = artifacts_dir
+        self.tool_dir = tool_dir
         self.options = options
         self.mode = mode
         self.os_utils = os_utils if os_utils else OSUtils()
@@ -80,6 +82,7 @@ class RunPackageAction(BaseAction):
 
             self.subprocess_dotnet.run(
                 arguments,
+                tool_dir=self.tool_dir,
                 cwd=self.source_dir
             )
 

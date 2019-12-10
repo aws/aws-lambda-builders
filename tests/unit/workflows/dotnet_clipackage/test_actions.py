@@ -1,7 +1,7 @@
 from unittest import TestCase
-from mock import patch
 import os
 import platform
+from mock import patch
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
@@ -13,26 +13,30 @@ class TestGlobalToolInstallAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
     def setUp(self, MockSubprocessDotnetCLI):
         self.subprocess_dotnet = MockSubprocessDotnetCLI.return_value
+        self.scratch_dir = os.path.join('/scratch_dir')
 
     def tearDown(self):
         self.subprocess_dotnet.reset_mock()
 
     def test_global_tool_install(self):
-        action = GlobalToolInstallAction(self.subprocess_dotnet)
+        action = GlobalToolInstallAction(self.subprocess_dotnet, self.scratch_dir)
         action.execute()
-        self.subprocess_dotnet.run.assert_called_once_with(['tool', 'install', '-g', 'Amazon.Lambda.Tools'])
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ['tool', 'install', '--tool-path', self.scratch_dir, 'Amazon.Lambda.Tools'])
 
     def test_global_tool_update(self):
         self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="Already Installed"), None]
-        action = GlobalToolInstallAction(self.subprocess_dotnet)
+        action = GlobalToolInstallAction(self.subprocess_dotnet, self.scratch_dir)
         action.execute()
-        self.subprocess_dotnet.run.assert_any_call(['tool', 'install', '-g', 'Amazon.Lambda.Tools'])
-        self.subprocess_dotnet.run.assert_any_call(['tool', 'update', '-g', 'Amazon.Lambda.Tools'])
+        self.subprocess_dotnet.run.assert_any_call(
+            ['tool', 'install', '--tool-path', self.scratch_dir, 'Amazon.Lambda.Tools'])
+        self.subprocess_dotnet.run.assert_any_call(
+            ['tool', 'update', '--tool-path', self.scratch_dir, 'Amazon.Lambda.Tools'])
 
     def test_global_tool_update_failed(self):
         self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="Already Installed"),
                                                   DotnetCLIExecutionError(message="Updated Failed")]
-        action = GlobalToolInstallAction(self.subprocess_dotnet)
+        action = GlobalToolInstallAction(self.subprocess_dotnet, self.scratch_dir)
         self.assertRaises(ActionFailedError, action.execute)
 
 
@@ -54,21 +58,22 @@ class TestRunPackageAction(TestCase):
         mode = "Release"
 
         options = {}
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
-                                  self.os_utils)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, self.scratch_dir,
+                                  options, mode, self.os_utils)
 
         action.execute()
 
         zipFilePath = os.path.join('/', 'artifacts_dir', 'source_dir.zip')
 
         self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package', zipFilePath],
+                                                           tool_dir='/scratch_dir',
                                                            cwd='/source_dir')
 
     def test_build_package_arguments(self):
         mode = "Release"
         options = {"--framework": "netcoreapp2.1"}
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
-                                  self.os_utils)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, self.scratch_dir,
+                                  options, mode, self.os_utils)
 
         action.execute()
 
@@ -79,6 +84,7 @@ class TestRunPackageAction(TestCase):
 
         self.subprocess_dotnet.run.assert_called_once_with(['lambda', 'package', '--output-package',
                                                             zipFilePath, '--framework', 'netcoreapp2.1'],
+                                                           tool_dir='/scratch_dir',
                                                            cwd='/source_dir')
 
     def test_build_error(self):
@@ -86,16 +92,16 @@ class TestRunPackageAction(TestCase):
 
         self.subprocess_dotnet.run.side_effect = DotnetCLIExecutionError(message="Failed Package")
         options = {}
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
-                                  self.os_utils)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, self.scratch_dir,
+                                  options, mode, self.os_utils)
 
         self.assertRaises(ActionFailedError, action.execute)
 
     def test_debug_configuration_set(self):
         mode = "Debug"
         options = None
-        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode,
-                                  self.os_utils)
+        action = RunPackageAction(self.source_dir, self.subprocess_dotnet, self.artifacts_dir, self.scratch_dir,
+                                  options, mode, self.os_utils)
 
         zipFilePath = os.path.join('/', 'artifacts_dir', 'source_dir.zip')
 
@@ -103,4 +109,5 @@ class TestRunPackageAction(TestCase):
 
         self.subprocess_dotnet.run.assert_called_once_with(
             ['lambda', 'package', '--output-package', zipFilePath, '--configuration', 'Debug'],
+            tool_dir='/scratch_dir',
             cwd='/source_dir')
