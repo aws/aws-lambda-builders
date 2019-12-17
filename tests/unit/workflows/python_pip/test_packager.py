@@ -20,7 +20,7 @@ from aws_lambda_builders.workflows.python_pip.packager import PackageDownloadErr
 
 from aws_lambda_builders.workflows.python_pip import packager
 
-print(packager)
+print (packager)
 
 FakePipCall = namedtuple("FakePipEntry", ["args", "env_vars", "shim"])
 

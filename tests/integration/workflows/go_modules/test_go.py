@@ -37,7 +37,7 @@ class TestGoWorkflow(TestCase):
         )
         expected_files = {"no-deps-main"}
         output_files = set(os.listdir(self.artifacts_dir))
-        print(output_files)
+        print (output_files)
         self.assertEquals(expected_files, output_files)
 
     def test_builds_project_with_dependencies(self):
