@@ -1,8 +1,11 @@
 from unittest import TestCase
 
 from aws_lambda_builders.workflows.java_maven.workflow import JavaMavenWorkflow
-from aws_lambda_builders.workflows.java_maven.actions import \
-    JavaMavenBuildAction, JavaMavenCopyArtifactsAction, JavaMavenCopyDependencyAction
+from aws_lambda_builders.workflows.java_maven.actions import (
+    JavaMavenBuildAction,
+    JavaMavenCopyArtifactsAction,
+    JavaMavenCopyDependencyAction,
+)
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolver
 from aws_lambda_builders.workflows.java_maven.maven_validator import MavenValidator

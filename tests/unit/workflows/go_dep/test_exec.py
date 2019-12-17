@@ -15,7 +15,6 @@ class FakePopen:
 
 
 class TestSubprocessExec(TestCase):
-
     @patch("aws_lambda_builders.workflows.go_dep.utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
@@ -34,14 +33,16 @@ class TestSubprocessExec(TestCase):
     def test_uses_cwd_if_supplied(self):
         self.under_test.run(["did", "thing"], cwd="/a/cwd")
 
-        self.osutils.popen.assert_called_with(["bin", "did", "thing"],
-                                              cwd="/a/cwd", env=None, stderr="PIPE", stdout="PIPE")
+        self.osutils.popen.assert_called_with(
+            ["bin", "did", "thing"], cwd="/a/cwd", env=None, stderr="PIPE", stdout="PIPE"
+        )
 
     def test_uses_env_if_supplied(self):
         self.under_test.run(["did", "thing"], env={"foo": "bar"})
 
-        self.osutils.popen.assert_called_with(["bin", "did", "thing"],
-                                              cwd=None, env={"foo": "bar"}, stderr="PIPE", stdout="PIPE")
+        self.osutils.popen.assert_called_with(
+            ["bin", "did", "thing"], cwd=None, env={"foo": "bar"}, stderr="PIPE", stdout="PIPE"
+        )
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
         self.popen.out = "some encoded text\n\n"

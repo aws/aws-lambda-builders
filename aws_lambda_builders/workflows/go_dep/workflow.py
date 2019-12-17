@@ -14,6 +14,7 @@ from .subproc_exec import SubprocessExec
 
 LOG = logging.getLogger(__name__)
 
+
 class GoDepWorkflow(BaseWorkflow):
     """
     A Lambda builder workflow that knows how to build
@@ -22,27 +23,15 @@ class GoDepWorkflow(BaseWorkflow):
 
     NAME = "GoDepBuilder"
 
-    CAPABILITY = Capability(language="go",
-                            dependency_manager="dep",
-                            application_framework=None)
+    CAPABILITY = Capability(language="go", dependency_manager="dep", application_framework=None)
 
-    EXCLUDED_FILES = (".aws-sam")
+    EXCLUDED_FILES = ".aws-sam"
 
-    def __init__(self,
-                source_dir,
-                artifacts_dir,
-                scratch_dir,
-                manifest_path,
-                runtime=None,
-                osutils=None,
-                **kwargs):
+    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
-        super(GoDepWorkflow, self).__init__(source_dir,
-                                            artifacts_dir,
-                                            scratch_dir,
-                                            manifest_path,
-                                            runtime=runtime,
-                                            **kwargs)
+        super(GoDepWorkflow, self).__init__(
+            source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
+        )
 
         options = kwargs["options"] if "options" in kwargs else {}
         handler = options.get("artifact_executable_name", None)
@@ -59,5 +48,5 @@ class GoDepWorkflow(BaseWorkflow):
 
         self.actions = [
             DepEnsureAction(base_dir, subprocess_dep),
-            GoBuildAction(base_dir, osutils.abspath(source_dir), output_path, subprocess_go, env=osutils.environ)
+            GoBuildAction(base_dir, osutils.abspath(source_dir), output_path, subprocess_go, env=osutils.environ),
         ]

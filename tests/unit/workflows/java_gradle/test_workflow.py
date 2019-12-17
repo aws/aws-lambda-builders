@@ -43,7 +43,7 @@ class TestJavaGradleWorkflow(TestCase):
         workflow = JavaGradleWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
         sha1 = hashlib.sha1()
-        sha1.update(os.path.abspath(workflow.source_dir).encode('utf8'))
+        sha1.update(os.path.abspath(workflow.source_dir).encode("utf8"))
 
         expected_build_dir = os.path.join(workflow.scratch_dir, sha1.hexdigest())
 

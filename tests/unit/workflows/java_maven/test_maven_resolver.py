@@ -5,14 +5,13 @@ from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolve
 
 
 class TestMavenResolver(TestCase):
-
     @patch("aws_lambda_builders.workflows.java_gradle.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.mock_os_utils = MockOSUtils.return_value
         self.mock_os_utils.is_windows.side_effect = [False]
 
     def test_returns_maven_on_path(self):
-        maven_path = '/path/to/mvn'
+        maven_path = "/path/to/mvn"
         self.mock_os_utils.which.side_effect = lambda executable, executable_search_paths: [maven_path]
 
         resolver = MavenResolver(os_utils=self.mock_os_utils)
@@ -23,4 +22,4 @@ class TestMavenResolver(TestCase):
         resolver = MavenResolver(os_utils=self.mock_os_utils)
         with self.assertRaises(ValueError) as raised:
             resolver.exec_paths()
-        self.assertEquals(raised.exception.args[0], 'No Maven executable found!')
+        self.assertEquals(raised.exception.args[0], "No Maven executable found!")

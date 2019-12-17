@@ -4,7 +4,6 @@ Class containing resolved path of binary given a validator and a resolver and th
 
 
 class BinaryPath(object):
-
     def __init__(self, resolver, validator, binary, binary_path=None):
         self.resolver = resolver
         self.validator = validator

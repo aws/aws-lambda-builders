@@ -16,7 +16,7 @@ class OSUtils(object):
     """
 
     def extract_tarfile(self, tarfile_path, unpack_dir):
-        with tarfile.open(tarfile_path, 'r:*') as tar:
+        with tarfile.open(tarfile_path, "r:*") as tar:
             tar.extractall(unpack_dir)
 
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
@@ -37,4 +37,4 @@ class OSUtils(object):
         return os.path.abspath(path)
 
     def is_windows(self):
-        return platform.system().lower() == 'windows'
+        return platform.system().lower() == "windows"

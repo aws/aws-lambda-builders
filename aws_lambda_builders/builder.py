@@ -11,9 +11,7 @@ from aws_lambda_builders.workflow import Capability
 
 LOG = logging.getLogger(__name__)
 
-_SUPPORTED_WORKFLOWS = [
-    "aws_lambda_builders.workflows"
-]
+_SUPPORTED_WORKFLOWS = ["aws_lambda_builders.workflows"]
 
 
 class LambdaBuilder(object):
@@ -49,14 +47,24 @@ class LambdaBuilder(object):
             # If a module is already loaded, this call is pretty much a no-op. So it is okay to keep loading again.
             importlib.import_module(workflow_module)
 
-        self.capability = Capability(language=language,
-                                     dependency_manager=dependency_manager,
-                                     application_framework=application_framework)
+        self.capability = Capability(
+            language=language, dependency_manager=dependency_manager, application_framework=application_framework
+        )
         self.selected_workflow_cls = get_workflow(self.capability)
         LOG.debug("Found workflow '%s' to support capabilities '%s'", self.selected_workflow_cls.NAME, self.capability)
 
-    def build(self, source_dir, artifacts_dir, scratch_dir, manifest_path,
-              runtime=None, optimizations=None, options=None, executable_search_paths=None, mode=None):
+    def build(
+        self,
+        source_dir,
+        artifacts_dir,
+        scratch_dir,
+        manifest_path,
+        runtime=None,
+        optimizations=None,
+        options=None,
+        executable_search_paths=None,
+        mode=None,
+    ):
         """
         Actually build the code by running workflows
 
@@ -102,15 +110,17 @@ class LambdaBuilder(object):
         if not os.path.exists(scratch_dir):
             os.makedirs(scratch_dir)
 
-        workflow = self.selected_workflow_cls(source_dir,
-                                              artifacts_dir,
-                                              scratch_dir,
-                                              manifest_path,
-                                              runtime=runtime,
-                                              optimizations=optimizations,
-                                              options=options,
-                                              executable_search_paths=executable_search_paths,
-                                              mode=mode)
+        workflow = self.selected_workflow_cls(
+            source_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            runtime=runtime,
+            optimizations=optimizations,
+            options=options,
+            executable_search_paths=executable_search_paths,
+            mode=mode,
+        )
 
         return workflow.run()
 

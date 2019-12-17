@@ -40,9 +40,9 @@ class SubprocessNpm(object):
 
         if npm_exe is None:
             if osutils.is_windows():
-                npm_exe = 'npm.cmd'
+                npm_exe = "npm.cmd"
             else:
-                npm_exe = 'npm'
+                npm_exe = "npm"
 
         self.npm_exe = npm_exe
 
@@ -68,23 +68,20 @@ class SubprocessNpm(object):
         """
 
         if not isinstance(args, list):
-            raise ValueError('args must be a list')
+            raise ValueError("args must be a list")
 
         if not args:
-            raise ValueError('requires at least one arg')
+            raise ValueError("requires at least one arg")
 
         invoke_npm = [self.npm_exe] + args
 
         LOG.debug("executing NPM: %s", invoke_npm)
 
-        p = self.osutils.popen(invoke_npm,
-                               stdout=self.osutils.pipe,
-                               stderr=self.osutils.pipe,
-                               cwd=cwd)
+        p = self.osutils.popen(invoke_npm, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd)
 
         out, err = p.communicate()
 
         if p.returncode != 0:
-            raise NpmExecutionError(message=err.decode('utf8').strip())
+            raise NpmExecutionError(message=err.decode("utf8").strip())
 
-        return out.decode('utf8').strip()
+        return out.decode("utf8").strip()

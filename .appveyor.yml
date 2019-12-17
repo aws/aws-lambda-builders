@@ -12,13 +12,13 @@ environment:
   matrix:
 
   - PYTHON: "C:\\Python27-x64"
-    PYTHON_VERSION: '2.7.16'
+    PYTHON_VERSION: '2.7.17'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
     JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
   - PYTHON: "C:\\Python36-x64"
-    PYTHON_VERSION: '3.6.8'
+    PYTHON_VERSION: '3.6.9'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
@@ -100,6 +100,11 @@ for:
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
+      # Install black
+      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.3b0/black"
+      - sh: "chmod +x /tmp/black"
+      - sh: "/tmp/black --version"
+
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
       - "LAMBDA_BUILDERS_DEV=1 pip install -e \".[dev]\""
@@ -111,20 +116,5 @@ for:
       # Runs only in Linux
       - "LAMBDA_BUILDERS_DEV=1 pytest -vv tests/integration"
 
-  -
-    matrix:
-      only:
-        - OLD_FLAKE8: 1
-
-    test_script:
-      - "flake8 lambda_builders"
-      - "flake8 tests/unit tests/integration"
-
-  -
-    matrix:
-      only:
-        - NEW_FLAKE8: 0
-
-    test_script:
-      - "flake8 lambda_builders"
-      - "flake8 tests/unit tests/integration --extend-ignore=W504"
+      # Validate Code was formatted with Black
+      - "/tmp/black --check setup.py tests aws_lambda_builders"

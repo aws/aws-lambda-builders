@@ -11,6 +11,7 @@ class OSUtils(object):
     Wrapper around file system functions, to make it easy to
     unit test actions in memory
     """
+
     @property
     def environ(self):
         return os.environ.copy()

@@ -15,6 +15,7 @@ class ActionFailedError(Exception):
     """
     Base class for exception raised when action failed to complete. Use this to express well-known failure scenarios.
     """
+
     pass
 
 
@@ -38,12 +39,11 @@ class Purpose(object):
 
 
 class _ActionMetaClass(type):
-
     def __new__(mcs, name, bases, class_dict):
 
         cls = type.__new__(mcs, name, bases, class_dict)
 
-        if cls.__name__ == 'BaseAction':
+        if cls.__name__ == "BaseAction":
             return cls
 
         # Validate class variables
@@ -78,7 +78,7 @@ class BaseAction(six.with_metaclass(_ActionMetaClass, object)):
         :raises lambda_builders.actions.ActionFailedError: Instance of this class if something went wrong with the
             action
         """
-        raise NotImplementedError('execute')
+        raise NotImplementedError("execute")
 
     def __repr__(self):
         return "Name={}, Purpose={}, Description={}".format(self.NAME, self.PURPOSE, self.DESCRIPTION)
@@ -86,7 +86,7 @@ class BaseAction(six.with_metaclass(_ActionMetaClass, object)):
 
 class CopySourceAction(BaseAction):
 
-    NAME = 'CopySource'
+    NAME = "CopySource"
 
     DESCRIPTION = "Copying source code while skipping certain commonly excluded files"
 

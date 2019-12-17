@@ -19,9 +19,7 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 log_level = int(os.environ.get("LAMBDA_BUILDERS_LOG_LEVEL", logging.INFO))
 
 # Write output to stderr because stdout is used for command response
-logging.basicConfig(stream=sys.stderr,
-                    level=log_level,
-                    format='%(message)s')
+logging.basicConfig(stream=sys.stderr, level=log_level, format="%(message)s")
 
 LOG = logging.getLogger(__name__)
 
@@ -29,24 +27,11 @@ VERSION_REGEX = re.compile("^([0-9])+.([0-9]+)$")
 
 
 def _success_response(request_id, artifacts_dir):
-    return json.dumps({
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "result": {
-            "artifacts_dir": artifacts_dir
-        }
-    })
+    return json.dumps({"jsonrpc": "2.0", "id": request_id, "result": {"artifacts_dir": artifacts_dir}})
 
 
 def _error_response(request_id, http_status_code, message):
-    return json.dumps({
-        "jsonrpc": "2.0",
-        "id": request_id,
-        "error": {
-            "code": http_status_code,
-            "message": message
-        }
-    })
+    return json.dumps({"jsonrpc": "2.0", "id": request_id, "error": {"code": http_status_code, "message": message}})
 
 
 def _parse_version(version_string):
@@ -68,8 +53,9 @@ def version_compatibility_check(version):
     # 0.2 < 0.1 comparison will fail, don't throw a value Error saying incompatible version
 
     if _parse_version(lambda_builders_protocol_version) < version:
-        ex = "Incompatible Protocol Version : {}, " \
-             "Current Protocol Version: {}".format(version, lambda_builders_protocol_version)
+        ex = "Incompatible Protocol Version : {}, " "Current Protocol Version: {}".format(
+            version, lambda_builders_protocol_version
+        )
         LOG.error(ex)
         raise ValueError(ex)
 
@@ -120,21 +106,25 @@ def main():  # pylint: disable=too-many-statements
     response = None
 
     try:
-        builder = LambdaBuilder(language=capabilities["language"],
-                                dependency_manager=capabilities["dependency_manager"],
-                                application_framework=capabilities["application_framework"],
-                                supported_workflows=supported_workflows)
+        builder = LambdaBuilder(
+            language=capabilities["language"],
+            dependency_manager=capabilities["dependency_manager"],
+            application_framework=capabilities["application_framework"],
+            supported_workflows=supported_workflows,
+        )
 
         artifacts_dir = params["artifacts_dir"]
-        builder.build(params["source_dir"],
-                      params["artifacts_dir"],
-                      params["scratch_dir"],
-                      params["manifest_path"],
-                      executable_search_paths=params.get('executable_search_paths', None),
-                      runtime=params["runtime"],
-                      optimizations=params["optimizations"],
-                      options=params["options"],
-                      mode=params.get('mode', None))
+        builder.build(
+            params["source_dir"],
+            params["artifacts_dir"],
+            params["scratch_dir"],
+            params["manifest_path"],
+            executable_search_paths=params.get("executable_search_paths", None),
+            runtime=params["runtime"],
+            optimizations=params["optimizations"],
+            options=params["options"],
+            mode=params.get("mode", None),
+        )
 
         # Return a success response
         response = _success_response(request_id, artifacts_dir)
@@ -152,5 +142,5 @@ def main():  # pylint: disable=too-many-statements
     _write_response(response, exit_code)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

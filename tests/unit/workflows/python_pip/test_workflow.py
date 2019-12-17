@@ -6,7 +6,6 @@ from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildActi
 
 
 class TestPythonPipWorkflow(TestCase):
-
     def setUp(self):
         self.workflow = PythonPipWorkflow("source", "artifacts", "scratch_dir", "manifest", runtime="python3.7")
 

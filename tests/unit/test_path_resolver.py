@@ -8,7 +8,6 @@ from aws_lambda_builders.path_resolver import PathResolver
 
 
 class TestPathResolver(TestCase):
-
     def setUp(self):
         self.path_resolver = PathResolver(runtime="chitti2.0", binary="chitti")
 
@@ -22,6 +21,6 @@ class TestPathResolver(TestCase):
             self.path_resolver._which()
 
     def test_which_success_immediate(self):
-        with mock.patch.object(self.path_resolver, '_which') as which_mock:
+        with mock.patch.object(self.path_resolver, "_which") as which_mock:
             which_mock.return_value = os.getcwd()
             self.assertEquals(self.path_resolver.exec_paths, os.getcwd())

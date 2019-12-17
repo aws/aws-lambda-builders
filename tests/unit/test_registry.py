@@ -1,4 +1,3 @@
-
 from unittest import TestCase
 from mock import Mock, call
 from parameterized import parameterized
@@ -9,7 +8,6 @@ from aws_lambda_builders.exceptions import WorkflowNotFoundError
 
 
 class TestRegistryEndToEnd(TestCase):
-
     def setUp(self):
         self.registry = Registry()
 
@@ -23,11 +21,13 @@ class TestRegistryEndToEnd(TestCase):
         self.registry[capability] = self.workflow_data
         self.assertEquals(self.workflow_data, self.registry[capability])
 
-    @parameterized.expand([
-        (Capability(language=None, dependency_manager="b", application_framework="c"), ),
-        (Capability(language="a", dependency_manager=None, application_framework="c"), ),
-        (Capability(language="a", dependency_manager=None, application_framework=None), ),
-    ])
+    @parameterized.expand(
+        [
+            (Capability(language=None, dependency_manager="b", application_framework="c"),),
+            (Capability(language="a", dependency_manager=None, application_framework="c"),),
+            (Capability(language="a", dependency_manager=None, application_framework=None),),
+        ]
+    )
     def test_must_add_item_with_optional_capabilities(self, capability):
 
         self.registry[capability] = self.workflow_data
@@ -65,7 +65,6 @@ class TestRegistryEndToEnd(TestCase):
 
 
 class TestRegistryLocking(TestCase):
-
     def setUp(self):
         self.mock_lock = Mock()
         self.registry = Registry(write_lock=self.mock_lock)
@@ -119,7 +118,6 @@ class TestRegistryLocking(TestCase):
 
 
 class TestGetWorkflow(TestCase):
-
     def setUp(self):
         self.registry = Registry()
         self.capability = Capability(language="a", dependency_manager="b", application_framework="c")

@@ -46,13 +46,7 @@ class GoModulesBuilder(object):
         runtime_path = self.binaries[self.LANGUAGE].binary_path
         cmd = [runtime_path, "build", "-o", output_path, source_dir_path]
 
-        p = self.osutils.popen(
-            cmd,
-            cwd=source_dir_path,
-            env=env,
-            stdout=self.osutils.pipe,
-            stderr=self.osutils.pipe,
-        )
+        p = self.osutils.popen(cmd, cwd=source_dir_path, env=env, stdout=self.osutils.pipe, stderr=self.osutils.pipe)
         out, err = p.communicate()
 
         if p.returncode != 0:
