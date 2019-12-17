@@ -12,7 +12,7 @@ environment:
   matrix:
 
   - PYTHON: "C:\\Python27-x64"
-    PYTHON_VERSION: '2.7.16'
+    PYTHON_VERSION: '2.7.17'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
