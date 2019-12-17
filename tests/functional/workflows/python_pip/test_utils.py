@@ -13,7 +13,7 @@ def osutils():
 class TestOSUtils(object):
     def test_can_read_unicode(self, tmpdir, osutils):
         filename = str(tmpdir.join("file.txt"))
-        checkmark = "\2713"
+        checkmark = u"\2713"
         with io.open(filename, "w", encoding="utf-16") as f:
             f.write(checkmark)
 
