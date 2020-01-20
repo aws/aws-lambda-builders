@@ -1,5 +1,5 @@
 """
-Actions for Ruby dependency resolution with Bundler
+Actions for .NET dependency resolution with CLI Package
 """
 
 import os

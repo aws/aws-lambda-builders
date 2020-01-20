@@ -49,3 +49,14 @@ class TestGoBuilder(TestCase):
         with self.assertRaises(BuilderError) as raised:
             self.under_test.build("source_dir", "output_path")
         self.assertEqual(raised.exception.args[0], "Builder Failed: some error text")
+
+    def test_debug_configuration_set(self):
+        self.under_test = GoModulesBuilder(self.osutils, self.binaries, "Debug")
+        self.under_test.build("source_dir", "output_path")
+        self.osutils.popen.assert_called_with(
+            ["/path/to/go", "build", "-gcflags='-N -l'", "-o", "output_path", "source_dir"],
+            cwd="source_dir",
+            env={"GOOS": "linux", "GOARCH": "amd64"},
+            stderr="PIPE",
+            stdout="PIPE",
+        )
