@@ -22,7 +22,7 @@ def read_requirements(req="base.txt"):
 
 def read_version():
     content = read(os.path.join(os.path.dirname(__file__), "aws_lambda_builders", "__init__.py"))
-    return re.search(r"__version__ = \"([^']+)\"", content).group(1)
+    return re.search(r"__version__ = \"([^'\"]+)", content).group(1)
 
 
 cmd_name = "lambda-builders"
