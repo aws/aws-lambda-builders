@@ -1,10 +1,16 @@
 import os
 
+from aws_lambda_builders.workflows.python_pip.exceptions import MissingPipError
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
 
 def pip_import_string(python_exe):
     os_utils = OSUtils()
+    cmd = [python_exe, "-c", "import pip;"]
+    p = os_utils.popen(cmd, stdout=os_utils.pipe, stderr=os_utils.pipe)
+    _, _ = p.communicate()
+    if not p.returncode == 0:
+        raise MissingPipError(python_path=python_exe)
     cmd = [python_exe, "-c", "import pip; print(pip.__version__)"]
     p = os_utils.popen(cmd, stdout=os_utils.pipe, stderr=os_utils.pipe)
     stdout, stderr = p.communicate()
