@@ -49,7 +49,7 @@ class GoModulesBuilder(object):
         cmd = [runtime_path, "build"]
         if self.mode and self.mode.lower() == BuildMode.DEBUG:
             LOG.debug("Debug build requested: Setting configuration to Debug")
-            cmd += ["-gcflags='-N -l'"]
+            cmd += ["-gcflags='all=-N -l'"]
         cmd += ["-o", output_path, source_dir_path]
 
         p = self.osutils.popen(cmd, cwd=source_dir_path, env=env, stdout=self.osutils.pipe, stderr=self.osutils.pipe)
