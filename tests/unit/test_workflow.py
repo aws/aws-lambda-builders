@@ -229,9 +229,11 @@ class TestBaseWorkflow_run(TestCase):
         action_mock = Mock()
         validator_mock = Mock()
         validator_mock.validate = Mock()
-        validator_mock.validate = MagicMock(side_effect=MisMatchRuntimeError(language="test", required_runtime="test1", runtime_path="/usr/bin/binary"))
+        validator_mock.validate = MagicMock(
+            side_effect=MisMatchRuntimeError(language="test", required_runtime="test1", runtime_path="/usr/bin/binary")
+        )
         resolver_mock = Mock()
-        resolver_mock.exec_paths = ['/usr/bin/binary']
+        resolver_mock.exec_paths = ["/usr/bin/binary"]
         binaries_mock = Mock()
         binaries_mock.return_value = []
 

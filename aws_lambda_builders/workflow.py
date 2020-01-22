@@ -48,7 +48,9 @@ def sanitize(func):
             invalid_paths[binary] = []
             validator = binary_path.validator
             try:
-                exec_paths = binary_path.resolver.exec_paths if not binary_path.path_provided else binary_path.binary_path
+                exec_paths = (
+                    binary_path.resolver.exec_paths if not binary_path.path_provided else binary_path.binary_path
+                )
             except ValueError as ex:
                 raise WorkflowFailedError(workflow_name=self.NAME, action_name="Resolver", reason=str(ex))
             for executable_path in exec_paths:
@@ -65,12 +67,13 @@ def sanitize(func):
         self.binaries = binaries_copy
         if len(self.binaries) != len(valid_paths):
             validation_failed_binaries = set(self.binaries.keys()).difference(valid_paths.keys())
-            message = ""
+            messages = []
             for validation_failed_binary in validation_failed_binaries:
                 message = "Binary validation failed for {0}, searched for {0} in following locations  : {1} which did not satisfy constraints".format(
                     validation_failed_binary, invalid_paths[validation_failed_binary]
                 )
-            raise WorkflowFailedError(workflow_name=self.NAME, action_name="Validation", reason=message)
+                messages.append(message)
+            raise WorkflowFailedError(workflow_name=self.NAME, action_name="Validation", reason="\n".join(messages))
         func(self, *args, **kwargs)
 
     return wrapper
