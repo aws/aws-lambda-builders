@@ -1,9 +1,8 @@
 import os
 import sys
 from unittest import TestCase
-from unittest.mock import MagicMock
 
-from mock import Mock, call
+from mock import Mock, MagicMock, call
 
 try:
     import pathlib
