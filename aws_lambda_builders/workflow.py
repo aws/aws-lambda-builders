@@ -68,8 +68,8 @@ def sanitize(func):
             validation_failed_binaries = set(self.binaries.keys()).difference(valid_paths.keys())
             messages = []
             for validation_failed_binary in validation_failed_binaries:
-                message = "Binary validation failed for {0}, searched for {0} in following locations  : {1} which did not satisfy constraints".format(
-                    validation_failed_binary, invalid_paths[validation_failed_binary]
+                message = "Binary validation failed for {0}, searched for {0} in following locations  : {1} which did not satisfy constraints for runtime: {2}. Do you have {0} for runtime: {2} on your PATH?".format(
+                    validation_failed_binary, invalid_paths[validation_failed_binary], self.runtime
                 )
                 messages.append(message)
             raise WorkflowFailedError(workflow_name=self.NAME, action_name="Validation", reason="\n".join(messages))
