@@ -1,6 +1,8 @@
 import os
 import sys
 from unittest import TestCase
+from unittest.mock import MagicMock
+
 from mock import Mock, call
 
 try:
@@ -12,7 +14,7 @@ from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
-from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError
+from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError, MisMatchRuntimeError
 from aws_lambda_builders.actions import ActionFailedError
 
 
@@ -205,6 +207,40 @@ class TestBaseWorkflow_run(TestCase):
             action_mock.method_calls, [call.action1.execute(), call.action2.execute(), call.action3.execute()]
         )
         self.assertTrue(validator_mock.validate.call_count, 1)
+
+    def test_must_fail_workflow_binary_resolution_failure(self):
+        action_mock = Mock()
+        validator_mock = Mock()
+        validator_mock.validate = Mock()
+        validator_mock.validate.return_value = None
+        resolver_mock = Mock()
+        resolver_mock.exec_paths = MagicMock(side_effect=ValueError("Binary could not be resolved"))
+        binaries_mock = Mock()
+        binaries_mock.return_value = []
+
+        self.work.get_validators = lambda: validator_mock
+        self.work.get_resolvers = lambda: resolver_mock
+        self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
+        with self.assertRaises(WorkflowFailedError) as ex:
+            self.work.run()
+
+    def test_must_fail_workflow_binary_validation_failure(self):
+        action_mock = Mock()
+        validator_mock = Mock()
+        validator_mock.validate = Mock()
+        validator_mock.validate = MagicMock(side_effect=MisMatchRuntimeError(language="test", required_runtime="test1", runtime_path="/usr/bin/binary"))
+        resolver_mock = Mock()
+        resolver_mock.exec_paths = ['/usr/bin/binary']
+        binaries_mock = Mock()
+        binaries_mock.return_value = []
+
+        self.work.get_validators = lambda: validator_mock
+        self.work.get_resolvers = lambda: resolver_mock
+        self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
+        with self.assertRaises(WorkflowFailedError) as ex:
+            self.work.run()
 
     def test_must_raise_with_no_actions(self):
         self.work.actions = []
