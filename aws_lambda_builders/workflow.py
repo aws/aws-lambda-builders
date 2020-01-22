@@ -43,28 +43,27 @@ def sanitize(func):
         valid_paths = {}
         invalid_paths = {}
         # NOTE: we need to access binaries to get paths and resolvers, before validating.
-        binaries_copy = self.binaries
-        for binary, binary_path in binaries_copy.items():
+        for binary, binary_checker in self.binaries.items():
             invalid_paths[binary] = []
-            validator = binary_path.validator
             try:
                 exec_paths = (
-                    binary_path.resolver.exec_paths if not binary_path.path_provided else binary_path.binary_path
+                    binary_checker.resolver.exec_paths
+                    if not binary_checker.path_provided
+                    else binary_checker.binary_path
                 )
             except ValueError as ex:
                 raise WorkflowFailedError(workflow_name=self.NAME, action_name="Resolver", reason=str(ex))
             for executable_path in exec_paths:
                 try:
-                    valid_path = validator.validate(executable_path)
+                    valid_path = binary_checker.validator.validate(executable_path)
                     if valid_path:
                         valid_paths[binary] = valid_path
                 except MisMatchRuntimeError as ex:
                     LOG.debug("Invalid executable for %s at %s", binary, executable_path, exc_info=str(ex))
                     invalid_paths[binary].append(executable_path)
                 if valid_paths.get(binary, None):
-                    binary_path.binary_path = valid_paths[binary]
+                    binary_checker.binary_path = valid_paths[binary]
                     break
-        self.binaries = binaries_copy
         if len(self.binaries) != len(valid_paths):
             validation_failed_binaries = set(self.binaries.keys()).difference(valid_paths.keys())
             messages = []
