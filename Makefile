@@ -13,17 +13,18 @@ integ-test:
 	# Integration tests don't need code coverage
 	LAMBDA_BUILDERS_DEV=1 pytest tests/integration
 
-flake:
-	# Make sure code conforms to PEP8 standards
-	flake8 lambda_builders
-	flake8 tests/unit tests/integration
-
 lint:
 	# Liner performs static analysis to catch latent bugs
 	pylint --rcfile .pylintrc aws_lambda_builders
 
 # Command to run everytime you make changes to verify everything works
-dev: flake lint test
+dev: lint test
+
+black:
+	black setup.py aws_lambda_builders/* tests/*
+
+black-check:
+	black --check setup.py aws_lambda_builders/* tests/*
 
 # Verifications to run before sending a pull request
-pr: init dev
+pr: init dev black-check

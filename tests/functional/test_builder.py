@@ -1,4 +1,3 @@
-
 import sys
 import os
 import shutil
@@ -25,15 +24,15 @@ class TestBuilderWithHelloWorkflow(TestCase):
         self.source_dir = tempfile.mkdtemp()
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = os.path.join(tempfile.mkdtemp(), "scratch")
-        self.hello_builder = LambdaBuilder(language="python",
-                                           dependency_manager="test",
-                                           application_framework="test",
-                                           supported_workflows=[
-                                               self.HELLO_WORKFLOW_MODULE
-                                           ])
+        self.hello_builder = LambdaBuilder(
+            language="python",
+            dependency_manager="test",
+            application_framework="test",
+            supported_workflows=[self.HELLO_WORKFLOW_MODULE],
+        )
 
         # The builder should write a file called hello.txt with contents "Hello World"
-        self.expected_filename = os.path.join(self.artifacts_dir, 'hello.txt')
+        self.expected_filename = os.path.join(self.artifacts_dir, "hello.txt")
         self.expected_contents = "Hello World"
 
     def tearDown(self):
@@ -47,15 +46,17 @@ class TestBuilderWithHelloWorkflow(TestCase):
 
     def test_run_hello_workflow_with_exec_paths(self):
 
-        self.hello_builder.build(self.source_dir,
-                                 self.artifacts_dir,
-                                 self.scratch_dir,
-                                 "/ignored",
-                                 executable_search_paths=[str(pathlib.Path(sys.executable).parent)])
+        self.hello_builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            "/ignored",
+            executable_search_paths=[str(pathlib.Path(sys.executable).parent)],
+        )
 
         self.assertTrue(os.path.exists(self.expected_filename))
-        contents = ''
-        with open(self.expected_filename, 'r') as fp:
+        contents = ""
+        with open(self.expected_filename, "r") as fp:
             contents = fp.read()
 
         self.assertEquals(contents, self.expected_contents)

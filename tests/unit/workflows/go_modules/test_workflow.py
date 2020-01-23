@@ -12,8 +12,12 @@ class TestGoModulesWorkflow(TestCase):
 
     def test_workflow_sets_up_builder_actions(self):
         workflow = GoModulesWorkflow(
-            "source", "artifacts", "scratch_dir", "manifest",
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
             runtime="go1.x",
-            options={"artifact_executable_name": "main"})
+            options={"artifact_executable_name": "main"},
+        )
         self.assertEqual(len(workflow.actions), 1)
         self.assertIsInstance(workflow.actions[0], GoModulesBuildAction)

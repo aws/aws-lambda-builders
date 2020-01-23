@@ -1,4 +1,3 @@
-
 from unittest import TestCase
 from mock import patch, ANY
 
@@ -6,9 +5,7 @@ from aws_lambda_builders.actions import BaseAction, CopySourceAction, Purpose
 
 
 class TestBaseActionInheritance(TestCase):
-
     def test_must_inherit(self):
-
         class MyAction(BaseAction):
             NAME = "myname"
             PURPOSE = Purpose.COPY_SOURCE
@@ -19,6 +16,7 @@ class TestBaseActionInheritance(TestCase):
     def test_must_validate_name_property(self):
 
         with self.assertRaises(ValueError):
+
             class MyAction(BaseAction):
                 PURPOSE = Purpose.COPY_SOURCE
 
@@ -32,9 +30,7 @@ class TestBaseActionInheritance(TestCase):
 
 
 class TestBaseAction_repr(TestCase):
-
     def test_must_pretty_print_action_info(self):
-
         class MyAction(BaseAction):
             NAME = "myname"
             PURPOSE = Purpose.COPY_SOURCE
@@ -46,7 +42,6 @@ class TestBaseAction_repr(TestCase):
 
 
 class TestCopySourceAction_execute(TestCase):
-
     @patch("aws_lambda_builders.actions.copytree")
     def test_must_copy(self, copytree_mock):
         source_dir = "source"

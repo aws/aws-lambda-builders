@@ -12,6 +12,7 @@ from .subproc_exec import ExecutionError
 
 LOG = logging.getLogger(__name__)
 
+
 class DepEnsureAction(BaseAction):
 
     """
@@ -30,10 +31,10 @@ class DepEnsureAction(BaseAction):
 
     def execute(self):
         try:
-            self.subprocess_dep.run(["ensure"],
-                                    cwd=self.base_dir)
+            self.subprocess_dep.run(["ensure"], cwd=self.base_dir)
         except ExecutionError as ex:
             raise ActionFailedError(str(ex))
+
 
 class GoBuildAction(BaseAction):
 
@@ -60,7 +61,6 @@ class GoBuildAction(BaseAction):
         env.update({"GOOS": "linux", "GOARCH": "amd64"})
 
         try:
-            self.subprocess_go.run(["build", "-o", self.output_path, self.source_path],
-                                    cwd=self.source_path, env=env)
+            self.subprocess_go.run(["build", "-o", self.output_path, self.source_path], cwd=self.source_path, env=env)
         except ExecutionError as ex:
             raise ActionFailedError(str(ex))

@@ -3,6 +3,7 @@ Build a Go project using standard Go tooling
 """
 import logging
 
+from aws_lambda_builders.workflow import BuildMode
 
 LOG = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class GoModulesBuilder(object):
 
     LANGUAGE = "go"
 
-    def __init__(self, osutils, binaries):
+    def __init__(self, osutils, binaries, mode=BuildMode.RELEASE):
         """Initialize a GoModulesBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -30,6 +31,7 @@ class GoModulesBuilder(object):
         """
         self.osutils = osutils
         self.binaries = binaries
+        self.mode = mode
 
     def build(self, source_dir_path, output_path):
         """Builds a go project onto an output path.
@@ -44,15 +46,13 @@ class GoModulesBuilder(object):
         env.update(self.osutils.environ)
         env.update({"GOOS": "linux", "GOARCH": "amd64"})
         runtime_path = self.binaries[self.LANGUAGE].binary_path
-        cmd = [runtime_path, "build", "-o", output_path, source_dir_path]
+        cmd = [runtime_path, "build"]
+        if self.mode and self.mode.lower() == BuildMode.DEBUG:
+            LOG.debug("Debug build requested: Setting configuration to Debug")
+            cmd += ["-gcflags='all=-N -l'"]
+        cmd += ["-o", output_path, source_dir_path]
 
-        p = self.osutils.popen(
-            cmd,
-            cwd=source_dir_path,
-            env=env,
-            stdout=self.osutils.pipe,
-            stderr=self.osutils.pipe,
-        )
+        p = self.osutils.popen(cmd, cwd=source_dir_path, env=env, stdout=self.osutils.pipe, stderr=self.osutils.pipe)
         out, err = p.communicate()
 
         if p.returncode != 0:

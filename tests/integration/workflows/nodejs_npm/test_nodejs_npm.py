@@ -21,9 +21,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
 
-        self.builder = LambdaBuilder(language="nodejs",
-                                     dependency_manager="npm",
-                                     application_framework=None)
+        self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm", application_framework=None)
         self.runtime = "nodejs8.10"
 
     def tearDown(self):
@@ -33,9 +31,13 @@ class TestNodejsNpmWorkflow(TestCase):
     def test_builds_project_without_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                           os.path.join(source_dir, "package.json"),
-                           runtime=self.runtime)
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
 
         expected_files = {"package.json", "included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
@@ -44,9 +46,13 @@ class TestNodejsNpmWorkflow(TestCase):
     def test_builds_project_with_remote_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                           os.path.join(source_dir, "package.json"),
-                           runtime=self.runtime)
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
 
         expected_files = {"package.json", "included.js", "node_modules"}
         output_files = set(os.listdir(self.artifacts_dir))
@@ -59,9 +65,13 @@ class TestNodejsNpmWorkflow(TestCase):
     def test_builds_project_with_npmrc(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npmrc")
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                           os.path.join(source_dir, "package.json"),
-                           runtime=self.runtime)
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
 
         expected_files = {"package.json", "included.js", "node_modules"}
         output_files = set(os.listdir(self.artifacts_dir))
@@ -77,9 +87,13 @@ class TestNodejsNpmWorkflow(TestCase):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-deps")
 
         with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                               os.path.join(source_dir, "package.json"),
-                               runtime=self.runtime)
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+            )
 
         self.assertIn("No matching version found for minimal-request-promise@0.0.0-NON_EXISTENT", str(ctx.exception))
 
@@ -88,8 +102,12 @@ class TestNodejsNpmWorkflow(TestCase):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-package")
 
         with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                               os.path.join(source_dir, "package.json"),
-                               runtime=self.runtime)
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+            )
 
         self.assertIn("Unexpected end of JSON input", str(ctx.exception))

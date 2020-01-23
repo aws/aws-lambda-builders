@@ -20,7 +20,7 @@ class OSUtils(object):
         return shutil.copy2(file_path, destination_path)
 
     def extract_tarfile(self, tarfile_path, unpack_dir):
-        with tarfile.open(tarfile_path, 'r:*') as tar:
+        with tarfile.open(tarfile_path, "r:*") as tar:
             tar.extractall(unpack_dir)
 
     def file_exists(self, filename):
@@ -47,4 +47,4 @@ class OSUtils(object):
         return os.path.abspath(path)
 
     def is_windows(self):
-        return platform.system().lower() == 'windows'
+        return platform.system().lower() == "windows"

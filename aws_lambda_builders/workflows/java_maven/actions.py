@@ -15,9 +15,8 @@ class JavaMavenBaseAction(object):
     """
     Base class for Java Maven actions. Provides property of the module name
     """
-    def __init__(self,
-                 scratch_dir,
-                 subprocess_maven):
+
+    def __init__(self, scratch_dir, subprocess_maven):
         self.scratch_dir = scratch_dir
         self.subprocess_maven = subprocess_maven
 
@@ -27,11 +26,8 @@ class JavaMavenBuildAction(JavaMavenBaseAction, BaseAction):
     DESCRIPTION = "Building the project using Maven"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self,
-                 scratch_dir,
-                 subprocess_maven):
-        super(JavaMavenBuildAction, self).__init__(scratch_dir,
-                                                   subprocess_maven)
+    def __init__(self, scratch_dir, subprocess_maven):
+        super(JavaMavenBuildAction, self).__init__(scratch_dir, subprocess_maven)
         self.scratch_dir = scratch_dir
         self.subprocess_maven = subprocess_maven
 
@@ -47,11 +43,8 @@ class JavaMavenCopyDependencyAction(JavaMavenBaseAction, BaseAction):
     DESCRIPTION = "Copy dependency jars to target directory"
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self,
-                 scratch_dir,
-                 subprocess_maven):
-        super(JavaMavenCopyDependencyAction, self).__init__(scratch_dir,
-                                                            subprocess_maven)
+    def __init__(self, scratch_dir, subprocess_maven):
+        super(JavaMavenCopyDependencyAction, self).__init__(scratch_dir, subprocess_maven)
         self.scratch_dir = scratch_dir
         self.subprocess_maven = subprocess_maven
 
@@ -67,10 +60,7 @@ class JavaMavenCopyArtifactsAction(BaseAction):
     DESCRIPTION = "Copying the built artifacts"
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self,
-                 scratch_dir,
-                 artifacts_dir,
-                 os_utils):
+    def __init__(self, scratch_dir, artifacts_dir, os_utils):
         self.scratch_dir = scratch_dir
         self.artifacts_dir = artifacts_dir
         self.os_utils = os_utils
@@ -79,8 +69,8 @@ class JavaMavenCopyArtifactsAction(BaseAction):
         self._copy_artifacts()
 
     def _copy_artifacts(self):
-        lambda_build_output = os.path.join(self.scratch_dir, 'target', 'classes')
-        dependency_output = os.path.join(self.scratch_dir, 'target', 'dependency')
+        lambda_build_output = os.path.join(self.scratch_dir, "target", "classes")
+        dependency_output = os.path.join(self.scratch_dir, "target", "dependency")
 
         if not self.os_utils.exists(lambda_build_output):
             raise ActionFailedError("Required target/classes directory was not produced from 'mvn package'")
@@ -88,6 +78,6 @@ class JavaMavenCopyArtifactsAction(BaseAction):
         try:
             self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
             if self.os_utils.exists(dependency_output):
-                self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, 'lib'))
+                self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
         except Exception as ex:
             raise ActionFailedError(str(ex))

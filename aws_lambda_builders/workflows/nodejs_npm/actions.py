@@ -16,7 +16,7 @@ class NodejsNpmPackAction(BaseAction):
     A Lambda Builder Action that packages a Node.js package using NPM to extract the source and remove test resources
     """
 
-    NAME = 'NpmPack'
+    NAME = "NpmPack"
     DESCRIPTION = "Packaging source using NPM"
     PURPOSE = Purpose.COPY_SOURCE
 
@@ -76,7 +76,7 @@ class NodejsNpmInstallAction(BaseAction):
     A Lambda Builder Action that installs NPM project dependencies
     """
 
-    NAME = 'NpmInstall'
+    NAME = "NpmInstall"
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
@@ -105,12 +105,12 @@ class NodejsNpmInstallAction(BaseAction):
             LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
 
             self.subprocess_npm.run(
-                    ['install', '-q', '--no-audit', '--no-save', '--production'],
-                    cwd=self.artifacts_dir
+                ["install", "-q", "--no-audit", "--no-save", "--production"], cwd=self.artifacts_dir
             )
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
+
 
 class NodejsNpmrcCopyAction(BaseAction):
 
@@ -118,7 +118,7 @@ class NodejsNpmrcCopyAction(BaseAction):
     A Lambda Builder Action that copies NPM config file .npmrc
     """
 
-    NAME = 'CopyNpmrc'
+    NAME = "CopyNpmrc"
     DESCRIPTION = "Copying configuration from .npmrc"
     PURPOSE = Purpose.COPY_SOURCE
 
@@ -156,13 +156,14 @@ class NodejsNpmrcCopyAction(BaseAction):
         except OSError as ex:
             raise ActionFailedError(str(ex))
 
+
 class NodejsNpmrcCleanUpAction(BaseAction):
 
     """
     A Lambda Builder Action that cleans NPM config file .npmrc
     """
 
-    NAME = 'CleanUpNpmrc'
+    NAME = "CleanUpNpmrc"
     DESCRIPTION = "Cleans artifacts dir"
     PURPOSE = Purpose.COPY_SOURCE
 

@@ -19,7 +19,7 @@ class OSUtils(object):
         return p
 
     def is_windows(self):
-        return platform.system().lower() == 'windows'
+        return platform.system().lower() == "windows"
 
     def copy(self, src, dst):
         shutil.copy2(src, dst)

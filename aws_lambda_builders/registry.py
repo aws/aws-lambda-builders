@@ -61,11 +61,9 @@ class Registry(object):
         # Key is created by concatenating the capabilites data with underscore.
         # This delimiter is positional ie. if a value is not provided, the delimiter still needs to exist in the key.
         # This helps us be forwards compatible with new capabilities
-        return "_".join([
-            capability.language or "",
-            capability.dependency_manager or "",
-            capability.application_framework or ""
-        ]).lower()
+        return "_".join(
+            [capability.language or "", capability.dependency_manager or "", capability.application_framework or ""]
+        ).lower()
 
 
 # Built-in registry of workflows.
@@ -92,8 +90,10 @@ def get_workflow(capability, registry=DEFAULT_REGISTRY):
     """
 
     if capability not in registry:
-        raise WorkflowNotFoundError(language=capability.language,
-                                    dependency_manager=capability.dependency_manager,
-                                    application_framework=capability.application_framework)
+        raise WorkflowNotFoundError(
+            language=capability.language,
+            dependency_manager=capability.dependency_manager,
+            application_framework=capability.application_framework,
+        )
 
     return registry[capability]
