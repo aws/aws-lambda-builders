@@ -64,7 +64,7 @@ class TestPythonPipWorkflow(TestCase):
                 runtime=self.runtime_mismatch[self.runtime],
             )
         except WorkflowFailedError as ex:
-            self.assertIn("Binary validation failed!", str(ex))
+            self.assertIn("Binary validation failed", str(ex))
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
         with self.assertRaises(WorkflowFailedError):

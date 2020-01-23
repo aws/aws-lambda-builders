@@ -40,25 +40,39 @@ def sanitize(func):
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        valid_paths = []
+        valid_paths = {}
+        invalid_paths = {}
         # NOTE: we need to access binaries to get paths and resolvers, before validating.
-        binaries_copy = self.binaries
-        for binary, binary_path in binaries_copy.items():
-            validator = binary_path.validator
-            exec_paths = binary_path.resolver.exec_paths if not binary_path.path_provided else binary_path.binary_path
+        for binary, binary_checker in self.binaries.items():
+            invalid_paths[binary] = []
+            try:
+                exec_paths = (
+                    binary_checker.resolver.exec_paths
+                    if not binary_checker.path_provided
+                    else binary_checker.binary_path
+                )
+            except ValueError as ex:
+                raise WorkflowFailedError(workflow_name=self.NAME, action_name="Resolver", reason=str(ex))
             for executable_path in exec_paths:
-                valid_path = None
                 try:
-                    valid_path = validator.validate(executable_path)
+                    valid_path = binary_checker.validator.validate(executable_path)
+                    if valid_path:
+                        valid_paths[binary] = valid_path
                 except MisMatchRuntimeError as ex:
                     LOG.debug("Invalid executable for %s at %s", binary, executable_path, exc_info=str(ex))
-                if valid_path:
-                    binary_path.binary_path = valid_path
-                    valid_paths.append(valid_path)
+                    invalid_paths[binary].append(executable_path)
+                if valid_paths.get(binary, None):
+                    binary_checker.binary_path = valid_paths[binary]
                     break
-        self.binaries = binaries_copy
         if len(self.binaries) != len(valid_paths):
-            raise WorkflowFailedError(workflow_name=self.NAME, action_name=None, reason="Binary validation failed!")
+            validation_failed_binaries = set(self.binaries.keys()).difference(valid_paths.keys())
+            messages = []
+            for validation_failed_binary in validation_failed_binaries:
+                message = "Binary validation failed for {0}, searched for {0} in following locations  : {1} which did not satisfy constraints for runtime: {2}. Do you have {0} for runtime: {2} on your PATH?".format(
+                    validation_failed_binary, invalid_paths[validation_failed_binary], self.runtime
+                )
+                messages.append(message)
+            raise WorkflowFailedError(workflow_name=self.NAME, action_name="Validation", reason="\n".join(messages))
         func(self, *args, **kwargs)
 
     return wrapper
@@ -261,6 +275,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
 
                 raise WorkflowFailedError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))
             except Exception as ex:
+
                 LOG.debug("%s raised unhandled exception", action_info, exc_info=ex)
 
                 raise WorkflowUnknownError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))
