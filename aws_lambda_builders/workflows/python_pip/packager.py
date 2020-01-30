@@ -7,6 +7,7 @@ import re
 import subprocess
 import logging
 from email.parser import FeedParser
+from os import chdir, getcwd, path
 
 
 from .compat import pip_import_string
@@ -328,9 +329,12 @@ class DependencyBuilder(object):
         # the dependency graph. Return the set of all package objects
         # which will serve as the master list of dependencies needed to deploy
         # successfully.
+        orig_cwd = getcwd()
+        chdir(path.dirname(requirements_filename))
         self._pip.download_all_dependencies(requirements_filename, directory)
         deps = {Package(directory, filename) for filename
                 in self._osutils.get_directory_contents(directory)}
+        chdir(orig_cwd)
         LOG.debug("Full dependency closure: %s", deps)
         return deps
 
