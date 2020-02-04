@@ -19,9 +19,7 @@ class TestGoDep(TestCase):
 
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "src", "nodeps")
 
-        self.builder = LambdaBuilder(language="go",
-                                     dependency_manager="dep",
-                                     application_framework=None)
+        self.builder = LambdaBuilder(language="go", dependency_manager="dep", application_framework=None)
 
         self.runtime = "go1.x"
 
@@ -32,10 +30,14 @@ class TestGoDep(TestCase):
     def test_builds_project_with_no_deps(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "nodeps")
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                           os.path.join(source_dir, "Gopkg.toml"),
-                           runtime=self.runtime,
-                           options={"artifact_executable_name": "main"})
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Gopkg.toml"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "main"},
+        )
 
         expected_files = {"main"}
         output_files = set(os.listdir(self.artifacts_dir))
@@ -46,23 +48,32 @@ class TestGoDep(TestCase):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "no-gopkg")
 
         with self.assertRaises(WorkflowFailedError) as ex:
-            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                               os.path.join(source_dir, "Gopkg.toml"),
-                               runtime=self.runtime,
-                               options={"artifact_executable_name": "main"})
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "Gopkg.toml"),
+                runtime=self.runtime,
+                options={"artifact_executable_name": "main"},
+            )
 
         self.assertEquals(
-                          "GoDepBuilder:DepEnsure - Exec Failed: could not find project Gopkg.toml," +
-                          " use dep init to initiate a manifest",
-                          str(ex.exception))
+            "GoDepBuilder:DepEnsure - Exec Failed: could not find project Gopkg.toml,"
+            + " use dep init to initiate a manifest",
+            str(ex.exception),
+        )
 
     def test_builds_project_with_remote_deps(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "remote-deps")
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                           os.path.join(source_dir, "Gopkg.toml"),
-                           runtime=self.runtime,
-                           options={"artifact_executable_name": "main"})
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Gopkg.toml"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "main"},
+        )
 
         expected_files = {"main"}
         output_files = set(os.listdir(self.artifacts_dir))
@@ -73,10 +84,14 @@ class TestGoDep(TestCase):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "failed-remote")
 
         with self.assertRaises(WorkflowFailedError) as ex:
-            self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir,
-                               os.path.join(source_dir, "Gopkg.toml"),
-                               runtime=self.runtime,
-                               options={"artifact_executable_name": "main"})
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "Gopkg.toml"),
+                runtime=self.runtime,
+                options={"artifact_executable_name": "main"},
+            )
 
         # The full message is super long, so part of it is fine.
-        self.assertNotEqual(str(ex.exception).find('unable to deduce repository and source type for'), -1)
+        self.assertNotEqual(str(ex.exception).find("unable to deduce repository and source type for"), -1)

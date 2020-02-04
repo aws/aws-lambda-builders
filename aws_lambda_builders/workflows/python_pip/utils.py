@@ -13,32 +13,31 @@ import subprocess
 
 
 class OSUtils(object):
-
     def environ(self):
         return os.environ
 
     def file_exists(self, filename):
         return os.path.isfile(filename)
 
-    def get_file_contents(self, filename, binary=True, encoding='utf-8'):
+    def get_file_contents(self, filename, binary=True, encoding="utf-8"):
         # It looks like the type definition for io.open is wrong.
         # the encoding arg is unicode, but the actual type is
         # Optional[Text].  For now we have to use Any to keep mypy happy.
         if binary:
-            mode = 'rb'
+            mode = "rb"
             # In binary mode the encoding is not used and most be None.
             encoding = None
         else:
-            mode = 'r'
+            mode = "r"
         with io.open(filename, mode, encoding=encoding) as f:
             return f.read()
 
     def extract_zipfile(self, zipfile_path, unpack_dir):
-        with zipfile.ZipFile(zipfile_path, 'r') as z:
+        with zipfile.ZipFile(zipfile_path, "r") as z:
             z.extractall(unpack_dir)
 
     def extract_tarfile(self, tarfile_path, unpack_dir):
-        with tarfile.open(tarfile_path, 'r:*') as tar:
+        with tarfile.open(tarfile_path, "r:*") as tar:
             tar.extractall(unpack_dir)
 
     def directory_exists(self, path):

@@ -8,7 +8,6 @@ from aws_lambda_builders.workflows.go_modules.validator import GoRuntimeValidato
 
 
 class MockSubProcess(object):
-
     def __init__(self, returncode, out=b"", err=b""):
         self.returncode = returncode
         self.out = out
@@ -19,13 +18,10 @@ class MockSubProcess(object):
 
 
 class TestGoRuntimeValidator(TestCase):
-
     def setUp(self):
         self.validator = GoRuntimeValidator(runtime="go1.x")
 
-    @parameterized.expand([
-        "go1.x",
-    ])
+    @parameterized.expand(["go1.x"])
     def test_supported_runtimes(self, runtime):
         validator = GoRuntimeValidator(runtime=runtime)
         self.assertTrue(validator.has_runtime())

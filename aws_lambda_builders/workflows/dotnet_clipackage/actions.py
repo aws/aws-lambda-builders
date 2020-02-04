@@ -1,5 +1,5 @@
 """
-Actions for Ruby dependency resolution with Bundler
+Actions for .NET dependency resolution with CLI Package
 """
 
 import os
@@ -12,13 +12,14 @@ from .dotnetcli import DotnetCLIExecutionError
 
 LOG = logging.getLogger(__name__)
 
+
 class GlobalToolInstallAction(BaseAction):
 
     """
     A Lambda Builder Action which installs the Amazon.Lambda.Tools .NET Core Global Tool
     """
 
-    NAME = 'GlobalToolInstall'
+    NAME = "GlobalToolInstall"
     DESCRIPTION = "Install or update the Amazon.Lambda.Tools .NET Core Global Tool."
     PURPOSE = Purpose.COMPILE_SOURCE
 
@@ -29,24 +30,21 @@ class GlobalToolInstallAction(BaseAction):
     def execute(self):
         try:
             LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
-            self.subprocess_dotnet.run(
-                ['tool', 'install', '-g', 'Amazon.Lambda.Tools'],
-            )
+            self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools"])
         except DotnetCLIExecutionError as ex:
             LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
             try:
-                self.subprocess_dotnet.run(
-                    ['tool', 'update', '-g', 'Amazon.Lambda.Tools'],
-                )
+                self.subprocess_dotnet.run(["tool", "update", "-g", "Amazon.Lambda.Tools"])
             except DotnetCLIExecutionError as ex:
                 raise ActionFailedError("Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex))
+
 
 class RunPackageAction(BaseAction):
     """
     A Lambda Builder Action which builds the .NET Core project using the Amazon.Lambda.Tools .NET Core Global Tool
     """
 
-    NAME = 'RunPackageAction'
+    NAME = "RunPackageAction"
     DESCRIPTION = "Execute the `dotnet lambda package` command."
     PURPOSE = Purpose.COMPILE_SOURCE
 
@@ -66,7 +64,7 @@ class RunPackageAction(BaseAction):
             zipfilename = os.path.basename(os.path.normpath(self.source_dir)) + ".zip"
             zipfullpath = os.path.join(self.artifacts_dir, zipfilename)
 
-            arguments = ['lambda', 'package', '--output-package', zipfullpath]
+            arguments = ["lambda", "package", "--output-package", zipfullpath]
 
             if self.mode and self.mode.lower() == BuildMode.DEBUG:
                 LOG.debug("Debug build requested: Setting configuration to Debug")
@@ -78,10 +76,7 @@ class RunPackageAction(BaseAction):
                         arguments.append(key)
                         arguments.append(self.options[key])
 
-            self.subprocess_dotnet.run(
-                arguments,
-                cwd=self.source_dir
-            )
+            self.subprocess_dotnet.run(arguments, cwd=self.source_dir)
 
             # The dotnet lambda package command outputs a zip file for the package. To make this compatible
             # with the workflow, unzip the zip file into the artifacts directory and then delete the zip archive.

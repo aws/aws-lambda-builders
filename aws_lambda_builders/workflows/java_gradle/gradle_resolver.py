@@ -6,9 +6,8 @@ from .utils import OSUtils
 
 
 class GradleResolver(object):
-
     def __init__(self, executable_search_paths=None, os_utils=None):
-        self.binary = 'gradle'
+        self.binary = "gradle"
         self.executables = [self.binary]
         self.executable_search_paths = executable_search_paths
         self.os_utils = os_utils if os_utils else OSUtils()
@@ -19,7 +18,7 @@ class GradleResolver(object):
         paths = self.os_utils.which(self.wrapper_name, executable_search_paths=self.executable_search_paths)
         if not paths:
             # fallback to the gradle binary
-            paths = self.os_utils.which('gradle', executable_search_paths=self.executable_search_paths)
+            paths = self.os_utils.which("gradle", executable_search_paths=self.executable_search_paths)
 
         if not paths:
             raise ValueError("No Gradle executable found!")
@@ -28,4 +27,4 @@ class GradleResolver(object):
 
     @property
     def wrapper_name(self):
-        return 'gradlew.bat' if self.os_utils.is_windows() else 'gradlew'
+        return "gradlew.bat" if self.os_utils.is_windows() else "gradlew"

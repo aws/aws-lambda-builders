@@ -7,7 +7,7 @@ from aws_lambda_builders.workflows.go_modules.builder import GoModulesBuilder, B
 
 
 class FakePopen:
-    def __init__(self, out=b'out', err=b'err', retcode=0):
+    def __init__(self, out=b"out", err=b"err", retcode=0):
         self.out = out
         self.err = err
         self.returncode = retcode
@@ -17,17 +17,13 @@ class FakePopen:
 
 
 class TestGoBuilder(TestCase):
-
     @patch("aws_lambda_builders.workflows.go_modules.utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
-        self.osutils.pipe = 'PIPE'
+        self.osutils.pipe = "PIPE"
         self.popen = FakePopen()
         self.osutils.popen.side_effect = [self.popen]
-        self.binaries = {
-            "go": BinaryPath(resolver=Mock(), validator=Mock(),
-                             binary="go", binary_path="/path/to/go")
-        }
+        self.binaries = {"go": BinaryPath(resolver=Mock(), validator=Mock(), binary="go", binary_path="/path/to/go")}
         self.under_test = GoModulesBuilder(self.osutils, self.binaries)
 
     def test_run_executes_bundler_on_nixes(self):
@@ -37,19 +33,30 @@ class TestGoBuilder(TestCase):
         self.osutils.popen.assert_called_with(
             ["/path/to/go", "build", "-o", "output_path", "source_dir"],
             cwd="source_dir",
-            env={'GOOS': 'linux', 'GOARCH': 'amd64'},
-            stderr='PIPE',
-            stdout='PIPE',
+            env={"GOOS": "linux", "GOARCH": "amd64"},
+            stderr="PIPE",
+            stdout="PIPE",
         )
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
-        self.popen.out = b'some encoded text\n\n'
+        self.popen.out = b"some encoded text\n\n"
         result = self.under_test.build("source_dir", "output_path")
-        self.assertEqual(result, 'some encoded text')
+        self.assertEqual(result, "some encoded text")
 
     def test_raises_BuilderError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
-        self.popen.err = b'some error text\n\n'
+        self.popen.err = b"some error text\n\n"
         with self.assertRaises(BuilderError) as raised:
             self.under_test.build("source_dir", "output_path")
         self.assertEqual(raised.exception.args[0], "Builder Failed: some error text")
+
+    def test_debug_configuration_set(self):
+        self.under_test = GoModulesBuilder(self.osutils, self.binaries, "Debug")
+        self.under_test.build("source_dir", "output_path")
+        self.osutils.popen.assert_called_with(
+            ["/path/to/go", "build", "-gcflags='all=-N -l'", "-o", "output_path", "source_dir"],
+            cwd="source_dir",
+            env={"GOOS": "linux", "GOARCH": "amd64"},
+            stderr="PIPE",
+            stdout="PIPE",
+        )

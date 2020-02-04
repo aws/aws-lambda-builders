@@ -38,7 +38,4 @@ class WriteHelloWorkflow(BaseWorkflow):
     def __init__(self, source_dir, artifacts_dir, *args, **kwargs):
         super(WriteHelloWorkflow, self).__init__(source_dir, artifacts_dir, *args, **kwargs)
 
-        self.actions = [
-            WriteHelloAction(artifacts_dir)
-        ]
-
+        self.actions = [WriteHelloAction(artifacts_dir)]

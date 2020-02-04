@@ -5,7 +5,6 @@ from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import Subprocess
 
 
 class TestSubprocessDotnetCLI(TestCase):
-
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
@@ -16,7 +15,7 @@ class TestSubprocessDotnetCLI(TestCase):
 
         dotnetCli = SubprocessDotnetCLI(os_utils=self.os_utils)
 
-        assert dotnetCli.dotnet_exe == 'dotnet.exe'
+        assert dotnetCli.dotnet_exe == "dotnet.exe"
 
     def test_dotnetcli_name_non_windows(self):
         self.os_utils.reset_mock()
@@ -24,7 +23,7 @@ class TestSubprocessDotnetCLI(TestCase):
 
         dotnetCli = SubprocessDotnetCLI(os_utils=self.os_utils)
 
-        assert dotnetCli.dotnet_exe == 'dotnet'
+        assert dotnetCli.dotnet_exe == "dotnet"
 
     def test_invalid_args(self):
         self.os_utils.reset_mock()

@@ -39,4 +39,4 @@ class OSUtils(object):
         return os.path.abspath(path)
 
     def is_windows(self):
-        return platform.system().lower() == 'windows'
+        return platform.system().lower() == "windows"

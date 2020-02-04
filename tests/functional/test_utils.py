@@ -6,8 +6,8 @@ from unittest import TestCase
 
 from aws_lambda_builders.utils import copytree
 
-class TestCopyTree(TestCase):
 
+class TestCopyTree(TestCase):
     def setUp(self):
         self.source = tempfile.mkdtemp()
         self.dest = tempfile.mkdtemp()
@@ -48,4 +48,4 @@ def file(*args):
         os.makedirs(basedir)
 
     # empty file
-    open(path, 'a').close()
+    open(path, "a").close()

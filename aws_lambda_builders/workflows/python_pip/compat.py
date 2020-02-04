@@ -1,35 +1,34 @@
 import os
 
+from aws_lambda_builders.workflows.python_pip.exceptions import MissingPipError
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
 
 def pip_import_string(python_exe):
     os_utils = OSUtils()
-    cmd = [
-        python_exe,
-        "-c",
-        "import pip; print(pip.__version__)"
-    ]
+    cmd = [python_exe, "-c", "import pip; print(pip.__version__)"]
     p = os_utils.popen(cmd, stdout=os_utils.pipe, stderr=os_utils.pipe)
     stdout, stderr = p.communicate()
-    pip_version = stdout.decode('utf-8').strip()
-    pip_major_version = int(pip_version.split('.')[0])
-    pip_minor_version = int(pip_version.split('.')[1])
+    if not p.returncode == 0:
+        raise MissingPipError(python_path=python_exe)
+    pip_version = stdout.decode("utf-8").strip()
+    pip_major_version = int(pip_version.split(".")[0])
+    pip_minor_version = int(pip_version.split(".")[1])
 
     # Pip moved its internals to an _internal module in version 10.
     # In order to be compatible with version 9 which has it at at the
     # top level we need to figure out the correct import path here.
     if pip_major_version == 9:
-        return 'from pip import main'
+        return "from pip import main"
     # Pip changed their import structure again in 19.3
     # https://github.com/pypa/pip/commit/09fd200
-    elif (pip_major_version, pip_minor_version)  >= (19, 3):
-        return 'from pip._internal.main import main'
+    elif (pip_major_version, pip_minor_version) >= (19, 3):
+        return "from pip._internal.main import main"
     else:
-        return 'from pip._internal import main'
+        return "from pip._internal import main"
 
 
-if os.name == 'nt':
+if os.name == "nt":
     # windows
     # This is the actual patch used on windows to prevent distutils from
     # compiling C extensions. The msvc compiler base class has its compile
@@ -48,7 +47,8 @@ if os.name == 'nt':
         from distutils.errors import CompileError
 
         def raise_compile_error(*args, **kwargs):
-            raise CompileError('Prevented C extension compiling.')
+            raise CompileError("Prevented C extension compiling.")
+
         distutils._msvccompiler.MSVCCompiler.compile = raise_compile_error
         distutils.msvc9compiler.MSVCCompiler.compile = raise_compile_error
         distutils.msvccompiler.MSVCCompiler.compile = raise_compile_error
@@ -99,10 +99,7 @@ if os.name == 'nt':
     # the c extensions before the setup.py file has been executed.
     # The actual patches used are decribed in the comment above
     # _SETUPTOOLS_SHIM.
-    pip_no_compile_c_shim = (
-        'import pip;'
-        'pip.wheel.SETUPTOOLS_SHIM = """%s""";'
-    ) % _SETUPTOOLS_SHIM
+    pip_no_compile_c_shim = ("import pip;" 'pip.wheel.SETUPTOOLS_SHIM = """%s""";') % _SETUPTOOLS_SHIM
     pip_no_compile_c_env_vars = {}
 else:
     # posix
@@ -112,7 +109,5 @@ else:
     # C extensions, and any fallback processes in place to build a pure python
     # package will be kicked off.
     # No need to monkey patch the process.
-    pip_no_compile_c_shim = ''
-    pip_no_compile_c_env_vars = {
-        'CC': '/var/false'
-    }
+    pip_no_compile_c_shim = ""
+    pip_no_compile_c_env_vars = {"CC": "/var/false"}

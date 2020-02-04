@@ -20,13 +20,13 @@ class OSUtils(object):
         return p
 
     def is_windows(self):
-        return platform.system().lower() == 'windows'
+        return platform.system().lower() == "windows"
 
     def which(self, executable, executable_search_paths=None):
         return which(executable, executable_search_paths=executable_search_paths)
 
-    def expand_zip(self, zipfullpath,destination_dir):
-        ziparchive = zipfile.ZipFile(zipfullpath, 'r')
+    def expand_zip(self, zipfullpath, destination_dir):
+        ziparchive = zipfile.ZipFile(zipfullpath, "r")
         ziparchive.extractall(destination_dir)
         ziparchive.close()
         os.remove(zipfullpath)

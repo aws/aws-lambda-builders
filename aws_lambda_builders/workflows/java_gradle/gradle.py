@@ -17,12 +17,10 @@ class GradleExecutionError(Exception):
 
 class BuildFileNotFoundError(GradleExecutionError):
     def __init__(self, build_file_path):
-        super(BuildFileNotFoundError, self).__init__(
-            message='Gradle build file not found: %s' % build_file_path)
+        super(BuildFileNotFoundError, self).__init__(message="Gradle build file not found: %s" % build_file_path)
 
 
 class SubprocessGradle(object):
-
     def __init__(self, gradle_binary, os_utils=None):
         if gradle_binary is None:
             raise ValueError("Must provide Gradle BinaryPath")
@@ -35,19 +33,20 @@ class SubprocessGradle(object):
         if not self.os_utils.exists(build_file):
             raise BuildFileNotFoundError(build_file)
 
-        args = ['build', '--build-file', build_file]
+        args = ["build", "--build-file", build_file]
         if cache_dir is not None:
-            args.extend(['--project-cache-dir', cache_dir])
+            args.extend(["--project-cache-dir", cache_dir])
         if properties is not None:
-            args.extend(['-D%s=%s' % (n, v) for n, v in properties.items()])
+            args.extend(["-D%s=%s" % (n, v) for n, v in properties.items()])
         if init_script_path is not None:
-            args.extend(['--init-script', init_script_path])
+            args.extend(["--init-script", init_script_path])
         ret_code, _, stderr = self._run(args, source_dir)
         if ret_code != 0:
-            raise GradleExecutionError(message=stderr.decode('utf8').strip())
+            raise GradleExecutionError(message=stderr.decode("utf8").strip())
 
     def _run(self, args, cwd=None):
-        p = self.os_utils.popen([self.gradle_binary.binary_path] + args, cwd=cwd, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        p = self.os_utils.popen(
+            [self.gradle_binary.binary_path] + args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         stdout, stderr = p.communicate()
         return p.returncode, stdout, stderr

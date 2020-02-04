@@ -8,7 +8,6 @@ LOG = logging.getLogger(__name__)
 
 
 class RuntimeValidator(object):
-
     def __init__(self, runtime):
         self.runtime = runtime
         self._runtime_path = None

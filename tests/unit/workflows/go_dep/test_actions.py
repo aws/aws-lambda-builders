@@ -49,9 +49,9 @@ class TestGoBuildAction(TestCase):
 
         action.execute()
 
-        sub_proc_go.run.assert_called_with(["build", "-o", "output", "source"],
-                                           cwd="source",
-                                           env={"GOOS": "linux", "GOARCH": "amd64"})
+        sub_proc_go.run.assert_called_with(
+            ["build", "-o", "output", "source"], cwd="source", env={"GOOS": "linux", "GOARCH": "amd64"}
+        )
 
     @patch("aws_lambda_builders.workflows.go_dep.subproc_exec.SubprocessExec")
     def test_fails_go_build(self, SubProcMock):

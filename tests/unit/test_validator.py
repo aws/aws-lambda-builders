@@ -4,7 +4,6 @@ from aws_lambda_builders.validator import RuntimeValidator
 
 
 class TestRuntimeValidator(TestCase):
-
     def setUp(self):
         self.validator = RuntimeValidator(runtime="chitti2.0")
 
