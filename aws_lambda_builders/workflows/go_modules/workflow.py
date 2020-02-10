@@ -15,7 +15,9 @@ class GoModulesWorkflow(BaseWorkflow):
 
     CAPABILITY = Capability(language="go", dependency_manager="modules", application_framework=None)
 
-    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
+    def __init__(
+        self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, mode=None, **kwargs
+    ):
 
         super(GoModulesWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
@@ -29,7 +31,7 @@ class GoModulesWorkflow(BaseWorkflow):
 
         output_path = osutils.joinpath(artifacts_dir, handler)
 
-        builder = GoModulesBuilder(osutils, binaries=self.binaries)
+        builder = GoModulesBuilder(osutils, binaries=self.binaries, mode=mode)
         self.actions = [GoModulesBuildAction(source_dir, output_path, builder)]
 
     def get_validators(self):

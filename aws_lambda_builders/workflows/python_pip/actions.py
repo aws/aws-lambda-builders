@@ -4,6 +4,7 @@ Action to resolve Python dependencies using PIP
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
+from .exceptions import MissingPipError
 from .packager import PythonPipDependencyBuilder, PackagerError, DependencyBuilder, SubprocessPip, PipRunner
 
 
@@ -24,7 +25,10 @@ class PythonPipBuildAction(BaseAction):
     def execute(self):
         os_utils = OSUtils()
         python_path = self.binaries[self.LANGUAGE].binary_path
-        pip = SubprocessPip(osutils=os_utils, python_exe=python_path)
+        try:
+            pip = SubprocessPip(osutils=os_utils, python_exe=python_path)
+        except MissingPipError as ex:
+            raise ActionFailedError(str(ex))
         pip_runner = PipRunner(python_exe=python_path, pip=pip)
         dependency_builder = DependencyBuilder(osutils=os_utils, pip_runner=pip_runner, runtime=self.runtime)
 
