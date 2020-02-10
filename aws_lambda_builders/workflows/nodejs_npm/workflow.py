@@ -20,7 +20,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     CAPABILITY = Capability(language="nodejs", dependency_manager="npm", application_framework=None)
 
-    EXCLUDED_FILES = ".aws-sam"
+    EXCLUDED_FILES = (".aws-sam", ".git")
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
