@@ -43,6 +43,21 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEquals(expected_files, output_files)
 
+    def test_builds_project_and_excludes_hidden_aws_sam(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "excluded-files")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
+
+        expected_files = {"package.json", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEquals(expected_files, output_files)
+
     def test_builds_project_with_remote_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
 
