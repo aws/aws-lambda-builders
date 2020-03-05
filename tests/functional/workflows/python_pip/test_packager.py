@@ -756,11 +756,9 @@ class TestDependencyBuilder(object):
 class TestSubprocessPip(object):
     def test_can_invoke_pip(self):
         pip = SubprocessPip(python_exe=sys.executable)
-        rc, out, err = pip.main(["--version"])
-        # Simple assertion that we can execute pip and it gives us some output
-        # and nothing on stderr.
+        rc, _, _ = pip.main(["--version"])
+        # Simple assertion that we can execute pip
         assert rc == 0
-        assert err == b""
 
     def test_does_error_code_propagate(self):
         pip = SubprocessPip(python_exe=sys.executable)

@@ -44,6 +44,23 @@ class TestGoDep(TestCase):
 
         self.assertEquals(expected_files, output_files)
 
+    def test_builds_project_and_excludes_hidden_aws_sam(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "excluded-files")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Gopkg.toml"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "main"},
+        )
+
+        expected_files = {"main"}
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEquals(expected_files, output_files)
+
     def test_builds_project_with_no_gopkg_file(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "no-gopkg")
 

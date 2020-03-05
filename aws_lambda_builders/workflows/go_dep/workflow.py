@@ -25,7 +25,7 @@ class GoDepWorkflow(BaseWorkflow):
 
     CAPABILITY = Capability(language="go", dependency_manager="dep", application_framework=None)
 
-    EXCLUDED_FILES = ".aws-sam"
+    EXCLUDED_FILES = (".aws-sam", ".git")
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
