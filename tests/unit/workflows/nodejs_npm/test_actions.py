@@ -61,7 +61,7 @@ class TestNodejsNpmInstallAction(TestCase):
 
         action.execute()
 
-        expected_args = ["install", "-q", "--no-audit", "--no-save", "--production"]
+        expected_args = ["install", "-q", "--no-audit", "--no-save", "--production", "--production--unsafe-perm"]
 
         subprocess_npm.run.assert_called_with(expected_args, cwd="artifacts")
 
