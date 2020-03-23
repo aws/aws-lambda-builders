@@ -105,7 +105,7 @@ class NodejsNpmInstallAction(BaseAction):
             LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
 
             self.subprocess_npm.run(
-                ["install", "-q", "--no-audit", "--no-save", "--production" "--unsafe-perm"], cwd=self.artifacts_dir
+                ["install", "-q", "--no-audit", "--no-save", "--production", "--unsafe-perm"], cwd=self.artifacts_dir
             )
 
         except NpmExecutionError as ex:
