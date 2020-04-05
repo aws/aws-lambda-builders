@@ -45,6 +45,8 @@ class GoModulesBuilder(object):
         env = {}
         env.update(self.osutils.environ)
         env.update({"GOOS": "linux", "GOARCH": "amd64"})
+        if self.osutils.is_windows():
+            env.update({"CGO_ENABLED": "0"})
         runtime_path = self.binaries[self.LANGUAGE].binary_path
         cmd = [runtime_path, "build"]
         if self.mode and self.mode.lower() == BuildMode.DEBUG:
