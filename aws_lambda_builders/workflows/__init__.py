@@ -10,3 +10,4 @@ import aws_lambda_builders.workflows.go_modules
 import aws_lambda_builders.workflows.java_gradle
 import aws_lambda_builders.workflows.java_maven
 import aws_lambda_builders.workflows.dotnet_clipackage
+import aws_lambda_builders.workflows.provided_make
