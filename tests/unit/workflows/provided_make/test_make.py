@@ -42,7 +42,7 @@ class TestSubprocessMake(TestCase):
         self.under_test.run(["build-logical_id"])
 
         self.osutils.popen.assert_called_with(
-            ["make.cmd", "build-logical_id"], cwd=None, env={}, stderr="PIPE", stdout="PIPE"
+            ["make.exe", "build-logical_id"], cwd=None, env={}, stderr="PIPE", stdout="PIPE"
         )
 
     def test_uses_custom_make_path_if_supplied(self):

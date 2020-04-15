@@ -1,3 +1,5 @@
+import os
+
 from unittest import TestCase
 from mock import patch
 
@@ -7,6 +9,13 @@ from aws_lambda_builders.workflows.provided_make.make import MakeExecutionError
 
 
 class TestProvidedMakeAction(TestCase):
+    def setUp(self):
+        self.original_env = os.environ
+        os.environ = {}
+
+    def tearDown(self):
+        os.environ = self.original_env
+
     @patch("aws_lambda_builders.workflows.provided_make.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.provided_make.make.SubProcessMake")
     def test_call_makefile_target(self, OSUtilMock, SubprocessMakeMock):

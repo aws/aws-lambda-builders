@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.workflows.provided_make.utils import OSUtils
 
 
 class TestProvidedMakeWorkflow(TestCase):
@@ -13,7 +14,8 @@ class TestProvidedMakeWorkflow(TestCase):
     Verifies that `provided_make` workflow works by building a Lambda that requires Numpy
     """
 
-    TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata", "makefile-present")
+    MAKEFILE_DIRECTORY = "makefile-windows" if OSUtils().is_windows() else "makefile-unix"
+    TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata", MAKEFILE_DIRECTORY)
 
     def setUp(self):
         self.source_dir = self.TEST_DATA_FOLDER

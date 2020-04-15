@@ -40,7 +40,7 @@ class SubProcessMake(object):
 
         if make_exe is None:
             if osutils.is_windows():
-                make_exe = "make.cmd"
+                make_exe = "make.exe"
             else:
                 make_exe = "make"
 
