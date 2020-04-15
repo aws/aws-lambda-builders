@@ -1,7 +1,8 @@
 import os
 
 from unittest import TestCase
-from mock import patch
+
+from mock import patch, ANY
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.provided_make.actions import ProvidedMakeAction
@@ -37,9 +38,7 @@ class TestProvidedMakeAction(TestCase):
 
         action.execute()
 
-        subprocess_make.run.assert_called_with(
-            ["build-logical_id"], env={"ARTIFACTS_DIR": "artifacts"}, cwd="scratch_dir"
-        )
+        subprocess_make.run.assert_called_with(["build-logical_id"], env=ANY, cwd="scratch_dir")
 
     @patch("aws_lambda_builders.workflows.provided_make.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.provided_make.make.SubProcessMake")
@@ -65,6 +64,4 @@ class TestProvidedMakeAction(TestCase):
         with self.assertRaises(ActionFailedError):
             action.execute()
 
-        subprocess_make.run.assert_called_with(
-            ["build-logical_id"], env={"ARTIFACTS_DIR": "artifacts"}, cwd="scratch_dir"
-        )
+        subprocess_make.run.assert_called_with(["build-logical_id"], env=ANY, cwd="scratch_dir")

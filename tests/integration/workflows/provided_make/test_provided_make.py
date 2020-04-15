@@ -46,7 +46,7 @@ class TestProvidedMakeWorkflow(TestCase):
             "chardet",
             "urllib3",
             "idna",
-            "urllib3-1.25.8.dist-info",
+            "urllib3-1.25.9.dist-info",
             "chardet-3.0.4.dist-info",
             "certifi-2020.4.5.1.dist-info",
             "certifi",

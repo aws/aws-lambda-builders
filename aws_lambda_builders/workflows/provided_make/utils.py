@@ -24,6 +24,15 @@ class OSUtils(object):
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
         return p
 
+    def environ(self):
+        return os.environ
+
+    def normpath(self, path):
+        return os.path.normpath(path)
+
+    def abspath(self, path):
+        return os.path.abspath(path)
+
     @property
     def pipe(self):
         return subprocess.PIPE

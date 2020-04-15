@@ -2,7 +2,6 @@
 Action to build a specific Makefile target
 """
 
-import os
 import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
@@ -58,8 +57,10 @@ class ProvidedMakeAction(BaseAction):
             self.osutils.makedirs(self.artifacts_dir)
 
         try:
-            current_env = os.environ.copy()
-            current_env.update({"ARTIFACTS_DIR": self.artifacts_dir})
+            current_env = self.osutils.environ().copy()
+            norm_abs_artifacts_dir = self.osutils.abspath(self.osutils.normpath(self.artifacts_dir))
+            LOG.info("Current Artifacts Directory : %s", norm_abs_artifacts_dir)
+            current_env.update({"ARTIFACTS_DIR": norm_abs_artifacts_dir})
             self.subprocess_make.run(
                 ["build-{logical_id}".format(logical_id=self.build_logical_id)], env=current_env, cwd=self.scratch_dir,
             )
