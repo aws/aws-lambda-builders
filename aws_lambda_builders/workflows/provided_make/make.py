@@ -46,7 +46,7 @@ class SubProcessMake(object):
 
         self.make_exe = make_exe
 
-    def run(self, args, env, cwd=None):
+    def run(self, args, env=None, cwd=None):
 
         """
         Runs the action.
@@ -55,7 +55,7 @@ class SubProcessMake(object):
         :param args: Command line arguments to pass to Make
 
         :type args: dict
-        :param env : Environment variables dictionary to be passed into subprocess
+        :param env : environment variables dictionary to be passed into subprocess
 
         :type cwd: str
         :param cwd: Directory where to execute the command (defaults to current dir)
@@ -80,7 +80,9 @@ class SubProcessMake(object):
 
         LOG.debug("executing Make: %s", invoke_make)
 
-        p = self.osutils.popen(invoke_make, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd, env=env)
+        p = self.osutils.popen(
+            invoke_make, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd, env=env if env else {}
+        )
 
         out, err = p.communicate()
 

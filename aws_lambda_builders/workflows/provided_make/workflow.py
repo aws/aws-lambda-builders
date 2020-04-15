@@ -3,8 +3,8 @@ ProvidedMakeWorkflow
 """
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.path_resolver import PathResolver
 from .actions import ProvidedMakeAction
-from .make_resolver import MakeResolver
 from .utils import OSUtils
 from .make import SubProcessMake
 
@@ -32,17 +32,18 @@ class ProvidedMakeWorkflow(BaseWorkflow):
         options = kwargs.get("options") or {}
         build_logical_id = options.get("build_logical_id", None)
 
-        subprocess_make = SubProcessMake(make_exe=self.binaries['make'].binary_path, osutils=self.os_utils)
+        subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
 
         make_action = ProvidedMakeAction(
             artifacts_dir,
-            scratch_dir, manifest_path, osutils=osutils, subprocess_make=subprocess_make, build_logical_id=build_logical_id
+            scratch_dir,
+            manifest_path,
+            osutils=self.os_utils,
+            subprocess_make=subprocess_make,
+            build_logical_id=build_logical_id,
         )
 
-        self.actions = [
-            CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES),
-            make_action
-        ]
+        self.actions = [CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES), make_action]
 
     def get_resolvers(self):
-        return [MakeResolver(executable_search_paths=self.executable_search_paths)]
+        return [PathResolver(runtime="provided", binary="make", executable_search_paths=self.executable_search_paths)]

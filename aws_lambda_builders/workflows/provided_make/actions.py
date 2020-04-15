@@ -52,11 +52,15 @@ class ProvidedMakeAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when Make Build fails.
         """
 
-       # Create the Artifacts Directory if it doesnt exist.
+        # Create the Artifacts Directory if it doesnt exist.
         if not self.osutils.exists(self.artifacts_dir):
             self.osutils.makedirs(self.artifacts_dir)
 
         try:
-            self.subprocess_make.run([f"build-{self.build_logical_id}"], env={"ARTIFACTS_DIR": self.artifacts_dir}, cwd=self.scratch_dir)
+            self.subprocess_make.run(
+                ["build-{logical_id}".format(logical_id=self.build_logical_id)],
+                env={"ARTIFACTS_DIR": self.artifacts_dir},
+                cwd=self.scratch_dir,
+            )
         except MakeExecutionError as ex:
             raise ActionFailedError(str(ex))
