@@ -29,6 +29,7 @@ class ProvidedMakeWorkflow(BaseWorkflow):
 
         self.os_utils = OSUtils()
 
+        # Find the logical id of the function to be built.
         options = kwargs.get("options") or {}
         build_logical_id = options.get("build_logical_id", None)
 

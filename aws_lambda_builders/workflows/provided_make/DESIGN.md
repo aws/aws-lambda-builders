@@ -21,7 +21,8 @@ When the makefile is called through a lambda builder workflow, the appropriate t
 {Function_Logical_Id}-build
 ```
 
-Injected Environment Variables by Makefile Lambda Builder Workflow per Function to be built.
+Injected Environment Variables by Makefile Lambda Builder Workflow per Function to be built. The injected environment variable has the path values modified
+based on if this build mechanism is being run on windows (powershell or git bash).
 
 ``
 ARTIFACTS_DIR=/Users/noname/sam-app/.aws-sam/build/HelloWorldFunction

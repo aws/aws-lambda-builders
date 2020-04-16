@@ -6,6 +6,8 @@ import os
 import platform
 import subprocess
 
+from aws_lambda_builders.utils import which
+
 
 class OSUtils(object):
 
@@ -39,3 +41,6 @@ class OSUtils(object):
 
     def is_windows(self):
         return platform.system().lower() == "windows"
+
+    def which(self, executable, executable_search_paths=None):
+        return which(executable, executable_search_paths=executable_search_paths)
