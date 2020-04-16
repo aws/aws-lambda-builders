@@ -31,7 +31,7 @@ class TestSubprocessMake(TestCase):
         self.under_test.run(["build-logical_id"])
 
         self.osutils.popen.assert_called_with(
-            ["make", "build-logical_id"], cwd=None, env={}, stderr="PIPE", stdout="PIPE"
+            ["make", "build-logical_id"], cwd=None, env=None, stderr="PIPE", stdout="PIPE"
         )
 
     def test_run_executes_make_cmd_on_windows(self):
@@ -42,21 +42,21 @@ class TestSubprocessMake(TestCase):
         self.under_test.run(["build-logical_id"])
 
         self.osutils.popen.assert_called_with(
-            ["make.exe", "build-logical_id"], cwd=None, env={}, stderr="PIPE", stdout="PIPE"
+            ["make.exe", "build-logical_id"], cwd=None, env=None, stderr="PIPE", stdout="PIPE"
         )
 
     def test_uses_custom_make_path_if_supplied(self):
         self.under_test.run(["build_logical_id"])
 
         self.osutils.popen.assert_called_with(
-            ["/a/b/c/make.exe", "build_logical_id"], cwd=None, env={}, stderr="PIPE", stdout="PIPE"
+            ["/a/b/c/make.exe", "build_logical_id"], cwd=None, env=None, stderr="PIPE", stdout="PIPE"
         )
 
     def test_uses_cwd_if_supplied(self):
         self.under_test.run(["build_logical_id"], cwd="/a/cwd")
 
         self.osutils.popen.assert_called_with(
-            ["/a/b/c/make.exe", "build_logical_id"], cwd="/a/cwd", env={}, stderr="PIPE", stdout="PIPE"
+            ["/a/b/c/make.exe", "build_logical_id"], cwd="/a/cwd", env=None, stderr="PIPE", stdout="PIPE"
         )
 
     def test_uses_env_and_cwd_if_supplied(self):

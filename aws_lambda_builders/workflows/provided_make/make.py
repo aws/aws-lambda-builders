@@ -80,9 +80,7 @@ class SubProcessMake(object):
 
         LOG.debug("executing Make: %s", invoke_make)
 
-        p = self.osutils.popen(
-            invoke_make, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd, env=env if env else {}
-        )
+        p = self.osutils.popen(invoke_make, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd, env=env)
 
         out, err = p.communicate()
 
