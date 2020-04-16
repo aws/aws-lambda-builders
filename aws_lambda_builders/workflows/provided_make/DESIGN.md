@@ -18,7 +18,7 @@ The `Makefile` is the manifest and is present in the same path as the original s
 When the makefile is called through a lambda builder workflow, the appropriate target is triggered and artifacts should be copied to the exposed environmental variable `$ARTIFACTS_DIR`. This environment variable is seeded by the lambda builder with a value set to it. The targets are defined as 
 
 ```
-{Function_Logical_Id}-build
+build-{Function_Logical_Id}
 ```
 
 Injected Environment Variables by Makefile Lambda Builder Workflow per Function to be built. The injected environment variable has the path values modified

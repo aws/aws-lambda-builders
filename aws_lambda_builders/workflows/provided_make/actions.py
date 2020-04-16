@@ -49,7 +49,10 @@ class ProvidedMakeAction(BaseAction):
     def _artifact_dir_path(self):
         # This is required when running on windows to determine if we are running in linux
         # subsystem or on native cmd or powershell.
-        return Path(self.artifacts_dir).as_posix() if self.osutils.which("sh") else self.artifacts_dir
+        if self.osutils.is_windows():
+            return Path(self.artifacts_dir).as_posix() if self.osutils.which("sh") else self.artifacts_dir
+        else:
+            return self.artifacts_dir
 
     def execute(self):
         """
