@@ -1,7 +1,7 @@
 from unittest import TestCase
 from mock import patch
 
-from aws_lambda_builders.workflows.provided_make.make import MakeExecutionError, SubProcessMake
+from aws_lambda_builders.workflows.custom_make.make import MakeExecutionError, SubProcessMake
 
 
 class FakePopen:
@@ -15,7 +15,7 @@ class FakePopen:
 
 
 class TestSubprocessMake(TestCase):
-    @patch("aws_lambda_builders.workflows.provided_make.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.custom_make.utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
         self.osutils.pipe = "PIPE"

@@ -11,7 +11,7 @@ from .make import MakeExecutionError
 LOG = logging.getLogger(__name__)
 
 
-class ProvidedMakeAction(BaseAction):
+class CustomMakeAction(BaseAction):
 
     """
     A Lambda Builder Action that builds and packages a provided runtime project using Make.
@@ -32,13 +32,13 @@ class ProvidedMakeAction(BaseAction):
         :type manifest_path: str
         :param manifest_path: path to Makefile of an Make project with the source in same folder.
 
-        :type osutils: aws_lambda_builders.workflows.provided_make.utils.OSUtils
+        :type osutils: aws_lambda_builders.workflows.custom_make.utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
-        :type subprocess_make aws_lambda_builders.workflows.provided_make.make.SubprocessMake
+        :type subprocess_make aws_lambda_builders.workflows.custom_make.make.SubprocessMake
         :param subprocess_make: An instance of the Make process wrapper
         """
-        super(ProvidedMakeAction, self).__init__()
+        super(CustomMakeAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.scratch_dir = scratch_dir
         self.manifest_path = manifest_path
@@ -46,7 +46,8 @@ class ProvidedMakeAction(BaseAction):
         self.subprocess_make = subprocess_make
         self.build_logical_id = build_logical_id
 
-    def _artifact_dir_path(self):
+    @property
+    def artifact_dir_path(self):
         # This is required when running on windows to determine if we are running in linux
         # subsystem or on native cmd or powershell.
         if self.osutils.is_windows():
@@ -67,9 +68,8 @@ class ProvidedMakeAction(BaseAction):
 
         try:
             current_env = self.osutils.environ().copy()
-            artifacts_dir = self._artifact_dir_path()
-            LOG.info("Current Artifacts Directory : %s", artifacts_dir)
-            current_env.update({"ARTIFACTS_DIR": artifacts_dir})
+            LOG.info("Current Artifacts Directory : %s", self.artifact_dir_path)
+            current_env.update({"ARTIFACTS_DIR": self.artifact_dir_path})
             # Export environmental variables that might be needed by other binaries used
             # within the Makefile.
             self.subprocess_make.run(

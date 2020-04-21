@@ -7,9 +7,9 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
 
-class TestProvidedMakeWorkflow(TestCase):
+class TestCustomMakeWorkflow(TestCase):
     """
-    Verifies that `provided_make` workflow works by building a Lambda that requires Numpy
+    Verifies that `custom_make` workflow works by building a Lambda that requires Numpy
     """
 
     MAKEFILE_DIRECTORY = "makefile-root"

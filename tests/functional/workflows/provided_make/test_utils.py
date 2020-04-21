@@ -3,7 +3,7 @@ import sys
 
 from unittest import TestCase
 
-from aws_lambda_builders.workflows.provided_make import utils
+from aws_lambda_builders.workflows.custom_make import utils
 
 
 class TestOSUtils(TestCase):

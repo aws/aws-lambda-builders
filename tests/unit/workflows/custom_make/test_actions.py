@@ -5,25 +5,25 @@ from unittest import TestCase
 from mock import patch, ANY
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.provided_make.actions import ProvidedMakeAction
-from aws_lambda_builders.workflows.provided_make.make import MakeExecutionError
+from aws_lambda_builders.workflows.custom_make.actions import CustomMakeAction
+from aws_lambda_builders.workflows.custom_make.make import MakeExecutionError
 
 
 class TestProvidedMakeAction(TestCase):
     def setUp(self):
-        self.original_env = os.environ
+        self.original_env = os.environ.copy()
         os.environ = {}
 
     def tearDown(self):
         os.environ = self.original_env
 
-    @patch("aws_lambda_builders.workflows.provided_make.utils.OSUtils")
-    @patch("aws_lambda_builders.workflows.provided_make.make.SubProcessMake")
+    @patch("aws_lambda_builders.workflows.custom_make.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.custom_make.make.SubProcessMake")
     def test_call_makefile_target(self, OSUtilMock, SubprocessMakeMock):
         osutils = OSUtilMock.return_value
         subprocess_make = SubprocessMakeMock.return_value
 
-        action = ProvidedMakeAction(
+        action = CustomMakeAction(
             "artifacts",
             "scratch_dir",
             "manifest",
@@ -40,13 +40,13 @@ class TestProvidedMakeAction(TestCase):
 
         subprocess_make.run.assert_called_with(["build-logical_id"], env=ANY, cwd="scratch_dir")
 
-    @patch("aws_lambda_builders.workflows.provided_make.utils.OSUtils")
-    @patch("aws_lambda_builders.workflows.provided_make.make.SubProcessMake")
+    @patch("aws_lambda_builders.workflows.custom_make.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.custom_make.make.SubProcessMake")
     def test_makefile_target_fails(self, OSUtilMock, SubprocessMakeMock):
         osutils = OSUtilMock.return_value
         subprocess_make = SubprocessMakeMock.return_value
 
-        action = ProvidedMakeAction(
+        action = CustomMakeAction(
             "artifacts",
             "scratch_dir",
             "manifest",

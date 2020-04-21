@@ -4,18 +4,19 @@ ProvidedMakeWorkflow
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.path_resolver import PathResolver
-from .actions import ProvidedMakeAction
+from .actions import CustomMakeAction
 from .utils import OSUtils
 from .make import SubProcessMake
+from ...exceptions import WorkflowFailedError
 
 
-class ProvidedMakeWorkflow(BaseWorkflow):
+class CustomMakeWorkflow(BaseWorkflow):
 
     """
     A Lambda builder workflow for provided runtimes based on make.
     """
 
-    NAME = "ProvidedMakeBuilder"
+    NAME = "CustomMakeBuilder"
 
     CAPABILITY = Capability(language="provided", dependency_manager=None, application_framework=None)
 
@@ -23,7 +24,7 @@ class ProvidedMakeWorkflow(BaseWorkflow):
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
-        super(ProvidedMakeWorkflow, self).__init__(
+        super(CustomMakeWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
 
@@ -33,9 +34,16 @@ class ProvidedMakeWorkflow(BaseWorkflow):
         options = kwargs.get("options") or {}
         build_logical_id = options.get("build_logical_id", None)
 
+        if not build_logical_id:
+            raise WorkflowFailedError(
+                workflow_name=self.NAME,
+                action_name=None,
+                reason="Build target {} is not found!".format(build_logical_id),
+            )
+
         subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
 
-        make_action = ProvidedMakeAction(
+        make_action = CustomMakeAction(
             artifacts_dir,
             scratch_dir,
             manifest_path,

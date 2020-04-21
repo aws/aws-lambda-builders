@@ -29,7 +29,7 @@ class SubProcessMake(object):
 
     def __init__(self, osutils, make_exe=None):
         """
-        :type osutils: aws_lambda_builders.workflows.provided_make.utils.OSUtils
+        :type osutils: aws_lambda_builders.workflows.custom_make.utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type make_exe: str
@@ -54,7 +54,7 @@ class SubProcessMake(object):
         :type args: list
         :param args: Command line arguments to pass to Make
 
-        :type args: dict
+        :type env: dict
         :param env : environment variables dictionary to be passed into subprocess
 
         :type cwd: str
@@ -63,7 +63,7 @@ class SubProcessMake(object):
         :rtype: str
         :return: text of the standard output from the command
 
-        :raises aws_lambda_builders.workflows.provided_make.make.MakeExecutionError:
+        :raises aws_lambda_builders.workflows.custom_make.make.MakeExecutionError:
             when the command executes with a non-zero return code. The exception will
             contain the text of the standard error output from the command.
 
