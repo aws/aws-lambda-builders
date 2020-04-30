@@ -38,7 +38,9 @@ class TestProvidedMakeAction(TestCase):
 
         action.execute()
 
-        subprocess_make.run.assert_called_with(["build-logical_id"], env=ANY, cwd="scratch_dir")
+        subprocess_make.run.assert_called_with(
+            ["--makefile", "manifest", "build-logical_id"], cwd="scratch_dir", env=ANY
+        )
 
     @patch("aws_lambda_builders.workflows.custom_make.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.custom_make.make.SubProcessMake")
@@ -63,5 +65,6 @@ class TestProvidedMakeAction(TestCase):
 
         with self.assertRaises(ActionFailedError):
             action.execute()
-
-        subprocess_make.run.assert_called_with(["build-logical_id"], env=ANY, cwd="scratch_dir")
+        subprocess_make.run.assert_called_with(
+            ["--makefile", "manifest", "build-logical_id"], cwd="scratch_dir", env=ANY
+        )

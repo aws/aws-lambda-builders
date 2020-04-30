@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from .exceptions import MakeFileNotFoundError
 from .make import MakeExecutionError
 
 LOG = logging.getLogger(__name__)
@@ -55,12 +56,23 @@ class CustomMakeAction(BaseAction):
         else:
             return self.artifacts_dir
 
+    def manifest_check(self):
+        # Check for manifest file presence and if not present raise MakefileNotFoundError
+        if not self.osutils.exists(self.manifest_path):
+            raise MakeFileNotFoundError("Makefile not found at {}".format(self.manifest_path))
+
     def execute(self):
         """
         Runs the action.
 
         :raises lambda_builders.actions.ActionFailedError: when Make Build fails.
         """
+
+        # Check for manifest file
+        try:
+            self.manifest_check()
+        except MakeFileNotFoundError as ex:
+            raise ActionFailedError(str(ex))
 
         # Create the Artifacts Directory if it doesnt exist.
         if not self.osutils.exists(self.artifacts_dir):
@@ -71,9 +83,15 @@ class CustomMakeAction(BaseAction):
             LOG.info("Current Artifacts Directory : %s", self.artifact_dir_path)
             current_env.update({"ARTIFACTS_DIR": self.artifact_dir_path})
             # Export environmental variables that might be needed by other binaries used
-            # within the Makefile.
+            # within the Makefile and also specify the makefile to be used as well.
             self.subprocess_make.run(
-                ["build-{logical_id}".format(logical_id=self.build_logical_id)], env=current_env, cwd=self.scratch_dir,
+                [
+                    "--makefile",
+                    "{}".format(self.manifest_path),
+                    "build-{logical_id}".format(logical_id=self.build_logical_id),
+                ],
+                env=current_env,
+                cwd=self.scratch_dir,
             )
         except MakeExecutionError as ex:
             raise ActionFailedError(str(ex))
