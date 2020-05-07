@@ -70,6 +70,9 @@ for:
     # setup Gradle
     - "choco install gradle"
 
+    # setup make
+    - "choco install make"
+
     # Echo final Path
     - "echo %PATH%"
 
