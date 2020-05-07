@@ -79,7 +79,7 @@ class CustomMakeAction(BaseAction):
             self.osutils.makedirs(self.artifacts_dir)
 
         try:
-            current_env = self.osutils.environ().copy()
+            current_env = self.osutils.environ()
             LOG.info("Current Artifacts Directory : %s", self.artifact_dir_path)
             current_env.update({"ARTIFACTS_DIR": self.artifact_dir_path})
             # Export environmental variables that might be needed by other binaries used

@@ -49,7 +49,7 @@ This involves the given source to a temporary scratch directory, so that mutatio
 Artifacts directory is created if it doesnt exist and passed into the makefile target process.
 
 ```python
-self.subprocess_make.run([f"build-{self.build_logical_id}"], env={"ARTIFACTS_DIR": self.artifacts_dir}, cwd=self.scratch_dir)
+self.subprocess_make.run(["--makefile", self.manifest_path, f"build-{self.build_logical_id}"], env={"ARTIFACTS_DIR": self.artifacts_dir}, cwd=self.scratch_dir)
 ```
 
 It is then the responsibility of the make target to make sure the artifacts are built in the correct manner and dropped into the artifacts directory.

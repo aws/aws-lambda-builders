@@ -27,7 +27,7 @@ class OSUtils(object):
         return p
 
     def environ(self):
-        return os.environ
+        return os.environ.copy()
 
     def normpath(self, path):
         return os.path.normpath(path)

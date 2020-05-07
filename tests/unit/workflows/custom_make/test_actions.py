@@ -5,13 +5,14 @@ from unittest import TestCase
 from mock import patch, ANY
 
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.workflows.custom_make.utils import OSUtils
 from aws_lambda_builders.workflows.custom_make.actions import CustomMakeAction
 from aws_lambda_builders.workflows.custom_make.make import MakeExecutionError
 
 
 class TestProvidedMakeAction(TestCase):
     def setUp(self):
-        self.original_env = os.environ.copy()
+        self.original_env = OSUtils().environ()
         os.environ = {}
 
     def tearDown(self):
