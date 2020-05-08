@@ -19,14 +19,14 @@ class TestGlobalToolInstallAction(TestCase):
     def test_global_tool_install(self):
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         action.execute()
-        self.subprocess_dotnet.run.assert_called_once_with(["tool", "install", "-g", "Amazon.Lambda.Tools"])
+        self.subprocess_dotnet.run.assert_called_once_with(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
 
     def test_global_tool_update(self):
         self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="Already Installed"), None]
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         action.execute()
-        self.subprocess_dotnet.run.assert_any_call(["tool", "install", "-g", "Amazon.Lambda.Tools"])
-        self.subprocess_dotnet.run.assert_any_call(["tool", "update", "-g", "Amazon.Lambda.Tools"])
+        self.subprocess_dotnet.run.assert_any_call(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
+        self.subprocess_dotnet.run.assert_any_call(["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
 
     def test_global_tool_update_failed(self):
         self.subprocess_dotnet.run.side_effect = [
