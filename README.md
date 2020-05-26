@@ -18,6 +18,7 @@ Lambda Builders currently contains the following workflows
 * Typescript with esbuild
 * Ruby with Bundler
 * Go with Mod
+* Rust with Cargo
 
 In Addition to above workflows, AWS Lambda Builders also supports *Custom Workflows* through a Makefile.
 
