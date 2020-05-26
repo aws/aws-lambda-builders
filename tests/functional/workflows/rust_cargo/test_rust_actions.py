@@ -10,7 +10,6 @@ from aws_lambda_builders.workflows.rust_cargo.actions import OSUtils
 
 
 class TestOSUtils(TestCase):
-
     def test_popen_runs_a_process_and_returns_outcome(self):
         cwd_py = os.path.join(os.path.dirname(__file__), "..", "..", "testdata", "cwd.py")
         p = OSUtils().popen([sys.executable, cwd_py], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
