@@ -73,6 +73,15 @@ for:
     # setup make
     - "choco install make"
 
+    # setup rust
+    - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+    - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+    - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+    - set RUST_BACKTRACE=1
+    - rustup target add x86_64-unknown-linux-musl --toolchain stable
+    - rustc -V
+    - cargo -V
+
     # Echo final Path
     - "echo %PATH%"
 
@@ -102,6 +111,12 @@ for:
       - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
+
+      # Install rust
+      - sh: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+      - sh: "PATH=${HOME}/.cargo/bin:$PATH"
+      - sh: "rustc -V"
+      - sh: "cargo -V"
 
       # Install black
       - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
