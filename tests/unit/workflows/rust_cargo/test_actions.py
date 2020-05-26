@@ -109,19 +109,14 @@ class TestBuildAction(TestCase):
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
     def test_execute_cargo_meta_fail(self, OSUtilsMock):
         osutils = OSUtilsMock.return_value
-        popen1 = FakePopen(
-            retcode=1,
-            err=b"meta failed"
-        )
+        popen1 = FakePopen(retcode=1, err=b"meta failed")
         popen2 = FakePopen()
         osutils.popen.side_effect = [popen1, popen2]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "darwin", BuildMode.RELEASE, osutils=osutils)
         with self.assertRaises(BuilderError) as err_assert:
             action.execute()
-        self.assertEquals(
-            err_assert.exception.args[0], "Builder Failed: meta failed"
-        )
+        self.assertEquals(err_assert.exception.args[0], "Builder Failed: meta failed")
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
     def test_execute_cargo_build_fail(self, OSUtilsMock):
@@ -129,18 +124,14 @@ class TestBuildAction(TestCase):
         popen1 = FakePopen(
             out=json.dumps({"packages": [{"name": "foo", "targets": [{"kind": ["bin"], "name": "foo"}]}]})
         )
-        popen2 = FakePopen(
-            retcode=1,
-            err=b"build failed"
-        )
+        popen2 = FakePopen(retcode=1, err=b"build failed")
         osutils.popen.side_effect = [popen1, popen2]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "darwin", BuildMode.RELEASE, osutils=osutils)
         with self.assertRaises(BuilderError) as err_assert:
             action.execute()
-        self.assertEquals(
-            err_assert.exception.args[0], "Builder Failed: build failed"
-        )
+        self.assertEquals(err_assert.exception.args[0], "Builder Failed: build failed")
+
 
 class TestCopyAndRenameAction(TestCase):
     def test_debug_copy_path(self):
