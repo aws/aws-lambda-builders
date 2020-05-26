@@ -12,7 +12,7 @@ environment:
   matrix:
 
   - PYTHON: "C:\\Python27-x64"
-    PYTHON_VERSION: '2.7.17'
+    PYTHON_VERSION: '2.7.18'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
@@ -24,7 +24,7 @@ environment:
     NEW_FLAKE8: 0
     JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
   - PYTHON: "C:\\Python37-x64"
-    PYTHON_VERSION: '3.7.4'
+    PYTHON_VERSION: '3.7.7'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
@@ -69,6 +69,9 @@ for:
 
     # setup Gradle
     - "choco install gradle"
+
+    # setup make
+    - "choco install make"
 
     # Echo final Path
     - "echo %PATH%"
