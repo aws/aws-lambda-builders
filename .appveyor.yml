@@ -113,7 +113,7 @@ for:
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
       # Install rust
-      - sh: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+      - sh: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal"
       - sh: "PATH=${HOME}/.cargo/bin:$PATH"
       - sh: "rustc -V"
       - sh: "cargo -V"
