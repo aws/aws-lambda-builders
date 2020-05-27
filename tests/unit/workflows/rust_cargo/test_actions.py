@@ -1,6 +1,7 @@
 from unittest import TestCase
 from mock import patch
 import json
+import os
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.workflow import BuildMode
@@ -137,17 +138,19 @@ class TestCopyAndRenameAction(TestCase):
     def test_debug_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "linux", BuildMode.DEBUG)
-        self.assertEqual(action.binary_path(), "source_dir/target/debug/foo")
+        self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", "debug", "foo"))
 
     def test_release_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "linux", BuildMode.RELEASE)
-        self.assertEqual(action.binary_path(), "source_dir/target/release/foo")
+        self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", "release", "foo"))
 
     def test_nonlinux_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "darwin", BuildMode.RELEASE)
-        self.assertEqual(action.binary_path(), "source_dir/target/x86_64-unknown-linux-musl/release/foo")
+        self.assertEqual(
+            action.binary_path(), os.path.join("source_dir", "target", "x86_64-unknown-linux-musl", "release", "foo")
+        )
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
     def test_execute(self, OSUtilsMock):
