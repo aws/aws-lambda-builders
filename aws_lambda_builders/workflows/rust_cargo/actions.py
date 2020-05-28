@@ -149,6 +149,19 @@ class BuildAction(BaseAction):
                     "CC_x86_64_unknown_linux_musl": "x86_64-linux-musl-gcc",
                 }
             )
+        if self.platform.lower() == "windows":
+            # on windows we assume a musl cross compilation
+            # linker is available via rusts embedded llvm linker "rust-lld"
+            # but cc is used as the default
+            # source: https://github.com/KodrAus/rust-cross-compile
+            # This requires the follow env vars when invoking cargo build
+            env.update(
+                {
+                    "RUSTFLAGS": "{rust_flags} -Clinker=rust-lld".format(rust_flags=env.get("RUSTFLAGS", "")),
+                    "TARGET_CC": "rust-lld",
+                    "CC_x86_64_unknown_linux_musl": "rust-lld",
+                }
+            )
         return env
 
     def execute(self):
