@@ -13,7 +13,7 @@ is as follows.
 
 It builds a binary in the standard cargo target directory. 
 
-## Copy and Rename executable
+### Copy and Rename executable
 
 It then copies the executable to the target directory renaming the executable to "bootstrap" to honor the provided runtime's [expectation on executable names](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-custom.html).
 
@@ -23,11 +23,10 @@ It then copies the executable to the target directory renaming the executable to
 
 Cargo builds binaries targeting host platforms. When the host platform is not the same as the target platform it leverages a parameterized notion of a named target, typically installed and managed by [rustup](https://github.com/rust-lang/rustup). In the case of `sam` we default this target to to `x86_64-unknown-linux-musl` when the host is not linux based.
 
-Users can simply run `rustup target add x86_64-unknown-linux-musl` if needed. It's also possible for sam to detect this when needed and do that for users by parsing the output of `rustup target list --installed`
+Users can simply run `rustup target add x86_64-unknown-linux-musl` if needed. It's also possible for sam to detect this when needed and do that for users by parsing the output of `rustup target list --installed` but it would be unusual for sam to
+install toolchain components on a users behalf.
 
 The challenge is not installing the cargo target. The challenge is ensuring external linker dependencies of that target are present at build time. Setting this up varies from platform to platform. And example for osx can be found [here](https://www.andrew-thorburn.com/cross-compiling-a-simple-rust-web-app/). This may warrant requiring a building inside a docker container that is linux based.
-
-Related to the above, Windows support is currently untested.
 
 ## Notes
 
