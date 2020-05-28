@@ -120,11 +120,14 @@ class BuildAction(BaseAction):
         """
         (package, binary) = parse_handler(self.handler)
         exists = any(
-            map(
-                lambda p: p["name"] == package
-                and any(map(lambda t: any(map(lambda k: k == "bin", t["kind"])) and t["name"] == binary, p["targets"])),
-                cargo_meta["packages"],
-            )
+            [
+                kind == "bin"
+                for kind in target["kind"]
+                for target in pkg["targets"]
+                if target["name"] == binary
+                for pkg in cargo_meta["packages"]
+                if pkg["name"] == package
+            ]
         )
         if not exists:
             raise BuilderError(message="Cargo project does not contain a {handler} binary".format(handler=self.handler))
