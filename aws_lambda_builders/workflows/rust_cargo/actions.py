@@ -122,11 +122,11 @@ class BuildAction(BaseAction):
         exists = any(
             [
                 kind == "bin"
-                for kind in target["kind"]
-                for target in pkg["targets"]
-                if target["name"] == binary
                 for pkg in cargo_meta["packages"]
                 if pkg["name"] == package
+                for target in pkg["targets"]
+                if target["name"] == binary
+                for kind in target["kind"]
             ]
         )
         if not exists:
