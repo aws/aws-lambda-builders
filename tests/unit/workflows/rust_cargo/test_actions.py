@@ -87,6 +87,15 @@ class TestBuildAction(TestCase):
             env,
         )
 
+    def test_build_env_on_windows(self):
+        cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
+        action = BuildAction("source_dir", "foo", {"cargo": cargo}, "windows", BuildMode.RELEASE)
+        env = action.build_env()
+        self.assertDictContainsSubset(
+            {"RUSTFLAGS": " -Clinker=rust-lld", "TARGET_CC": "rust-lld", "CC_x86_64_unknown_linux_musl": "rust-lld",},
+            env,
+        )
+
     def test_build_env_on_linux(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "linux", BuildMode.RELEASE)
