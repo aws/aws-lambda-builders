@@ -103,11 +103,9 @@ class BuildAction(BaseAction):
         return json.loads(out)
 
     def build_command(self, package):
-        cmd = [self.binaries["cargo"].binary_path, "build", "-p", package]
+        cmd = [self.binaries["cargo"].binary_path, "build", "-p", package, "--target", "x86_64-unknown-linux-musl"]
         if self.mode != BuildMode.DEBUG:
             cmd.append("--release")
-        if self.platform.lower() != "linux":
-            cmd.extend(["--target", "x86_64-unknown-linux-musl"])
         return cmd
 
     def resolve_binary(self, cargo_meta):

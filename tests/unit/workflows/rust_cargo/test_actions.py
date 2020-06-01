@@ -28,20 +28,26 @@ class TestBuildAction(TestCase):
     def test_linux_release_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "linux", BuildMode.RELEASE)
-        self.assertEqual(action.build_command("foo"), ["path/to/cargo", "build", "-p", "foo", "--release"])
+        self.assertEqual(
+            action.build_command("foo"),
+            ["path/to/cargo", "build", "-p", "foo", "--target", "x86_64-unknown-linux-musl", "--release"],
+        )
 
     def test_nonlinux_release_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "darwin", BuildMode.RELEASE)
         self.assertEqual(
             action.build_command("foo"),
-            ["path/to/cargo", "build", "-p", "foo", "--release", "--target", "x86_64-unknown-linux-musl"],
+            ["path/to/cargo", "build", "-p", "foo", "--target", "x86_64-unknown-linux-musl", "--release"],
         )
 
     def test_linux_debug_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "linux", BuildMode.DEBUG)
-        self.assertEqual(action.build_command("foo"), ["path/to/cargo", "build", "-p", "foo"])
+        self.assertEqual(
+            action.build_command("foo"),
+            ["path/to/cargo", "build", "-p", "foo", "--target", "x86_64-unknown-linux-musl"],
+        )
 
     def test_nonlinux_debug_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
