@@ -220,9 +220,7 @@ class CopyAndRenameAction(BaseAction):
     def binary_path(self):
         (_, binary) = parse_handler(self.handler)
         profile = "debug" if self.mode == BuildMode.DEBUG else "release"
-        target = os.path.join(self.source_dir, "target")
-        if self.platform.lower() != "linux":
-            target = os.path.join(target, "x86_64-unknown-linux-musl")
+        target = os.path.join(self.source_dir, "target", "x86_64-unknown-linux-musl")
         return os.path.join(target, profile, binary)
 
     def execute(self):

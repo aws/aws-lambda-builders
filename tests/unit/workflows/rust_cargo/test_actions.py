@@ -153,12 +153,16 @@ class TestCopyAndRenameAction(TestCase):
     def test_debug_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "linux", BuildMode.DEBUG)
-        self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", "debug", "foo"))
+        self.assertEqual(
+            action.binary_path(), os.path.join("source_dir", "target", "x86_64-unknown-linux-musl", "debug", "foo")
+        )
 
     def test_release_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "linux", BuildMode.RELEASE)
-        self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", "release", "foo"))
+        self.assertEqual(
+            action.binary_path(), os.path.join("source_dir", "target", "x86_64-unknown-linux-musl", "release", "foo")
+        )
 
     def test_nonlinux_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
