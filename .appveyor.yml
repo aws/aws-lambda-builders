@@ -115,6 +115,8 @@ for:
       # Install rust
       - sh: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal"
       - sh: "PATH=${HOME}/.cargo/bin:$PATH"
+      - sh: "rustup target add x86_64-unknown-linux-musl --toolchain stable"
+      - sh: "sudo apt-get install musl-tools"
       - sh: "rustc -V"
       - sh: "cargo -V"
 
