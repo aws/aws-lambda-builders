@@ -234,7 +234,7 @@ class TestPipRunner(object):
             "--only-binary=:all:",
             "--no-deps",
             "--platform",
-            "manylinux1_x86_64",
+            "manylinux2014_x86_64",
             "--implementation",
             "cp",
             "--abi",
