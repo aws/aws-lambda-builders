@@ -150,7 +150,13 @@ class DependencyBuilder(object):
     packager.
     """
 
-    _MANYLINUX_COMPATIBLE_PLATFORM = {"any", "linux_x86_64", "manylinux1_x86_64"}
+    _MANYLINUX_COMPATIBLE_PLATFORM = {
+        "any",
+        "linux_x86_64",
+        "manylinux1_x86_64",
+        "manylinux2010_x86_64",
+        "manylinux2014_x86_64",
+    }
     _COMPATIBLE_PACKAGE_WHITELIST = {"sqlalchemy"}
 
     def __init__(self, osutils, runtime, pip_runner=None):
@@ -243,7 +249,6 @@ class DependencyBuilder(object):
                     compatible_wheels.add(package)
                 else:
                     incompatible_wheels.add(package)
-
         LOG.debug("initial compatible: %s", compatible_wheels)
         LOG.debug("initial incompatible: %s", incompatible_wheels | sdists)
 
@@ -622,7 +627,7 @@ class PipRunner(object):
                 "--only-binary=:all:",
                 "--no-deps",
                 "--platform",
-                "manylinux1_x86_64",
+                "manylinux2014_x86_64",
                 "--implementation",
                 "cp",
                 "--abi",
