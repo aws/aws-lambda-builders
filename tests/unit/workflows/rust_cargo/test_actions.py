@@ -11,6 +11,7 @@ from aws_lambda_builders.workflows.rust_cargo.actions import (
     BuildAction,
     CopyAndRenameAction,
     BuilderError,
+    CARGO_TARGET,
 )
 
 
@@ -29,32 +30,28 @@ class TestBuildAction(TestCase):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "linux", BuildMode.RELEASE)
         self.assertEqual(
-            action.build_command("foo"),
-            ["path/to/cargo", "build", "-p", "foo", "--target", "x86_64-unknown-linux-musl", "--release"],
+            action.build_command("foo"), ["path/to/cargo", "build", "-p", "foo", "--target", CARGO_TARGET, "--release"],
         )
 
     def test_nonlinux_release_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "darwin", BuildMode.RELEASE)
         self.assertEqual(
-            action.build_command("foo"),
-            ["path/to/cargo", "build", "-p", "foo", "--target", "x86_64-unknown-linux-musl", "--release"],
+            action.build_command("foo"), ["path/to/cargo", "build", "-p", "foo", "--target", CARGO_TARGET, "--release"],
         )
 
     def test_linux_debug_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "linux", BuildMode.DEBUG)
         self.assertEqual(
-            action.build_command("foo"),
-            ["path/to/cargo", "build", "-p", "foo", "--target", "x86_64-unknown-linux-musl"],
+            action.build_command("foo"), ["path/to/cargo", "build", "-p", "foo", "--target", CARGO_TARGET],
         )
 
     def test_nonlinux_debug_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "darwin", BuildMode.DEBUG)
         self.assertEqual(
-            action.build_command("foo"),
-            ["path/to/cargo", "build", "-p", "foo", "--target", "x86_64-unknown-linux-musl"],
+            action.build_command("foo"), ["path/to/cargo", "build", "-p", "foo", "--target", CARGO_TARGET],
         )
 
     def test_parse_handler_simple(self):
@@ -153,23 +150,17 @@ class TestCopyAndRenameAction(TestCase):
     def test_debug_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "linux", BuildMode.DEBUG)
-        self.assertEqual(
-            action.binary_path(), os.path.join("source_dir", "target", "x86_64-unknown-linux-musl", "debug", "foo")
-        )
+        self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", CARGO_TARGET, "debug", "foo"))
 
     def test_release_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "linux", BuildMode.RELEASE)
-        self.assertEqual(
-            action.binary_path(), os.path.join("source_dir", "target", "x86_64-unknown-linux-musl", "release", "foo")
-        )
+        self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", CARGO_TARGET, "release", "foo"))
 
     def test_nonlinux_copy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = CopyAndRenameAction("source_dir", "foo", "output_dir", "darwin", BuildMode.RELEASE)
-        self.assertEqual(
-            action.binary_path(), os.path.join("source_dir", "target", "x86_64-unknown-linux-musl", "release", "foo")
-        )
+        self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", CARGO_TARGET, "release", "foo"))
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
     def test_execute(self, OSUtilsMock):

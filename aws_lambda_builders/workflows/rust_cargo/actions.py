@@ -10,6 +10,8 @@ import json
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 
+CARGO_TARGET = "x86_64-unknown-linux-musl"
+
 
 class BuilderError(Exception):
     MESSAGE = "Builder Failed: {message}"
@@ -103,7 +105,7 @@ class BuildAction(BaseAction):
         return json.loads(out)
 
     def build_command(self, package):
-        cmd = [self.binaries["cargo"].binary_path, "build", "-p", package, "--target", "x86_64-unknown-linux-musl"]
+        cmd = [self.binaries["cargo"].binary_path, "build", "-p", package, "--target", CARGO_TARGET]
         if self.mode != BuildMode.DEBUG:
             cmd.append("--release")
         return cmd
@@ -220,7 +222,7 @@ class CopyAndRenameAction(BaseAction):
     def binary_path(self):
         (_, binary) = parse_handler(self.handler)
         profile = "debug" if self.mode == BuildMode.DEBUG else "release"
-        target = os.path.join(self.source_dir, "target", "x86_64-unknown-linux-musl")
+        target = os.path.join(self.source_dir, "target", CARGO_TARGET)
         return os.path.join(target, profile, binary)
 
     def execute(self):
