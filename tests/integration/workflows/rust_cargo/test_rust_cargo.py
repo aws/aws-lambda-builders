@@ -27,8 +27,22 @@ class TestRustCargo(TestCase):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
+    def test_failed_build_project(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "fail")
+
+        with self.assertRaises(WorkflowFailedError) as raised:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "Cargo.toml"),
+                runtime=self.runtime,
+                options={"artifact_executable_name": "fail"},
+            )
+            self.maxDiff = None
+        self.assertTrue(raised.exception.args[0].startswith("RustCargoBuilder:CargoBuild - Builder Failed"))
+
     def test_builds_hello_project(self):
-        pass
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
 
         self.builder.build(
@@ -46,7 +60,6 @@ class TestRustCargo(TestCase):
         self.assertEquals(expected_files, output_files)
 
     def test_builds_workspaces_project(self):
-        pass
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
 
         self.builder.build(
