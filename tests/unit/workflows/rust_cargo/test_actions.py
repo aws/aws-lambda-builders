@@ -127,7 +127,7 @@ class TestBuildAction(TestCase):
         osutils.popen.side_effect = [popen1, popen2]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "darwin", BuildMode.RELEASE, osutils=osutils)
-        with self.assertRaises(BuilderError) as err_assert:
+        with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
         self.assertEquals(err_assert.exception.args[0], "Builder Failed: meta failed")
 
@@ -141,7 +141,7 @@ class TestBuildAction(TestCase):
         osutils.popen.side_effect = [popen1, popen2]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = BuildAction("source_dir", "foo", {"cargo": cargo}, "darwin", BuildMode.RELEASE, osutils=osutils)
-        with self.assertRaises(BuilderError) as err_assert:
+        with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
         self.assertEquals(err_assert.exception.args[0], "Builder Failed: build failed")
 

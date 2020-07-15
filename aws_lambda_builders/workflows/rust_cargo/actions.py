@@ -165,18 +165,21 @@ class BuildAction(BaseAction):
         return env
 
     def execute(self):
-        (package, _) = self.resolve_binary(self.cargo_metadata())
-        p = self.osutils.popen(
-            self.build_command(package),
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            env=self.build_env(),
-            cwd=self.source_dir,
-        )
-        out, err = p.communicate()
-        if p.returncode != 0:
-            raise BuilderError(message=err.decode("utf8").strip())
-        return out.decode("utf8").strip()
+        try:
+            (package, _) = self.resolve_binary(self.cargo_metadata())
+            p = self.osutils.popen(
+                self.build_command(package),
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                env=self.build_env(),
+                cwd=self.source_dir,
+            )
+            out, err = p.communicate()
+            if p.returncode != 0:
+                raise BuilderError(message=err.decode("utf8").strip())
+            return out.decode("utf8").strip()
+        except Exception as ex:
+            raise ActionFailedError(str(ex))
 
 
 class CopyAndRenameAction(BaseAction):
