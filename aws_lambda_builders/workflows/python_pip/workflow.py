@@ -1,6 +1,7 @@
 """
 Python PIP Workflow
 """
+import pathlib
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
@@ -16,7 +17,7 @@ class PythonPipWorkflow(BaseWorkflow):
 
     # Common source files to exclude from build artifacts output
     # Trimmed version of https://github.com/github/gitignore/blob/master/Python.gitignore
-    EXCLUDED_FILES = (
+    _DEFAULT_EXCLUDED_FILES = (
         ".aws-sam",
         ".chalice",
         ".git",
@@ -67,6 +68,17 @@ class PythonPipWorkflow(BaseWorkflow):
             PythonPipBuildAction(artifacts_dir, scratch_dir, manifest_path, runtime, binaries=self.binaries),
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
+
+    @property
+    def EXCLUDED_FILES(self):
+        """
+        Use .samignore falling back to default exclude files
+        """
+        sam_ignore = pathlib.Path('./.samignore')
+        if sam_ignore.exists():
+            return sam_ignore.read_text().splitlines()
+        else:
+            return self._DEFAULT_EXCLUDED_FILES
 
     def get_validators(self):
         return [PythonRuntimeValidator(runtime=self.runtime)]
