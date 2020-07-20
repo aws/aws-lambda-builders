@@ -30,11 +30,11 @@ class GlobalToolInstallAction(BaseAction):
     def execute(self):
         try:
             LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
-            self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools"])
+            self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
         except DotnetCLIExecutionError as ex:
             LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
             try:
-                self.subprocess_dotnet.run(["tool", "update", "-g", "Amazon.Lambda.Tools"])
+                self.subprocess_dotnet.run(["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
             except DotnetCLIExecutionError as ex:
                 raise ActionFailedError("Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex))
 
