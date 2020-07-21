@@ -74,7 +74,7 @@ class PythonPipWorkflow(BaseWorkflow):
         """
         Use .samignore falling back to default exclude files
         """
-        sam_ignore = pathlib.Path('./.samignore')
+        sam_ignore = pathlib.Path("./.samignore")
         if sam_ignore.exists():
             return sam_ignore.read_text().splitlines()
         else:
