@@ -22,7 +22,7 @@ class TestPythonPipWorkflow(TestCase):
 
 
 @pytest.mark.parametrize("use_samignore", (False, False))
-def test_use_sam_ignore(tmpdir, use_samignore: bool):
+def test_use_sam_ignore(tmpdir, use_samignore):
     """
     Verify if there is a `.samignore` workflow will give that preference
     over the default files to exclude.
