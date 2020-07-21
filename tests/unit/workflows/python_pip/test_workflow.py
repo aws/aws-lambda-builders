@@ -41,6 +41,6 @@ def test_use_sam_ignore(tmpdir, use_samignore: bool):
     pathlib.Path.assert_called_once_with("./.samignore")
 
     if use_samignore:
-        assert _workflow.EXCLUDED_FILES == ["foo*.txt", "*-bar.so"]
+        assert _workflow.excluded_files == ["foo*.txt", "*-bar.so"]
     else:
-        assert _workflow.EXCLUDED_FILES == _workflow._DEFAULT_EXCLUDED_FILES
+        assert _workflow.excluded_files == _workflow._DEFAULT_EXCLUDED_FILES

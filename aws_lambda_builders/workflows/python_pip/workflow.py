@@ -66,11 +66,11 @@ class PythonPipWorkflow(BaseWorkflow):
 
         self.actions = [
             PythonPipBuildAction(artifacts_dir, scratch_dir, manifest_path, runtime, binaries=self.binaries),
-            CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
+            CopySourceAction(source_dir, artifacts_dir, excludes=self.excluded_files),
         ]
 
     @property
-    def EXCLUDED_FILES(self):
+    def excluded_files(self):
         """
         Use .samignore falling back to default exclude files
         """
