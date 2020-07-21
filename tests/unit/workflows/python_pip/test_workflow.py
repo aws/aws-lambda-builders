@@ -28,7 +28,7 @@ def test_use_sam_ignore(tmpdir, use_samignore):
     over the default files to exclude.
     """
 
-    sam_ignore = pathlib.Path(f"{tmpdir}/.samignore")
+    sam_ignore = pathlib.Path("{tmpdir}/.samignore".format(tmpdir=tmpdir))
 
     if use_samignore:
         sam_ignore.write_text("foo*.txt\n*-bar.so\n")
