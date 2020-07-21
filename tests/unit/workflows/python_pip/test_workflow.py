@@ -1,6 +1,7 @@
 import pytest
 import pathlib
-from unittest import TestCase, mock
+import mock
+from unittest import TestCase
 
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
