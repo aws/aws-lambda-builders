@@ -49,14 +49,22 @@ class SubprocessDotnetCLI(object):
 
         LOG.debug("executing dotnet: %s", invoke_dotnet)
 
-        p = self.os_utils.popen(invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd)
+        #TODO Support for other OS
+        encoding, encoding_err = self.os_utils.popen(["powershell.exe",
+                    "[system.console]::OutputEncoding.CodePage"],
+                    stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, encoding="ascii").communicate()
+
+        encoding = encoding.strip()
+        LOG.info("Encoding: %s" % encoding)
+        
+        p = self.os_utils.popen(invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd, encoding=encoding)
 
         out, err = p.communicate()
 
         # The package command contains lots of useful information on how the package was created and
         # information when the package command was not successful. For that reason the output is
         # always written to the output to help developers diagnose issues.
-        LOG.info(out.decode("utf8").strip())
+        LOG.info(out.strip())
 
         if p.returncode != 0:
-            raise DotnetCLIExecutionError(message=err.decode("utf8").strip())
+            raise DotnetCLIExecutionError(message=err.strip())
