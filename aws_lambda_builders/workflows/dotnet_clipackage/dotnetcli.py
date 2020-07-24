@@ -52,7 +52,9 @@ class SubprocessDotnetCLI(object):
 
         # DotNet output is in system locale dependent encoding
         encoding = locale.getpreferredencoding()
-        p = self.os_utils.popen(invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd, encoding=encoding)
+        p = self.os_utils.popen(
+            invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd, encoding=encoding
+        )
 
         out, err = p.communicate()
 
