@@ -4,6 +4,7 @@ Wrapper around calls to dotent CLI through a subprocess.
 
 import sys
 import logging
+import locale
 
 from .utils import OSUtils
 
@@ -49,14 +50,8 @@ class SubprocessDotnetCLI(object):
 
         LOG.debug("executing dotnet: %s", invoke_dotnet)
 
-        #TODO Support for other OS
-        encoding, encoding_err = self.os_utils.popen(["powershell.exe",
-                    "[system.console]::OutputEncoding.CodePage"],
-                    stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, encoding="ascii").communicate()
-
-        encoding = encoding.strip()
-        LOG.info("Encoding: %s" % encoding)
-        
+        # DotNet output is in system locale dependent encoding
+        encoding = locale.getpreferredencoding()
         p = self.os_utils.popen(invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd, encoding=encoding)
 
         out, err = p.communicate()
