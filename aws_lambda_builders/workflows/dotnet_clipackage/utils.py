@@ -15,8 +15,8 @@ class OSUtils(object):
     Convenience wrapper around common system functions
     """
 
-    def popen(self, command, stdout=None, stderr=None, env=None, cwd=None, encoding=None):
-        p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd, encoding=encoding)
+    def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
+        p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
         return p
 
     def is_windows(self):

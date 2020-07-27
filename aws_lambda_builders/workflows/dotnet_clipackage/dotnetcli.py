@@ -52,16 +52,14 @@ class SubprocessDotnetCLI(object):
 
         # DotNet output is in system locale dependent encoding
         encoding = locale.getpreferredencoding()
-        p = self.os_utils.popen(
-            invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd, encoding=encoding
-        )
+        p = self.os_utils.popen(invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd)
 
         out, err = p.communicate()
 
         # The package command contains lots of useful information on how the package was created and
         # information when the package command was not successful. For that reason the output is
         # always written to the output to help developers diagnose issues.
-        LOG.info(out.strip())
+        LOG.info(out.decode(encoding).strip())
 
         if p.returncode != 0:
-            raise DotnetCLIExecutionError(message=err.strip())
+            raise DotnetCLIExecutionError(message=err.decode(encoding).strip())
