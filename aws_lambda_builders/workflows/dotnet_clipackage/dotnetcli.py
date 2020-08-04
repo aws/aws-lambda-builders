@@ -51,6 +51,8 @@ class SubprocessDotnetCLI(object):
         LOG.debug("executing dotnet: %s", invoke_dotnet)
 
         # DotNet output is in system locale dependent encoding
+        # https://docs.microsoft.com/en-us/dotnet/api/system.console.outputencoding?view=netcore-3.1#remarks
+        # "The default code page that the console uses is determined by the system locale."
         encoding = locale.getpreferredencoding()
         p = self.os_utils.popen(invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd)
 
