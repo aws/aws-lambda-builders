@@ -32,7 +32,7 @@ class MavenValidator(object):
     def validate(self, maven_path):
         jvm_mv = self._get_major_version(maven_path)
 
-        language_version = self._runtime.replace("java", "")
+        language_version = self._runtime.replace("java", "").replace(".al2", "")
 
         if jvm_mv:
             if int(jvm_mv) > int(language_version):
