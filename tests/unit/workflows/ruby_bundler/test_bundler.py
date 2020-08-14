@@ -58,7 +58,7 @@ class TestSubprocessBundler(TestCase):
 
     def test_raises_BundlerExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
-        self.popen.err = b"some error text\n\n"
+        self.popen.out = b"some error text\n\n"
         with self.assertRaises(BundlerExecutionError) as raised:
             self.under_test.run(["install", "--without", "development", "test"])
         self.assertEqual(raised.exception.args[0], "Bundler Failed: some error text")
