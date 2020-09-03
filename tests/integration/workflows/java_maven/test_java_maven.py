@@ -28,7 +28,7 @@ class TestJavaMaven(TestCase):
         expected_files = [
             p("aws", "lambdabuilders", "Main.class"),
             p("some_data.txt"),
-            p("lib", "annotations-2.1.0.jar"),
+            p("lib", "software.amazon.awssdk.annotations-2.1.0.jar"),
         ]
         self.assert_artifact_contains_files(expected_files)
         self.assert_artifact_not_contains_file(p("lib", "junit-4.12.jar"))
