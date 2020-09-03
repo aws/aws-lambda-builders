@@ -34,7 +34,7 @@ class SubprocessMaven(object):
             raise MavenExecutionError(message=stdout.decode("utf8").strip())
 
     def copy_dependency(self, scratch_dir):
-        args = ["dependency:copy-dependencies", "-DincludeScope=compile"]
+        args = ["dependency:copy-dependencies", "-DincludeScope=compile", "-Dmdep.prependGroupId=true"]
         ret_code, stdout, _ = self._run(args, scratch_dir)
 
         if ret_code != 0:
