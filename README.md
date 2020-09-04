@@ -15,6 +15,7 @@ Lambda Builders currently contains the following workflows
 * Ruby with Bundler
 * Go with Dep
 * Go with Mod
+* Rust with Cargo
 
 Lambda Builders is the brains behind the `sam build` command from [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli)
 

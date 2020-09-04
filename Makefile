@@ -2,9 +2,12 @@ init:
 	LAMBDA_BUILDERS_DEV=1 pip install -e '.[dev]'
 
 test:
-	# Run unit tests
+	# Run unit and functional tests
 	# Fail if coverage falls below 94%
 	LAMBDA_BUILDERS_DEV=1 pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under 94 tests/unit tests/functional
+
+unit-test:
+	LAMBDA_BUILDERS_DEV=1 pytest tests/unit
 
 func-test:
 	LAMBDA_BUILDERS_DEV=1 pytest tests/functional
