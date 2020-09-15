@@ -44,11 +44,11 @@ class TestCustomMakeWorkflow(TestCase):
             "chardet",
             "urllib3",
             "idna",
-            "urllib3-1.25.9.dist-info",
+            "urllib3-1.25.10.dist-info",
             "chardet-3.0.4.dist-info",
             "certifi-2020.4.5.2.dist-info",
             "certifi",
-            "idna-2.9.dist-info",
+            "idna-2.10.dist-info",
             "requests",
             "requests-2.23.0.dist-info",
         }
