@@ -67,7 +67,7 @@ class NodejsNpmPackAction(BaseAction):
             self.osutils.extract_tarfile(tarfile_path, self.artifacts_dir)
 
         except NpmExecutionError as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))
 
 
 class NodejsNpmInstallAction(BaseAction):
@@ -109,7 +109,7 @@ class NodejsNpmInstallAction(BaseAction):
             )
 
         except NpmExecutionError as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))
 
 
 class NodejsNpmrcCopyAction(BaseAction):
@@ -154,7 +154,7 @@ class NodejsNpmrcCopyAction(BaseAction):
                 self.osutils.copy_file(npmrc_path, self.artifacts_dir)
 
         except OSError as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))
 
 
 class NodejsNpmrcCleanUpAction(BaseAction):
@@ -195,4 +195,4 @@ class NodejsNpmrcCleanUpAction(BaseAction):
                 self.osutils.remove_file(npmrc_path)
 
         except OSError as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))

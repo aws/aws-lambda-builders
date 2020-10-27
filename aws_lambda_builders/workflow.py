@@ -52,7 +52,7 @@ def sanitize(func):
                     else binary_checker.binary_path
                 )
             except ValueError as ex:
-                raise WorkflowFailedError(workflow_name=self.NAME, action_name="Resolver", reason=str(ex)) from ex
+                raise WorkflowFailedError(workflow_name=self.NAME, action_name="Resolver", reason=str(ex))
             for executable_path in exec_paths:
                 try:
                     valid_path = binary_checker.validator.validate(executable_path)
@@ -273,12 +273,12 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             except ActionFailedError as ex:
                 LOG.debug("%s failed", action_info, exc_info=ex)
 
-                raise WorkflowFailedError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex)) from ex
+                raise WorkflowFailedError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))
             except Exception as ex:
 
                 LOG.debug("%s raised unhandled exception", action_info, exc_info=ex)
 
-                raise WorkflowUnknownError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex)) from ex
+                raise WorkflowUnknownError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))
 
     def __repr__(self):
         """

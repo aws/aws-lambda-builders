@@ -38,7 +38,7 @@ class JavaGradleBuildAction(BaseAction):
             dst = os.path.join(self.scratch_dir, self.INIT_SCRIPT)
             return self.os_utils.copy(src, dst)
         except Exception as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))
 
     def _build_project(self, init_script_file):
         try:
@@ -52,7 +52,7 @@ class JavaGradleBuildAction(BaseAction):
                 {self.SCRATCH_DIR_PROPERTY: os.path.abspath(self.scratch_dir)},
             )
         except GradleExecutionError as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))
 
 
 class JavaGradleCopyArtifactsAction(BaseAction):
@@ -76,4 +76,4 @@ class JavaGradleCopyArtifactsAction(BaseAction):
                 self.os_utils.makedirs(self.artifacts_dir)
             self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
         except Exception as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))

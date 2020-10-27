@@ -33,7 +33,7 @@ class DepEnsureAction(BaseAction):
         try:
             self.subprocess_dep.run(["ensure"], cwd=self.base_dir)
         except ExecutionError as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))
 
 
 class GoBuildAction(BaseAction):
@@ -63,4 +63,4 @@ class GoBuildAction(BaseAction):
         try:
             self.subprocess_go.run(["build", "-o", self.output_path, self.source_path], cwd=self.source_path, env=env)
         except ExecutionError as ex:
-            raise ActionFailedError(str(ex)) from ex
+            raise ActionFailedError(str(ex))
