@@ -21,7 +21,9 @@ class DotnetCliPackageWorkflow(BaseWorkflow):
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, mode=None, **kwargs):
 
-        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, mode=mode, **kwargs)
+        super(DotnetCliPackageWorkflow, self).__init__(
+            source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, mode=mode, **kwargs
+        )
 
         options = kwargs["options"] if "options" in kwargs else {}
         subprocess_dotnetcli = SubprocessDotnetCLI(os_utils=OSUtils())

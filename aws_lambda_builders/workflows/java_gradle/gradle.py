@@ -17,7 +17,7 @@ class GradleExecutionError(Exception):
 
 class BuildFileNotFoundError(GradleExecutionError):
     def __init__(self, build_file_path):
-        super().__init__(message="Gradle build file not found: %s" % build_file_path)
+        super(BuildFileNotFoundError, self).__init__(message="Gradle build file not found: %s" % build_file_path)
 
 
 class SubprocessGradle(object):

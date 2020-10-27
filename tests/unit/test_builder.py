@@ -84,7 +84,7 @@ class TesetLambdaBuilder_init(TestCase):
                 executable_search_paths=None,
                 mode=None,
             ):
-                super().__init__(
+                super(MyWorkflow, self).__init__(
                     source_dir,
                     artifacts_dir,
                     scratch_dir,

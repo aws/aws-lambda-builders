@@ -24,7 +24,9 @@ class CustomMakeWorkflow(BaseWorkflow):
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
-        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs)
+        super(CustomMakeWorkflow, self).__init__(
+            source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
+        )
 
         self.os_utils = OSUtils()
 

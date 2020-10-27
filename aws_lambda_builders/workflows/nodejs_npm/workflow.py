@@ -24,7 +24,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
-        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs)
+        super(NodejsNpmWorkflow, self).__init__(
+            source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
+        )
 
         if osutils is None:
             osutils = OSUtils()

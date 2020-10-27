@@ -21,7 +21,7 @@ class RubyBundlerInstallAction(BaseAction):
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
     def __init__(self, source_dir, subprocess_bundler):
-        super().__init__()
+        super(RubyBundlerInstallAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_bundler = subprocess_bundler
 
@@ -43,7 +43,7 @@ class RubyBundlerVendorAction(BaseAction):
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
     def __init__(self, source_dir, subprocess_bundler):
-        super().__init__()
+        super(RubyBundlerVendorAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_bundler = subprocess_bundler
 

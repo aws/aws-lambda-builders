@@ -29,7 +29,9 @@ class GoDepWorkflow(BaseWorkflow):
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
-        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs)
+        super(GoDepWorkflow, self).__init__(
+            source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
+        )
 
         options = kwargs["options"] if "options" in kwargs else {}
         handler = options.get("artifact_executable_name", None)

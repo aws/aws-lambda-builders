@@ -24,7 +24,7 @@ class GlobalToolInstallAction(BaseAction):
     PURPOSE = Purpose.COMPILE_SOURCE
 
     def __init__(self, subprocess_dotnet):
-        super().__init__()
+        super(GlobalToolInstallAction, self).__init__()
         self.subprocess_dotnet = subprocess_dotnet
 
     def execute(self):
@@ -51,7 +51,7 @@ class RunPackageAction(BaseAction):
     PURPOSE = Purpose.COMPILE_SOURCE
 
     def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options, mode, os_utils=None):
-        super().__init__()
+        super(RunPackageAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_dotnet = subprocess_dotnet
         self.artifacts_dir = artifacts_dir

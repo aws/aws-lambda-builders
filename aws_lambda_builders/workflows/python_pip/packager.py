@@ -36,7 +36,7 @@ class InvalidSourceDistributionNameError(PackagerError):
 
 class RequirementsFileNotFoundError(PackagerError):
     def __init__(self, requirements_path):
-        super().__init__("Requirements file not found: %s" % requirements_path)
+        super(RequirementsFileNotFoundError, self).__init__("Requirements file not found: %s" % requirements_path)
 
 
 class MissingDependencyError(PackagerError):
@@ -50,7 +50,7 @@ class NoSuchPackageError(PackagerError):
     """Raised when a package name or version could not be found."""
 
     def __init__(self, package_name):
-        super().__init__("Could not satisfy the requirement: %s" % package_name)
+        super(NoSuchPackageError, self).__init__("Could not satisfy the requirement: %s" % package_name)
 
 
 class PackageDownloadError(PackagerError):
@@ -63,7 +63,7 @@ class UnsupportedPythonVersion(PackagerError):
     """Generic networking error during a package download."""
 
     def __init__(self, version):
-        super().__init__("'%s' version of python is not supported" % version)
+        super(UnsupportedPythonVersion, self).__init__("'%s' version of python is not supported" % version)
 
 
 def get_lambda_abi(runtime):

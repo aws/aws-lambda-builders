@@ -23,7 +23,7 @@ class JavaGradleWorkflow(BaseWorkflow):
     INIT_FILE = "lambda-build-init.gradle"
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs):
-        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
+        super(JavaGradleWorkflow, self).__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
 
         self.os_utils = OSUtils()
         self.build_dir = None
