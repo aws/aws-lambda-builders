@@ -27,7 +27,7 @@ class JavaMavenBuildAction(JavaMavenBaseAction, BaseAction):
     PURPOSE = Purpose.COMPILE_SOURCE
 
     def __init__(self, scratch_dir, subprocess_maven):
-        super(JavaMavenBuildAction, self).__init__(scratch_dir, subprocess_maven)
+        super().__init__(scratch_dir, subprocess_maven)
         self.scratch_dir = scratch_dir
         self.subprocess_maven = subprocess_maven
 
@@ -44,7 +44,7 @@ class JavaMavenCopyDependencyAction(JavaMavenBaseAction, BaseAction):
     PURPOSE = Purpose.COPY_SOURCE
 
     def __init__(self, scratch_dir, subprocess_maven):
-        super(JavaMavenCopyDependencyAction, self).__init__(scratch_dir, subprocess_maven)
+        super().__init__(scratch_dir, subprocess_maven)
         self.scratch_dir = scratch_dir
         self.subprocess_maven = subprocess_maven
 

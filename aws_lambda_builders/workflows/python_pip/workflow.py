@@ -59,9 +59,7 @@ class PythonPipWorkflow(BaseWorkflow):
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, **kwargs):
 
-        super(PythonPipWorkflow, self).__init__(
-            source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
-        )
+        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs)
 
         self.actions = [
             PythonPipBuildAction(artifacts_dir, scratch_dir, manifest_path, runtime, binaries=self.binaries),

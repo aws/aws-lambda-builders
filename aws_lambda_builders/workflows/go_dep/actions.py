@@ -24,7 +24,7 @@ class DepEnsureAction(BaseAction):
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
     def __init__(self, base_dir, subprocess_dep):
-        super(DepEnsureAction, self).__init__()
+        super().__init__()
 
         self.base_dir = base_dir
         self.subprocess_dep = subprocess_dep
@@ -47,7 +47,7 @@ class GoBuildAction(BaseAction):
     PURPOSE = Purpose.COMPILE_SOURCE
 
     def __init__(self, base_dir, source_path, output_path, subprocess_go, env=None):
-        super(GoBuildAction, self).__init__()
+        super().__init__()
 
         self.base_dir = base_dir
         self.source_path = source_path

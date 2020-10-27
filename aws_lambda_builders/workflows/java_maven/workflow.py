@@ -22,7 +22,7 @@ class JavaMavenWorkflow(BaseWorkflow):
     EXCLUDED_FILES = (".aws-sam", ".git")
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs):
-        super(JavaMavenWorkflow, self).__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
+        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)
 
         self.os_utils = OSUtils()
         # Assuming root_dir is the same as source_dir for now

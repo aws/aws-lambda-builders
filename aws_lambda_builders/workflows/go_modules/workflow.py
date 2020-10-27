@@ -19,9 +19,7 @@ class GoModulesWorkflow(BaseWorkflow):
         self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, mode=None, **kwargs
     ):
 
-        super(GoModulesWorkflow, self).__init__(
-            source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
-        )
+        super().__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs)
 
         if osutils is None:
             osutils = OSUtils()

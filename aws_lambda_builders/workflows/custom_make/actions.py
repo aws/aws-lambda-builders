@@ -39,7 +39,7 @@ class CustomMakeAction(BaseAction):
         :type subprocess_make aws_lambda_builders.workflows.custom_make.make.SubprocessMake
         :param subprocess_make: An instance of the Make process wrapper
         """
-        super(CustomMakeAction, self).__init__()
+        super().__init__()
         self.artifacts_dir = artifacts_dir
         self.scratch_dir = scratch_dir
         self.manifest_path = manifest_path
