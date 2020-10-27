@@ -28,7 +28,7 @@ class PythonPipBuildAction(BaseAction):
         try:
             pip = SubprocessPip(osutils=os_utils, python_exe=python_path)
         except MissingPipError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex
         pip_runner = PipRunner(python_exe=python_path, pip=pip)
         dependency_builder = DependencyBuilder(osutils=os_utils, pip_runner=pip_runner, runtime=self.runtime)
 
@@ -42,4 +42,4 @@ class PythonPipBuildAction(BaseAction):
                 requirements_path=self.manifest_path,
             )
         except PackagerError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex

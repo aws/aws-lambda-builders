@@ -35,7 +35,7 @@ class JavaMavenBuildAction(JavaMavenBaseAction, BaseAction):
         try:
             self.subprocess_maven.build(self.scratch_dir)
         except MavenExecutionError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex
 
 
 class JavaMavenCopyDependencyAction(JavaMavenBaseAction, BaseAction):
@@ -52,7 +52,7 @@ class JavaMavenCopyDependencyAction(JavaMavenBaseAction, BaseAction):
         try:
             self.subprocess_maven.copy_dependency(self.scratch_dir)
         except MavenExecutionError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex
 
 
 class JavaMavenCopyArtifactsAction(BaseAction):
@@ -80,4 +80,4 @@ class JavaMavenCopyArtifactsAction(BaseAction):
             if self.os_utils.exists(dependency_output):
                 self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
         except Exception as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex

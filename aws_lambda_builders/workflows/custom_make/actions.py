@@ -72,7 +72,7 @@ class CustomMakeAction(BaseAction):
         try:
             self.manifest_check()
         except MakeFileNotFoundError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex
 
         # Create the Artifacts Directory if it doesnt exist.
         if not self.osutils.exists(self.artifacts_dir):
@@ -94,4 +94,4 @@ class CustomMakeAction(BaseAction):
                 cwd=self.scratch_dir,
             )
         except MakeExecutionError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex

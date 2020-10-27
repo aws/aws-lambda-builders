@@ -21,4 +21,4 @@ class GoModulesBuildAction(BaseAction):
         try:
             self.builder.build(self.source_dir, self.output_path)
         except BuilderError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex

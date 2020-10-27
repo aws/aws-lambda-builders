@@ -36,7 +36,9 @@ class GlobalToolInstallAction(BaseAction):
             try:
                 self.subprocess_dotnet.run(["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
             except DotnetCLIExecutionError as ex:
-                raise ActionFailedError("Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex))
+                raise ActionFailedError(
+                    "Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex)
+                ) from ex
 
 
 class RunPackageAction(BaseAction):
@@ -83,4 +85,4 @@ class RunPackageAction(BaseAction):
             self.os_utils.expand_zip(zipfullpath, self.artifacts_dir)
 
         except DotnetCLIExecutionError as ex:
-            raise ActionFailedError(str(ex))
+            raise ActionFailedError(str(ex)) from ex
