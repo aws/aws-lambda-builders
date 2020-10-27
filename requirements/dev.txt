@@ -12,7 +12,7 @@ isort>=4.2.5,<5; python_version < '3.8'
 pytest>=6.1.1; python_version >= '3.6'
 pytest~=4.6.11; python_version < '3.6' # pytest dropped python 2 support after 4.6.x
 mock==4.0.2
-parameterized==0.6.1
+parameterized==0.7.4
 pathlib2==2.3.2; python_version<"3.4"
 futures==3.2.0; python_version<"3.2.3"
 # Py3.2 backport
