@@ -19,7 +19,7 @@ class TestRegistryEndToEnd(TestCase):
         capability = Capability(language="a", dependency_manager="b", application_framework="c")
 
         self.registry[capability] = self.workflow_data
-        self.assertEquals(self.workflow_data, self.registry[capability])
+        self.assertEqual(self.workflow_data, self.registry[capability])
 
     @parameterized.expand(
         [
@@ -31,7 +31,7 @@ class TestRegistryEndToEnd(TestCase):
     def test_must_add_item_with_optional_capabilities(self, capability):
 
         self.registry[capability] = self.workflow_data
-        self.assertEquals(self.workflow_data, self.registry[capability])
+        self.assertEqual(self.workflow_data, self.registry[capability])
 
     def test_must_add_multiple_items(self):
         capability1 = Capability(language="a", dependency_manager="b", application_framework="c")
@@ -40,7 +40,7 @@ class TestRegistryEndToEnd(TestCase):
         self.registry[capability1] = "some data"
         self.registry[capability2] = "some other data"
 
-        self.assertEquals(len(self.registry), 2)
+        self.assertEqual(len(self.registry), 2)
         self.assertTrue(capability1 in self.registry)
         self.assertTrue(capability2 in self.registry)
 
@@ -48,7 +48,7 @@ class TestRegistryEndToEnd(TestCase):
         capability = Capability(language="a", dependency_manager="b", application_framework="c")
 
         self.registry[capability] = self.workflow_data
-        self.assertEquals(self.workflow_data, self.registry[capability])
+        self.assertEqual(self.workflow_data, self.registry[capability])
 
         with self.assertRaises(KeyError):
             self.registry[capability] = "some other data"
@@ -57,11 +57,11 @@ class TestRegistryEndToEnd(TestCase):
         capability = Capability(language="a", dependency_manager="b", application_framework="c")
 
         self.registry[capability] = self.workflow_data
-        self.assertEquals(len(self.registry), 1)
+        self.assertEqual(len(self.registry), 1)
 
         self.registry.clear()
 
-        self.assertEquals(len(self.registry), 0)
+        self.assertEqual(len(self.registry), 0)
 
 
 class TestRegistryLocking(TestCase):
@@ -78,7 +78,7 @@ class TestRegistryLocking(TestCase):
     def test_set_item_must_lock(self):
         self.registry[self.capability] = self.workflow_data
 
-        self.assertEquals(self.mock_lock.method_calls, self.expected_lock_call_order)
+        self.assertEqual(self.mock_lock.method_calls, self.expected_lock_call_order)
 
     def test_set_item_with_duplicate_must_release_lock(self):
         self.registry[self.capability] = self.workflow_data
@@ -90,7 +90,7 @@ class TestRegistryLocking(TestCase):
             # Try register duplicate
             self.registry[self.capability] = self.workflow_data
 
-        self.assertEquals(self.mock_lock.method_calls, self.expected_lock_call_order)
+        self.assertEqual(self.mock_lock.method_calls, self.expected_lock_call_order)
 
     def test_get_item_must_not_use_lock(self):
         self.registry[self.capability] = self.workflow_data
@@ -98,7 +98,7 @@ class TestRegistryLocking(TestCase):
 
         _ = self.registry[self.capability]  # noqa: F841
 
-        self.assertEquals(self.mock_lock.method_calls, [])
+        self.assertEqual(self.mock_lock.method_calls, [])
 
     def test_contains_must_not_use_lock(self):
         self.registry[self.capability] = self.workflow_data
@@ -106,7 +106,7 @@ class TestRegistryLocking(TestCase):
 
         _ = self.capability in self.registry  # noqa: F841
 
-        self.assertEquals(self.mock_lock.method_calls, [])
+        self.assertEqual(self.mock_lock.method_calls, [])
 
     def test_clear_must_lock(self):
         self.registry[self.capability] = self.workflow_data
@@ -114,7 +114,7 @@ class TestRegistryLocking(TestCase):
 
         self.registry.clear()
 
-        self.assertEquals(self.mock_lock.method_calls, self.expected_lock_call_order)
+        self.assertEqual(self.mock_lock.method_calls, self.expected_lock_call_order)
 
 
 class TestGetWorkflow(TestCase):
@@ -131,13 +131,13 @@ class TestGetWorkflow(TestCase):
         self.registry[self.capability] = self.workflow_data
 
         result = get_workflow(self.capability, registry=self.registry)
-        self.assertEquals(result, self.workflow_data)
+        self.assertEqual(result, self.workflow_data)
 
     def test_must_get_workflow_from_default_registry(self):
         DEFAULT_REGISTRY[self.capability] = self.workflow_data
 
         result = get_workflow(self.capability)
-        self.assertEquals(result, self.workflow_data)
+        self.assertEqual(result, self.workflow_data)
 
     def test_must_raise_if_workflow_not_found(self):
 

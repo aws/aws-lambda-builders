@@ -41,7 +41,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         expected_files = {"package.json", "included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_project_and_excludes_hidden_aws_sam(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "excluded-files")
@@ -56,7 +56,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         expected_files = {"package.json", "included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_project_with_remote_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
@@ -71,11 +71,11 @@ class TestNodejsNpmWorkflow(TestCase):
 
         expected_files = {"package.json", "included.js", "node_modules"}
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
         expected_modules = {"minimal-request-promise"}
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
-        self.assertEquals(expected_modules, output_modules)
+        self.assertEqual(expected_modules, output_modules)
 
     def test_builds_project_with_npmrc(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npmrc")
@@ -91,11 +91,11 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_files = {"package.json", "included.js", "node_modules"}
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
         expected_modules = {"fake-http-request"}
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
-        self.assertEquals(expected_modules, output_modules)
+        self.assertEqual(expected_modules, output_modules)
 
     def test_fails_if_npm_cannot_resolve_dependencies(self):
 

@@ -23,7 +23,7 @@ class TesetLambdaBuilder_init(TestCase):
         # instantiate
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework)
 
-        self.assertEquals(builder.supported_workflows, [self.DEFAULT_WORKFLOW_MODULE])
+        self.assertEqual(builder.supported_workflows, [self.DEFAULT_WORKFLOW_MODULE])
 
         # First check if the module was loaded
         importlib_mock.import_module.assert_called_once_with(self.DEFAULT_WORKFLOW_MODULE)
@@ -44,7 +44,7 @@ class TesetLambdaBuilder_init(TestCase):
         # instantiate
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=modules)
 
-        self.assertEquals(builder.supported_workflows, modules)
+        self.assertEqual(builder.supported_workflows, modules)
 
         # Make sure the modules are loaded in same order as passed
         importlib_mock.import_module.assert_has_calls([call(m) for m in modules], any_order=False)
@@ -56,7 +56,7 @@ class TesetLambdaBuilder_init(TestCase):
         modules = []  # Load no modules
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=modules)
 
-        self.assertEquals(builder.supported_workflows, [])
+        self.assertEqual(builder.supported_workflows, [])
 
         # Make sure the modules are loaded in same order as passed
         importlib_mock.import_module.assert_not_called()

@@ -42,7 +42,7 @@ class TestJavaGradleBuildAction(TestCase):
         )
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "Copy failed!")
+        self.assertEqual(raised.exception.args[0], "Copy failed!")
 
     def test_error_building_project_raises_action_error(self):
         self.subprocess_gradle.build.side_effect = GradleExecutionError(message="Build failed!")
@@ -51,13 +51,13 @@ class TestJavaGradleBuildAction(TestCase):
         )
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "Gradle Failed: Build failed!")
+        self.assertEqual(raised.exception.args[0], "Gradle Failed: Build failed!")
 
     def test_computes_correct_cache_dir(self):
         action = JavaGradleBuildAction(
             self.source_dir, self.manifest_path, self.subprocess_gradle, self.scratch_dir, self.os_utils
         )
-        self.assertEquals(
+        self.assertEqual(
             action.gradle_cache_dir, os.path.join(self.scratch_dir, JavaGradleBuildAction.GRADLE_CACHE_DIR_NAME)
         )
 
@@ -88,4 +88,4 @@ class TestJavaGradleCopyArtifactsAction(TestCase):
         action = JavaGradleCopyArtifactsAction(self.source_dir, self.artifacts_dir, self.build_dir, self.os_utils)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "scandir failed!")
+        self.assertEqual(raised.exception.args[0], "scandir failed!")
