@@ -62,8 +62,7 @@ class TesetLambdaBuilder_init(TestCase):
         importlib_mock.import_module.assert_not_called()
 
     def test_with_real_workflow_class(self):
-        """Define a real workflow class and try to fetch it. This ensures the workflow registration actually works.
-        """
+        """Define a real workflow class and try to fetch it. This ensures the workflow registration actually works."""
 
         # Declare my test workflow.
         class MyWorkflow(BaseWorkflow):
