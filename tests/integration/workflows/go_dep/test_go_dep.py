@@ -42,7 +42,7 @@ class TestGoDep(TestCase):
         expected_files = {"main"}
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_project_and_excludes_hidden_aws_sam(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "excluded-files")
@@ -59,7 +59,7 @@ class TestGoDep(TestCase):
         expected_files = {"main"}
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_project_with_no_gopkg_file(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "no-gopkg")
@@ -74,7 +74,7 @@ class TestGoDep(TestCase):
                 options={"artifact_executable_name": "main"},
             )
 
-        self.assertEquals(
+        self.assertEqual(
             "GoDepBuilder:DepEnsure - Exec Failed: could not find project Gopkg.toml,"
             + " use dep init to initiate a manifest",
             str(ex.exception),
@@ -95,7 +95,7 @@ class TestGoDep(TestCase):
         expected_files = {"main"}
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_project_with_failed_remote_deps(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "src", "failed-remote")

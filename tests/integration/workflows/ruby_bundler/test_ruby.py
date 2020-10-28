@@ -33,7 +33,7 @@ class TestRubyWorkflow(TestCase):
         )
         expected_files = {"handler.rb", "Gemfile", "Gemfile.lock", ".bundle", "vendor"}
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_project_with_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps")
@@ -42,7 +42,7 @@ class TestRubyWorkflow(TestCase):
         )
         expected_files = {"handler.rb", "Gemfile", "Gemfile.lock", ".bundle", "vendor"}
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_project_and_ignores_excluded_files(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "excluded-files")
@@ -51,7 +51,7 @@ class TestRubyWorkflow(TestCase):
         )
         expected_files = {"handler.rb", "Gemfile", "Gemfile.lock", ".bundle", "vendor"}
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_fails_if_bundler_cannot_resolve_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-deps")

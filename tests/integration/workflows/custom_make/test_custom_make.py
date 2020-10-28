@@ -44,7 +44,7 @@ class TestCustomMakeWorkflow(TestCase):
             "chardet",
             "urllib3",
             "idna",
-            "urllib3-1.25.10.dist-info",
+            "urllib3-1.25.11.dist-info",
             "chardet-3.0.4.dist-info",
             "certifi-2020.4.5.2.dist-info",
             "certifi",
@@ -55,7 +55,7 @@ class TestCustomMakeWorkflow(TestCase):
 
         expected_files = self.test_data_files.union(dependencies_installed)
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_must_build_python_project_through_makefile_unknown_target(self):
         with self.assertRaises(WorkflowFailedError):

@@ -104,14 +104,14 @@ class TestCliWithHelloWorkflow(TestCase):
         response = json.loads(stdout_data)
         self.assertNotIn("error", response)
         self.assertIn("result", response)
-        self.assertEquals(response["result"]["artifacts_dir"], self.artifacts_dir)
+        self.assertEqual(response["result"]["artifacts_dir"], self.artifacts_dir)
 
         self.assertTrue(os.path.exists(self.expected_filename))
         contents = ""
         with open(self.expected_filename, "r") as fp:
             contents = fp.read()
 
-        self.assertEquals(contents, self.expected_contents)
+        self.assertEqual(contents, self.expected_contents)
         shutil.rmtree(self.scratch_dir)
 
     @parameterized.expand([("request_through_stdin"), ("request_through_argument")])
@@ -160,4 +160,4 @@ class TestCliWithHelloWorkflow(TestCase):
         # Validate the response object. It should be error response
         response = json.loads(stdout_data)
         self.assertIn("error", response)
-        self.assertEquals(response["error"]["code"], 505)
+        self.assertEqual(response["error"]["code"], 505)
