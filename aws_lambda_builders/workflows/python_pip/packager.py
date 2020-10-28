@@ -295,11 +295,25 @@ class DependencyBuilder(object):
         # claiming otherwise.
         compatible_wheels, incompatible_wheels = self._apply_wheel_whitelist(compatible_wheels, incompatible_wheels)
         missing_wheels = deps - compatible_wheels
+        true_missing_wheels = self._get_true_missing_wheels(deps, compatible_wheels)
         LOG.debug("Final compatible: %s", compatible_wheels)
         LOG.debug("Final incompatible: %s", incompatible_wheels)
         LOG.debug("Final missing wheels: %s", missing_wheels)
 
-        return compatible_wheels, missing_wheels
+        return compatible_wheels, true_missing_wheels
+
+    def _get_true_missing_wheels(self, deps, compatible_wheels):
+        # When installing from source and the package uses versioneer, do not be misled by ".dirty(sdist)"
+        # in the version string.
+        # Example:
+        #     deps={ smallmatter==0.0.0+0.g8619d4d.dirty(sdist) }
+        #     compatible_wheels={ smallmatter==0.0.0(wheel) }
+        #     true_missing_wheels={}
+        dep_names = {package.name for package in deps}
+        compatible_wheel_names = {package.name for package in deps}
+        true_missing_wheel_names = dep_names - compatible_wheel_names
+        true_missing_wheels = {package for package_name in true_missing_wheel_names if package.name == package_name}
+        return true_missing_wheels
 
     def _download_all_dependencies(self, requirements_filename, directory):
         # Download dependencies prefering wheel files but falling back to
