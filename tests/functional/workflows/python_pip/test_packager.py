@@ -671,7 +671,10 @@ class TestDependencyBuilder(object):
         # In this scenario we are downloading a package that has no wheel files
         # at all, and optional c speedups. The initial download will yield an
         # sdist since there were no wheels.
-        pip.packages_to_download(expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"], packages=["foo-1.2.zip"])
+        pip.packages_to_download(
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            packages=["foo-1.2.zip"],
+        )
 
         # Chalice should now try and build this into a wheel file. Since it has
         # optional c speedups it will build a platform dependent wheel file
