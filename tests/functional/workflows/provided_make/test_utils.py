@@ -30,7 +30,11 @@ class TestOSUtils(TestCase):
         env.update({"SOME_ENV": "SOME_VALUE"})
 
         p = self.osutils.popen(
-            [sys.executable, "cwd.py"], stdout=self.osutils.pipe, stderr=self.osutils.pipe, env=env, cwd=testdata_dir,
+            [sys.executable, "cwd.py"],
+            stdout=self.osutils.pipe,
+            stderr=self.osutils.pipe,
+            env=env,
+            cwd=testdata_dir,
         )
 
         out, err = p.communicate()
