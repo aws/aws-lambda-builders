@@ -2,6 +2,7 @@
 Actions for .NET dependency resolution with CLI Package
 """
 
+import threading
 import os
 import logging
 
@@ -14,6 +15,8 @@ LOG = logging.getLogger(__name__)
 
 
 class GlobalToolInstallAction(BaseAction):
+    __lock = threading.Lock()
+    __tolls_installed = False
 
     """
     A Lambda Builder Action which installs the Amazon.Lambda.Tools .NET Core Global Tool
@@ -28,15 +31,27 @@ class GlobalToolInstallAction(BaseAction):
         self.subprocess_dotnet = subprocess_dotnet
 
     def execute(self):
-        try:
-            LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
-            self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
-        except DotnetCLIExecutionError as ex:
-            LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
+        # run Amazon.Lambda.Tools update in sync block in case build is triggered in parallel
+        with GlobalToolInstallAction.__lock:
+            LOG.debug("Entered synchronized block for updating Amazon.Lambda.Tools")
+
+            # check if Amazon.Lambda.Tools updated recently
+            if GlobalToolInstallAction.__tolls_installed:
+                LOG.info("Skipping to update Amazon.Lambda.Tools install/update, since it is updated recently")
+                return
+
             try:
-                self.subprocess_dotnet.run(["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
+                LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
+                self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
             except DotnetCLIExecutionError as ex:
-                raise ActionFailedError("Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex))
+                LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
+                try:
+                    self.subprocess_dotnet.run(
+                        ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
+                except DotnetCLIExecutionError as ex:
+                    raise ActionFailedError(
+                        "Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex))
+            GlobalToolInstallAction.__tolls_installed = True
 
 
 class RunPackageAction(BaseAction):

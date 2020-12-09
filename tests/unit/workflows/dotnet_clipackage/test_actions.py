@@ -1,7 +1,11 @@
+import asyncio
+from threading import Thread
 from unittest import TestCase
-from mock import patch
+from mock import patch, call
 import os
 import platform
+from multiprocessing import Process
+import asyncio
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
@@ -41,6 +45,27 @@ class TestGlobalToolInstallAction(TestCase):
         ]
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         self.assertRaises(ActionFailedError, action.execute)
+
+    def test_global_tool_parallel(self):
+        actions = [
+            GlobalToolInstallAction(self.subprocess_dotnet),
+            GlobalToolInstallAction(self.subprocess_dotnet),
+            GlobalToolInstallAction(self.subprocess_dotnet),
+        ]
+
+        async def async_wrapper(func):
+            func()
+
+        async_results = [
+            asyncio.get_event_loop().run_until_complete(async_wrapper(action.execute))
+            for action in actions
+        ]
+
+        async_wrapper(lambda: asyncio.gather(*async_results))
+
+        self.subprocess_dotnet.assert_has_calls([
+            call.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
+        ])
 
 
 class TestRunPackageAction(TestCase):
