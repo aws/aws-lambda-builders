@@ -33,9 +33,6 @@ class OSUtils(object):
     def file_exists(self, filename):
         return os.path.isfile(filename)
 
-    # def filename(self, filepath):
-    #     return os.path.basename(filepath)
-
     def joinpath(self, *args):
         return os.path.join(*args)
 
@@ -56,9 +53,6 @@ class OSUtils(object):
     def dirname(self, path):
         return os.path.dirname(path)
 
-    # def relative_path(self, path, start):
-    #     return os.path.relpath(path, start=start)
-
     def remove_file(self, filename):
         return os.remove(filename)
 
@@ -75,6 +69,7 @@ class DependencyUtils(object):
     Collection of helper functions for managing local NPM dependencies
     """
 
+    @staticmethod
     def get_local_dependencies(manifest_path, osutils):
         """
         Helper function to extract all local dependencies in a package.json manifest
@@ -90,6 +85,7 @@ class DependencyUtils(object):
             else:
                 return {}
 
+    @staticmethod
     def is_local_dependency(path):
         """
         Helper function to check if package dependency is a local package
@@ -100,6 +96,7 @@ class DependencyUtils(object):
         except AttributeError:
             return False
 
+    @staticmethod
     def package_local_dependency(
         parent_package_path, rel_package_path, artifacts_dir, scratch_dir, output_dir, osutils, subprocess_npm
     ):
@@ -110,10 +107,7 @@ class DependencyUtils(object):
         if rel_package_path.startswith("file:"):
             rel_package_path = rel_package_path[5:].strip()
 
-        if rel_package_path.startswith("."):
-            package_path = osutils.abspath(osutils.joinpath(parent_package_path, rel_package_path))
-        else:
-            package_path = rel_package_path
+        package_path = osutils.abspath(osutils.joinpath(parent_package_path, rel_package_path))
 
         if not osutils.dir_exists(scratch_dir):
             osutils.mkdir(scratch_dir)
@@ -139,7 +133,7 @@ class DependencyUtils(object):
         for (dep_name, dep_path) in local_dependencies.items():
             dep_scratch_dir = osutils.joinpath(scratch_dir, str(abs(hash(dep_name))))
 
-            # TODO: if dep_scratch_dir exists, it means we've already processed it this round, skip
+            # TODO: if dep_scratch_dir exists (anywhere up path), it means we've already processed it this round, skip
 
             dep_artifacts_dir = osutils.joinpath(dep_scratch_dir, "unpacked")
 
@@ -167,6 +161,7 @@ class DependencyUtils(object):
 
             return osutils.joinpath(localized_package_dir, tarfile_name)
 
+    @staticmethod
     def update_manifest(manifest_path, dep_name, dependency_tarfile_path, osutils):
         """
         Helper function to update dependency path to localized tar

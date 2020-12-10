@@ -1,3 +1,4 @@
+from json import dumps
 from unittest import TestCase
 from mock import patch
 
@@ -11,11 +12,30 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
 
+class MockOpener:
+    calls = -1
+
+    @property
+    def content(self):
+        return self._contents[min(self.calls, len(self._contents) - 1)]
+
+    def __init__(self, contents=None):
+        if contents is None:
+            self._contents = ["{}"]
+        else:
+            self._contents = contents
+
+    def open(self, filename, mode="r"):
+        self.calls += 1
+        return FakeFileObject(filename, mode, self.content)
+
+
 class FakeFileObject(object):
-    def __init__(self, filename, mode="r"):
+    def __init__(self, filename, mode="r", content="{}"):
         self.filename = filename
         self.mode = mode
-        self.contents = "{}"
+
+        self.content = content
 
     def __enter__(self):
         return self
@@ -25,7 +45,7 @@ class FakeFileObject(object):
 
     def read(self):
         if self.mode.startswith("r"):
-            return self.contents
+            return self.content
         elif (self.mode.startswith == "w" or self.mode.startswith == "a") and self.mode.endswith("+"):
             return ""
         else:
@@ -33,7 +53,7 @@ class FakeFileObject(object):
 
     def write(self, data):
         if self.mode.startswith("w") or self.mode.startswith("a") or self.mode.endswith("+"):
-            return self.contents
+            return self.content
         else:
             raise IOError("file not open for writing")
 
@@ -52,7 +72,7 @@ class TestNodejsNpmPackAction(TestCase):
         osutils.dirname.side_effect = lambda value: "/dir:{}".format(value)
         osutils.abspath.side_effect = lambda value: "/abs:{}".format(value)
         osutils.joinpath.side_effect = lambda *args: "/".join(args)
-        osutils.open_file.side_effect = lambda filename, mode="r": FakeFileObject(filename, mode)
+        osutils.open_file.side_effect = MockOpener().open
 
         subprocess_npm.run.return_value = "package.tar"
 
@@ -78,6 +98,35 @@ class TestNodejsNpmPackAction(TestCase):
             action.execute()
 
         self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_tars_and_unpacks_local_dependencies(self, OSUtilMock, SubprocessNpmMock):
+        osutils = OSUtilMock.return_value
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmPackAction(
+            "artifacts", "scratch_dir", "manifest", osutils=osutils, subprocess_npm=subprocess_npm
+        )
+
+        file_open_responses = [
+            dumps({"dependencies": {"dep_1": "file:./local/path"}}),
+            dumps({"dependencies": {"dep_2": "file:local/path"}}),
+            "{}",
+        ]
+
+        osutils.dirname.side_effect = lambda value: "/dir:{}".format(value)
+        osutils.abspath.side_effect = lambda value: "/abs:{}".format(value)
+        osutils.joinpath.side_effect = lambda *args: "/".join(args)
+        osutils.open_file.side_effect = MockOpener(file_open_responses).open
+
+        subprocess_npm.run.return_value = "package.tar"
+
+        action.execute()
+
+        # pack is called once for top level package, then twice for each local dependency
+        self.assertEqual(subprocess_npm.run.call_count, 1 + 2 * 2)
+        subprocess_npm.run.assert_any_call(["pack", "-q", "file:/abs:/dir:manifest"], cwd="scratch_dir")
 
 
 class TestNodejsNpmInstallAction(TestCase):

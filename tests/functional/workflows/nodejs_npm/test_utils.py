@@ -123,3 +123,57 @@ class TestOSUtils(TestCase):
         self.assertEqual(p.returncode, 0)
 
         self.assertEqual(out.decode("utf8").strip(), os.path.abspath(testdata_dir))
+
+    def test_dir_exists(self):
+        self.assertFalse(self.osutils.dir_exists("20201210_some_directory_that_should_not_exist"))
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.assertTrue(self.osutils.dir_exists(temp_dir))
+
+    def test_mkdir_makes_directory(self):
+        dir_to_create = os.path.join(
+            tempfile._get_default_tempdir(), next(tempfile._get_candidate_names())
+        )  # pylint: disable=protected-access
+        self.assertFalse(os.path.isdir(dir_to_create))
+
+        self.osutils.mkdir(dir_to_create)
+
+        self.assertTrue(os.path.isdir(dir_to_create))
+
+    def test_open_file_opens_file_for_reading(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_to_open = os.path.join(temp_dir, "test_open.txt")
+
+            with open(file_to_open, "w") as fid:
+                fid.write("this is text")
+
+            with self.osutils.open_file(file_to_open) as fid:
+                content = fid.read()
+
+            self.assertEqual("this is text", content)
+
+    def test_open_file_opens_file_for_writing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_to_open = os.path.join(temp_dir, "test_open.txt")
+
+            with self.osutils.open_file(file_to_open, "w") as fid:
+                fid.write("this is some other text")
+
+            with self.osutils.open_file(file_to_open) as fid:
+                content = fid.read()
+
+            self.assertEqual("this is some other text", content)
+
+
+class TestDependencyUtils(TestCase):
+    def test_is_local_dependency_file_prefix(self):
+        self.assertTrue(utils.DependencyUtils.is_local_dependency("file:./local/dep"))
+
+    def test_is_local_dependency_dot_prefix(self):
+        self.assertTrue(utils.DependencyUtils.is_local_dependency("./local/dep"))
+
+    def test_is_local_dependency_package_name(self):
+        self.assertFalse(utils.DependencyUtils.is_local_dependency("typescript"))
+
+    def test_is_local_dependency_invalid(self):
+        self.assertFalse(utils.DependencyUtils.is_local_dependency(None))
