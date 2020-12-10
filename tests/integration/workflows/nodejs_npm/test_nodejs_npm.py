@@ -77,6 +77,29 @@ class TestNodejsNpmWorkflow(TestCase):
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
 
+    def test_builds_project_with_local_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "local-deps")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
+
+        expected_files = {"package.json", "included.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        expected_modules = {"@mockcompany"}
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertEqual(expected_modules, output_modules)
+
+        expected_sub_modules = {"module-a", "module-b", "module-c"}
+        output_sub_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules", "@mockcompany")))
+        self.assertEqual(expected_sub_modules, output_sub_modules)
+
     def test_builds_project_with_npmrc(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npmrc")
 

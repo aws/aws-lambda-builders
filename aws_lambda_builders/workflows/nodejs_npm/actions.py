@@ -75,7 +75,7 @@ class NodejsNpmPackAction(BaseAction):
             for (dep_name, dep_path) in local_dependencies.items():
                 dep_scratch_dir = self.osutils.joinpath(self.scratch_dir, str(abs(hash(dep_name))))
                 dep_artifacts_dir = self.osutils.joinpath(dep_scratch_dir, "unpacked")
-                local_packaged_output_dir = self.osutils.joinpath(self.artifacts_dir, "package", "local_dep")
+                local_packaged_output_dir = self.osutils.joinpath(self.artifacts_dir, "@aws_lambda_builders_local_dep")
                 if not self.osutils.dir_exists(local_packaged_output_dir):
                     self.osutils.mkdir(local_packaged_output_dir)
                 dependency_tarfile_path = DependencyUtils.package_local_dependency(

@@ -30,8 +30,8 @@ class OSUtils(object):
     def file_exists(self, filename):
         return os.path.isfile(filename)
 
-    def filename(self, filepath):
-        return os.path.basename(filepath)
+    # def filename(self, filepath):
+    #     return os.path.basename(filepath)
 
     def joinpath(self, *args):
         return os.path.join(*args)
@@ -53,8 +53,8 @@ class OSUtils(object):
     def dirname(self, path):
         return os.path.dirname(path)
 
-    def relative_path(self, path, start):
-        return os.path.relpath(path, start=start)
+    # def relative_path(self, path, start):
+    #     return os.path.relpath(path, start=start)
 
     def remove_file(self, filename):
         return os.remove(filename)
@@ -159,3 +159,5 @@ class DependencyUtils(object):
 
                 with osutils.open_file(manifest_path, "w") as manifest_write_file:
                     manifest_write_file.write(json.dumps(manifest, indent=4))
+
+        osutils.remove_file(manifest_backup)
