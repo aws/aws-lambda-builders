@@ -11,6 +11,33 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
 
+class FakeFileObject(object):
+    def __init__(self, filename, mode='r'):
+        self.filename = filename
+        self.mode = mode
+        self.contents = "{}"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+    def read(self):
+        if self.mode.startswith('r'):
+            return self.contents
+        elif (self.mode.startswith == 'w' or self.mode.startswith == 'a') and self.mode.endswith('+'):
+            return ''
+        else:
+            raise IOError('file not open for reading')
+
+    def write(self, data):
+        if self.mode.startswith('w') or self.mode.startswith('a') or self.mode.endswith('+'):
+            return self.contents
+        else:
+            raise IOError('file not open for writing')
+
+
 class TestNodejsNpmPackAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
@@ -24,7 +51,8 @@ class TestNodejsNpmPackAction(TestCase):
 
         osutils.dirname.side_effect = lambda value: "/dir:{}".format(value)
         osutils.abspath.side_effect = lambda value: "/abs:{}".format(value)
-        osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
+        osutils.joinpath.side_effect = lambda *args: '/'.join(args)
+        osutils.open_file.side_effect = lambda filename, mode='r': FakeFileObject(filename, mode)
 
         subprocess_npm.run.return_value = "package.tar"
 

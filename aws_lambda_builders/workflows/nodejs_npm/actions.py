@@ -71,7 +71,7 @@ class NodejsNpmPackAction(BaseAction):
             LOG.debug("NODEJS searching for local dependencies")
 
             local_manifest_path = self.osutils.joinpath(self.artifacts_dir, 'package', 'package.json')
-            local_dependencies = DependencyUtils.get_local_dependencies(self.manifest_path)
+            local_dependencies = DependencyUtils.get_local_dependencies(self.manifest_path, self.osutils)
             for (dep_name, dep_path) in local_dependencies.items():
                 dep_scratch_dir = self.osutils.joinpath(self.scratch_dir, str(abs(hash(dep_name))))
                 dep_artifacts_dir = self.osutils.joinpath(dep_scratch_dir, 'unpacked')
