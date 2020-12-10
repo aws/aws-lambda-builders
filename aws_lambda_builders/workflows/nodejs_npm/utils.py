@@ -178,7 +178,7 @@ class DependencyUtils(object):
             manifest = json.loads(manifest_backup_file.read())
 
             if "dependencies" in manifest and dep_name in manifest["dependencies"]:
-                manifest["dependencies"][dep_name] = f"file:{dependency_tarfile_path}"
+                manifest["dependencies"][dep_name] = "file:{}".format(dependency_tarfile_path)
 
                 with osutils.open_file(manifest_path, "w") as manifest_write_file:
                     manifest_write_file.write(json.dumps(manifest, indent=4))
