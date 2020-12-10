@@ -10,6 +10,7 @@ from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
 from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
 
+
 @patch.object(GlobalToolInstallAction, "_GlobalToolInstallAction__tools_installed", False)
 class TestGlobalToolInstallAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
@@ -56,15 +57,14 @@ class TestGlobalToolInstallAction(TestCase):
             func()
 
         async_results = [
-            asyncio.get_event_loop().run_until_complete(async_wrapper(action.execute))
-            for action in actions
+            asyncio.get_event_loop().run_until_complete(async_wrapper(action.execute)) for action in actions
         ]
 
         async_wrapper(lambda: asyncio.gather(*async_results))
 
-        self.subprocess_dotnet.assert_has_calls([
-            call.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
-        ])
+        self.subprocess_dotnet.assert_has_calls(
+            [call.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])]
+        )
 
 
 class TestRunPackageAction(TestCase):
