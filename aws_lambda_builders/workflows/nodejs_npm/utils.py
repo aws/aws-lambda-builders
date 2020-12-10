@@ -92,7 +92,7 @@ class DependencyUtils(object):
         except AttributeError:
             return False
 
-    def package_local_dependency(parent_package_path, rel_package_path, artifact_dir, scratch_dir, osutils, subprocess_npm):
+    def package_local_dependency(parent_package_path, rel_package_path, artifacts_dir, scratch_dir, output_dir, osutils, subprocess_npm):
         if rel_package_path.startswith('file:'):
             rel_package_path = rel_package_path[5:].strip()
 
@@ -110,27 +110,24 @@ class DependencyUtils(object):
 
         tarfile_path = osutils.joinpath(scratch_dir, tarfile_name)
 
-        # LOG.debug("NODEJS extracting to %s", artifact_dir)
+        # LOG.debug("NODEJS extracting to %s", artifacts_dir)
 
-        osutils.extract_tarfile(tarfile_path, artifact_dir)
+        osutils.extract_tarfile(tarfile_path, artifacts_dir)
 
         # LOG.debug("NODEJS searching for subpackage local dependencies")
 
-        # local_manifest_path = self.osutils.joinpath(self.artifacts_dir, 'package', 'package.json')
-        # local_dependencies = DependencyUtils.get_local_dependencies(self.manifest_path)
-        # for (dep_name, dep_path) in local_dependencies.items():
-        #     dep_scratch_dir = self.osutils.joinpath(self.scratch_dir, str(abs(hash(dep_name))))
-        #     dep_artifacts_dir = self.osutils.joinpath(dep_scratch_dir, 'unpacked')
-        #     dependency_tarfile_path = DependencyUtils.package_local_dependency(package_path[5:], dep_path, dep_artifacts_dir, dep_scratch_dir, self.osutils, self.subprocess_npm)
-        #     local_packaged_dep_path = self.osutils.joinpath(self.artifacts_dir, 'package', 'local_dep')
-        #     if not self.osutils.dir_exists(local_packaged_dep_path):
-        #         self.osutils.mkdir(local_packaged_dep_path)
-        #     dependency_tarfile_path = self.osutils.copy_file(dependency_tarfile_path, self.osutils.joinpath(local_packaged_dep_path))
-        #     DependencyUtils.update_manifest(local_manifest_path, dep_name, dependency_tarfile_path, self.osutils)
+        local_manifest_path = osutils.joinpath(artifacts_dir, 'package', 'package.json')
+        local_dependencies = DependencyUtils.get_local_dependencies(local_manifest_path)
+        for (dep_name, dep_path) in local_dependencies.items():
+            dep_scratch_dir = osutils.joinpath(scratch_dir, str(abs(hash(dep_name))))
+            dep_artifacts_dir = osutils.joinpath(dep_scratch_dir, 'unpacked')
+            dependency_tarfile_path = DependencyUtils.package_local_dependency(package_path, dep_path, dep_artifacts_dir, dep_scratch_dir, output_dir, osutils, subprocess_npm)
+            dependency_tarfile_path = osutils.copy_file(dependency_tarfile_path, output_dir)
+            DependencyUtils.update_manifest(local_manifest_path, dep_name, dependency_tarfile_path, osutils)
 
-        localized_package_dir = osutils.joinpath(artifact_dir, 'package')
+        localized_package_dir = osutils.joinpath(artifacts_dir, 'package')
 
-        # LOG.debug("NODEJS repackaging dependency %s to %s", artifact_dir, localized_package_dir)
+        # LOG.debug("NODEJS repackaging dependency %s to %s", artifacts_dir, localized_package_dir)
 
         tarfile_name = subprocess_npm.run(["pack", "-q", localized_package_dir], cwd=localized_package_dir).splitlines()[-1]
 
@@ -148,9 +145,9 @@ class DependencyUtils(object):
             manifest = json.loads(manifest_backup_file.read())
 
             if 'dependencies' in manifest and dep_name in manifest['dependencies']:
-                dep_rel_path = osutils.relative_path(dependency_tarfile_path, start=package_path)
-                dep_rel_path = osutils.joinpath('.', dep_rel_path).replace(os.sep, "/")
-                manifest['dependencies'][dep_name] = f'file:{dep_rel_path}'
+                # dep_rel_path = osutils.relative_path(dependency_tarfile_path, start=package_path)
+                # dep_rel_path = osutils.joinpath('.', dep_rel_path).replace(os.sep, "/")
+                manifest['dependencies'][dep_name] = f'file:{dependency_tarfile_path}'
 
                 with open(manifest_path, 'w') as manifest_write_file:
                     manifest_write_file.write(json.dumps(manifest, indent=4))
