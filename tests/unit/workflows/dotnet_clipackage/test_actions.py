@@ -4,14 +4,13 @@ from unittest import TestCase
 from mock import patch, call
 import os
 import platform
-from multiprocessing import Process
 import asyncio
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
 from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
 
-
+@patch.object(GlobalToolInstallAction, "_GlobalToolInstallAction__tools_installed", False)
 class TestGlobalToolInstallAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
     def setUp(self, MockSubprocessDotnetCLI):
