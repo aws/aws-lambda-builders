@@ -92,8 +92,6 @@ files.
 
 #### Step 2: Rewrite local dependencies
 
-_(out of scope for the current version)_
-
 To optimise disk space and avoid including development dependencies from other
 locally linked packages, inspect the `package.json` manifest looking for dependencies
 referring to local file paths (can be identified as they start with `.` or `file:`),
@@ -102,8 +100,13 @@ then for each dependency recursively execute the packaging process
 Local dependencies may include other local dependencies themselves, this is a very 
 common way of sharing configuration or development utilities such as linting or testing 
 tools. This means that for each packaged local dependency this packager needs to
-recursively apply the packaging process. It also means that the packager needs to 
-track local paths and avoid re-packaging directories it already visited.
+recursively apply the packaging process.
+
+_(out of scope for the current version)_
+
+It also means that the packager needs to track local paths and avoid re-packaging directories it already visited.
+
+_(out of scope for the current version)_
 
 NPM produces a `tar` archive while packaging that can be directly included as a
 dependency.  This will make NPM unpack and install a copy correctly. Once the
@@ -113,7 +116,6 @@ the manifest to point to `tar` files instead of the original location.
 If the project contains a package lock file, this will cause NPM to ignore changes
 to the package.json manifest. In this case, the packager will need to remove 
 `package-lock.json` so that dependency rewrites take effect. 
-_(out of scope for the current version)_
 
 #### Step 3: Install dependencies
 
