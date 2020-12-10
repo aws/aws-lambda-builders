@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from concurrent.futures import ThreadPoolExecutor
-from mock import patch, call
+from mock import patch
 import os
 import platform
 
@@ -46,21 +46,18 @@ class TestGlobalToolInstallAction(TestCase):
         self.assertRaises(ActionFailedError, action.execute)
 
     def test_global_tool_parallel(self):
-        executor = ThreadPoolExecutor()
-
         actions = [
             GlobalToolInstallAction(self.subprocess_dotnet),
             GlobalToolInstallAction(self.subprocess_dotnet),
             GlobalToolInstallAction(self.subprocess_dotnet),
         ]
 
-        for action in actions:
-            executor.submit(action.execute)
+        with ThreadPoolExecutor() as executor:
+            for action in actions:
+                executor.submit(action.execute)
 
-        executor.shutdown()
-
-        self.subprocess_dotnet.assert_has_calls(
-            [call.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])]
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
         )
 
 
