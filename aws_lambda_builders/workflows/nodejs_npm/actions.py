@@ -70,15 +70,23 @@ class NodejsNpmPackAction(BaseAction):
 
             LOG.debug("NODEJS searching for local dependencies")
 
-            local_manifest_path = self.osutils.joinpath(self.artifacts_dir, 'package', 'package.json')
+            local_manifest_path = self.osutils.joinpath(self.artifacts_dir, "package", "package.json")
             local_dependencies = DependencyUtils.get_local_dependencies(self.manifest_path, self.osutils)
             for (dep_name, dep_path) in local_dependencies.items():
                 dep_scratch_dir = self.osutils.joinpath(self.scratch_dir, str(abs(hash(dep_name))))
-                dep_artifacts_dir = self.osutils.joinpath(dep_scratch_dir, 'unpacked')
-                local_packaged_output_dir = self.osutils.joinpath(self.artifacts_dir, 'package', 'local_dep')
+                dep_artifacts_dir = self.osutils.joinpath(dep_scratch_dir, "unpacked")
+                local_packaged_output_dir = self.osutils.joinpath(self.artifacts_dir, "package", "local_dep")
                 if not self.osutils.dir_exists(local_packaged_output_dir):
                     self.osutils.mkdir(local_packaged_output_dir)
-                dependency_tarfile_path = DependencyUtils.package_local_dependency(package_path[5:], dep_path, dep_artifacts_dir, dep_scratch_dir, local_packaged_output_dir, self.osutils, self.subprocess_npm)
+                dependency_tarfile_path = DependencyUtils.package_local_dependency(
+                    package_path[5:],
+                    dep_path,
+                    dep_artifacts_dir,
+                    dep_scratch_dir,
+                    local_packaged_output_dir,
+                    self.osutils,
+                    self.subprocess_npm,
+                )
                 dependency_tarfile_path = self.osutils.copy_file(dependency_tarfile_path, local_packaged_output_dir)
                 DependencyUtils.update_manifest(local_manifest_path, dep_name, dependency_tarfile_path, self.osutils)
 
