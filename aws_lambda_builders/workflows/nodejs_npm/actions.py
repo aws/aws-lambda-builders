@@ -9,7 +9,6 @@ from .npm import NpmExecutionError
 from .utils import DependencyUtils
 
 LOG = logging.getLogger(__name__)
-LOG.setLevel(logging.DEBUG)
 
 
 class NodejsNpmPackAction(BaseAction):
@@ -68,29 +67,30 @@ class NodejsNpmPackAction(BaseAction):
 
             self.osutils.extract_tarfile(tarfile_path, self.artifacts_dir)
 
-            LOG.debug("NODEJS searching for local dependencies")
-
-            local_manifest_path = self.osutils.joinpath(self.artifacts_dir, "package", "package.json")
-            local_dependencies = DependencyUtils.get_local_dependencies(self.manifest_path, self.osutils)
-            for (dep_name, dep_path) in local_dependencies.items():
-                dep_scratch_dir = self.osutils.joinpath(self.scratch_dir, str(abs(hash(dep_name))))
-                dep_artifacts_dir = self.osutils.joinpath(dep_scratch_dir, "unpacked")
-                local_packaged_output_dir = self.osutils.joinpath(self.artifacts_dir, "@aws_lambda_builders_local_dep")
-                if not self.osutils.dir_exists(local_packaged_output_dir):
-                    self.osutils.mkdir(local_packaged_output_dir)
-                dependency_tarfile_path = DependencyUtils.package_local_dependency(
-                    package_path[5:],
-                    dep_path,
-                    dep_artifacts_dir,
-                    dep_scratch_dir,
-                    local_packaged_output_dir,
-                    self.osutils,
-                    self.subprocess_npm,
-                )
-                dependency_tarfile_path = self.osutils.copy_file(dependency_tarfile_path, local_packaged_output_dir)
-                DependencyUtils.update_manifest(local_manifest_path, dep_name, dependency_tarfile_path, self.osutils)
+            self._package_local_dependencies()
 
         except NpmExecutionError as ex:
+            raise ActionFailedError(str(ex))
+
+    def _package_local_dependencies(self):
+        """
+        Iterates (recursively) through any local dependencies defined in package.json.
+
+        :raises lambda_builders.actions.ActionFailedError: when any file system operations fail
+        """
+
+        try:
+            LOG.debug("NODEJS searching for local dependencies")
+
+            parent_package_path = self.osutils.abspath(self.osutils.dirname(self.manifest_path))
+
+            DependencyUtils.package_local_dependency(
+                parent_package_path, ".", self.artifacts_dir, self.scratch_dir, None, self.osutils, self.subprocess_npm
+            )
+
+            LOG.debug("NODEJS finished processing local dependencies")
+
+        except OSError as ex:
             raise ActionFailedError(str(ex))
 
 

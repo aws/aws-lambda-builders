@@ -3,11 +3,14 @@ Commonly used utilities
 """
 
 import json
+import logging
 import os
 import platform
 import tarfile
 import subprocess
 import shutil
+
+LOG = logging.getLogger(__name__)
 
 
 class OSUtils(object):
@@ -100,49 +103,69 @@ class DependencyUtils(object):
     def package_local_dependency(
         parent_package_path, rel_package_path, artifacts_dir, scratch_dir, output_dir, osutils, subprocess_npm
     ):
+        """
+        Helper function to recurse local dependencies and package them to a common directory
+        """
+
         if rel_package_path.startswith("file:"):
             rel_package_path = rel_package_path[5:].strip()
 
         if rel_package_path.startswith("."):
             package_path = osutils.abspath(osutils.joinpath(parent_package_path, rel_package_path))
-
-        # LOG.debug("NODEJS packaging dependency %s to %s", package_path, scratch_dir)
+        else:
+            package_path = rel_package_path
 
         if not osutils.dir_exists(scratch_dir):
             osutils.mkdir(scratch_dir)
 
-        tarfile_name = subprocess_npm.run(["pack", "-q", package_path], cwd=scratch_dir).splitlines()[-1]
+        if output_dir is None:
+            # TODO: get a higher level output_dir to keep process locals between jobs
+            output_dir = osutils.joinpath(artifacts_dir, "@aws_lambda_builders_local_dep")
+            if not osutils.dir_exists(output_dir):
+                osutils.mkdir(output_dir)
+            top_level = True
+        else:
+            tarfile_name = subprocess_npm.run(["pack", "-q", package_path], cwd=scratch_dir).splitlines()[-1]
+            tarfile_path = osutils.joinpath(scratch_dir, tarfile_name)
 
-        # LOG.debug("NODEJS packed dependency to %s", tarfile_name)
+            LOG.debug("NODEJS extracting child dependency for recursive dependency check")
 
-        tarfile_path = osutils.joinpath(scratch_dir, tarfile_name)
+            osutils.extract_tarfile(tarfile_path, artifacts_dir)
 
-        # LOG.debug("NODEJS extracting to %s", artifacts_dir)
-
-        osutils.extract_tarfile(tarfile_path, artifacts_dir)
-
-        # LOG.debug("NODEJS searching for subpackage local dependencies")
+            top_level = False
 
         local_manifest_path = osutils.joinpath(artifacts_dir, "package", "package.json")
         local_dependencies = DependencyUtils.get_local_dependencies(local_manifest_path, osutils)
         for (dep_name, dep_path) in local_dependencies.items():
             dep_scratch_dir = osutils.joinpath(scratch_dir, str(abs(hash(dep_name))))
+
+            # TODO: if dep_scratch_dir exists, it means we've already processed it this round, skip
+
             dep_artifacts_dir = osutils.joinpath(dep_scratch_dir, "unpacked")
+
+            LOG.debug("NODEJS packaging dependency, %s, from %s to %s", dep_name, parent_package_path, output_dir)
+
             dependency_tarfile_path = DependencyUtils.package_local_dependency(
                 package_path, dep_path, dep_artifacts_dir, dep_scratch_dir, output_dir, osutils, subprocess_npm
             )
             dependency_tarfile_path = osutils.copy_file(dependency_tarfile_path, output_dir)
+
+            LOG.debug("NODEJS packed localized child dependency to %s", dependency_tarfile_path)
+
+            LOG.debug("NODEJS updating package.json %s", local_manifest_path)
+
             DependencyUtils.update_manifest(local_manifest_path, dep_name, dependency_tarfile_path, osutils)
 
-        localized_package_dir = osutils.joinpath(artifacts_dir, "package")
+        if not top_level:
+            localized_package_dir = osutils.joinpath(artifacts_dir, "package")
 
-        # LOG.debug("NODEJS repackaging dependency %s to %s", artifacts_dir, localized_package_dir)
+            LOG.debug("NODEJS repackaging child dependency")
 
-        tarfile_name = subprocess_npm.run(
-            ["pack", "-q", localized_package_dir], cwd=localized_package_dir
-        ).splitlines()[-1]
+            tarfile_name = subprocess_npm.run(
+                ["pack", "-q", localized_package_dir], cwd=localized_package_dir
+            ).splitlines()[-1]
 
-        return osutils.joinpath(localized_package_dir, tarfile_name)
+            return osutils.joinpath(localized_package_dir, tarfile_name)
 
     def update_manifest(manifest_path, dep_name, dependency_tarfile_path, osutils):
         """
