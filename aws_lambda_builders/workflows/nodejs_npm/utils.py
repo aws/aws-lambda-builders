@@ -36,8 +36,8 @@ class OSUtils(object):
     def joinpath(self, *args):
         return os.path.join(*args)
 
-    def mkdir(self, path, mode=0o777, *args, dir_fd=None):
-        return os.mkdir(path, mode, *args, dir_fd=dir_fd)
+    def mkdir(self, path):
+        return os.mkdir(path)
 
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
