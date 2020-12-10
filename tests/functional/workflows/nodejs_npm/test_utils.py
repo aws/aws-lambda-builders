@@ -127,42 +127,51 @@ class TestOSUtils(TestCase):
     def test_dir_exists(self):
         self.assertFalse(self.osutils.dir_exists("20201210_some_directory_that_should_not_exist"))
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            self.assertTrue(self.osutils.dir_exists(temp_dir))
+        temp_dir = tempfile.mkdtemp()
+
+        self.assertTrue(self.osutils.dir_exists(temp_dir))
+
+        shutil.rmtree(temp_dir)
 
     def test_mkdir_makes_directory(self):
-        dir_to_create = os.path.join(
-            tempfile._get_default_tempdir(), next(tempfile._get_candidate_names())
-        )  # pylint: disable=protected-access
+        dir_to_create = os.path.join(tempfile.gettempdir(), "20201210_some_directory_that_should_not_exist")
         self.assertFalse(os.path.isdir(dir_to_create))
 
         self.osutils.mkdir(dir_to_create)
 
         self.assertTrue(os.path.isdir(dir_to_create))
 
+        shutil.rmtree(dir_to_create)
+
     def test_open_file_opens_file_for_reading(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            file_to_open = os.path.join(temp_dir, "test_open.txt")
+        temp_dir = tempfile.mkdtemp()
 
-            with open(file_to_open, "w") as fid:
-                fid.write("this is text")
+        file_to_open = os.path.join(temp_dir, "test_open.txt")
 
-            with self.osutils.open_file(file_to_open) as fid:
-                content = fid.read()
+        with open(file_to_open, "w") as fid:
+            fid.write("this is text")
 
-            self.assertEqual("this is text", content)
+        with self.osutils.open_file(file_to_open) as fid:
+            content = fid.read()
+
+        self.assertEqual("this is text", content)
+
+        shutil.rmtree(temp_dir)
 
     def test_open_file_opens_file_for_writing(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            file_to_open = os.path.join(temp_dir, "test_open.txt")
+        temp_dir = tempfile.mkdtemp()
 
-            with self.osutils.open_file(file_to_open, "w") as fid:
-                fid.write("this is some other text")
+        file_to_open = os.path.join(temp_dir, "test_open.txt")
 
-            with self.osutils.open_file(file_to_open) as fid:
-                content = fid.read()
+        with self.osutils.open_file(file_to_open, "w") as fid:
+            fid.write("this is some other text")
 
-            self.assertEqual("this is some other text", content)
+        with self.osutils.open_file(file_to_open) as fid:
+            content = fid.read()
+
+        self.assertEqual("this is some other text", content)
+
+        shutil.rmtree(temp_dir)
 
 
 class TestDependencyUtils(TestCase):

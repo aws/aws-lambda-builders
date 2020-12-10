@@ -1,4 +1,5 @@
 from json import dumps
+from os.path import basename
 from unittest import TestCase
 from mock import patch
 
@@ -72,6 +73,7 @@ class TestNodejsNpmPackAction(TestCase):
         osutils.dirname.side_effect = lambda value: "/dir:{}".format(value)
         osutils.abspath.side_effect = lambda value: "/abs:{}".format(value)
         osutils.joinpath.side_effect = lambda *args: "/".join(args)
+        osutils.filename.side_effect = lambda path: basename(path)
         osutils.open_file.side_effect = MockOpener().open
 
         subprocess_npm.run.return_value = "package.tar"
@@ -118,6 +120,7 @@ class TestNodejsNpmPackAction(TestCase):
         osutils.dirname.side_effect = lambda value: "/dir:{}".format(value)
         osutils.abspath.side_effect = lambda value: "/abs:{}".format(value)
         osutils.joinpath.side_effect = lambda *args: "/".join(args)
+        osutils.filename.side_effect = lambda path: basename(path)
         osutils.open_file.side_effect = MockOpener(file_open_responses).open
 
         subprocess_npm.run.return_value = "package.tar"

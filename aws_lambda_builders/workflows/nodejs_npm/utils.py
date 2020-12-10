@@ -33,6 +33,9 @@ class OSUtils(object):
     def file_exists(self, filename):
         return os.path.isfile(filename)
 
+    def filename(self, filename):
+        return os.path.basename(filename)
+
     def joinpath(self, *args):
         return os.path.join(*args)
 
@@ -142,13 +145,15 @@ class DependencyUtils(object):
             dependency_tarfile_path = DependencyUtils.package_local_dependency(
                 package_path, dep_path, dep_artifacts_dir, dep_scratch_dir, output_dir, osutils, subprocess_npm
             )
-            dependency_tarfile_path = osutils.copy_file(dependency_tarfile_path, output_dir)
 
-            LOG.debug("NODEJS packed localized child dependency to %s", dependency_tarfile_path)
+            packaged_dependency_tarfile_path = osutils.joinpath(output_dir, osutils.filename(dependency_tarfile_path))
+            osutils.copy_file(dependency_tarfile_path, output_dir)
+
+            LOG.debug("NODEJS packed localized child dependency to %s", packaged_dependency_tarfile_path)
 
             LOG.debug("NODEJS updating package.json %s", local_manifest_path)
 
-            DependencyUtils.update_manifest(local_manifest_path, dep_name, dependency_tarfile_path, osutils)
+            DependencyUtils.update_manifest(local_manifest_path, dep_name, packaged_dependency_tarfile_path, osutils)
 
         if not top_level:
             localized_package_dir = osutils.joinpath(artifacts_dir, "package")
@@ -167,7 +172,8 @@ class DependencyUtils(object):
         Helper function to update dependency path to localized tar
         """
 
-        manifest_backup = osutils.copy_file(manifest_path, "{}.bak".format(manifest_path))
+        manifest_backup = "{}.bak".format(manifest_path)
+        osutils.copy_file(manifest_path, manifest_backup)
 
         with osutils.open_file(manifest_backup, "r") as manifest_backup_file:
             manifest = json.loads(manifest_backup_file.read())
