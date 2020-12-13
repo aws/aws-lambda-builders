@@ -157,7 +157,7 @@ class DependencyBuilder(object):
         "manylinux2010_x86_64",
         "manylinux2014_x86_64",
     }
-    _COMPATIBLE_PACKAGE_WHITELIST = {"sqlalchemy"}
+    _COMPATIBLE_PACKAGE_ALLOWLIST = {"sqlalchemy"}
 
     def __init__(self, osutils, runtime, pip_runner=None):
         """Initialize a DependencyBuilder.
@@ -291,9 +291,9 @@ class DependencyBuilder(object):
         # Now there is still the case left over where the setup.py has been
         # made in such a way to be incompatible with python's setup tools,
         # causing it to lie about its compatibility. To fix this we have a
-        # manually curated whitelist of packages that will work, despite
+        # manually curated allowlist of packages that will work, despite
         # claiming otherwise.
-        compatible_wheels, incompatible_wheels = self._apply_wheel_whitelist(compatible_wheels, incompatible_wheels)
+        compatible_wheels, incompatible_wheels = self._apply_wheel_allowlist(compatible_wheels, incompatible_wheels)
         missing_wheels = deps - compatible_wheels
         LOG.debug("Final compatible: %s", compatible_wheels)
         LOG.debug("Final incompatible: %s", incompatible_wheels)
@@ -305,7 +305,7 @@ class DependencyBuilder(object):
         # Download dependencies prefering wheel files but falling back to
         # raw source dependences to get the transitive closure over
         # the dependency graph. Return the set of all package objects
-        # which will serve as the master list of dependencies needed to deploy
+        # which will serve as the primary list of dependencies needed to deploy
         # successfully.
         self._pip.download_all_dependencies(requirements_filename, directory)
         deps = {Package(directory, filename) for filename in self._osutils.get_directory_contents(directory)}
@@ -365,11 +365,11 @@ class DependencyBuilder(object):
         # Don't know what we have but it didn't pass compatibility tests.
         return False
 
-    def _apply_wheel_whitelist(self, compatible_wheels, incompatible_wheels):
+    def _apply_wheel_allowlist(self, compatible_wheels, incompatible_wheels):
         compatible_wheels = set(compatible_wheels)
         actual_incompatible_wheels = set()
         for missing_package in incompatible_wheels:
-            if missing_package.name in self._COMPATIBLE_PACKAGE_WHITELIST:
+            if missing_package.name in self._COMPATIBLE_PACKAGE_ALLOWLIST:
                 compatible_wheels.add(missing_package)
             else:
                 actual_incompatible_wheels.add(missing_package)

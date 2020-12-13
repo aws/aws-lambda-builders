@@ -575,7 +575,7 @@ class TestDependencyBuilder(object):
         for req in reqs:
             assert req in installed_packages
 
-    def test_whitelist_sqlalchemy(self, tmpdir, osutils, pip_runner):
+    def test_allowlist_sqlalchemy(self, tmpdir, osutils, pip_runner):
         reqs = ["sqlalchemy==1.1.18"]
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
