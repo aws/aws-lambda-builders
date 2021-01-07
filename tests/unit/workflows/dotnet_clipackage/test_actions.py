@@ -1,4 +1,6 @@
 from unittest import TestCase
+
+from concurrent.futures import ThreadPoolExecutor
 from mock import patch
 import os
 import platform
@@ -8,6 +10,7 @@ from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIE
 from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
 
 
+@patch.object(GlobalToolInstallAction, "_GlobalToolInstallAction__tools_installed", False)
 class TestGlobalToolInstallAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
     def setUp(self, MockSubprocessDotnetCLI):
@@ -41,6 +44,21 @@ class TestGlobalToolInstallAction(TestCase):
         ]
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         self.assertRaises(ActionFailedError, action.execute)
+
+    def test_global_tool_parallel(self):
+        actions = [
+            GlobalToolInstallAction(self.subprocess_dotnet),
+            GlobalToolInstallAction(self.subprocess_dotnet),
+            GlobalToolInstallAction(self.subprocess_dotnet),
+        ]
+
+        with ThreadPoolExecutor() as executor:
+            for action in actions:
+                executor.submit(action.execute)
+
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+        )
 
 
 class TestRunPackageAction(TestCase):
