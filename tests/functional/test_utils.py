@@ -35,10 +35,10 @@ class TestCopyTree(TestCase):
         excludes = [".git", ".aws-sam", "*.pyc"]
 
         copytree(self.source, self.dest, ignore=shutil.ignore_patterns(*excludes))
-        self.assertEquals(set(os.listdir(self.dest)), {"nested", "a"})
-        self.assertEquals(set(os.listdir(os.path.join(self.dest, "nested"))), set())
-        self.assertEquals(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
-        self.assertEquals(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
+        self.assertEqual(set(os.listdir(self.dest)), {"nested", "a"})
+        self.assertEqual(set(os.listdir(os.path.join(self.dest, "nested"))), set())
+        self.assertEqual(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
+        self.assertEqual(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
 
 
 def file(*args):

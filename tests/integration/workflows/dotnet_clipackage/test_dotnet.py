@@ -40,7 +40,7 @@ class TestDotnetDep(TestCase):
 
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_require_parameters(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "RequireParameters")
@@ -66,4 +66,4 @@ class TestDotnetDep(TestCase):
 
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)

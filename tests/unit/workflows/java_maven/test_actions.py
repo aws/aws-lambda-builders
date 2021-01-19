@@ -28,7 +28,7 @@ class TestJavaMavenBuildAction(TestCase):
         action = JavaMavenBuildAction(self.scratch_dir, self.subprocess_maven)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "Maven Failed: Build failed!")
+        self.assertEqual(raised.exception.args[0], "Maven Failed: Build failed!")
 
 
 class TestJavaMavenCopyDependencyAction(TestCase):
@@ -48,7 +48,7 @@ class TestJavaMavenCopyDependencyAction(TestCase):
         action = JavaMavenCopyDependencyAction(self.scratch_dir, self.subprocess_maven)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "Maven Failed: Build failed!")
+        self.assertEqual(raised.exception.args[0], "Maven Failed: Build failed!")
 
 
 class TestJavaMavenCopyArtifactsAction(TestCase):
@@ -93,13 +93,13 @@ class TestJavaMavenCopyArtifactsAction(TestCase):
         action = JavaMavenCopyArtifactsAction(self.scratch_dir, self.artifacts_dir, self.os_utils)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "copy failed!")
+        self.assertEqual(raised.exception.args[0], "copy failed!")
 
     def test_missing_required_target_class_directory_raises_action_error(self):
         self.os_utils.exists.return_value = False
         action = JavaMavenCopyArtifactsAction(self.scratch_dir, self.artifacts_dir, self.os_utils)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(
+        self.assertEqual(
             raised.exception.args[0], "Required target/classes directory was not " "produced from 'mvn package'"
         )
