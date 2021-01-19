@@ -57,15 +57,9 @@ class NodejsNpmPackAction(BaseAction):
 
             LOG.debug("NODEJS packaging %s to %s", package_path, self.scratch_dir)
 
-            tarfile_name = self.subprocess_npm.run(["pack", "-q", package_path], cwd=self.scratch_dir).splitlines()[-1]
-
-            LOG.debug("NODEJS packed to %s", tarfile_name)
-
-            tarfile_path = self.osutils.joinpath(self.scratch_dir, tarfile_name)
-
-            LOG.debug("NODEJS extracting to %s", self.artifacts_dir)
-
-            self.osutils.extract_tarfile(tarfile_path, self.artifacts_dir)
+            DependencyUtils.ship_module(
+                package_path, self.scratch_dir, self.artifacts_dir, self.osutils, self.subprocess_npm
+            )
 
             self._package_local_dependencies()
 

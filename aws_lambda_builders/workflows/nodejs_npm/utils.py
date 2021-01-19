@@ -73,6 +73,21 @@ class DependencyUtils(object):
     """
 
     @staticmethod
+    def ship_module(package_path, from_dir, to_dir, osutils, subprocess_npm):
+        """
+        Helper function to package a module and extract it to a new directory
+        """
+        tarfile_name = subprocess_npm.run(["pack", "-q", package_path], cwd=from_dir).splitlines()[-1]
+
+        LOG.debug("NODEJS packed to %s", tarfile_name)
+
+        tarfile_path = osutils.joinpath(from_dir, tarfile_name)
+
+        LOG.debug("NODEJS extracting to %s", to_dir)
+
+        osutils.extract_tarfile(tarfile_path, to_dir)
+
+    @staticmethod
     def get_local_dependencies(manifest_path, osutils):
         """
         Helper function to extract all local dependencies in a package.json manifest
@@ -122,13 +137,8 @@ class DependencyUtils(object):
                 osutils.mkdir(output_dir)
             top_level = True
         else:
-            tarfile_name = subprocess_npm.run(["pack", "-q", package_path], cwd=scratch_dir).splitlines()[-1]
-            tarfile_path = osutils.joinpath(scratch_dir, tarfile_name)
-
             LOG.debug("NODEJS extracting child dependency for recursive dependency check")
-
-            osutils.extract_tarfile(tarfile_path, artifacts_dir)
-
+            DependencyUtils.ship_module(package_path, scratch_dir, artifacts_dir, osutils, subprocess_npm)
             top_level = False
 
         local_manifest_path = osutils.joinpath(artifacts_dir, "package", "package.json")
