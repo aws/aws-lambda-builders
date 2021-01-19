@@ -100,8 +100,8 @@ class DependencyUtils(object):
                 return dict(
                     (k, v) for (k, v) in manifest["dependencies"].items() if DependencyUtils.is_local_dependency(v)
                 )
-            else:
-                return {}
+
+            return {}
 
     @staticmethod
     def is_local_dependency(path):
