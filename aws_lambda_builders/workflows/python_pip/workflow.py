@@ -20,6 +20,7 @@ class PythonPipWorkflow(BaseWorkflow):
         ".aws-sam",
         ".chalice",
         ".git",
+        ".gitignore",
         # Compiled files
         "*.pyc",
         "__pycache__",
@@ -51,6 +52,7 @@ class PythonPipWorkflow(BaseWorkflow):
         "venv.bak",
         "env.bak",
         "ENV",
+        "env",
         # Editors
         # TODO: Move the commonly ignored files to base class
         ".vscode",
