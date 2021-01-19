@@ -172,16 +172,11 @@ class DependencyUtils(object):
         Helper function to update dependency path to localized tar
         """
 
-        manifest_backup = "{}.bak".format(manifest_path)
-        osutils.copy_file(manifest_path, manifest_backup)
+        with osutils.open_file(manifest_path, "r") as manifest_read_file:
+            manifest = json.loads(manifest_read_file.read())
 
-        with osutils.open_file(manifest_backup, "r") as manifest_backup_file:
-            manifest = json.loads(manifest_backup_file.read())
+        if "dependencies" in manifest and dep_name in manifest["dependencies"]:
+            manifest["dependencies"][dep_name] = "file:{}".format(dependency_tarfile_path)
 
-            if "dependencies" in manifest and dep_name in manifest["dependencies"]:
-                manifest["dependencies"][dep_name] = "file:{}".format(dependency_tarfile_path)
-
-                with osutils.open_file(manifest_path, "w") as manifest_write_file:
-                    manifest_write_file.write(json.dumps(manifest, indent=4))
-
-        osutils.remove_file(manifest_backup)
+            with osutils.open_file(manifest_path, "w") as manifest_write_file:
+                manifest_write_file.write(json.dumps(manifest, indent=4))
