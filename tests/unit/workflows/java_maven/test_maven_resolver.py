@@ -15,11 +15,11 @@ class TestMavenResolver(TestCase):
         self.mock_os_utils.which.side_effect = lambda executable, executable_search_paths: [maven_path]
 
         resolver = MavenResolver(os_utils=self.mock_os_utils)
-        self.assertEquals(resolver.exec_paths, [maven_path])
+        self.assertEqual(resolver.exec_paths, [maven_path])
 
     def test_throws_value_error_if_no_exec_found(self):
         self.mock_os_utils.which.side_effect = lambda executable, executable_search_paths: []
         resolver = MavenResolver(os_utils=self.mock_os_utils)
         with self.assertRaises(ValueError) as raised:
             resolver.exec_paths()
-        self.assertEquals(raised.exception.args[0], "No Maven executable found!")
+        self.assertEqual(raised.exception.args[0], "No Maven executable found!")

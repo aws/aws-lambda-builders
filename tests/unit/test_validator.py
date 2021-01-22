@@ -8,7 +8,7 @@ class TestRuntimeValidator(TestCase):
         self.validator = RuntimeValidator(runtime="chitti2.0")
 
     def test_inits(self):
-        self.assertEquals(self.validator.runtime, "chitti2.0")
+        self.assertEqual(self.validator.runtime, "chitti2.0")
 
     def test_validate_runtime(self):
         self.validator.validate("/usr/bin/chitti")

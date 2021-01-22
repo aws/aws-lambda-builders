@@ -50,7 +50,7 @@ class TestPythonPipWorkflow(TestCase):
         else:
             expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_mismatch_runtime_python_project(self):
         # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python2.7

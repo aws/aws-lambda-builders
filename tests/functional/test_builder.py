@@ -59,4 +59,4 @@ class TestBuilderWithHelloWorkflow(TestCase):
         with open(self.expected_filename, "r") as fp:
             contents = fp.read()
 
-        self.assertEquals(contents, self.expected_contents)
+        self.assertEqual(contents, self.expected_contents)
