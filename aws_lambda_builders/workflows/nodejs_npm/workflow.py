@@ -8,7 +8,7 @@ from .actions import (
     NodejsNpmPackAction,
     NodejsNpmInstallAction,
     NodejsNpmrcCopyAction,
-    NodejsNpmrcCleanUpAction,
+    NodejsCleanUpAction,
 )
 from .utils import OSUtils
 from .npm import SubprocessNpm
@@ -54,7 +54,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
             npm_copy_npmrc,
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
             npm_install,
-            NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils),
+            NodejsCleanUpAction(artifacts_dir, osutils=osutils),
         ]
 
     def get_resolvers(self):
