@@ -17,10 +17,10 @@ class OSUtils(object):
         return os.environ
 
     def original_environ(self):
-        #https://pyinstaller.readthedocs.io/en/stable/runtime-information.html#ld-library-path-libpath-considerations
+        # https://pyinstaller.readthedocs.io/en/stable/runtime-information.html#ld-library-path-libpath-considerations
         env = dict(os.environ)
         lp_key = "LD_LIBRARY_PATH"
-        original_lp = env.get(lp_key + '_ORIG')
+        original_lp = env.get(lp_key + "_ORIG")
         if original_lp is not None:
             env[lp_key] = original_lp
         else:
