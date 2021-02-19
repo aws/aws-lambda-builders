@@ -27,6 +27,7 @@ class OSUtils(object):
             # This happens when LD_LIBRARY_PATH was not set.
             # Remove the env var as a last resort:
             env.pop(lp_key, None)
+        return env
 
     def file_exists(self, filename):
         return os.path.isfile(filename)
