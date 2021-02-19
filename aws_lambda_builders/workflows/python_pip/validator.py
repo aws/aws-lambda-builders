@@ -7,6 +7,7 @@ import os
 import subprocess
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class PythonRuntimeValidator(object):
 
         cmd = self._validate_python_cmd(runtime_path)
 
-        p = subprocess.Popen(cmd, cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=OSUtils().original_environ())
         p.communicate()
         if p.returncode != 0:
             raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)
