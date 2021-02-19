@@ -63,7 +63,7 @@ for:
     - "choco install golang"
     - "choco install bzr"
     - "choco install dep"
-    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+    - setx PATH "C:\Program Files\Go;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
     - "refreshenv"
     - "go version"
     - "go env"
