@@ -14,7 +14,6 @@ LOG = logging.getLogger(__name__)
 
 
 class OSUtils(object):
-
     """
     Wrapper around file system functions, to make it easy to
     unit test actions in memory
@@ -42,6 +41,12 @@ class OSUtils(object):
     def mkdir(self, path):
         return os.mkdir(path)
 
+    def makedirs(self, path):
+        return os.makedirs(path)
+
+    def normpath(self, *args):
+        return os.path.normpath(*args)
+
     def open_file(self, filename, mode="r"):
         return open(filename, mode)
 
@@ -64,6 +69,9 @@ class OSUtils(object):
 
     def is_windows(self):
         return platform.system().lower() == "windows"
+
+    def walk(self, dir, topdown=True):
+        return os.walk(dir, topdown)
 
 
 class DependencyUtils(object):
@@ -115,78 +123,70 @@ class DependencyUtils(object):
             return False
 
     @staticmethod
-    def package_local_dependency(
-        parent_package_path, rel_package_path, artifacts_dir, scratch_dir, output_dir, osutils, subprocess_npm
-    ):
-        """
-        Helper function to recurse local dependencies and package them to a common directory
-        """
+    def package_dependencies(manifest_path, scratch_dir, packed_manifests, osutils, subprocess_npm):
+        manifest_path = osutils.normpath(manifest_path)
+        LOG.debug("NODEJS processing %s", manifest_path)
+        manifest_hash = str(abs(hash(manifest_path)))
+        if manifest_hash in packed_manifests:
+            # Already processed or circular dependency
+            # If empty, it will be removed from the manifest
+            return packed_manifests[manifest_hash]
+        packed_manifests[manifest_hash] = ""
+        manifest_dir = osutils.dirname(manifest_path)
+        manifest_scratch_dir = osutils.joinpath(scratch_dir, manifest_hash)
+        manifest_scratch_package_dir = osutils.joinpath(manifest_scratch_dir, "package")
+        osutils.makedirs(manifest_scratch_package_dir)
 
-        if rel_package_path.startswith("file:"):
-            rel_package_path = rel_package_path[5:].strip()
+        # Pack and copy module to scratch so that we don't update the customers files in place
+        DependencyUtils.ship_module(manifest_dir, scratch_dir, manifest_scratch_dir, osutils, subprocess_npm)
 
-        package_path = osutils.abspath(osutils.joinpath(parent_package_path, rel_package_path))
+        # Process local children dependencies
+        local_dependencies = DependencyUtils.get_local_dependencies(manifest_path, osutils)
 
-        if not osutils.dir_exists(scratch_dir):
-            osutils.mkdir(scratch_dir)
-
-        if output_dir is None:
-            # TODO: get a higher level output_dir to keep process locals between jobs
-            output_dir = osutils.joinpath(artifacts_dir, "@aws_lambda_builders_local_dep")
-            if not osutils.dir_exists(output_dir):
-                osutils.mkdir(output_dir)
-            top_level = True
-        else:
-            LOG.debug("NODEJS extracting child dependency for recursive dependency check")
-            DependencyUtils.ship_module(package_path, scratch_dir, artifacts_dir, osutils, subprocess_npm)
-            top_level = False
-
-        local_manifest_path = osutils.joinpath(artifacts_dir, "package", "package.json")
-        local_dependencies = DependencyUtils.get_local_dependencies(local_manifest_path, osutils)
         for (dep_name, dep_path) in local_dependencies.items():
-            dep_scratch_dir = osutils.joinpath(scratch_dir, str(abs(hash(dep_name))))
+            if dep_path.startswith("file:"):
+                dep_path = dep_path[5:].strip()
+            dep_manifest = osutils.joinpath(manifest_dir, dep_path, "package.json")
 
-            # TODO: if dep_scratch_dir exists (anywhere up path), it means we've already processed it this round, skip
-
-            dep_artifacts_dir = osutils.joinpath(dep_scratch_dir, "unpacked")
-
-            LOG.debug("NODEJS packaging dependency, %s, from %s to %s", dep_name, parent_package_path, output_dir)
-
-            dependency_tarfile_path = DependencyUtils.package_local_dependency(
-                package_path, dep_path, dep_artifacts_dir, dep_scratch_dir, output_dir, osutils, subprocess_npm
+            tar_path = DependencyUtils.package_dependencies(
+                dep_manifest, scratch_dir, packed_manifests, osutils, subprocess_npm
             )
 
-            packaged_dependency_tarfile_path = osutils.joinpath(output_dir, osutils.filename(dependency_tarfile_path))
-            osutils.copy_file(dependency_tarfile_path, output_dir)
+            manifest_scratch_path = osutils.joinpath(manifest_scratch_package_dir, "package.json")
 
-            LOG.debug("NODEJS packed localized child dependency to %s", packaged_dependency_tarfile_path)
+            # Make a backup we will use to restore in the final build folder
+            osutils.copy_file(manifest_scratch_path, manifest_scratch_path + ".bak")
 
-            LOG.debug("NODEJS updating package.json %s", local_manifest_path)
+            DependencyUtils.update_manifest(manifest_scratch_path, dep_name, tar_path, osutils)
 
-            DependencyUtils.update_manifest(local_manifest_path, dep_name, packaged_dependency_tarfile_path, osutils)
+        # Pack the current dependency
+        tarfile_name = subprocess_npm.run(["pack", "-q", manifest_scratch_package_dir], cwd=scratch_dir).splitlines()[
+            -1
+        ]
 
-        if not top_level:
-            localized_package_dir = osutils.joinpath(artifacts_dir, "package")
+        packed_manifests[manifest_hash] = osutils.joinpath(scratch_dir, tarfile_name)
 
-            LOG.debug("NODEJS repackaging child dependency")
+        LOG.debug("NODEJS %s packed to %s", manifest_scratch_package_dir, packed_manifests[manifest_hash])
 
-            tarfile_name = subprocess_npm.run(
-                ["pack", "-q", localized_package_dir], cwd=localized_package_dir
-            ).splitlines()[-1]
-
-            return osutils.joinpath(localized_package_dir, tarfile_name)
+        return packed_manifests[manifest_hash]
 
     @staticmethod
     def update_manifest(manifest_path, dep_name, dependency_tarfile_path, osutils):
         """
         Helper function to update dependency path to localized tar
         """
-
         with osutils.open_file(manifest_path, "r") as manifest_read_file:
             manifest = json.loads(manifest_read_file.read())
 
         if "dependencies" in manifest and dep_name in manifest["dependencies"]:
-            manifest["dependencies"][dep_name] = "file:{}".format(dependency_tarfile_path)
+            if not dependency_tarfile_path:
+                LOG.debug("NODEJS removing dep '%s' from '%s'", dep_name, manifest_path)
+                manifest["dependencies"].pop(dep_name)
+            else:
+                LOG.debug(
+                    "NODEJS updating dep '%s' of '%s' with '%s'", dep_name, manifest_path, dependency_tarfile_path
+                )
+                manifest["dependencies"][dep_name] = "file:{}".format(dependency_tarfile_path)
 
             with osutils.open_file(manifest_path, "w") as manifest_write_file:
                 manifest_write_file.write(json.dumps(manifest, indent=4))
