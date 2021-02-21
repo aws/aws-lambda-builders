@@ -100,7 +100,9 @@ class TestNodejsNpmPackAction(TestCase):
 
         action.execute()
 
-        subprocess_npm.run.assert_called_with(RegexMatch(["pack", "-q", r"scratch_dir/\d+?/package$"]), cwd="scratch_dir")
+        subprocess_npm.run.assert_called_with(
+            RegexMatch(["pack", "-q", r"scratch_dir/\d+?/package$"]), cwd="scratch_dir"
+        )
         osutils.extract_tarfile.assert_called_with("scratch_dir/package.tar", "artifacts")
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
