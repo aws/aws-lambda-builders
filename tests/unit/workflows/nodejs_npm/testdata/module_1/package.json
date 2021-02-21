@@ -1,0 +1,9 @@
+{
+  "name": "nodejs_npm_unit_tests_module_1",
+  "version": "1.0.0",
+  "description": "",
+  "files": ["included.js"],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0"
+}

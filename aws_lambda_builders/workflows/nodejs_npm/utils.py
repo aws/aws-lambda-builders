@@ -75,7 +75,6 @@ class OSUtils(object):
 
 
 class DependencyUtils(object):
-
     """
     Collection of helper functions for managing local NPM dependencies
     """
