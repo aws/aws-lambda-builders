@@ -20,6 +20,7 @@ class OSUtils(object):
     def original_environ(self):
         # https://pyinstaller.readthedocs.io/en/stable/runtime-information.html#ld-library-path-libpath-considerations
         env = dict(os.environ)
+        # Check whether running as a PyInstaller binary
         if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
             lp_key = "LD_LIBRARY_PATH"
             original_lp = env.get(lp_key + "_ORIG")
