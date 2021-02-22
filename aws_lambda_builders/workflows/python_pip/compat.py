@@ -7,7 +7,7 @@ from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 def pip_import_string(python_exe):
     os_utils = OSUtils()
     cmd = [python_exe, "-c", "import pip; print(pip.__version__)"]
-    p = os_utils.popen(cmd, stdout=os_utils.pipe, stderr=os_utils.pipe)
+    p = os_utils.popen(cmd, stdout=os_utils.pipe, stderr=os_utils.pipe, env=os_utils.original_environ())
     stdout, stderr = p.communicate()
     if not p.returncode == 0:
         raise MissingPipError(python_path=python_exe)

@@ -494,7 +494,9 @@ class SDistMetadataFetcher(object):
         cmd = [sys.executable, "-c", script, "--no-user-cfg", "egg_info", "--egg-base", "egg-info"]
         egg_info_dir = self._osutils.joinpath(package_dir, "egg-info")
         self._osutils.makedirs(egg_info_dir)
-        p = subprocess.Popen(cmd, cwd=package_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            cmd, cwd=package_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self._osutils.original_environ()
+        )
         p.communicate()
         info_contents = self._osutils.get_directory_contents(egg_info_dir)
         pkg_info_path = self._osutils.joinpath(egg_info_dir, info_contents[0], "PKG-INFO")
@@ -535,7 +537,7 @@ class SubprocessPip(object):
 
     def main(self, args, env_vars=None, shim=None):
         if env_vars is None:
-            env_vars = self._osutils.environ()
+            env_vars = self._osutils.original_environ()
         if shim is None:
             shim = ""
         run_pip = ("import sys; %s; sys.exit(main(%s))") % (self._import_string, args)
