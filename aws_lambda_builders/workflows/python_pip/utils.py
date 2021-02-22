@@ -10,7 +10,7 @@ import tempfile
 import shutil
 import tarfile
 import subprocess
-import platform
+import sys
 
 
 class OSUtils(object):
@@ -20,7 +20,7 @@ class OSUtils(object):
     def original_environ(self):
         # https://pyinstaller.readthedocs.io/en/stable/runtime-information.html#ld-library-path-libpath-considerations
         env = dict(os.environ)
-        if platform.system().lower() == "linux":
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
             lp_key = "LD_LIBRARY_PATH"
             original_lp = env.get(lp_key + "_ORIG")
             if original_lp is not None:
@@ -29,6 +29,7 @@ class OSUtils(object):
                 # This happens when LD_LIBRARY_PATH was not set.
                 # Remove the env var as a last resort:
                 env.pop(lp_key, None)
+
         return env
 
     def file_exists(self, filename):
