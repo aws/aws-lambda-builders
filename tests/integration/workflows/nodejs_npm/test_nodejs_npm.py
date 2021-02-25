@@ -121,7 +121,6 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(expected_modules, output_modules)
 
     def test_fails_if_npm_cannot_resolve_dependencies(self):
-
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-deps")
 
         with self.assertRaises(WorkflowFailedError) as ctx:
@@ -136,7 +135,6 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIn("No matching version found for minimal-request-promise@0.0.0-NON_EXISTENT", str(ctx.exception))
 
     def test_fails_if_package_json_is_broken(self):
-
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-package")
 
         with self.assertRaises(WorkflowFailedError) as ctx:

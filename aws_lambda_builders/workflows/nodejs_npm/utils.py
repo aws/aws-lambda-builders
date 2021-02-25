@@ -32,9 +32,6 @@ class OSUtils(object):
     def file_exists(self, filename):
         return os.path.isfile(filename)
 
-    def filename(self, filename):
-        return os.path.basename(filename)
-
     def joinpath(self, *args):
         return os.path.join(*args)
 
@@ -83,6 +80,19 @@ class DependencyUtils(object):
     def ship_module(package_path, from_dir, to_dir, osutils, subprocess_npm):
         """
         Helper function to package a module and extract it to a new directory
+
+        Parameters
+        ----------
+        package_path : str
+            Package path
+        from_dir : str
+            Origin directory path
+        to_dir : str
+            Destination directory path
+        osutils : OSUtils
+            OS utils
+        subprocess_npm : SubprocessNpm
+            NPM process
         """
         tarfile_name = subprocess_npm.run(["pack", "-q", package_path], cwd=from_dir).splitlines()[-1]
 
@@ -98,8 +108,19 @@ class DependencyUtils(object):
     def get_local_dependencies(manifest_path, osutils):
         """
         Helper function to extract all local dependencies in a package.json manifest
-        """
 
+        Parameters
+        ----------
+        manifest_path : str
+            Manifest path
+        osutils : OSUtils
+            OS utils
+
+        Returns
+        -------
+        dict
+            Dict of local dependencies key->value if any, empty otherwise
+        """
         with osutils.open_file(manifest_path) as manifest_file:
             manifest = json.loads(manifest_file.read())
 
@@ -113,9 +134,18 @@ class DependencyUtils(object):
     @staticmethod
     def is_local_dependency(path):
         """
-        Helper function to check if package dependency is a local package
-        """
+        Helper function to check if a dependency is a local package
 
+        Parameters
+        ----------
+        path : str
+            Path to check
+
+        Returns
+        -------
+        boolean
+            True if a local dependency, False otherwise
+        """
         try:
             return path.startswith("file:") or path.startswith(".")
         except AttributeError:
@@ -123,6 +153,28 @@ class DependencyUtils(object):
 
     @staticmethod
     def package_dependencies(manifest_path, scratch_dir, packed_manifests, osutils, subprocess_npm):
+        """
+        Recursively packages NPM dependencies, including local ones.
+        Handles circular dependencies and skips already processed ones.
+
+        Parameters
+        ----------
+        manifest_path : str
+            Path to the manifest to package
+        scratch_dir : str
+            Path to the scratch directory
+        packed_manifests : dict
+            Dict of hashes pointing to packed manifest tar used to avoid
+        osutils : OSUtils
+            OS utils
+        subprocess_npm : SubprocessNpm
+            NPM process
+
+        Returns
+        -------
+        string
+            Path to the packed tar file
+        """
         manifest_path = osutils.normpath(manifest_path)
         LOG.debug("NODEJS processing %s", manifest_path)
         manifest_hash = str(abs(hash(manifest_path)))
@@ -173,6 +225,17 @@ class DependencyUtils(object):
     def update_manifest(manifest_path, dep_name, dependency_tarfile_path, osutils):
         """
         Helper function to update dependency path to localized tar
+
+        Parameters
+        ----------
+        manifest_path : str
+            Manifest path to update
+        dep_name : str
+            Dependency name
+        dependency_tarfile_path : str
+            Packed dependency tar file path
+        osutils : OSUtils
+            OS utils
         """
         with osutils.open_file(manifest_path, "r") as manifest_read_file:
             manifest = json.loads(manifest_read_file.read())

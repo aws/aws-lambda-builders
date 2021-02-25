@@ -2,11 +2,14 @@
   "name": "@mockcompany/module-b",
   "version": "1.0.0",
   "description": "",
-  "files": ["index.js"],
+  "files": [
+    "index.js"
+  ],
   "keywords": [],
   "author": "",
   "license": "APACHE2.0",
   "dependencies": {
-    "@mockcompany/module-c": "file:../module_c" 
+    "@mockcompany/module-a": "file:../module_a",
+    "@mockcompany/module-c": "file:../module_c"
   }
 }
