@@ -127,7 +127,9 @@ class TestOSUtils(TestCase):
         shutil.rmtree(dir_to_create)
 
     def test_normpath_normalizes_paths(self):
-        self.assertEqual("/my/path/with/package.json", self.osutils.normpath("/my/path/with/without/../package.json"))
+        result = os.path.normpath("/my/path/with/without/../package.json")
+
+        self.assertEqual(result, self.osutils.normpath("/my/path/with/without/../package.json"))
 
     def test_open_file_opens_file_for_reading(self):
         temp_dir = tempfile.mkdtemp()
