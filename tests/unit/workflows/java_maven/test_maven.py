@@ -35,12 +35,12 @@ class TestSubprocessMaven(TestCase):
     def test_no_os_utils_build_init_throws(self):
         with self.assertRaises(ValueError) as err_assert:
             SubprocessMaven(maven_binary=self.maven_binary)
-        self.assertEquals(err_assert.exception.args[0], "Must provide OSUtils")
+        self.assertEqual(err_assert.exception.args[0], "Must provide OSUtils")
 
     def test_no_maven_exec_init_throws(self):
         with self.assertRaises(ValueError) as err_assert:
             SubprocessMaven(None)
-        self.assertEquals(err_assert.exception.args[0], "Must provide Maven BinaryPath")
+        self.assertEqual(err_assert.exception.args[0], "Must provide Maven BinaryPath")
 
     def test_build_project(self):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
@@ -55,7 +55,7 @@ class TestSubprocessMaven(TestCase):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
             maven.build(self.source_dir)
-        self.assertEquals(err.exception.args[0], "Maven Failed: Some Error Message")
+        self.assertEqual(err.exception.args[0], "Maven Failed: Some Error Message")
 
     def test_copy_dependency(self):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
@@ -73,4 +73,4 @@ class TestSubprocessMaven(TestCase):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
             maven.copy_dependency(self.source_dir)
-        self.assertEquals(err.exception.args[0], "Maven Failed: Some Error Message")
+        self.assertEqual(err.exception.args[0], "Maven Failed: Some Error Message")

@@ -7,7 +7,7 @@
 # pygtk.require().
 #init-hook=
 
-# Add files or directories to the blacklist. They should be base names, not
+# Add files or directories to the ignore list. They should be base names, not
 # paths.
 ignore=compat.py, utils.py
 
@@ -60,7 +60,8 @@ confidence=
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
 # R0205,W0107,R1705,R1710,R1719,R1720,R1714 are all disable due to a forced upgrade to support python3.8
-disable=R0201,W0613,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,C0301, R0205,W0107,R1705,R1710,R1719,R1720,R1714
+# R1725,W0707 can be removed when we drop Python 2 support
+disable=R0201,W0613,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,C0301, R0205,W0107,R1705,R1710,R1719,R1720,R1714,R1725,W0707
 
 
 [REPORTS]

@@ -12,8 +12,8 @@ class TestPathResolver(TestCase):
         self.path_resolver = PathResolver(runtime="chitti2.0", binary="chitti")
 
     def test_inits(self):
-        self.assertEquals(self.path_resolver.runtime, "chitti2.0")
-        self.assertEquals(self.path_resolver.binary, "chitti")
+        self.assertEqual(self.path_resolver.runtime, "chitti2.0")
+        self.assertEqual(self.path_resolver.binary, "chitti")
 
     def test_which_fails(self):
         with self.assertRaises(ValueError):
@@ -23,4 +23,4 @@ class TestPathResolver(TestCase):
     def test_which_success_immediate(self):
         with mock.patch.object(self.path_resolver, "_which") as which_mock:
             which_mock.return_value = os.getcwd()
-            self.assertEquals(self.path_resolver.exec_paths, os.getcwd())
+            self.assertEqual(self.path_resolver.exec_paths, os.getcwd())

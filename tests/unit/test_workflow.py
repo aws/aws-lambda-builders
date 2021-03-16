@@ -36,8 +36,8 @@ class TestRegisteringWorkflows(TestCase):
             CAPABILITY = self.CAPABILITY1
 
         result_cls = get_workflow(self.CAPABILITY1)
-        self.assertEquals(len(DEFAULT_REGISTRY), 1)
-        self.assertEquals(result_cls, TestWorkflow)
+        self.assertEqual(len(DEFAULT_REGISTRY), 1)
+        self.assertEqual(result_cls, TestWorkflow)
 
     def test_must_register_two_workflows(self):
         class TestWorkflow1(BaseWorkflow):
@@ -48,9 +48,9 @@ class TestRegisteringWorkflows(TestCase):
             NAME = "TestWorkflow2"
             CAPABILITY = self.CAPABILITY2
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 2)
-        self.assertEquals(get_workflow(self.CAPABILITY1), TestWorkflow1)
-        self.assertEquals(get_workflow(self.CAPABILITY2), TestWorkflow2)
+        self.assertEqual(len(DEFAULT_REGISTRY), 2)
+        self.assertEqual(get_workflow(self.CAPABILITY1), TestWorkflow1)
+        self.assertEqual(get_workflow(self.CAPABILITY2), TestWorkflow2)
 
     def test_must_fail_if_name_not_present(self):
 
@@ -59,8 +59,8 @@ class TestRegisteringWorkflows(TestCase):
             class TestWorkflow1(BaseWorkflow):
                 CAPABILITY = self.CAPABILITY1
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 0)
-        self.assertEquals(str(ctx.exception), "Workflow must provide a valid name")
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
+        self.assertEqual(str(ctx.exception), "Workflow must provide a valid name")
 
     def test_must_fail_if_capabilities_not_present(self):
 
@@ -69,8 +69,8 @@ class TestRegisteringWorkflows(TestCase):
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 0)
-        self.assertEquals(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
+        self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
 
     def test_must_fail_if_capabilities_is_wrong_type(self):
 
@@ -80,8 +80,8 @@ class TestRegisteringWorkflows(TestCase):
                 NAME = "somename"
                 CAPABILITY = "wrong data type"
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 0)
-        self.assertEquals(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
+        self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
 
 
 class TestBaseWorkflow_init(TestCase):
@@ -104,14 +104,14 @@ class TestBaseWorkflow_init(TestCase):
             options={"c": "d"},
         )
 
-        self.assertEquals(self.work.source_dir, "source_dir")
-        self.assertEquals(self.work.artifacts_dir, "artifacts_dir")
-        self.assertEquals(self.work.scratch_dir, "scratch_dir")
-        self.assertEquals(self.work.manifest_path, "manifest_path")
-        self.assertEquals(self.work.runtime, "runtime")
-        self.assertEquals(self.work.executable_search_paths, [str(sys.executable)])
-        self.assertEquals(self.work.optimizations, {"a": "b"})
-        self.assertEquals(self.work.options, {"c": "d"})
+        self.assertEqual(self.work.source_dir, "source_dir")
+        self.assertEqual(self.work.artifacts_dir, "artifacts_dir")
+        self.assertEqual(self.work.scratch_dir, "scratch_dir")
+        self.assertEqual(self.work.manifest_path, "manifest_path")
+        self.assertEqual(self.work.runtime, "runtime")
+        self.assertEqual(self.work.executable_search_paths, [str(sys.executable)])
+        self.assertEqual(self.work.optimizations, {"a": "b"})
+        self.assertEqual(self.work.options, {"c": "d"})
 
 
 class TestBaseWorkflow_is_supported(TestCase):
@@ -202,7 +202,7 @@ class TestBaseWorkflow_run(TestCase):
         self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         self.work.run()
 
-        self.assertEquals(
+        self.assertEqual(
             action_mock.method_calls, [call.action1.execute(), call.action2.execute(), call.action3.execute()]
         )
         self.assertTrue(validator_mock.validate.call_count, 1)
@@ -334,4 +334,4 @@ Actions=
 \tName=Action2, Purpose=RESOLVE_DEPENDENCIES, Description=Resolves dependencies
 \tName=Action3, Purpose=COMPILE_SOURCE, Description=Compiles code"""
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)

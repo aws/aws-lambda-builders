@@ -12,25 +12,25 @@ environment:
   matrix:
 
   - PYTHON: "C:\\Python27-x64"
-    PYTHON_VERSION: '2.7.18'
+    PYTHON_VERSION: '2.7'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
     JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
   - PYTHON: "C:\\Python36-x64"
-    PYTHON_VERSION: '3.6.10'
+    PYTHON_VERSION: '3.6'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
     JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
   - PYTHON: "C:\\Python37-x64"
-    PYTHON_VERSION: '3.7.7'
+    PYTHON_VERSION: '3.7'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '91'
     NEW_FLAKE8: 0
     JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
   - PYTHON: "C:\\Python38-x64"
-    PYTHON_VERSION: '3.8.2'
+    PYTHON_VERSION: '3.8'
     PYTHON_ARCH: '64'
     LINE_COVERAGE: '72'
     NEW_FLAKE8: 1
@@ -60,7 +60,7 @@ for:
 
     # setup go
     - rmdir c:\go /s /q
-    - "choco install golang"
+    - "choco install golang --version 1.15.7"
     - "choco install bzr"
     - "choco install dep"
     - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
@@ -103,11 +103,6 @@ for:
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
-      # Install black
-      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
-      - sh: "chmod +x /tmp/black"
-      - sh: "/tmp/black --version"
-
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
       - "LAMBDA_BUILDERS_DEV=1 pip install -e \".[dev]\""
@@ -119,5 +114,5 @@ for:
       # Runs only in Linux
       - "LAMBDA_BUILDERS_DEV=1 pytest -vv tests/integration"
 
-      # Validate Code was formatted with Black
-      - "/tmp/black --check setup.py tests aws_lambda_builders"
+      # Validate Code was formatted with Black, black is only supported in Python 3
+      - if [[ $PYTHON_VERSION = "3"* ]]; then black --check setup.py tests aws_lambda_builders; fi

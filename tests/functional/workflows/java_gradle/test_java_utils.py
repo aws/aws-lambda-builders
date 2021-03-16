@@ -33,13 +33,13 @@ class TestOSUtils(TestCase):
         names = ["a", "b", "c"]
         for n in names:
             self.new_file(self.src, n)
-        self.assertEquals(set(names), set(self.os_utils.listdir(self.src)))
+        self.assertEqual(set(names), set(self.os_utils.listdir(self.src)))
 
     def test_copy(self):
         f = self.new_file(self.src, "a")
         expected = os.path.join(self.dst, "a")
         copy_ret = self.os_utils.copy(f, expected)
-        self.assertEquals(expected, copy_ret)
+        self.assertEqual(expected, copy_ret)
         self.assertTrue("a" in os.listdir(self.dst))
 
     def test_exists(self):
