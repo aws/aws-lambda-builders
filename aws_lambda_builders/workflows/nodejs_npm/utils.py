@@ -292,4 +292,4 @@ class DependencyUtils(object):
                 manifest["dependencies"][dep_name] = "file:{}".format(dependency_tarfile_path)
 
             with osutils.open_file(manifest_path, "w") as manifest_write_file:
-                manifest_write_file.write(json.dumps(manifest, indent=4))
+                manifest_write_file.write(json.dumps(manifest, indent=4, ensure_ascii=False))

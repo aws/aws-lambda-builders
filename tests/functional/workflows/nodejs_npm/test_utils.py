@@ -137,7 +137,7 @@ class TestOSUtils(TestCase):
         file_to_open = os.path.join(temp_dir, "test_open.txt")
 
         with open(file_to_open, "w") as fid:
-            fid.write("this is text")
+            fid.write(u"this is text")
 
         with self.osutils.open_file(file_to_open) as fid:
             content = fid.read()
@@ -152,7 +152,7 @@ class TestOSUtils(TestCase):
         file_to_open = os.path.join(temp_dir, "test_open.txt")
 
         with self.osutils.open_file(file_to_open, "w") as fid:
-            fid.write("this is some other text")
+            fid.write(u"this is some other text")
 
         with self.osutils.open_file(file_to_open) as fid:
             content = fid.read()
