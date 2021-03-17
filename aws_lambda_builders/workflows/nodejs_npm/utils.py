@@ -2,6 +2,7 @@
 Commonly used utilities
 """
 
+import io
 import json
 import logging
 import os
@@ -44,8 +45,8 @@ class OSUtils(object):
     def normpath(self, *args):
         return os.path.normpath(*args)
 
-    def open_file(self, filename, mode="r"):
-        return open(filename, mode, encoding="utf-8")
+    def open_file(self, filename, mode="r", encoding="utf-8"):
+        return io.open(filename, mode, encoding=encoding)
 
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
