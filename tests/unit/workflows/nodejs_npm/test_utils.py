@@ -48,7 +48,7 @@ class TestDependencyUtils(TestCase):
             self.osutils,
         )
 
-        self.assertEqual(dependencies, {"@mockcompany/module-a": "file:../modules/module_a"})
+        self.assertEqual(dependencies, {"@mockcompany/module-a": "../modules/module_a"})
 
     def test_is_local_dependency_when_is(self):
         self.assertEqual(self.uut.is_local_dependency("file:../modules/module_a"), True)

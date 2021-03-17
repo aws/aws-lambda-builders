@@ -45,7 +45,7 @@ class OSUtils(object):
         return os.path.normpath(*args)
 
     def open_file(self, filename, mode="r"):
-        return open(filename, mode)
+        return open(filename, mode, encoding="utf-8")
 
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
@@ -77,9 +77,30 @@ class DependencyUtils(object):
     """
 
     @staticmethod
+    def package(package_path, from_dir, subprocess_npm):
+        """
+        Packages a module
+
+        Parameters
+        ----------
+        package_path : str
+            Package path
+        from_dir : str
+            Origin directory path
+        subprocess_npm : SubprocessNpm
+            NPM process
+
+        Returns
+        -------
+        str
+            Name of the package tar file
+        """
+        return subprocess_npm.run(["pack", "-q", package_path], cwd=from_dir).splitlines()[-1]
+
+    @staticmethod
     def ship_module(package_path, from_dir, to_dir, osutils, subprocess_npm):
         """
-        Helper function to package a module and extract it to a new directory
+        Packages a module and extracts it to a destination directory
 
         Parameters
         ----------
@@ -94,7 +115,7 @@ class DependencyUtils(object):
         subprocess_npm : SubprocessNpm
             NPM process
         """
-        tarfile_name = subprocess_npm.run(["pack", "-q", package_path], cwd=from_dir).splitlines()[-1]
+        tarfile_name = DependencyUtils.package(package_path, from_dir, subprocess_npm)
 
         LOG.debug("NODEJS packed to %s", tarfile_name)
 
@@ -107,7 +128,7 @@ class DependencyUtils(object):
     @staticmethod
     def get_local_dependencies(manifest_path, osutils):
         """
-        Helper function to extract all local dependencies in a package.json manifest
+        Extracts all local dependencies in a package.json manifest
 
         Parameters
         ----------
@@ -126,7 +147,9 @@ class DependencyUtils(object):
 
             if "dependencies" in manifest:
                 return dict(
-                    (k, v) for (k, v) in manifest["dependencies"].items() if DependencyUtils.is_local_dependency(v)
+                    (k, DependencyUtils.strip_file_prefix(v))
+                    for (k, v) in manifest["dependencies"].items()
+                    if DependencyUtils.is_local_dependency(v)
                 )
 
             return {}
@@ -134,7 +157,7 @@ class DependencyUtils(object):
     @staticmethod
     def is_local_dependency(path):
         """
-        Helper function to check if a dependency is a local package
+        Checks if a dependency is a local package
 
         Parameters
         ----------
@@ -150,6 +173,27 @@ class DependencyUtils(object):
             return path.startswith("file:") or path.startswith(".")
         except AttributeError:
             return False
+
+    @staticmethod
+    def strip_file_prefix(dependency):
+        """
+        Strips the "file:" prefix off a local dependency
+        NPM local dependencies can be defined as "./mydep" or "file:./mydep"
+        "file:" should be stripped to build an absolute path to the dependency
+
+        Parameters
+        ----------
+        dependency : str
+            Local dependency
+
+        Returns
+        -------
+        str
+            Local dependency stripped of the "file:" prefix
+        """
+        if dependency.startswith("file:"):
+            dependency = dependency[5:].strip()
+        return dependency
 
     @staticmethod
     def package_dependencies(manifest_path, scratch_dir, packed_manifests, osutils, subprocess_npm):
@@ -195,8 +239,6 @@ class DependencyUtils(object):
         local_dependencies = DependencyUtils.get_local_dependencies(manifest_path, osutils)
 
         for (dep_name, dep_path) in local_dependencies.items():
-            if dep_path.startswith("file:"):
-                dep_path = dep_path[5:].strip()
             dep_manifest = osutils.joinpath(manifest_dir, dep_path, "package.json")
 
             tar_path = DependencyUtils.package_dependencies(
@@ -211,9 +253,7 @@ class DependencyUtils(object):
             DependencyUtils.update_manifest(manifest_scratch_path, dep_name, tar_path, osutils)
 
         # Pack the current dependency
-        tarfile_name = subprocess_npm.run(["pack", "-q", manifest_scratch_package_dir], cwd=scratch_dir).splitlines()[
-            -1
-        ]
+        tarfile_name = DependencyUtils.package(manifest_scratch_package_dir, scratch_dir, subprocess_npm)
 
         packed_manifests[manifest_hash] = osutils.joinpath(scratch_dir, tarfile_name)
 
