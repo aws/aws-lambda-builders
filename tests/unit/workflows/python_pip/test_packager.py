@@ -219,7 +219,7 @@ class TestPipRunner(object):
 
         assert len(pip.calls) == 1
         call = pip.calls[0]
-        assert call.args == ["download", "-r", "requirements.txt", "--dest", "directory"]
+        assert call.args == ["download", "-r", "requirements.txt", "--dest", "directory", "--exists-action", "i"]
         assert call.env_vars is None
         assert call.shim is None
 
