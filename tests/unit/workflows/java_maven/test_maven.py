@@ -61,7 +61,7 @@ class TestSubprocessMaven(TestCase):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         maven.copy_dependency(self.source_dir)
         self.os_utils.popen.assert_called_with(
-            [self.maven_path, "dependency:copy-dependencies", "-DincludeScope=compile"],
+            [self.maven_path, "dependency:copy-dependencies", "-DincludeScope=compile", "-Dmdep.prependGroupId=true"],
             cwd=self.source_dir,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
