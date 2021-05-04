@@ -3,6 +3,7 @@ Commonly used utilities
 """
 
 import os
+import platform
 import subprocess
 
 
@@ -26,3 +27,6 @@ class OSUtils(object):
     @property
     def pipe(self):
         return subprocess.PIPE
+
+    def is_windows(self):
+        return platform.system().lower() == "windows"
