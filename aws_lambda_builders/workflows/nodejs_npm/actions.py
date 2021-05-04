@@ -6,6 +6,7 @@ import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .npm import NpmExecutionError
+from .utils import DependencyUtils
 
 LOG = logging.getLogger(__name__)
 
@@ -47,25 +48,21 @@ class NodejsNpmPackAction(BaseAction):
 
     def execute(self):
         """
-        Runs the action.
+        Runs the action
 
-        :raises lambda_builders.actions.ActionFailedError: when NPM packaging fails
+        Raises
+        ------
+        ActionFailedError
+            When NPM packaging fails
         """
         try:
-            package_path = "file:{}".format(self.osutils.abspath(self.osutils.dirname(self.manifest_path)))
+            tar_path = DependencyUtils.package_dependencies(
+                self.manifest_path, self.scratch_dir, {}, self.osutils, self.subprocess_npm
+            )
 
-            LOG.debug("NODEJS packaging %s to %s", package_path, self.scratch_dir)
+            LOG.debug("NODEJS extracting final %s to artifacts dir %s", tar_path, self.artifacts_dir)
 
-            tarfile_name = self.subprocess_npm.run(["pack", "-q", package_path], cwd=self.scratch_dir).splitlines()[-1]
-
-            LOG.debug("NODEJS packed to %s", tarfile_name)
-
-            tarfile_path = self.osutils.joinpath(self.scratch_dir, tarfile_name)
-
-            LOG.debug("NODEJS extracting to %s", self.artifacts_dir)
-
-            self.osutils.extract_tarfile(tarfile_path, self.artifacts_dir)
-
+            self.osutils.extract_tarfile(tar_path, self.artifacts_dir)
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
 
@@ -115,7 +112,7 @@ class NodejsNpmInstallAction(BaseAction):
 class NodejsNpmrcCopyAction(BaseAction):
 
     """
-    A Lambda Builder Action that copies NPM config file .npmrc
+    Lambda Builder Action that copies NPM config file .npmrc
     """
 
     NAME = "CopyNpmrc"
@@ -157,13 +154,14 @@ class NodejsNpmrcCopyAction(BaseAction):
             raise ActionFailedError(str(ex))
 
 
-class NodejsNpmrcCleanUpAction(BaseAction):
-
+class NodejsCleanUpAction(BaseAction):
     """
-    A Lambda Builder Action that cleans NPM config file .npmrc
+    Lambda Builder Action that cleans up after install:
+    - Removes NPM config file .npmrc
+    - Restores modified package.json files from their backup
     """
 
-    NAME = "CleanUpNpmrc"
+    NAME = "CleanUp"
     DESCRIPTION = "Cleans artifacts dir"
     PURPOSE = Purpose.COPY_SOURCE
 
@@ -177,22 +175,45 @@ class NodejsNpmrcCleanUpAction(BaseAction):
         :param osutils: An instance of OS Utilities for file manipulation
         """
 
-        super(NodejsNpmrcCleanUpAction, self).__init__()
+        super(NodejsCleanUpAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.osutils = osutils
 
     def execute(self):
         """
-        Runs the action.
+        Runs the actions
 
-        :raises lambda_builders.actions.ActionFailedError: when .npmrc copying fails
+        Raises
+        ------
+        ActionFailedError
+            When .npmrc removing or package.json restoring fails
         """
 
         try:
-            npmrc_path = self.osutils.joinpath(self.artifacts_dir, ".npmrc")
-            if self.osutils.file_exists(npmrc_path):
-                LOG.debug(".npmrc cleanup in: %s", self.artifacts_dir)
-                self.osutils.remove_file(npmrc_path)
-
+            self._remove_npmrc()
+            self._restore_package_json()
         except OSError as ex:
             raise ActionFailedError(str(ex))
+
+    def _remove_npmrc(self):
+        """
+        Removes the .npmrc file
+        """
+        npmrc_path = self.osutils.joinpath(self.artifacts_dir, ".npmrc")
+
+        if self.osutils.file_exists(npmrc_path):
+            LOG.debug(".npmrc cleanup in: %s", self.artifacts_dir)
+            self.osutils.remove_file(npmrc_path)
+
+    def _restore_package_json(self):
+        """
+        Restores the original package.json from its backup
+        """
+        org_file = "package.json"
+        bak_file = org_file + ".bak"
+
+        for (root, _, files) in self.osutils.walk(self.artifacts_dir):
+            if bak_file in files:
+                bak_path = self.osutils.joinpath(root, bak_file)
+                self.osutils.copy_file(bak_path, self.osutils.joinpath(root, org_file))
+                self.osutils.remove_file(bak_path)

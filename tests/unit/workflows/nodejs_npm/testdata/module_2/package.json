@@ -1,0 +1,13 @@
+{
+  "name": "nodejs_npm_unit_tests_module_1",
+  "version": "1.0.0",
+  "description": "",
+  "files": ["included.js"],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "dependencies": {
+    "@mockcompany/module-a": "file:../modules/module_a",
+    "npm_dep": "1.2.3"
+  }
+}

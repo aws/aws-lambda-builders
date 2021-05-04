@@ -1,0 +1,12 @@
+{
+  "name": "@mockcompany/module-a",
+  "version": "1.0.0",
+  "description": "",
+  "files": ["index.js"],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "dependencies": {
+    "@mockcompany/module-b": "file:../module_b" 
+  }
+}
