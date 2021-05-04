@@ -175,7 +175,7 @@ class DependencyBuilder(object):
         """
         self._osutils = osutils
         if pip_runner is None:
-            pip_runner = PipRunner(python_exe=None, pip=SubprocessPip(osutils))
+            pip_runner = PipRunner(python_exe=None, pip=SubprocessPip(osutils, runtime))
         self._pip = pip_runner
         self.runtime = runtime
 
