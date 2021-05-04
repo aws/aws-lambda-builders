@@ -72,3 +72,10 @@ class TestGradleBinaryValidator(TestCase):
         validator = GradleValidator(runtime="java11", os_utils=self.mock_os_utils, log=self.mock_log)
         self.assertTrue(validator.validate(gradle_path=self.gradle_path))
         self.assertEqual(validator.validated_binary_path, self.gradle_path)
+
+    def test_no_warning_when_jvm_mv_8_and_java8_al2_runtime(self):
+        version_string = "JVM:          8.0.0".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string)]
+        validator = GradleValidator(runtime="java8.al2", os_utils=self.mock_os_utils, log=self.mock_log)
+        self.assertTrue(validator.validate(gradle_path=self.gradle_path))
+        self.assertEqual(validator.validated_binary_path, self.gradle_path)
