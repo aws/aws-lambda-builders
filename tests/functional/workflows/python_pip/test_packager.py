@@ -605,9 +605,10 @@ class TestDependencyBuilder(object):
         missing_packages = list(e.value.missing)
         pip.validate()
         assert len(missing_packages) == 3
-        assert missing_packages[0].identifier == "bar==1.2"
-        assert missing_packages[1].identifier == "baz==1.2"
-        assert missing_packages[2].identifier == "qux==1.2"
+        missing_package_identifies = [package.identifier for package in missing_packages]
+        assert "bar==1.2" in missing_package_identifies
+        assert "baz==1.2" in missing_package_identifies
+        assert "qux==1.2" in missing_package_identifies
         assert len(installed_packages) == 1
 
     def test_can_replace_incompat_whl(self, tmpdir, osutils, pip_runner):
