@@ -449,6 +449,48 @@ class TestDependencyBuilder(object):
         for req in reqs:
             assert req in installed_packages
 
+    def test_can_support_pep_600_tags(self, tmpdir, osutils, pip_runner):
+        reqs = ["foo"]
+        pip, runner = pip_runner
+        appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
+        requirements_file = os.path.join(appdir, "requirements.txt")
+        pip.packages_to_download(
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            packages=[
+                "foo-1.2-cp36-cp36m-manylinux_2_12_x86_64.whl",
+            ],
+        )
+
+        site_packages = os.path.join(appdir, ".chalice.", "site-packages")
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(requirements_file, site_packages, scratch_dir)
+        installed_packages = os.listdir(site_packages)
+
+        pip.validate()
+        for req in reqs:
+            assert req in installed_packages
+
+    def test_can_support_compressed_tags(self, tmpdir, osutils, pip_runner):
+        reqs = ["foo"]
+        pip, runner = pip_runner
+        appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
+        requirements_file = os.path.join(appdir, "requirements.txt")
+        pip.packages_to_download(
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            packages=[
+                "foo-1.2-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.whl",
+            ],
+        )
+
+        site_packages = os.path.join(appdir, ".chalice.", "site-packages")
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(requirements_file, site_packages, scratch_dir)
+        installed_packages = os.listdir(site_packages)
+
+        pip.validate()
+        for req in reqs:
+            assert req in installed_packages
+
     def test_can_get_py27_whls(self, tmpdir, osutils, pip_runner):
         reqs = ["foo", "bar", "baz"]
         pip, runner = pip_runner
@@ -538,6 +580,35 @@ class TestDependencyBuilder(object):
         assert len(missing_packages) == 1
         assert missing_packages[0].identifier == "baz==1.5"
         assert len(installed_packages) == 0
+
+    def test_does_fail_on_pep_600_tag_with_unsupported_glibc_version(self, tmpdir, osutils, pip_runner):
+        reqs = ["foo", "bar", "baz", "qux"]
+        pip, runner = pip_runner
+        appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
+        requirements_file = os.path.join(appdir, "requirements.txt")
+        pip.packages_to_download(
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            packages=[
+                "foo-1.2-cp36-cp36m-manylinux_2_12_x86_64.whl",
+                "bar-1.2-cp36-cp36m-manylinux_2_999_x86_64.whl",
+                "baz-1.2-cp36-cp36m-manylinux_3_12_x86_64.whl",
+                "qux-1.2-cp36-cp36m-manylinux_3_999_x86_64.whl",
+            ],
+        )
+
+        site_packages = os.path.join(appdir, ".chalice.", "site-packages")
+        with osutils.tempdir() as scratch_dir:
+            with pytest.raises(MissingDependencyError) as e:
+                builder.build_site_packages(requirements_file, site_packages, scratch_dir)
+        installed_packages = os.listdir(site_packages)
+
+        missing_packages = list(e.value.missing)
+        pip.validate()
+        assert len(missing_packages) == 3
+        assert missing_packages[0].identifier == "bar==1.2"
+        assert missing_packages[1].identifier == "baz==1.2"
+        assert missing_packages[2].identifier == "qux==1.2"
+        assert len(installed_packages) == 1
 
     def test_can_replace_incompat_whl(self, tmpdir, osutils, pip_runner):
         reqs = ["foo", "bar"]
