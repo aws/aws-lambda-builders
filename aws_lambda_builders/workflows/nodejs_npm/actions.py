@@ -9,7 +9,6 @@ from .npm import NpmExecutionError
 
 LOG = logging.getLogger(__name__)
 
-
 class NodejsNpmPackAction(BaseAction):
 
     """
@@ -185,13 +184,54 @@ class NodejsNpmrcCleanUpAction(BaseAction):
         """
         Runs the action.
 
-        :raises lambda_builders.actions.ActionFailedError: when .npmrc copying fails
+        :raises lambda_builders.actions.ActionFailedError: when deleting .npmrc fails
         """
 
         try:
             npmrc_path = self.osutils.joinpath(self.artifacts_dir, ".npmrc")
             if self.osutils.file_exists(npmrc_path):
                 LOG.debug(".npmrc cleanup in: %s", self.artifacts_dir)
+                self.osutils.remove_file(npmrc_path)
+
+        except OSError as ex:
+            raise ActionFailedError(str(ex))
+
+
+class NodejsNpmLockFileCleanUpAction(BaseAction):
+
+    """
+    A Lambda Builder Action that cleans up garbage lockfile left by 7 in node_modules
+    """
+
+    NAME = "LockfileCleanUp"
+    DESCRIPTION = "Cleans garbage lockfiles dir"
+    PURPOSE = Purpose.COPY_SOURCE
+
+    def __init__(self, artifacts_dir, osutils):
+        """
+        :type artifacts_dir: str
+        :param artifacts_dir: an existing (writable) directory with project source files.
+            Dependencies will be installed in this directory.
+
+        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :param osutils: An instance of OS Utilities for file manipulation
+        """
+
+        super(NodejsNpmLockFileCleanUpAction, self).__init__()
+        self.artifacts_dir = artifacts_dir
+        self.osutils = osutils
+
+    def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when deleting the lockfile fails
+        """
+
+        try:
+            npmrc_path = self.osutils.joinpath(self.artifacts_dir, "node_modules", ".package-lock.json")
+            if self.osutils.file_exists(npmrc_path):
+                LOG.debug(".package-lock cleanup in: %s", self.artifacts_dir)
                 self.osutils.remove_file(npmrc_path)
 
         except OSError as ex:

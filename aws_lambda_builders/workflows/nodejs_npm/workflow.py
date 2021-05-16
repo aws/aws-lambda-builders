@@ -4,7 +4,8 @@ NodeJS NPM Workflow
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
-from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
+from .actions import NodejsNpmPackAction, NodejsNpmLockFileCleanUpAction, \
+    NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
 
@@ -50,6 +51,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
             npm_install,
             NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils),
+            NodejsNpmLockFileCleanUpAction(artifacts_dir, osutils=osutils),
         ]
 
     def get_resolvers(self):

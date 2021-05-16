@@ -7,6 +7,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmInstallAction,
     NodejsNpmrcCopyAction,
     NodejsNpmrcCleanUpAction,
+    NodejsNpmLockFileCleanUpAction
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
@@ -136,6 +137,30 @@ class TestNodejsNpmrcCleanUpAction(TestCase):
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
         action = NodejsNpmrcCleanUpAction("artifacts", osutils=osutils)
+        osutils.file_exists.side_effect = [False]
+        action.execute()
+
+        osutils.remove_file.assert_not_called()
+
+
+class TestNodejsNpmLockFileCleanUpAction(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_removes_dot_package_lock_if_exists(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
+
+        action = NodejsNpmLockFileCleanUpAction("artifacts", osutils=osutils)
+        osutils.file_exists.side_effect = [True]
+        action.execute()
+
+        osutils.remove_file.assert_called_with("artifacts/node_modules/.package-lock.json")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_skips_lockfile_removal_if_it_doesnt_exist(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
+
+        action = NodejsNpmLockFileCleanUpAction("artifacts", osutils=osutils)
         osutils.file_exists.side_effect = [False]
         action.execute()
 

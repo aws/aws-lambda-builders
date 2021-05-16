@@ -7,6 +7,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmInstallAction,
     NodejsNpmrcCopyAction,
     NodejsNpmrcCleanUpAction,
+    NodejsNpmLockFileCleanUpAction
 )
 
 
@@ -21,7 +22,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
-        self.assertEqual(len(workflow.actions), 5)
+        self.assertEqual(len(workflow.actions), 6)
 
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
 
@@ -32,3 +33,5 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
 
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+
+        self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
