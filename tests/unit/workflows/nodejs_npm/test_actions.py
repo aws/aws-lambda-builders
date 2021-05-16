@@ -7,7 +7,8 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmInstallAction,
     NodejsNpmrcCopyAction,
     NodejsNpmrcCleanUpAction,
-    NodejsNpmLockFileCleanUpAction
+    NodejsNpmLockFileCleanUpAction,
+    NodejsNpmCIAction
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
@@ -80,6 +81,30 @@ class TestNodejsNpmInstallAction(TestCase):
 
         self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
 
+class TestNodejsNpmCIAction(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_tars_and_unpacks_npm_project(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmCIAction("sources", subprocess_npm=subprocess_npm)
+
+        action.execute()
+
+        subprocess_npm.run.assert_called_with(["ci"], cwd="sources")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_raises_action_failed_when_npm_fails(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        builder_instance = SubprocessNpmMock.return_value
+        builder_instance.run.side_effect = NpmExecutionError(message="boom!")
+
+        action = NodejsNpmCIAction("sources", subprocess_npm=subprocess_npm)
+
+        with self.assertRaises(ActionFailedError) as raised:
+            action.execute()
+
+        self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
 
 class TestNodejsNpmrcCopyAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")

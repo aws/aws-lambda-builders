@@ -1,4 +1,5 @@
 from unittest import TestCase
+from mock import patch
 
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
@@ -13,6 +14,10 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
 
 class TestNodejsNpmWorkflow(TestCase):
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def setUp(self, OSUtilMock):
+        self.osutils = OSUtilMock.return_value
+
     """
     the workflow requires an external utility (npm) to run, so it is extensively tested in integration tests.
     this is just a quick wiring test to provide fast feedback if things are badly broken
@@ -20,7 +25,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
     def test_workflow_sets_up_npm_actions(self):
 
-        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest")
+        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
 
         self.assertEqual(len(workflow.actions), 6)
 

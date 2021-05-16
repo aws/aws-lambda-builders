@@ -125,4 +125,4 @@ class TestNodejsNpmWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("Unexpected end of JSON input", str(ctx.exception))
+        self.assertIn("NodejsNpmBuilder:ParseManifest", str(ctx.exception))
