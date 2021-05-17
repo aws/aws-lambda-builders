@@ -1,5 +1,5 @@
 {
-  "name": "nodeps-esbuild",
+  "name": "with-deps-esbuild",
   "version": "1.0.0",
   "description": "",
   "keywords": [],
@@ -8,5 +8,11 @@
   "aws-sam": {
     "bundler": "esbuild",
     "main": "included.js"
+  },
+  "dependencies": {
+    "minimal-request-promise": "^1.5.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.11.23"
   }
 }

@@ -3,7 +3,6 @@ Wrapper around calling esbuild through a subprocess.
 """
 
 import logging
-
 LOG = logging.getLogger(__name__)
 
 
@@ -27,24 +26,38 @@ class SubprocessEsbuild(object):
     easy to consume execution results.
     """
 
-    def __init__(self, osutils, esbuild_exe=None):
+    def __init__(self, osutils, executable_search_paths, which):
         """
         :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
-        :type esbuild_exe: str
-        :param esbuild_exe: Path to the Esbuild binary. If not set,
-            the default executable path esbuild will be used
+        :type bin_path: str
+        :param bin_path: Path to the NPM package binary utilities. This will
+            be used to find embedded esbuild at runtime if present in the package
         """
         self.osutils = osutils
+        self.executable_search_paths = executable_search_paths
+        self.which = which
 
-        if esbuild_exe is None:
-            if osutils.is_windows():
-                esbuild_exe = "esbuild.cmd"
-            else:
-                esbuild_exe = "esbuild"
+    def esbuild_binary(self):
+        """
+        Finds the esbuild binary at runtime.
 
-        self.esbuild_exe = esbuild_exe
+        The utility may be present as a package dependency of the Lambda project,
+        or in the global path. If there is one in the Lambda project, it should
+        be preferred over a global utility. The check has to be executed
+        at runtime, since NPM dependencies will be installed by the workflow
+        using one of the previous actions.
+        """
+
+        LOG.debug("checking for esbuild in: %s", self.executable_search_paths)
+        binaries = self.which('esbuild', executable_search_paths=self.executable_search_paths)
+        LOG.debug("potential esbuild binaries: %s", binaries)
+
+        if len(binaries) > 0:
+            return binaries[0]
+        else:
+            raise EsbuildExecutionError(message="cannot find esbuild")
 
     def run(self, args, cwd=None):
 
@@ -73,7 +86,7 @@ class SubprocessEsbuild(object):
         if not args:
             raise ValueError("requires at least one arg")
 
-        invoke_esbuild = [self.esbuild_exe] + args
+        invoke_esbuild = [self.esbuild_binary()] + args
 
         LOG.debug("executing Esbuild: %s", invoke_esbuild)
 

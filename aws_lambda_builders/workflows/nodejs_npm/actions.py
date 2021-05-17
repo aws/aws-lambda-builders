@@ -335,13 +335,19 @@ class EsbuildBundleAction(BaseAction):
         if not self.osutils.file_exists(entrypath):
             raise ActionFailedError("main entry point %s does not exist" % entrypath)
 
+        args = [entrypoint, "--bundle", "--platform=node", "--format=cjs"]
+        skip_minify = "minify" in self.bundler_config and not self.bundler_config["minify"]
+        skip_sourcemap = "sourcemap" in self.bundler_config and not self.bundler_config["sourcemap"]
+        if not skip_minify:
+            args.append("--minify")
+        if not skip_sourcemap:
+            args.append("--sourcemap")
+        if "target" not in self.bundler_config:
+            args.append("--target=es2020")
+        else:
+            args.append("--target=" + self.bundler_config["target"])
+        args.append("--outdir=" + self.artifacts_dir)
         try:
-            self.subprocess_esbuild.run([
-                entrypath,
-                "--bundle", "--platform=node",
-                "--minify", "--sourcemap",
-                ("--outfile=" + entrypoint)
-            ], cwd=self.artifacts_dir)
-
+            self.subprocess_esbuild.run(args, cwd=self.source_dir)
         except EsbuildExecutionError as ex:
             raise ActionFailedError(str(ex))

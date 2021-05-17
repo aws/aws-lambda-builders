@@ -14,43 +14,29 @@ class FakePopen:
         return self.out, self.err
 
 
-class TestSubprocessNpm(TestCase):
+class TestSubprocessEsbuild(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
         self.osutils.pipe = "PIPE"
         self.popen = FakePopen()
         self.osutils.popen.side_effect = [self.popen]
-        self.under_test = SubprocessEsbuild(self.osutils, esbuild_exe="/a/b/c/esbuild.exe")
 
-    def test_run_executes_npm_on_nixes(self):
-        self.osutils.is_windows.side_effect = [False]
+        which = lambda cmd, executable_search_paths: ["{}/{}".format(executable_search_paths[0], cmd)]
 
-        self.under_test = SubprocessEsbuild(self.osutils)
+        self.under_test = SubprocessEsbuild(self.osutils, ["/a/b", "/c/d"], which)
 
-        self.under_test.run(["arg-a", "arg-b"])
-
-        self.osutils.popen.assert_called_with(["esbuild", "arg-a", "arg-b"], cwd=None, stderr="PIPE", stdout="PIPE")
-
-    def test_run_executes_esbuild_cmd_on_windows(self):
-        self.osutils.is_windows.side_effect = [True]
-
-        self.under_test = SubprocessEsbuild(self.osutils)
+    def test_run_executes_binary_found_in_exec_paths(self):
 
         self.under_test.run(["arg-a", "arg-b"])
 
-        self.osutils.popen.assert_called_with(["esbuild.cmd", "arg-a", "arg-b"], cwd=None, stderr="PIPE", stdout="PIPE")
-
-    def test_uses_custom_npm_path_if_supplied(self):
-        self.under_test.run(["arg-a", "arg-b"])
-
-        self.osutils.popen.assert_called_with(["/a/b/c/esbuild.exe", "arg-a", "arg-b"], cwd=None, stderr="PIPE", stdout="PIPE")
+        self.osutils.popen.assert_called_with(["/a/b/esbuild", "arg-a", "arg-b"], cwd=None, stderr="PIPE", stdout="PIPE")
 
     def test_uses_cwd_if_supplied(self):
         self.under_test.run(["arg-a", "arg-b"], cwd="/a/cwd")
 
         self.osutils.popen.assert_called_with(
-            ["/a/b/c/esbuild.exe", "arg-a", "arg-b"], cwd="/a/cwd", stderr="PIPE", stdout="PIPE"
+            ["/a/b/esbuild", "arg-a", "arg-b"], cwd="/a/cwd", stderr="PIPE", stdout="PIPE"
         )
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
@@ -60,7 +46,7 @@ class TestSubprocessNpm(TestCase):
 
         self.assertEqual(result, "some encoded text")
 
-    def test_raises_NpmExecutionError_with_err_text_if_retcode_is_not_0(self):
+    def test_raises_EsbuildExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
         self.popen.err = b"some error text\n\n"
 
@@ -68,6 +54,16 @@ class TestSubprocessNpm(TestCase):
             self.under_test.run(["pack"])
 
         self.assertEqual(raised.exception.args[0], "Esbuild Failed: some error text")
+
+    def test_raises_EsbuildExecutionError_if_which_returns_no_results(self):
+
+        which = lambda cmd, executable_search_paths: []
+        self.under_test = SubprocessEsbuild(self.osutils, ["/a/b", "/c/d"], which)
+        with self.assertRaises(EsbuildExecutionError) as raised:
+            self.under_test.run(["pack"])
+
+        self.assertEqual(raised.exception.args[0], "Esbuild Failed: cannot find esbuild")
+
 
     def test_raises_ValueError_if_args_not_a_list(self):
         with self.assertRaises(ValueError) as raised:

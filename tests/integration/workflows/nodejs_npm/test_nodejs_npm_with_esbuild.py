@@ -1,11 +1,10 @@
 import os
 import shutil
 import tempfile
-
 from unittest import TestCase
-
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 
 
 class TestNodejsNpmWorkflowWithEsbuild(TestCase):
@@ -28,8 +27,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
-    def testBuildsProjectWithoutDependencies(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
+    def testBuildsJavascriptProjectWithDependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
         self.builder.build(
             source_dir,
@@ -37,6 +36,45 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+        )
+
+        expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+
+    def testBuildsTypescriptProjects(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-typescript")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
+
+        expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    def testBuildsWithExternalEsbuild(self):
+        osutils = OSUtils()
+        npm = SubprocessNpm(osutils)
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
+        esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+
+        npm.run(["ci"], cwd=esbuild_dir)
+
+        binpath = npm.run(["bin"], cwd=esbuild_dir)
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            executable_search_paths=[binpath]
         )
 
         expected_files = {"included.js", "included.js.map"}

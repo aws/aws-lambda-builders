@@ -8,10 +8,17 @@ import json
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.utils import which
 from aws_lambda_builders.exceptions import WorkflowFailedError
-from .actions import NodejsNpmPackAction, NodejsNpmLockFileCleanUpAction, \
-    NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction, \
-    NodejsNpmCIAction, EsbuildBundleAction
+from .actions import (
+    NodejsNpmPackAction,
+    NodejsNpmLockFileCleanUpAction,
+    NodejsNpmInstallAction,
+    NodejsNpmrcCopyAction,
+    NodejsNpmrcCleanUpAction,
+    NodejsNpmCIAction,
+    EsbuildBundleAction
+)
 from .utils import OSUtils
 from .npm import SubprocessNpm
 from .esbuild import SubprocessEsbuild
@@ -52,7 +59,11 @@ class NodejsNpmWorkflow(BaseWorkflow):
     def actions_with_bundler(self, source_dir, artifacts_dir, bundler_config, osutils, subprocess_npm):
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
-        subprocess_esbuild = SubprocessEsbuild(osutils)
+        npm_bin_path = subprocess_npm.run(["bin"], cwd=source_dir)
+        executable_search_paths = [npm_bin_path]
+        if self.executable_search_paths is not None:
+            executable_search_paths = executable_search_paths + self.executable_search_paths
+        subprocess_esbuild = SubprocessEsbuild(osutils, executable_search_paths, which=which)
 
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)):
             install_action = NodejsNpmCIAction(source_dir, subprocess_npm=subprocess_npm)

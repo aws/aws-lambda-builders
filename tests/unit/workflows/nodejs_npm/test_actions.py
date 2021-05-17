@@ -8,7 +8,8 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmrcCopyAction,
     NodejsNpmrcCleanUpAction,
     NodejsNpmLockFileCleanUpAction,
-    NodejsNpmCIAction
+    NodejsNpmCIAction,
+    EsbuildBundleAction
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
@@ -81,6 +82,7 @@ class TestNodejsNpmInstallAction(TestCase):
 
         self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
 
+
 class TestNodejsNpmCIAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
     def test_tars_and_unpacks_npm_project(self, SubprocessNpmMock):
@@ -105,6 +107,7 @@ class TestNodejsNpmCIAction(TestCase):
             action.execute()
 
         self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
+
 
 class TestNodejsNpmrcCopyAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
@@ -167,6 +170,18 @@ class TestNodejsNpmrcCleanUpAction(TestCase):
 
         osutils.remove_file.assert_not_called()
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_raises_action_failed_when_removing_fails(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
+
+        osutils.remove_file.side_effect = OSError()
+
+        action = NodejsNpmrcCleanUpAction("artifacts", osutils=osutils)
+
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
 
 class TestNodejsNpmLockFileCleanUpAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
@@ -190,3 +205,95 @@ class TestNodejsNpmLockFileCleanUpAction(TestCase):
         action.execute()
 
         osutils.remove_file.assert_not_called()
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_raises_action_failed_when_removing_fails(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
+
+        osutils.remove_file.side_effect = OSError()
+
+        action = NodejsNpmLockFileCleanUpAction("artifacts", osutils=osutils)
+
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
+
+class TestEsbuildBundleAction(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.esbuild.SubprocessEsbuild")
+    def setUp(self, OSUtilMock, SubprocessEsbuildMock):
+        self.osutils = OSUtilMock.return_value
+        self.subprocess_esbuild = SubprocessEsbuildMock.return_value
+        self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
+        self.osutils.file_exists.side_effect = [True]
+
+    def test_raises_error_if_main_entrypoint_not_specified(self):
+        action = EsbuildBundleAction("source", "artifacts", {}, self.osutils, self.subprocess_esbuild)
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
+    def test_packages_javascript_with_minification_and_sourcemap(self):
+        action = EsbuildBundleAction("source", "artifacts", {"main": "x.js"}, self.osutils, self.subprocess_esbuild)
+        action.execute()
+
+        self.subprocess_esbuild.run.assert_called_with([
+            "x.js",
+            "--bundle",
+            "--platform=node",
+            "--format=cjs",
+            "--minify",
+            "--sourcemap",
+            "--target=es2020",
+            "--outdir=artifacts"
+        ], cwd="source")
+
+    def test_checks_if_entrypoint_exists(self):
+
+        action = EsbuildBundleAction("source", "artifacts", {"main": "x.js"}, self.osutils, self.subprocess_esbuild)
+        self.osutils.file_exists.side_effect = [False]
+
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
+        self.osutils.file_exists.assert_called_with("source/x.js")
+
+    def test_excludes_sourcemap_if_requested(self):
+        action = EsbuildBundleAction("source", "artifacts", {"main": "x.js", "sourcemap": False}, self.osutils, self.subprocess_esbuild)
+        action.execute()
+        self.subprocess_esbuild.run.assert_called_with([
+            "x.js",
+            "--bundle",
+            "--platform=node",
+            "--format=cjs",
+            "--minify",
+            "--target=es2020",
+            "--outdir=artifacts"
+        ], cwd="source")
+
+    def test_does_not_minify_if_requested(self):
+        action = EsbuildBundleAction("source", "artifacts", {"main": "x.js", "minify": False}, self.osutils, self.subprocess_esbuild)
+        action.execute()
+        self.subprocess_esbuild.run.assert_called_with([
+            "x.js",
+            "--bundle",
+            "--platform=node",
+            "--format=cjs",
+            "--sourcemap",
+            "--target=es2020",
+            "--outdir=artifacts"
+        ], cwd="source")
+
+    def test_uses_specified_target(self):
+        action = EsbuildBundleAction("source", "artifacts", {"main": "x.js", "target": "node14"}, self.osutils, self.subprocess_esbuild)
+        action.execute()
+        self.subprocess_esbuild.run.assert_called_with([
+            "x.js",
+            "--bundle",
+            "--platform=node",
+            "--format=cjs",
+            "--minify",
+            "--sourcemap",
+            "--target=node14",
+            "--outdir=artifacts"
+        ], cwd="source")
