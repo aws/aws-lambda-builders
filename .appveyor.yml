@@ -65,6 +65,7 @@ for:
     - "choco install dep"
     - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
     - "go version"
+    - "go env -w GO111MODULE=auto"
     - "go env"
 
     # setup Gradle
@@ -102,6 +103,7 @@ for:
       - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
+      - sh: "go env -w GO111MODULE=auto"
 
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
