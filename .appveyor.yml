@@ -4,7 +4,6 @@ image:
   - Ubuntu
 
 environment:
-  GOPATH: c:\gopath
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
   nodejs_version: "8.10.0"
@@ -44,6 +43,9 @@ for:
     matrix:
       only:
         - image: Visual Studio 2017
+
+    environment:
+      GOPATH: c:\gopath
 
     install:
     # To run Nodejs workflow integ tests
