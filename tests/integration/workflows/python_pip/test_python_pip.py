@@ -47,6 +47,8 @@ class TestPythonPipWorkflow(TestCase):
 
         if self.runtime == "python2.7":
             expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
+        elif self.runtime == "python3.6":
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
         else:
             expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
         output_files = set(os.listdir(self.artifacts_dir))
