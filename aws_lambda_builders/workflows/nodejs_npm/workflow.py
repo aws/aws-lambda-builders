@@ -39,6 +39,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     EXCLUDED_FILES = (".aws-sam", ".git")
 
+    CONFIG_PROPERTY = "aws_sam"
+
     def actions_without_bundler(self, source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
@@ -80,8 +82,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
         LOG.debug("NODEJS reading manifest from %s", manifest_path)
         try:
             manifest = osutils.parse_json(manifest_path)
-            if 'aws-sam' in manifest and isinstance(manifest['aws-sam'], dict):
-                return manifest['aws-sam']
+            if self.CONFIG_PROPERTY in manifest and isinstance(manifest[self.CONFIG_PROPERTY], dict):
+                return manifest[self.CONFIG_PROPERTY]
             else:
                 return {'bundler': ''}
         except (OSError, json.decoder.JSONDecodeError) as ex:

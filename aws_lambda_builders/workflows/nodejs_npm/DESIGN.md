@@ -249,3 +249,129 @@ included dependencies, and optionally a source map.
 
 Ensure that the target file name is the same as the entry point of the Lambda
 function, so that there is no impact on the CloudFormation template.
+
+
+### Activating the bundler workflow
+
+Because there are advantages and disadvantages to both approaches (with and
+without a bundler), the user should be able to choose between them. The default
+is not to use a bundler (both because it's universally applicable and for
+backwards compatibility). Node.js pakage manifests (`package.json`) allow for
+custom properties, so a user can activate the bundler process by providing an
+`aws_sam` configuration property in the package manifest. If this property is
+present in the package manifest, and the sub-property `bundler` equals
+`esbuild`, the Node.js NPM Lambda builder activates the bundler process.
+
+Because the Lambda builder workflow is not aware of the main entry point for
+bundling, the user must also specify the main entry point for bundling (the
+file containing the Lambda handler function). This is a bit of an unfortunate
+duplication with SAM Cloudformation template, but with the current workflow
+design there is no way around it.
+
+The following example is a minimal `package.json` to activate the `esbuild` bundler
+on a javascript file, starting from `lambda.js`. It will produce a bundled `lambda.js`
+in the artifacts folder.
+
+```json
+{
+  "name": "nodeps-esbuild",
+  "version": "1.0.0",
+  "license": "APACHE2.0",
+  "aws_sam": {
+    "bundler": "esbuild",
+    "main": "lambda.js"
+  }
+}
+```
+
+#### Locating the esbuild binary
+
+`esbuild` supports platform-independent binary distribution using NPM, by
+including the `esbuild` package as a dependency. The Lambda builder should 
+first try to locate the binary in the Lambda code repository (allowing the 
+user to include a specific version). Failing that, the Lambda builder should
+try to locate the `esbuild` binary in the `executable_search_paths` configured
+for the workflow, then the operating system `PATH` environment variable. 
+
+The Lambda builder **should not** bring its own `esbuild` binary, but it should
+clearly point to the error when one is not found, to allow users to configure the 
+build correctly.
+
+In the previous example, the esbuild binary is not included in the package dependencies,
+so the Lambda builder will use the system executable paths to search for it. In the 
+example below, `esbuild` is included in the package, so the Lambda builder should use it
+directly.
+
+```json
+{
+  "name": "with-deps-esbuild",
+  "version": "1.0.0",
+  "license": "APACHE2.0",
+  "aws_sam": {
+    "bundler": "esbuild",
+    "main": "lambda.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.11.23"
+  }
+}
+```
+
+For a full example, see the [`with-deps-esbuild`](../../../tests/integration/workflows/nodejs_npm/testdata/with-deps-esbuild/) test project.
+
+#### Building typescript
+
+`esbuild` supports bundling typescript out of the box and transpiling it to plain
+javascript. The user just needs to point to a typescript file as the main entry point,
+as in the example below. There is no transpiling process needed upfront.
+
+
+```js
+{
+  "name": "with-deps-esbuild-typescript",
+  "version": "1.0.0",
+  "license": "APACHE2.0",
+  "aws_sam": {
+    "bundler": "esbuild",
+    "main": "included.ts"
+  },
+  "dependencies": {
+    "@types/aws-lambda": "^8.10.76"
+  },
+  "devDependencies": {
+    "esbuild": "^0.11.23"
+  }
+}
+```
+
+For a full example, see the [`with-deps-esbuild-typescript`](../../../tests/integration/workflows/nodejs_npm/testdata/with-deps-esbuild-typescript/) test project.
+
+**important note:** esbuild does not perform type checking, so users wanting to ensure type-checks need to run the `tsc` process as part of their 
+testing flow before invoking `sam build`. For additional typescript caveats with esbuild, check out <https://esbuild.github.io/content-types/#typescript>.
+
+#### Configuring the bundler
+
+The Lambda builder invokes `esbuild` with sensible defaults that will work for the majority of cases. Importantly, the following three parameters are set by default
+
+* `--minify`, as it [produces a smaller runtime package](https://esbuild.github.io/api/#minify)
+* `--sourcemap`, as it generates a [source map that allows for correct stack trace reporting](https://esbuild.github.io/api/#sourcemap) in case of errors (see the [Error reporting](#error-reporting) section above)
+* `--target es2020`, as it allows for javascript features present in Node 14
+
+Users might want to tweak some of these runtime arguments for a specific project, for example not including the source map to further reduce the package size, or restricting javascript features to an older version. The Lambda builder allows this with optional sub-properties of the `aws_sam` configuration property.
+
+* `target`: string, corresponding to a supported [esbuild target](https://esbuild.github.io/api/#target) property
+* `minify`: boolean, defaulting to `true`
+* `sourcemap`: boolean, defaulting to `true`
+
+Here is an example that deactivates minification and source maps, and supports JavaScript features compatible with Node.js version 10.
+
+```json
+{
+ "aws_sam": {
+    "bundler": "esbuild",
+    "main": "included.ts",
+    "target": "node10",
+    "minify": false,
+    "sourcemap": false
+  }
+}

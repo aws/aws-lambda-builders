@@ -73,7 +73,8 @@ class TestNodejsNpmWorkflow(TestCase):
 
     def test_workflow_sets_up_npm_actions_with_bundler_if_manifest_requests_it(self):
 
-        self.osutils.parse_json.side_effect = [{"aws-sam": {"bundler": "esbuild"}}]
+        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
+
         self.osutils.file_exists.side_effect = [False, False]
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
@@ -92,7 +93,7 @@ class TestNodejsNpmWorkflow(TestCase):
     def test_sets_up_esbuild_search_path_from_npm_bin(self):
 
         self.popen.out = b"project/bin"
-        self.osutils.parse_json.side_effect = [{"aws-sam": {"bundler": "esbuild"}}]
+        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
 
@@ -107,7 +108,7 @@ class TestNodejsNpmWorkflow(TestCase):
     def test_sets_up_esbuild_search_path_with_workflow_executable_search_paths_after_npm_bin(self):
 
         self.popen.out = b"project/bin"
-        self.osutils.parse_json.side_effect = [{"aws-sam": {"bundler": "esbuild"}}]
+        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils, executable_search_paths=["other/bin"])
 
@@ -121,7 +122,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
     def test_workflow_uses_npm_ci_if_lockfile_exists(self):
 
-        self.osutils.parse_json.side_effect = [{"aws-sam": {"bundler": "esbuild"}}]
+        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
         self.osutils.file_exists.side_effect = [True]
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
@@ -136,7 +137,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
     def test_workflow_uses_npm_ci_if_shrinkwrap_exists(self):
 
-        self.osutils.parse_json.side_effect = [{"aws-sam": {"bundler": "esbuild"}}]
+        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
         self.osutils.file_exists.side_effect = [False, True]
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
@@ -148,5 +149,3 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
 
         self.osutils.file_exists.assert_has_calls([call("source/package-lock.json"), call("source/npm-shrinkwrap.json")])
-
-

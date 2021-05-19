@@ -5,7 +5,7 @@
   "keywords": [],
   "author": "",
   "license": "APACHE2.0",
-  "aws-sam": {
+  "aws_sam": {
     "bundler": "esbuild",
     "main": "included.ts"
   },
