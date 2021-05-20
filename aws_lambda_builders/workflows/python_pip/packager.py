@@ -150,13 +150,23 @@ class DependencyBuilder(object):
     packager.
     """
 
-    _MANYLINUX_COMPATIBLE_PLATFORM = {
-        "any",
-        "linux_x86_64",
-        "manylinux1_x86_64",
-        "manylinux2010_x86_64",
-        "manylinux2014_x86_64",
+    _ADDITIONAL_COMPATIBLE_PLATFORM = {"any", "linux_x86_64"}
+    _MANYLINUX_LEGACY_MAP = {
+        "manylinux1_x86_64": "manylinux_2_5_x86_64",
+        "manylinux2010_x86_64": "manylinux_2_12_x86_64",
+        "manylinux2014_x86_64": "manylinux_2_17_x86_64",
     }
+    # Mapping of abi to glibc version in Lambda runtime.
+    _RUNTIME_GLIBC = {
+        "cp27mu": (2, 17),
+        "cp36m": (2, 17),
+        "cp37m": (2, 17),
+        "cp38": (2, 26),
+    }
+    # Fallback version if we're on an unknown python version
+    # not in _RUNTIME_GLIBC.
+    # Unlikely to hit this case.
+    _DEFAULT_GLIBC = (2, 17)
     _COMPATIBLE_PACKAGE_ALLOWLIST = {"sqlalchemy"}
 
     def __init__(self, osutils, runtime, pip_runner=None):
@@ -341,29 +351,61 @@ class DependencyBuilder(object):
 
     def _is_compatible_wheel_filename(self, filename):
         wheel = filename[:-4]
-        implementation, abi, platform = wheel.split("-")[-3:]
-        # Verify platform is compatible
-        if platform not in self._MANYLINUX_COMPATIBLE_PLATFORM:
-            return False
-
         lambda_runtime_abi = get_lambda_abi(self.runtime)
+        for implementation, abi, platform in self._iter_all_compatibility_tags(wheel):
+            if not self._is_compatible_platform_tag(lambda_runtime_abi, platform):
+                continue
 
-        # Verify that the ABI is compatible with lambda. Either none or the
-        # correct type for the python version cp27mu for py27 and cp36m for
-        # py36.
-        if abi == "none":
-            return True
-        prefix_version = implementation[:3]
-        if prefix_version == "cp3":
-            # Deploying python 3 function which means we need cp36m abi
-            # We can also accept abi3 which is the CPython 3 Stable ABI and
-            # will work on any version of python 3.
-            return abi == lambda_runtime_abi or abi == "abi3"
-        elif prefix_version == "cp2":
-            # Deploying to python 2 function which means we need cp27mu abi
-            return abi == "cp27mu"
+            # Verify that the ABI is compatible with lambda. Either none or the
+            # correct type for the python version cp27mu for py27 and cp36m for
+            # py36.
+            if abi == "none":
+                return True
+            prefix_version = implementation[:3]
+            if prefix_version == "cp3":
+                # Deploying python 3 function which means we need cp36m abi
+                # We can also accept abi3 which is the CPython 3 Stable ABI and
+                # will work on any version of python 3.
+                if abi == lambda_runtime_abi or abi == "abi3":
+                    return True
+            elif prefix_version == "cp2":
+                # Deploying to python 2 function which means we need cp27mu abi
+                if abi == "cp27mu":
+                    return True
         # Don't know what we have but it didn't pass compatibility tests.
         return False
+
+    def _is_compatible_platform_tag(self, expected_abi, platform):
+        """
+        Verify if a platform tag is compatible based on PEP 600
+        https://www.python.org/dev/peps/pep-0600/#specification
+
+        In addition to checking the tag pattern, we also need to verify the glibc version
+        """
+        if platform in self._ADDITIONAL_COMPATIBLE_PLATFORM:
+            return True
+        elif platform.startswith("manylinux"):
+            perennial_tag = self._MANYLINUX_LEGACY_MAP.get(platform, platform)
+            m = re.match("manylinux_([0-9]+)_([0-9]+)_(.*)", perennial_tag)
+            if m is None:
+                return False
+            tag_major, tag_minor = [int(x) for x in m.groups()[:2]]
+            runtime_major, runtime_minor = self._RUNTIME_GLIBC.get(expected_abi, self._DEFAULT_GLIBC)
+            if (tag_major, tag_minor) <= (runtime_major, runtime_minor):
+                # glibc version is compatible with Lambda Runtime
+                return True
+        return False
+
+    def _iter_all_compatibility_tags(self, wheel):
+        """
+        Generates all possible combination of tag sets as described in PEP 425
+        https://www.python.org/dev/peps/pep-0425/#compressed-tag-sets
+        """
+        implementation_tag, abi_tag, platform_tag = wheel.split("-")[-3:]
+        for implementation in implementation_tag.split("."):
+            for abi in abi_tag.split("."):
+                for platform in platform_tag.split("."):
+                    yield (implementation, abi, platform)
 
     def _apply_wheel_allowlist(self, compatible_wheels, incompatible_wheels):
         compatible_wheels = set(compatible_wheels)
