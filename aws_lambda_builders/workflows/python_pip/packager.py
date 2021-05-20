@@ -399,7 +399,7 @@ class DependencyBuilder(object):
     def _iter_all_compatibility_tags(self, wheel):
         """
         Generates all possible combination of tag sets as described in PEP 425
-        https://www.python.org/dev/peps/pep-0425/#id15
+        https://www.python.org/dev/peps/pep-0425/#compressed-tag-sets
         """
         implementation_tag, abi_tag, platform_tag = wheel.split("-")[-3:]
         for implementation in implementation_tag.split("."):
