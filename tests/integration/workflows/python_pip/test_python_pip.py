@@ -88,9 +88,9 @@ class TestPythonPipWorkflow(TestCase):
         ) or "Invalid requirement: u'adfasf=1.2.3'" in str(ctx.exception)
         self.assertTrue(message_in_exception)
 
-    def test_must_fail_if_requirements_not_found(self):
+    def test_must_log_warning_if_requirements_not_found(self):
 
-        with self.assertRaises(WorkflowFailedError) as ctx:
+        with self.assertLogs(level='WARNING') as log:
             self.builder.build(
                 self.source_dir,
                 self.artifacts_dir,
@@ -99,12 +99,4 @@ class TestPythonPipWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-            self.builder.build(
-                self.source_dir,
-                self.artifacts_dir,
-                self.scratch_dir,
-                os.path.join("non", "existent", "manifest"),
-                runtime=self.runtime,
-            )
-
-        self.assertIn("Requirements file not found", str(ctx.exception))
+        self.assertIn("No manifest file found. Proceeding with build.", log.output[0])

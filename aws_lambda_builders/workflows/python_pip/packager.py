@@ -131,6 +131,10 @@ class PythonPipDependencyBuilder(object):
         # by finding/creating a virtualenv of the correct version and when
         # pip is called set the appropriate env vars.
 
+        # Warn appropriate runtimes if they are building without a manifest.
+        if not self.osutils.file_exists(requirements_path):
+            LOG.warning("No manifest file found. Proceeding with build.")
+
         self._dependency_builder.build_site_packages(requirements_path, artifacts_dir_path, scratch_dir_path)
 
 
