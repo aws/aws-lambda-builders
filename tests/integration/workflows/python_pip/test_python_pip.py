@@ -99,4 +99,5 @@ class TestPythonPipWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("No manifest file found. Proceeding with build.", log.output[0])
+        self.assertIn("requirements.txt file not found. Continuing the build without dependencies",
+                      log.output[0])

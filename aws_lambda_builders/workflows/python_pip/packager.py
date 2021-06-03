@@ -133,7 +133,7 @@ class PythonPipDependencyBuilder(object):
 
         # Warn appropriate runtimes if they are building without a manifest.
         if not self.osutils.file_exists(requirements_path):
-            LOG.warning("No manifest file found. Proceeding with build.")
+            LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
 
         self._dependency_builder.build_site_packages(requirements_path, artifacts_dir_path, scratch_dir_path)
 
