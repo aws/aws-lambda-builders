@@ -56,6 +56,12 @@ class TestSubprocessBundler(TestCase):
         result = self.under_test.run(["install", "--without", "development", "test"])
         self.assertEqual(result, "some encoded text")
 
+    def test_logs_warning_when_gemfile_missing(self):
+        self.popen.returncode = 10
+        with self.assertLogs(level="WARNING") as log:
+            self.under_test.run(["install", "--without", "development", "test"])
+        self.assertIn("Gemfile not found. Continuing the build without dependencies.", log.output[0])
+
     def test_raises_BundlerExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
         self.popen.out = b"some error text\n\n"
