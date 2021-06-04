@@ -67,7 +67,7 @@ class TestRubyWorkflow(TestCase):
 
     def test_must_log_warning_if_gemfile_not_found(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "excludes-gemfile")
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertLogs(level="WARNING") as log:
             self.builder.build(
                 source_dir,
                 self.artifacts_dir,
@@ -76,5 +76,4 @@ class TestRubyWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("Gemfile not found. Continuing the build without dependencies",
-                      log.output[0])
+        self.assertIn("Gemfile not found. Continuing the build without dependencies", log.output[0])

@@ -90,7 +90,7 @@ class TestPythonPipWorkflow(TestCase):
 
     def test_must_log_warning_if_requirements_not_found(self):
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertLogs(level="WARNING") as log:
             self.builder.build(
                 self.source_dir,
                 self.artifacts_dir,
@@ -99,5 +99,4 @@ class TestPythonPipWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("requirements.txt file not found. Continuing the build without dependencies",
-                      log.output[0])
+        self.assertIn("requirements.txt file not found. Continuing the build without dependencies", log.output[0])
