@@ -102,5 +102,5 @@ class TestPythonPipWorkflow(TestCase):
                 runtime=self.runtime,
             )
         mock_warning.assert_called_once_with(
-            "requirements.txt file not found. Continuing the build without " "dependencies."
+            "requirements.txt file not found. Continuing the build without dependencies."
         )
