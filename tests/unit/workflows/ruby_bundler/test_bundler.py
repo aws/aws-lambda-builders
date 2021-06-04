@@ -3,6 +3,11 @@ from mock import patch
 
 from aws_lambda_builders.workflows.ruby_bundler.bundler import SubprocessBundler, BundlerExecutionError
 
+import mock
+import logging
+
+logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.bundler")
+
 
 class FakePopen:
     def __init__(self, out=b"out", err=b"err", retcode=0):
@@ -58,9 +63,9 @@ class TestSubprocessBundler(TestCase):
 
     def test_logs_warning_when_gemfile_missing(self):
         self.popen.returncode = 10
-        with self.assertLogs(level="WARNING") as log:
+        with mock.patch.object(logger, "warning") as mock_warning:
             self.under_test.run(["install", "--without", "development", "test"])
-        self.assertIn("Gemfile not found. Continuing the build without dependencies.", log.output[0])
+        mock_warning.assert_called_once_with("Gemfile not found. Continuing the build without dependencies.")
 
     def test_raises_BundlerExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
