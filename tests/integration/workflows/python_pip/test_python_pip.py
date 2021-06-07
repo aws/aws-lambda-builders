@@ -101,6 +101,9 @@ class TestPythonPipWorkflow(TestCase):
                 os.path.join("non", "existent", "manifest"),
                 runtime=self.runtime,
             )
+        expected_files = self.test_data_files
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
         mock_warning.assert_called_once_with(
             "requirements.txt file not found. Continuing the build without dependencies."
         )

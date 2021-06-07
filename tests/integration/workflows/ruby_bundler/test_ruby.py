@@ -80,5 +80,7 @@ class TestRubyWorkflow(TestCase):
                 os.path.join("non", "existent", "manifest"),
                 runtime=self.runtime,
             )
-
+        expected_files = {"handler.rb", ".bundle"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
         mock_warning.assert_called_with("Gemfile not found. Continuing the build without dependencies.")
