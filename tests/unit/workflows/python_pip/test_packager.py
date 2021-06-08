@@ -113,20 +113,6 @@ class TestPythonPipDependencyBuilder(object):
         mock_dep_builder.build_site_packages.assert_called_once_with(
             "path/to/requirements.txt", "artifacts/path/", "scratch_dir/path/"
         )
-        osutils_mock.file_exists.assert_called_once_with("path/to/requirements.txt")
-
-    def test_can_call_dependency_builder_without_manifest(self, osutils):
-        mock_dep_builder = mock.Mock(spec=DependencyBuilder)
-        osutils_mock = mock.Mock(spec=osutils)
-        osutils_mock.file_exists.return_value = False
-        builder = PythonPipDependencyBuilder(
-            osutils=osutils_mock, dependency_builder=mock_dep_builder, runtime="runtime"
-        )
-        builder.build_dependencies("artifacts/path/", "scratch_dir/path/", "invalid/path/to/requirements.txt")
-        mock_dep_builder.build_site_packages.assert_called_once_with(
-            "invalid/path/to/requirements.txt", "artifacts/path/", "scratch_dir/path/"
-        )
-        osutils_mock.file_exists.assert_called_once_with("invalid/path/to/requirements.txt")
 
 
 class TestPackage(object):

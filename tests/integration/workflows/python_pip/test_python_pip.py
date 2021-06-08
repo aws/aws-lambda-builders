@@ -9,7 +9,7 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 import logging
 
-logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.packager")
+logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 
 
 class TestPythonPipWorkflow(TestCase):

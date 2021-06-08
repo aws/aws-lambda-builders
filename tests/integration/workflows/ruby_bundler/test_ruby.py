@@ -10,7 +10,7 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 import mock
 import logging
 
-logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.bundler")
+logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.workflow")
 
 
 class TestRubyWorkflow(TestCase):
@@ -80,7 +80,7 @@ class TestRubyWorkflow(TestCase):
                 os.path.join("non", "existent", "manifest"),
                 runtime=self.runtime,
             )
-        expected_files = {"handler.rb", ".bundle"}
+        expected_files = {"handler.rb"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
         mock_warning.assert_called_with("Gemfile not found. Continuing the build without dependencies.")

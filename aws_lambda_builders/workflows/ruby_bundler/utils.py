@@ -38,3 +38,7 @@ class OSUtils(object):
 
     def is_windows(self):
         return platform.system().lower() == "windows"
+
+    @staticmethod
+    def file_exists(filename):
+        return os.path.isfile(filename)

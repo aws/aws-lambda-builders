@@ -51,12 +51,7 @@ class SubprocessBundler(object):
         out, _ = p.communicate()
 
         if p.returncode != 0:
-            # Log warning if attempting to build without a manifest.
-            if p.returncode == 10:
-                # Bundler error code 10 indicates `Gemfile not found`
-                LOG.warning("Gemfile not found. Continuing the build without dependencies.")
-            else:
-                # Bundler has relevant information in stdout, not stderr.
-                raise BundlerExecutionError(message=out.decode("utf8").strip())
+            # Bundler has relevant information in stdout, not stderr.
+            raise BundlerExecutionError(message=out.decode("utf8").strip())
 
         return out.decode("utf8").strip()

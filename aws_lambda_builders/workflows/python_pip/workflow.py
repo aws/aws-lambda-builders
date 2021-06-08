@@ -1,11 +1,16 @@
 """
 Python PIP Workflow
 """
+import logging
+
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
+from .utils import OSUtils
+
+LOG = logging.getLogger(__name__)
 
 
 class PythonPipWorkflow(BaseWorkflow):
@@ -59,16 +64,26 @@ class PythonPipWorkflow(BaseWorkflow):
         ".idea",
     )
 
-    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, **kwargs):
+    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
         super(PythonPipWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
 
+        if osutils is None:
+            osutils = OSUtils()
+
         self.actions = [
-            PythonPipBuildAction(artifacts_dir, scratch_dir, manifest_path, runtime, binaries=self.binaries),
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
+
+        if osutils.file_exists(manifest_path):
+            # If a requirements.txt exists, run pip builder before copy action.
+            self.actions.insert(
+                0, PythonPipBuildAction(artifacts_dir, scratch_dir, manifest_path, runtime, binaries=self.binaries)
+            )
+        else:
+            LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
 
     def get_validators(self):
         return [PythonRuntimeValidator(runtime=self.runtime)]
