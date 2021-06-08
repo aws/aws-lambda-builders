@@ -1,13 +1,13 @@
 version: 1.0.{build}
 image:
-  - Visual Studio 2017
+  - Visual Studio 2019
   - Ubuntu
 
 environment:
   GOPATH: c:\gopath
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
-  nodejs_version: "8.10.0"
+  nodejs_version: "10.10.0"
 
   matrix:
 
@@ -47,7 +47,7 @@ for:
 
     install:
     # To run Nodejs workflow integ tests
-    - ps: Install-Product node 8.10
+    - ps: Install-Product node $env:nodejs_version
 
     - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
     - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
