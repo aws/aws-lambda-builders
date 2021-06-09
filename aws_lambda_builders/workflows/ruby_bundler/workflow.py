@@ -37,14 +37,10 @@ class RubyBundlerWorkflow(BaseWorkflow):
 
         subprocess_bundler = SubprocessBundler(osutils)
         bundle_install = RubyBundlerInstallAction(artifacts_dir, subprocess_bundler=subprocess_bundler)
-        bundle_deployment = RubyBundlerVendorAction(artifacts_dir, subprocess_bundler=subprocess_bundler)
 
+        bundle_deployment = RubyBundlerVendorAction(artifacts_dir, subprocess_bundler=subprocess_bundler)
         self.actions = [
             CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
+            bundle_install,
+            bundle_deployment,
         ]
-
-        if osutils.file_exists(manifest_path):
-            # If a Gemfile is found, run the bundle actions after copy.
-            self.actions.extend([bundle_install, bundle_deployment])
-        else:
-            LOG.warning("Gemfile not found. Continuing the build without dependencies.")
