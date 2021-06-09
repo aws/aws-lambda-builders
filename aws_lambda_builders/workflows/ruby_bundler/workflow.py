@@ -2,7 +2,6 @@
 Ruby Bundler Workflow
 """
 
-
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
