@@ -35,6 +35,11 @@ class InvalidSourceDistributionNameError(PackagerError):
 
 
 class RequirementsFileNotFoundError(PackagerError):
+    """
+    Exceptions is no longer raised.
+    Keeping it here because this exception is 'public' and could still be used by a customer.
+    """
+
     def __init__(self, requirements_path):
         super(RequirementsFileNotFoundError, self).__init__("Requirements file not found: %s" % requirements_path)
 
@@ -130,9 +135,6 @@ class PythonPipDependencyBuilder(object):
         # correct version of python. We need to enforce that assumption here
         # by finding/creating a virtualenv of the correct version and when
         # pip is called set the appropriate env vars.
-
-        if not self.osutils.file_exists(requirements_path):
-            raise RequirementsFileNotFoundError(requirements_path)
 
         self._dependency_builder.build_site_packages(requirements_path, artifacts_dir_path, scratch_dir_path)
 

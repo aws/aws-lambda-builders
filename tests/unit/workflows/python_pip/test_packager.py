@@ -113,7 +113,6 @@ class TestPythonPipDependencyBuilder(object):
         mock_dep_builder.build_site_packages.assert_called_once_with(
             "path/to/requirements.txt", "artifacts/path/", "scratch_dir/path/"
         )
-        osutils_mock.file_exists.assert_called_once_with("path/to/requirements.txt")
 
 
 class TestPackage(object):
