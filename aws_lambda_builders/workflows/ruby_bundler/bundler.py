@@ -6,6 +6,12 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
+"""
+Bundler error codes can be found here:
+https://github.com/rubygems/bundler/blob/3f0638c6c8d340c2f2405ecb84eb3b39c433e36e/lib/bundler/errors.rb#L36
+"""
+GEMFILE_NOT_FOUND = 10
+
 
 class BundlerExecutionError(Exception):
     """
@@ -49,12 +55,6 @@ class SubprocessBundler(object):
         p = self.osutils.popen(invoke_bundler, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd)
 
         out, _ = p.communicate()
-
-        """
-        Bundler error codes can be found here:
-        https://github.com/rubygems/bundler/blob/3f0638c6c8d340c2f2405ecb84eb3b39c433e36e/lib/bundler/errors.rb#L36
-        """
-        GEMFILE_NOT_FOUND = 10
 
         if p.returncode != 0:
             if p.returncode == GEMFILE_NOT_FOUND:
