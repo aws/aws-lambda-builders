@@ -50,9 +50,14 @@ class SubprocessBundler(object):
 
         out, _ = p.communicate()
 
+        """
+        Bundler error codes can be found here:
+        https://github.com/rubygems/bundler/blob/3f0638c6c8d340c2f2405ecb84eb3b39c433e36e/lib/bundler/errors.rb#L36
+        """
+        GEMFILE_NOT_FOUND = 10
+
         if p.returncode != 0:
-            if p.returncode == 10:
-                # Bundler error code 10 indicates `Gemfile not found`
+            if p.returncode == GEMFILE_NOT_FOUND:
                 LOG.warning("Gemfile not found. Continuing the build without dependencies.")
 
                 # Clean up '.bundle' dir that gets generated before the build fails
