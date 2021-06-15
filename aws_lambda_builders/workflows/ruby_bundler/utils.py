@@ -6,6 +6,7 @@ import os
 import platform
 import tarfile
 import subprocess
+import shutil
 
 
 class OSUtils(object):
@@ -39,6 +40,11 @@ class OSUtils(object):
     def is_windows(self):
         return platform.system().lower() == "windows"
 
-    @staticmethod
-    def file_exists(filename):
-        return os.path.isfile(filename)
+    def directory_exists(self, dirpath):
+        return os.path.exists(dirpath) and os.path.isdir(dirpath)
+
+    def remove_directory(self, dirpath):
+        shutil.rmtree(dirpath)
+
+    def get_bundle_dir(self, cwd):
+        return os.path.join(cwd, ".bundle")

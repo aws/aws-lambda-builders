@@ -34,6 +34,16 @@ class InvalidSourceDistributionNameError(PackagerError):
     pass
 
 
+class RequirementsFileNotFoundError(PackagerError):
+    """
+    Exceptions is no longer raised.
+    Keeping it here because this exception is 'public' and could still be used by a customer.
+    """
+
+    def __init__(self, requirements_path):
+        super(RequirementsFileNotFoundError, self).__init__("Requirements file not found: %s" % requirements_path)
+
+
 class MissingDependencyError(PackagerError):
     """Raised when some dependencies could not be packaged for any reason."""
 

@@ -10,7 +10,7 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 import mock
 import logging
 
-logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.workflow")
+logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.bundler")
 
 
 class TestRubyWorkflow(TestCase):
