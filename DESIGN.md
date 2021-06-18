@@ -8,7 +8,7 @@
 
 
 Lambda Builders is a separate project that contains scripts to build Lambda functions, given a source location. It was
-built as part of SAM CLI `sam build` command.Read https://github.com/awslabs/aws-sam-cli/pull/743 for design document 
+built as part of SAM CLI `sam build` command. Read https://github.com/awslabs/aws-sam-cli/pull/743 for design document
 explaining how Lambda Builders work in context of SAM CLI. 
 
 This project has certain attributes that make it unique:
@@ -60,14 +60,28 @@ to make use of the default implementation. It helps reduce the variance in behav
 customers with a standard expectation. 
 
 #### Command Line Interface (Internal)
-This library provides a wrapper CLI interface for convenience. This interface is not supported at the moment. So we 
-don't provide any guarantees of back compatibility. 
+This library provides a wrapper CLI interface for convenience. This interface **is not supported** at the moment. So we
+don't provide any guarantees of back compatibility.
 
 It is a very thin wrapper over the library. It is meant to integrate
 with tools written in other programming languages that can't import Python libraries directly. The CLI provides
-a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
+[a JSON-RPC 2.0 interface](https://www.jsonrpc.org/specification)
+over stdin/stdout to invoke the builder and get a response.
 
-**Request Format**
+The CLI should be installed and available on the path:
+
+```shell
+pip install aws-lambda-builders
+```
+
+Each execution of `aws-lambda-builders` handles one JSON-RPC request.
+Provide the whole body of the request via stdin, terminated by `EOF`.
+
+Currently, the only exposed method is `LambdaBuilder.build`.
+It closely maps to the
+[Python method `LambdaBuilder.build` in `aws_lambda_builders/builder.py`](aws_lambda_builders/builder.py).
+
+#### Request Format
 
 ```json
 {
@@ -75,7 +89,7 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
   "method": "LambdaBuilder.build",
   "id": 1,
   "params": {
-    "__protocol_version": "0.1",  // Expected version of RPC protocol 
+    "__protocol_version": "0.3",  // expected version of RPC protocol - from aws_lambda_builders/__main__.py
     "capability": {
       "language": "<programming language>",
       "dependency_manager": "<programming language framework>",
@@ -86,13 +100,13 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
     "scratch_dir": "/path/to/tmp",
     "manifest_path": "/path/to/manifest.json",
     "runtime": "Function's runtime ex: nodejs8.10",
-    "optimizations": {},  // not supported 
-    "options": {}  // not supported
+    "optimizations": {},  // not supported
+    "options": {}  // depending on the workflow
   }
 }
 ```
 
-**Successful Response Format**
+#### Successful Response Format
 
 ```json
 {
@@ -102,7 +116,7 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
 }
 ```
 
-**Error Response Format**
+#### Error Response Format
 
 ```json
 {
@@ -116,7 +130,7 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
 }
 ```
 
-**Error Codes**:
+#### Error Codes
 
 Error codes returned by the application are similar to HTTP Status Codes.
 
@@ -124,6 +138,19 @@ Error codes returned by the application are similar to HTTP Status Codes.
 - 500 - Internal server error
 - 505 - RPC Protocol unsupported
 - -32601 - Method unsupported (standard JSON-RPC protocol error code)
+
+#### Params
+
+##### `capability`
+The 3-tuple `capability` is used to identify different workflows.
+As of today, `application_framework` is unused and may be ignored.
+
+##### `options`
+The parameter `options` should be configured depending on the selected workflow/capability.
+
+For more detail around the capabilities and options,
+check out the corresponding _design document_ and `workflow.py` for
+[the workflows you're interested in](aws_lambda_builders/workflows).
 
 ### Project Meta
 #### Directory Structure
@@ -173,6 +200,3 @@ And essentially drop into the builders package (or maybe we can have a notion of
 - **builder**: The entire project is called builder, because it can build Lambda functions
 - **workflows**: Building for each language+framework combination is defined using a workflow. 
 - **actions**: A workflow is implemented as a chain of actions.
-
-
-
