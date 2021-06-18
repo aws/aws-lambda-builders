@@ -16,6 +16,8 @@ Lambda Builders currently contains the following workflows
 * Go with Dep
 * Go with Mod
 
+In Addition to above workflows, AWS Lambda Builders also supports *Custom Workflows* through a Makefile.
+
 Lambda Builders is the brains behind the `sam build` command from [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli)
 
 If you are a developer and interested in contributing, read the [DESIGN DOCUMENT](./DESIGN.md) to understand how this works.
