@@ -1,5 +1,6 @@
 import os
 import shutil
+import six
 import sys
 import tempfile
 from unittest import TestCase
@@ -69,11 +70,10 @@ class TestPythonPipWorkflow(TestCase):
             # handle both e.g. missing /usr/bin/python2.7 and situation where
             # python2.7 does not have pip installed (as is the case in some
             # Mac environments)
-            self.assertRegex(
-                str(ex),
-                "Binary validation failed"
-                "|pip executable not found in your python environment"
-            )
+            ex_s = str(ex)
+            if "Binary validation failed" not in ex_s \
+               and "pip executable not found in your python environment" not in ex_s:
+                six.raise_from(AssertionError("Unexpected exception"), ex)
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
         with self.assertRaises(WorkflowFailedError):
