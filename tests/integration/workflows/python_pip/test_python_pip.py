@@ -71,8 +71,10 @@ class TestPythonPipWorkflow(TestCase):
             # python2.7 does not have pip installed (as is the case in some
             # Mac environments)
             ex_s = str(ex)
-            if "Binary validation failed" not in ex_s \
-               and "pip executable not found in your python environment" not in ex_s:
+            if (
+                "Binary validation failed" not in ex_s
+                and "pip executable not found in your python environment" not in ex_s
+            ):
                 six.raise_from(AssertionError("Unexpected exception"), ex)
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
