@@ -66,7 +66,14 @@ class TestPythonPipWorkflow(TestCase):
                 runtime=self.runtime_mismatch[self.runtime],
             )
         except WorkflowFailedError as ex:
-            self.assertIn("Binary validation failed", str(ex))
+            # handle both e.g. missing /usr/bin/python2.7 and situation where
+            # python2.7 does not have pip installed (as is the case in some
+            # Mac environments)
+            self.assertRegex(
+                str(ex),
+                "Binary validation failed"
+                "|pip executable not found in your python environment"
+            )
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
         with self.assertRaises(WorkflowFailedError):
