@@ -1,23 +1,39 @@
+import logging
 import os
 import shutil
+import six
 import sys
 import tempfile
 from unittest import TestCase
 import mock
 
+import pytest
+
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
-import logging
 
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 
 
+@pytest.fixture
+def using_tmp_path(request, tmp_path):
+    """attaches a pathlib.Path attribute to the test class."""
+    try:
+        request.cls.tmp_path = tmp_path
+        yield
+    finally:
+        del request.cls.tmp_path
+
+
+@pytest.mark.usefixtures("using_tmp_path")
 class TestPythonPipWorkflow(TestCase):
     """
     Verifies that `python_pip` workflow works by building a Lambda that requires Numpy
     """
 
-    TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
+    DIRNAME = os.path.dirname(__file__)
+    TEST_DATA_FOLDER = os.path.join(DIRNAME, "testdata")
+    TEST_DATA_FOLDER_ISSUE_246 = os.path.join(DIRNAME, "testdata-issue-246")
 
     def setUp(self):
         self.source_dir = self.TEST_DATA_FOLDER
@@ -107,3 +123,23 @@ class TestPythonPipWorkflow(TestCase):
         mock_warning.assert_called_once_with(
             "requirements.txt file not found. Continuing the build without dependencies."
         )
+
+    def test_must_create_wheel_for_local_link_issue_246(self):
+        source_dir = os.path.abspath(self.TEST_DATA_FOLDER_ISSUE_246)
+
+        # This approach with a requirements file works best under one of two
+        # conditions:
+        # * requirements file lives in source directory, references ".", and
+        #   before running aws-lambda-builders you chdir to the source
+        #   directory
+        # * the requirements file references an absolute path
+        #
+        # The latter is easier in this context but requires the file be
+        # written on the fly since we cannot commit an absolute path to git.
+        manifest = self.tmp_path / "requirements.txt"
+        manifest.write_text(six.u(source_dir + "\n"))
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, str(manifest), runtime=self.runtime)
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertIn("requests", output_files)
+        self.assertIn("issue_246_code", output_files)
