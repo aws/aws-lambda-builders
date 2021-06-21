@@ -218,7 +218,7 @@ class TestPipRunner(object):
 
         assert len(pip.calls) == 1
         call = pip.calls[0]
-        assert call.args == ["download", "-r", "requirements.txt", "--dest", "directory", "--exists-action", "i"]
+        assert call.args == ["download", "-r", "requirements.txt", "--dest", "directory", "--exists-action", "i", "-v"]
         assert call.env_vars is None
         assert call.shim is None
 
@@ -253,7 +253,9 @@ class TestPipRunner(object):
 
     def test_does_find_local_directory(self, pip_factory):
         pip, runner = pip_factory()
-        pip.add_return((0, (b"Processing ../local-dir\n" b"  Link is a directory," b" ignoring download_dir"), b""))
+        pip.add_return(
+            (0, (b"Not copying link to destination directory since it is a directory: file://../local-dir\n"), b"")
+        )
         runner.download_all_dependencies("requirements.txt", "directory")
         assert len(pip.calls) == 2
         assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir"]
@@ -264,13 +266,13 @@ class TestPipRunner(object):
             (
                 0,
                 (
-                    b"Processing ../local-dir-1\n"
-                    b"  Link is a directory,"
-                    b" ignoring download_dir"
+                    b"Not copying link to destination"
+                    b" directory since it is a directory:"
+                    b" file://../local-dir-1\n"
                     b"\nsome pip output...\n"
-                    b"Processing ../local-dir-2\n"
-                    b"  Link is a directory,"
-                    b" ignoring download_dir"
+                    b"Not copying link to destination"
+                    b" directory since it is a directory:"
+                    b" file://../local-dir-2\n"
                 ),
                 b"",
             )

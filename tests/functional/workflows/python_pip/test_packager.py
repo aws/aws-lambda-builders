@@ -211,7 +211,9 @@ class TestDependencyBuilder(object):
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
-        pip.set_return_tuple(0, (b"Processing ../foo\n" b"  Link is a directory," b" ignoring download_dir"), b"")
+        pip.set_return_tuple(
+            0, (b"Not copying link to destination directory since it is a directory: file://../foo\n"), b""
+        )
         pip.wheels_to_build(
             expected_args=["--no-deps", "--wheel-dir", mock.ANY, "../foo"],
             wheels_to_build=["foo-1.2-cp36-none-any.whl"],
@@ -231,7 +233,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl", "bar-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
         )
 
@@ -250,7 +252,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=[
                 "foo-1.2-cp33-abi3-manylinux1_x86_64.whl",
                 "bar-1.2-cp34-abi3-manylinux1_x86_64.whl",
@@ -274,7 +276,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
             whl_contents=["foo-1.2.data/purelib/foo/"],
         )
@@ -294,7 +296,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
             whl_contents=["foo-1.2.data/platlib/foo/"],
         )
@@ -316,7 +318,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
             whl_contents=["foo-1.2.data/platlib/foo/", "foo-1.2.data/purelib/bar/"],
         )
@@ -338,7 +340,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
             whl_contents=["foo/placeholder", "foo-1.2.data/data/bar/"],
         )
@@ -361,7 +363,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
             whl_contents=["foo/placeholder", "foo.1.2.data/includes/bar/"],
         )
@@ -384,7 +386,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
             whl_contents=["{package_name}/placeholder", "{data_dir}/scripts/bar/placeholder"],
         )
@@ -408,7 +410,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
             whl_contents=[
                 "{package_name}/placeholder",
@@ -432,7 +434,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=[
                 "foo-1.0-cp36-none-any.whl",
                 "bar-1.2-cp36-cp36m-manylinux1_x86_64.whl",
@@ -455,7 +457,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=[
                 "foo-1.2-cp36-cp36m-manylinux_2_12_x86_64.whl",
             ],
@@ -476,7 +478,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=[
                 "foo-1.2-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.whl",
             ],
@@ -497,7 +499,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=[
                 "foo-1.0-cp27-none-any.whl",
                 "bar-1.2-cp27-none-manylinux1_x86_64.whl",
@@ -519,7 +521,9 @@ class TestDependencyBuilder(object):
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
-        pip.set_return_tuple(0, (b"Processing ../foo\n" b"  Link is a directory," b" ignoring download_dir"), b"")
+        pip.set_return_tuple(
+            0, (b"Not copying link to destination directory since it is a directory: file://../foo\n"), b""
+        )
         pip.wheels_to_build(
             expected_args=["--no-deps", "--wheel-dir", mock.ANY, "../foo"],
             wheels_to_build=["foo-1.2-cp36-cp36m-macosx_10_6_intel.whl"],
@@ -543,7 +547,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["baz-1.5-cp27-cp27m-linux_x86_64.whl"],
         )
 
@@ -565,7 +569,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["baz-1.5-cp14-cp14m-linux_x86_64.whl"],
         )
 
@@ -587,7 +591,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=[
                 "foo-1.2-cp36-cp36m-manylinux_2_12_x86_64.whl",
                 "bar-1.2-cp36-cp36m-manylinux_2_999_x86_64.whl",
@@ -617,7 +621,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.0-cp36-none-any.whl", "bar-1.2-cp36-cp36m-macosx_10_6_intel.whl"],
         )
         # Once the initial download has 1 incompatible whl file. The second,
@@ -653,7 +657,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["SQLAlchemy-1.1.18-cp36-cp36m-macosx_10_11_x86_64.whl"],
         )
         pip.packages_to_download(
@@ -686,7 +690,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2.zip", "bar-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
         )
         # Foo is built from and is pure python so it yields a compatible
@@ -710,7 +714,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2.zip", "bar-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
         )
         # foo is compiled since downloading it failed to get any wheels. And
@@ -744,7 +748,7 @@ class TestDependencyBuilder(object):
         # at all, and optional c speedups. The initial download will yield an
         # sdist since there were no wheels.
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2.zip"],
         )
 
@@ -788,7 +792,7 @@ class TestDependencyBuilder(object):
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
         pip.packages_to_download(
-            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i", "-v"],
             packages=["foo-1.2.zip", "bar-1.2-cp36-cp36m-manylinux1_x86_64.whl"],
         )
         pip.packages_to_download(

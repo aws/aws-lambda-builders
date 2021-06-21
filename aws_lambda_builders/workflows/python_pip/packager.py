@@ -596,7 +596,7 @@ class SubprocessPip(object):
 class PipRunner(object):
     """Wrapper around pip calls used by chalice."""
 
-    _LINK_IS_DIR_PATTERN = "Processing (.+?)\n  Link is a directory, ignoring download_dir"
+    _LINK_IS_DIR_PATTERN = "Not copying link to destination directory since it is a directory: file://(.+?)\n"
 
     def __init__(self, python_exe, pip, osutils=None):
         if osutils is None:
@@ -627,7 +627,7 @@ class PipRunner(object):
 
     def download_all_dependencies(self, requirements_filename, directory):
         """Download all dependencies as sdist or wheel."""
-        arguments = ["-r", requirements_filename, "--dest", directory, "--exists-action", "i"]
+        arguments = ["-r", requirements_filename, "--dest", directory, "--exists-action", "i", "-v"]
         rc, out, err = self._execute("download", arguments)
         # When downloading all dependencies we expect to get an rc of 0 back
         # since we are casting a wide net here letting pip have options about
