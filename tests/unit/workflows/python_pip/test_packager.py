@@ -271,14 +271,17 @@ class TestPipRunner(object):
                     b"Processing ../local-dir-2\n"
                     b"  Link is a directory,"
                     b" ignoring download_dir"
+                    b"Processing ../local-dir-3\n"
                 ),
                 b"",
             )
         )
         runner.download_all_dependencies("requirements.txt", "directory")
-        assert len(pip.calls) == 3
-        assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-1"]
-        assert pip.calls[2].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-2"]
+        pip_calls = [call.args for call in pip.calls]
+        assert len(pip.calls) == 4
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-1"] in pip_calls
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-2"] in pip_calls
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-3"] in pip_calls
 
     def test_raise_no_such_package_error(self, pip_factory):
         pip, runner = pip_factory()
