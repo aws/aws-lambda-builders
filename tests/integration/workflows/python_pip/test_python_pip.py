@@ -27,7 +27,13 @@ class TestPythonPipWorkflow(TestCase):
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
 
-        self.test_data_files = {"__init__.py", "main.py", "requirements-invalid.txt", "requirements-numpy.txt"}
+        self.test_data_files = {
+            "__init__.py",
+            "main.py",
+            "requirements-invalid.txt",
+            "requirements-numpy.txt",
+            "local-dependencies",
+        }
 
         self.builder = LambdaBuilder(language="python", dependency_manager="pip", application_framework=None)
         self.runtime = "{language}{major}.{minor}".format(
@@ -81,11 +87,18 @@ class TestPythonPipWorkflow(TestCase):
     def test_must_resolve_local_dependency(self):
         dependency_source_dir = os.path.join(self.source_dir, "local-dependencies", "hello_world")
         dependency_local_manifest = os.path.join(dependency_source_dir, "requirements.txt")
+        path_to_package = os.path.join(self.source_dir, "local-dependencies", "some_package")
+        # pip resolves dependencies in requirements files relative to the current working directory
+        # need to make sure the correct path is used in the requirements file locally and in CI
+        with open(dependency_local_manifest, "w") as f:
+            f.write(str(path_to_package))
         self.builder.build(
             dependency_source_dir, self.artifacts_dir, self.scratch_dir, dependency_local_manifest, runtime=self.runtime
         )
         expected_files = {"LocalPackage", "LocalPackage-0.0.0.dist-info", "__init__.py", "requirements.txt"}
         output_files = set(os.listdir(self.artifacts_dir))
+        if os.path.exists(dependency_local_manifest):
+            os.remove(dependency_local_manifest)
         self.assertEqual(expected_files, output_files)
 
     def test_must_fail_to_resolve_dependencies(self):
