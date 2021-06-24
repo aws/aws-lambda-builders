@@ -596,7 +596,7 @@ class SubprocessPip(object):
 class PipRunner(object):
     """Wrapper around pip calls used by chalice."""
 
-    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)\n  Link is a directory, ignoring download_dir", "Processing (.+?)\n"]
+    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)\n"]
 
     def __init__(self, python_exe, pip, osutils=None):
         if osutils is None:

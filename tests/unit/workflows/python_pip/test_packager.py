@@ -253,7 +253,7 @@ class TestPipRunner(object):
 
     def test_does_find_local_directory(self, pip_factory):
         pip, runner = pip_factory()
-        pip.add_return((0, (b"Processing ../local-dir\n" b"  Link is a directory," b" ignoring download_dir"), b""))
+        pip.add_return((0, b"Processing ../local-dir\n", b""))
         runner.download_all_dependencies("requirements.txt", "directory")
         assert len(pip.calls) == 2
         assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir"]
@@ -265,12 +265,8 @@ class TestPipRunner(object):
                 0,
                 (
                     b"Processing ../local-dir-1\n"
-                    b"  Link is a directory,"
-                    b" ignoring download_dir"
                     b"\nsome pip output...\n"
                     b"Processing ../local-dir-2\n"
-                    b"  Link is a directory,"
-                    b" ignoring download_dir"
                     b"Processing ../local-dir-3\n"
                 ),
                 b"",

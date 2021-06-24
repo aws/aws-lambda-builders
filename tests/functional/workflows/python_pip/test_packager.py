@@ -211,7 +211,7 @@ class TestDependencyBuilder(object):
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
-        pip.set_return_tuple(0, (b"Processing ../foo\n" b"  Link is a directory," b" ignoring download_dir"), b"")
+        pip.set_return_tuple(0, b"Processing ../foo\n", b"")
         pip.wheels_to_build(
             expected_args=["--no-deps", "--wheel-dir", mock.ANY, "../foo"],
             wheels_to_build=["foo-1.2-cp36-none-any.whl"],
@@ -519,7 +519,7 @@ class TestDependencyBuilder(object):
         pip, runner = pip_runner
         appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner)
         requirements_file = os.path.join(appdir, "requirements.txt")
-        pip.set_return_tuple(0, (b"Processing ../foo\n" b"  Link is a directory," b" ignoring download_dir"), b"")
+        pip.set_return_tuple(0, b"Processing ../foo\n", b"")
         pip.wheels_to_build(
             expected_args=["--no-deps", "--wheel-dir", mock.ANY, "../foo"],
             wheels_to_build=["foo-1.2-cp36-cp36m-macosx_10_6_intel.whl"],
