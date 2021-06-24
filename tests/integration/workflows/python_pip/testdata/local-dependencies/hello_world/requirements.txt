@@ -1,0 +1,1 @@
+./testdata/local-dependencies/some_package

@@ -78,6 +78,16 @@ class TestPythonPipWorkflow(TestCase):
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime="python2.8"
             )
 
+    def test_must_resolve_local_dependency(self):
+        dependency_source_dir = os.path.join(self.source_dir, "local-dependencies", "hello_world")
+        dependency_local_manifest = os.path.join(dependency_source_dir, "requirements.txt")
+        self.builder.build(
+            dependency_source_dir, self.artifacts_dir, self.scratch_dir, dependency_local_manifest, runtime=self.runtime
+        )
+        expected_files = {"LocalPackage", "LocalPackage-0.0.0.dist-info", "__init__.py", "requirements.txt"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
     def test_must_fail_to_resolve_dependencies(self):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
