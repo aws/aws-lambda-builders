@@ -596,6 +596,9 @@ class SubprocessPip(object):
 class PipRunner(object):
     """Wrapper around pip calls used by chalice."""
 
+    # Update regex pattern to correspond with the updated output from pip
+    # Specific commit:
+    # https://github.com/pypa/pip/commit/b28e2c4928cc62d90b738a4613886fb1e2ad6a81#diff-5225c8e359020adb25dfc8c7a505950fd649c6c5775789c6f6517f7913f94542L529
     _LINK_IS_DIR_PATTERNS = ["Processing (.+?)\n"]
 
     def __init__(self, python_exe, pip, osutils=None):
