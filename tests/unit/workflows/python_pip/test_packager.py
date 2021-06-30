@@ -267,6 +267,8 @@ class TestPipRunner(object):
                     b"Processing ../local-dir-1\n"
                     b"\nsome pip output...\n"
                     b"Processing ../local-dir-2\n"
+                    b"  Link is a directory,"
+                    b" ignoring download_dir"
                     b"Processing ../local-dir-3\n"
                 ),
                 b"",
