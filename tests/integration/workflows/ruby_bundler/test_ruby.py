@@ -7,6 +7,11 @@ from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
+import mock
+import logging
+
+logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.bundler")
+
 
 class TestRubyWorkflow(TestCase):
     """
@@ -64,3 +69,18 @@ class TestRubyWorkflow(TestCase):
                 runtime=self.runtime,
             )
         self.assertIn("RubyBundlerBuilder:RubyBundle - Bundler Failed: ", str(ctx.exception))
+
+    def test_must_log_warning_if_gemfile_not_found(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "excludes-gemfile")
+        with mock.patch.object(logger, "warning") as mock_warning:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join("non", "existent", "manifest"),
+                runtime=self.runtime,
+            )
+        expected_files = {"handler.rb"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+        mock_warning.assert_called_with("Gemfile not found. Continuing the build without dependencies.")

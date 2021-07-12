@@ -3,9 +3,13 @@ import shutil
 import sys
 import tempfile
 from unittest import TestCase
+import mock
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+import logging
+
+logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 
 
 class TestPythonPipWorkflow(TestCase):
@@ -23,7 +27,13 @@ class TestPythonPipWorkflow(TestCase):
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
 
-        self.test_data_files = {"__init__.py", "main.py", "requirements-invalid.txt", "requirements-numpy.txt"}
+        self.test_data_files = {
+            "__init__.py",
+            "main.py",
+            "requirements-invalid.txt",
+            "requirements-numpy.txt",
+            "local-dependencies",
+        }
 
         self.builder = LambdaBuilder(language="python", dependency_manager="pip", application_framework=None)
         self.runtime = "{language}{major}.{minor}".format(
@@ -47,8 +57,10 @@ class TestPythonPipWorkflow(TestCase):
 
         if self.runtime == "python2.7":
             expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
-        else:
+        elif self.runtime == "python3.6":
             expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
+        else:
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -72,6 +84,27 @@ class TestPythonPipWorkflow(TestCase):
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime="python2.8"
             )
 
+    def test_must_resolve_local_dependency(self):
+        source_dir = os.path.join(self.source_dir, "local-dependencies")
+        manifest = os.path.join(source_dir, "requirements.txt")
+        path_to_package = os.path.join(self.source_dir, "local-dependencies")
+        # pip resolves dependencies in requirements files relative to the current working directory
+        # need to make sure the correct path is used in the requirements file locally and in CI
+        with open(manifest, "w") as f:
+            f.write(str(path_to_package))
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest, runtime=self.runtime)
+        expected_files = {
+            "local_package",
+            "local_package-0.0.0.dist-info",
+            "requests",
+            "requests-2.23.0.dist-info",
+            "setup.py",
+            "requirements.txt",
+        }
+        output_files = set(os.listdir(self.artifacts_dir))
+        for f in expected_files:
+            self.assertIn(f, output_files)
+
     def test_must_fail_to_resolve_dependencies(self):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
@@ -86,9 +119,8 @@ class TestPythonPipWorkflow(TestCase):
         ) or "Invalid requirement: u'adfasf=1.2.3'" in str(ctx.exception)
         self.assertTrue(message_in_exception)
 
-    def test_must_fail_if_requirements_not_found(self):
-
-        with self.assertRaises(WorkflowFailedError) as ctx:
+    def test_must_log_warning_if_requirements_not_found(self):
+        with mock.patch.object(logger, "warning") as mock_warning:
             self.builder.build(
                 self.source_dir,
                 self.artifacts_dir,
@@ -96,13 +128,9 @@ class TestPythonPipWorkflow(TestCase):
                 os.path.join("non", "existent", "manifest"),
                 runtime=self.runtime,
             )
-
-            self.builder.build(
-                self.source_dir,
-                self.artifacts_dir,
-                self.scratch_dir,
-                os.path.join("non", "existent", "manifest"),
-                runtime=self.runtime,
-            )
-
-        self.assertIn("Requirements file not found", str(ctx.exception))
+        expected_files = self.test_data_files
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+        mock_warning.assert_called_once_with(
+            "requirements.txt file not found. Continuing the build without dependencies."
+        )

@@ -113,7 +113,6 @@ class TestPythonPipDependencyBuilder(object):
         mock_dep_builder.build_site_packages.assert_called_once_with(
             "path/to/requirements.txt", "artifacts/path/", "scratch_dir/path/"
         )
-        osutils_mock.file_exists.assert_called_once_with("path/to/requirements.txt")
 
 
 class TestPackage(object):
@@ -254,7 +253,7 @@ class TestPipRunner(object):
 
     def test_does_find_local_directory(self, pip_factory):
         pip, runner = pip_factory()
-        pip.add_return((0, (b"Processing ../local-dir\n" b"  Link is a directory," b" ignoring download_dir"), b""))
+        pip.add_return((0, b"Processing ../local-dir\n", b""))
         runner.download_all_dependencies("requirements.txt", "directory")
         assert len(pip.calls) == 2
         assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir"]
@@ -266,20 +265,21 @@ class TestPipRunner(object):
                 0,
                 (
                     b"Processing ../local-dir-1\n"
-                    b"  Link is a directory,"
-                    b" ignoring download_dir"
                     b"\nsome pip output...\n"
                     b"Processing ../local-dir-2\n"
                     b"  Link is a directory,"
                     b" ignoring download_dir"
+                    b"Processing ../local-dir-3\n"
                 ),
                 b"",
             )
         )
         runner.download_all_dependencies("requirements.txt", "directory")
-        assert len(pip.calls) == 3
-        assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-1"]
-        assert pip.calls[2].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-2"]
+        pip_calls = [call.args for call in pip.calls]
+        assert len(pip.calls) == 4
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-1"] in pip_calls
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-2"] in pip_calls
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-3"] in pip_calls
 
     def test_raise_no_such_package_error(self, pip_factory):
         pip, runner = pip_factory()
