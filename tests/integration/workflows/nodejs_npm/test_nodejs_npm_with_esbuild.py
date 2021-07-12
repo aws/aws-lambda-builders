@@ -42,6 +42,20 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
+    def testBuildsJavascriptProjectWithMultipleEntrypoints(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-multiple-entrypoints")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
+
+        expected_files = {"included.js", "included.js.map", "included2.js", "included2.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
 
     def testBuildsTypescriptProjects(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-typescript")

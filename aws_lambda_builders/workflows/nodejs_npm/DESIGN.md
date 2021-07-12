@@ -262,11 +262,17 @@ custom properties, so a user can activate the bundler process by providing an
 present in the package manifest, and the sub-property `bundler` equals
 `esbuild`, the Node.js NPM Lambda builder activates the bundler process.
 
-Because the Lambda builder workflow is not aware of the main entry point for
-bundling, the user must also specify the main entry point for bundling (the
-file containing the Lambda handler function). This is a bit of an unfortunate
-duplication with SAM Cloudformation template, but with the current workflow
-design there is no way around it.
+Because the Lambda builder workflow is not aware of the main lambda function
+definition, (the file containing the Lambda handler function) the user must
+also specify the main entry point for bundling . This is a bit of an
+unfortunate duplication with SAM Cloudformation template, but with the current
+workflow design there is no way around it.
+
+In addition, as a single JavaScript source package can contain multiple functions,
+and can be included multiple times in a single CloudFormation template, it's possible
+that there may be multiple entry points for bundling. SAM build executes the build
+only once for the function in this case, so all entry points have to be bundled
+at once.
 
 The following example is a minimal `package.json` to activate the `esbuild` bundler
 on a javascript file, starting from `lambda.js`. It will produce a bundled `lambda.js`
@@ -279,7 +285,7 @@ in the artifacts folder.
   "license": "APACHE2.0",
   "aws_sam": {
     "bundler": "esbuild",
-    "main": "lambda.js"
+    "entry_points": ["lambda.js"]
   }
 }
 ```
@@ -309,7 +315,7 @@ directly.
   "license": "APACHE2.0",
   "aws_sam": {
     "bundler": "esbuild",
-    "main": "lambda.js"
+    "entry_points": ["lambda.js"]
   },
   "devDependencies": {
     "esbuild": "^0.11.23"
@@ -333,7 +339,7 @@ as in the example below. There is no transpiling process needed upfront.
   "license": "APACHE2.0",
   "aws_sam": {
     "bundler": "esbuild",
-    "main": "included.ts"
+    "entry_points": ["included.ts"]
   },
   "dependencies": {
     "@types/aws-lambda": "^8.10.76"
@@ -369,7 +375,7 @@ Here is an example that deactivates minification and source maps, and supports J
 {
  "aws_sam": {
     "bundler": "esbuild",
-    "main": "included.ts",
+    "entry_points": ["included.ts"],
     "target": "node10",
     "minify": false,
     "sourcemap": false

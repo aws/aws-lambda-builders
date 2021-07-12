@@ -7,6 +7,6 @@
   "license": "APACHE2.0",
   "aws_sam": {
     "bundler": "esbuild",
-    "main": "included.js"
+    "entry_points": ["included.js"]
   }
 }

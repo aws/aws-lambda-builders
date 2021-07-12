@@ -70,7 +70,10 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)):
             install_action = NodejsNpmCIAction(source_dir, subprocess_npm=subprocess_npm)
         else:
-            install_action = NodejsNpmInstallAction(source_dir, subprocess_npm=subprocess_npm)
+            install_action = NodejsNpmInstallAction(
+                source_dir,
+                subprocess_npm=subprocess_npm,
+                mode="--production=false")
 
         esbuild_action = EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
         return [

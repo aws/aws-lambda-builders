@@ -1,5 +1,5 @@
 {
-  "name": "with-deps-esbuild-typescript",
+  "name": "with-deps-esbuild-multiple-entrypoints",
   "version": "1.0.0",
   "description": "",
   "keywords": [],
@@ -7,10 +7,10 @@
   "license": "APACHE2.0",
   "aws_sam": {
     "bundler": "esbuild",
-    "entry_points": ["included.ts"]
+    "entry_points": ["included.js", "included2.js"]
   },
   "dependencies": {
-    "@types/aws-lambda": "^8.10.76"
+    "minimal-request-promise": "^1.5.0"
   },
   "devDependencies": {
     "esbuild": "^0.11.23"

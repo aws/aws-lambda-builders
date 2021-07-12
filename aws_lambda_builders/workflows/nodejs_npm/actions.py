@@ -81,7 +81,7 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm):
+    def __init__(self, artifacts_dir, subprocess_npm, mode="--production"):
         """
         :type artifacts_dir: str
         :param artifacts_dir: an existing (writable) directory with project source files.
@@ -89,11 +89,15 @@ class NodejsNpmInstallAction(BaseAction):
 
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
+
+        :type mode: str
+        :param mode: NPM installation mode (eg --production=false to force dev dependencies)
         """
 
         super(NodejsNpmInstallAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.subprocess_npm = subprocess_npm
+        self.mode = mode
 
     def execute(self):
         """
@@ -106,7 +110,7 @@ class NodejsNpmInstallAction(BaseAction):
             LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
 
             self.subprocess_npm.run(
-                ["install", "-q", "--no-audit", "--no-save", "--production", "--unsafe-perm"], cwd=self.artifacts_dir
+                ["install", "-q", "--no-audit", "--no-save", self.mode, "--unsafe-perm"], cwd=self.artifacts_dir
             )
 
         except NpmExecutionError as ex:
@@ -326,16 +330,26 @@ class EsbuildBundleAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
         """
 
-        if 'main' not in self.bundler_config:
-            raise ActionFailedError("main entry point not set %s" % self.bundler_config)
+        if 'entry_points' not in self.bundler_config:
+            raise ActionFailedError("entry_points not set ({})".format(self.bundler_config))
 
-        entrypoint = self.bundler_config['main']
-        entrypath = self.osutils.joinpath(self.source_dir, entrypoint)
-        LOG.debug("NODEJS bunlding %s using esbuild to %s", entrypath, self.artifacts_dir)
-        if not self.osutils.file_exists(entrypath):
-            raise ActionFailedError("main entry point %s does not exist" % entrypath)
+        entry_points = self.bundler_config['entry_points']
 
-        args = [entrypoint, "--bundle", "--platform=node", "--format=cjs"]
+        if not isinstance(entry_points, list):
+            raise ActionFailedError("entry_points must be a list ({})".format(self.bundler_config))
+
+        if len(entry_points) < 1:
+            raise ActionFailedError("entry_points must not be empty ({})".format(self.bundler_config))
+
+        entry_paths = [self.osutils.joinpath(self.source_dir, entry_point) for entry_point in entry_points]
+
+        LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
+
+        for entry_point in entry_paths:
+            if not self.osutils.file_exists(entry_point):
+                raise ActionFailedError("entry point {} does not exist".format(entry_point))
+
+        args = entry_points + ["--bundle", "--platform=node", "--format=cjs"]
         skip_minify = "minify" in self.bundler_config and not self.bundler_config["minify"]
         skip_sourcemap = "sourcemap" in self.bundler_config and not self.bundler_config["sourcemap"]
         if not skip_minify:
@@ -345,8 +359,8 @@ class EsbuildBundleAction(BaseAction):
         if "target" not in self.bundler_config:
             args.append("--target=es2020")
         else:
-            args.append("--target=" + self.bundler_config["target"])
-        args.append("--outdir=" + self.artifacts_dir)
+            args.append("--target={}".format(self.bundler_config["target"]))
+        args.append("--outdir={}".format(self.artifacts_dir))
         try:
             self.subprocess_esbuild.run(args, cwd=self.source_dir)
         except EsbuildExecutionError as ex:
