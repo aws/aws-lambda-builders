@@ -38,6 +38,7 @@ class TestPythonPipWorkflow(TestCase):
             "python3.7": "python2.7",
             "python2.7": "python3.8",
             "python3.8": "python2.7",
+            "python3.9": "python3.7",
         }
 
     def tearDown(self):
