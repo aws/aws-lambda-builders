@@ -28,6 +28,15 @@ class GoRuntimeValidator(object):
         """
         return self.runtime in self.SUPPORTED_RUNTIMES
 
+    @staticmethod
+    def sanitize_go_version_part(version_part):
+        sanitized_version_part = ""
+        for char in version_part:
+            if char.isalpha():
+                break
+            sanitized_version_part += char
+        return sanitized_version_part
+
     def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
@@ -47,7 +56,10 @@ class GoRuntimeValidator(object):
         if p.returncode == 0:
             out_parts = out.decode().split()
             if len(out_parts) >= 3:
-                version_parts = [int(x.replace("rc", "")) for x in out_parts[2].replace(self.LANGUAGE, "").split(".")]
+                version_parts = [
+                    int(GoRuntimeValidator.sanitize_go_version_part(version_part))
+                    for version_part in out_parts[2].replace(self.LANGUAGE, "").split(".")
+                ]
                 if len(version_parts) >= 2:
                     if version_parts[0] == expected_major_version and version_parts[1] >= min_expected_minor_version:
                         self._valid_runtime_path = runtime_path
