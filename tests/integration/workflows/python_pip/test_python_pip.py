@@ -13,6 +13,7 @@ import logging
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
 
+
 class TestPythonPipWorkflow(TestCase):
     """
     Verifies that `python_pip` workflow works by building a Lambda that requires Numpy
