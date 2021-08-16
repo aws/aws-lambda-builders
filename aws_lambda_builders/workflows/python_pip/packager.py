@@ -603,7 +603,10 @@ class SubprocessPip(object):
 class PipRunner(object):
     """Wrapper around pip calls used by chalice."""
 
-    _LINK_IS_DIR_PATTERN = "Processing (.+?)\n  Link is a directory, ignoring download_dir"
+    # Update regex pattern to correspond with the updated output from pip
+    # Specific commit:
+    # https://github.com/pypa/pip/commit/b28e2c4928cc62d90b738a4613886fb1e2ad6a81#diff-5225c8e359020adb25dfc8c7a505950fd649c6c5775789c6f6517f7913f94542L529
+    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)\n"]
 
     def __init__(self, python_exe, pip, osutils=None):
         if osutils is None:
@@ -651,10 +654,16 @@ class PipRunner(object):
                 package_name = match.group(1)
                 raise NoSuchPackageError(str(package_name))
             raise PackageDownloadError(error)
+
+        # Extract local packages from pip output.
+        # Iterate over possible pip outputs depending on pip version.
         stdout = out.decode()
-        matches = re.finditer(self._LINK_IS_DIR_PATTERN, stdout)
-        for match in matches:
-            wheel_package_path = str(match.group(1))
+        wheel_package_paths = set()
+        for pattern in self._LINK_IS_DIR_PATTERNS:
+            for match in re.finditer(pattern, stdout):
+                wheel_package_paths.add(str(match.group(1)))
+
+        for wheel_package_path in wheel_package_paths:
             # Looks odd we do not check on the error status of building the
             # wheel here. We can assume this is a valid package path since
             # we already passed the pip download stage. This stage would have

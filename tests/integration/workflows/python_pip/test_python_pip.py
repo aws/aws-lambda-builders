@@ -27,7 +27,13 @@ class TestPythonPipWorkflow(TestCase):
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
 
-        self.test_data_files = {"__init__.py", "main.py", "requirements-invalid.txt", "requirements-numpy.txt"}
+        self.test_data_files = {
+            "__init__.py",
+            "main.py",
+            "requirements-invalid.txt",
+            "requirements-numpy.txt",
+            "local-dependencies",
+        }
 
         self.builder = LambdaBuilder(language="python", dependency_manager="pip", application_framework=None)
         self.runtime = "{language}{major}.{minor}".format(
@@ -78,6 +84,27 @@ class TestPythonPipWorkflow(TestCase):
             self.builder.build(
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime="python2.8"
             )
+
+    def test_must_resolve_local_dependency(self):
+        source_dir = os.path.join(self.source_dir, "local-dependencies")
+        manifest = os.path.join(source_dir, "requirements.txt")
+        path_to_package = os.path.join(self.source_dir, "local-dependencies")
+        # pip resolves dependencies in requirements files relative to the current working directory
+        # need to make sure the correct path is used in the requirements file locally and in CI
+        with open(manifest, "w") as f:
+            f.write(str(path_to_package))
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest, runtime=self.runtime)
+        expected_files = {
+            "local_package",
+            "local_package-0.0.0.dist-info",
+            "requests",
+            "requests-2.23.0.dist-info",
+            "setup.py",
+            "requirements.txt",
+        }
+        output_files = set(os.listdir(self.artifacts_dir))
+        for f in expected_files:
+            self.assertIn(f, output_files)
 
     def test_must_fail_to_resolve_dependencies(self):
 
