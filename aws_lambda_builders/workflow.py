@@ -141,7 +141,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         options=None,
         mode=BuildMode.RELEASE,
         download_dependencies=True,
-        dependencies_folder=None
+        dependencies_folder=None,
     ):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each

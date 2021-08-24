@@ -155,7 +155,7 @@ class TesetLambdaBuilder_build(TestCase):
             executable_search_paths="executable_search_paths",
             mode=None,
             download_dependencies=False,
-            dependencies_folder="dependency_folder"
+            dependencies_folder="dependency_folder",
         )
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")

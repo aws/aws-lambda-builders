@@ -65,7 +65,7 @@ class LambdaBuilder(object):
         executable_search_paths=None,
         mode=None,
         download_dependencies=True,
-        dependencies_folder=None
+        dependencies_folder=None,
     ):
         """
         Actually build the code by running workflows
@@ -131,7 +131,7 @@ class LambdaBuilder(object):
             executable_search_paths=executable_search_paths,
             mode=mode,
             download_dependencies=download_dependencies,
-            dependencies_folder=dependencies_folder
+            dependencies_folder=dependencies_folder,
         )
 
         return workflow.run()
