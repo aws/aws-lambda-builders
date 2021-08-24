@@ -141,7 +141,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         options=None,
         mode=BuildMode.RELEASE,
         download_dependencies=True,
-        dependencies_folder=None,
+        dependencies_dir=None,
     ):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
@@ -190,7 +190,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             Optional, Should download dependencies when building
 
         :type mode: str
-        :param dependencies_folder:
+        :param dependencies_dir:
             Optional, Path to folder the dependencies should be downloaded to
         """
 
@@ -204,7 +204,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.executable_search_paths = executable_search_paths
         self.mode = mode
         self.download_dependencies = download_dependencies
-        self.dependencies_folder = dependencies_folder
+        self.dependencies_dir = dependencies_dir
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
