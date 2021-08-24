@@ -82,6 +82,8 @@ class TesetLambdaBuilder_init(TestCase):
                 options=None,
                 executable_search_paths=None,
                 mode=None,
+                download_dependencies=True,
+                dependencies_folder=None,
             ):
                 super(MyWorkflow, self).__init__(
                     source_dir,
@@ -93,6 +95,8 @@ class TesetLambdaBuilder_init(TestCase):
                     options=options,
                     executable_search_paths=executable_search_paths,
                     mode=mode,
+                    download_dependencies=download_dependencies,
+                    dependencies_folder=dependencies_folder,
                 )
 
         # Don't load any other workflows. The above class declaration will automatically load the workflow into registry
@@ -136,6 +140,8 @@ class TesetLambdaBuilder_build(TestCase):
             options="options",
             executable_search_paths="executable_search_paths",
             mode=None,
+            download_dependencies=False,
+            dependencies_folder="dependency_folder",
         )
 
         workflow_cls.assert_called_with(
@@ -148,6 +154,8 @@ class TesetLambdaBuilder_build(TestCase):
             options="options",
             executable_search_paths="executable_search_paths",
             mode=None,
+            download_dependencies=False,
+            dependencies_folder="dependency_folder"
         )
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")
