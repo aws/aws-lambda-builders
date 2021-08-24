@@ -4,9 +4,10 @@ Java Gradle Workflow
 import hashlib
 import os
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction
+from aws_lambda_builders.workflows.java.utils import OSUtils
 from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
-from .utils import OSUtils
 from .gradle_resolver import GradleResolver
 from .gradle_validator import GradleValidator
 
@@ -33,6 +34,8 @@ class JavaGradleWorkflow(BaseWorkflow):
             JavaGradleBuildAction(source_dir, manifest_path, subprocess_gradle, scratch_dir, self.os_utils),
             JavaGradleCopyArtifactsAction(source_dir, artifacts_dir, self.build_output_dir, self.os_utils),
         ]
+        if self.dependencies_dir:
+            self.actions.append(JavaCopyDependenciesAction(artifacts_dir, self.dependencies_dir, self.os_utils))
 
     def get_resolvers(self):
         return [GradleResolver(executable_search_paths=self.executable_search_paths)]
