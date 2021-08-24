@@ -55,14 +55,6 @@ class JavaGradleBuildAction(BaseAction):
             raise ActionFailedError(str(ex))
 
 
-class JavaMoveDependencies(BaseAction):
-    def __init__(self, build_dir, dependency_dir):
-        pass
-
-    def execute(self):
-        pass
-
-
 class JavaGradleCopyArtifactsAction(BaseAction):
     NAME = "CopyArtifacts"
     DESCRIPTION = "Copying the built artifacts"
