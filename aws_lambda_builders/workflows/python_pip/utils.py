@@ -102,3 +102,7 @@ class OSUtils(object):
     @property
     def pipe(self):
         return subprocess.PIPE
+
+    def basename(self, path):
+        # type: (str) -> str
+        return os.path.basename(path)
