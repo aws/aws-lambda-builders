@@ -34,6 +34,13 @@ environment:
     LINE_COVERAGE: '72'
     NEW_FLAKE8: 1
     JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+  - PYTHON: "C:\\Python39-x64"
+    PYTHON_VERSION: '3.9'
+    PYTHON_ARCH: '64'
+    LINE_COVERAGE: '72'
+    NEW_FLAKE8: 1
+    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+  
 
 
 build: off
@@ -42,7 +49,7 @@ for:
   -
     matrix:
       only:
-        - image: Visual Studio 2017
+        - image: Visual Studio 2019
 
     environment:
       GOPATH: c:\gopath
