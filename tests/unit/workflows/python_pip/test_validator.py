@@ -19,7 +19,7 @@ class TestPythonRuntimeValidator(TestCase):
     def setUp(self):
         self.validator = PythonRuntimeValidator(runtime="python3.7")
 
-    @parameterized.expand(["python2.7", "python3.6", "python3.7", "python3.8"])
+    @parameterized.expand(["python2.7", "python3.6", "python3.7", "python3.8", "python3.9"])
     def test_supported_runtimes(self, runtime):
         validator = PythonRuntimeValidator(runtime=runtime)
         self.assertTrue(validator.has_runtime())

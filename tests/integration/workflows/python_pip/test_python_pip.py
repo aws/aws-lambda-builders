@@ -1,8 +1,9 @@
 import os
 import shutil
 import sys
+import platform
 import tempfile
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import mock
 
 from aws_lambda_builders.builder import LambdaBuilder
@@ -10,6 +11,7 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 import logging
 
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
+IS_WINDOWS = platform.system().lower() == "windows"
 
 
 class TestPythonPipWorkflow(TestCase):
@@ -44,6 +46,7 @@ class TestPythonPipWorkflow(TestCase):
             "python3.7": "python2.7",
             "python2.7": "python3.8",
             "python3.8": "python2.7",
+            "python3.9": "python2.7",
         }
 
     def tearDown(self):
@@ -84,6 +87,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime="python2.8"
             )
 
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_resolve_local_dependency(self):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
