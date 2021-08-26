@@ -73,17 +73,28 @@ class PythonPipWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
+        self.actions = []
         if osutils.file_exists(manifest_path):
             # If a requirements.txt exists, run pip builder before copy action.
-            self.actions = [
-                PythonPipBuildAction(artifacts_dir, scratch_dir, manifest_path, runtime, binaries=self.binaries),
-                CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            ]
+            if self.download_dependencies:
+                self.actions.append(
+                    PythonPipBuildAction(
+                        artifacts_dir,
+                        scratch_dir,
+                        manifest_path,
+                        runtime,
+                        self.dependencies_dir,
+                        binaries=self.binaries,
+                    )
+                )
+            # if dependencies folder is provided, copy dependencies from dependencies folder to build folder
+            if self.dependencies_dir:
+                self.actions.append(
+                    CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)
+                )
         else:
             LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
-            self.actions = [
-                CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            ]
+        self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
     def get_validators(self):
         return [PythonRuntimeValidator(runtime=self.runtime)]
