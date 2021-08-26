@@ -40,8 +40,8 @@ class OSUtils(object):
     def which(self, executable, executable_search_paths=None):
         return which(executable, executable_search_paths=executable_search_paths)
 
-    def copytree(self, source, destination, include=None):
-        copytree(source, destination, include=include)
+    def copytree(self, source, destination, ignore=None, include=None):
+        copytree(source, destination, ignore=ignore, include=include)
 
     def makedirs(self, d):
         return os.makedirs(d)

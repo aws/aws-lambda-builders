@@ -73,7 +73,7 @@ def copytree(source, destination, ignore=None, include=None):
             continue
 
         if os.path.isdir(new_source):
-            copytree(new_source, new_destination, ignore=ignore)
+            copytree(new_source, new_destination, ignore=ignore, include=include)
         else:
             LOG.debug("Copying source file (%s) to destination (%s)", new_source, new_destination)
             shutil.copy2(new_source, new_destination)

@@ -4,6 +4,7 @@ Actions for the Java Maven Workflow
 
 import os
 import logging
+import shutil
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from .maven import MavenExecutionError
@@ -92,6 +93,7 @@ class JavaMavenCopyLayerArtifactsAction(JavaMavenCopyArtifactsAction):
     """
 
     NAME = "MavenCopyLayerArtifacts"
+    IGNORED_FOLDERS = ["classes", "dependency", "generated-sources", "maven-archiver", "maven-status"]
 
     def _copy_artifacts(self):
         lambda_build_output = os.path.join(self.scratch_dir, "target")
@@ -101,7 +103,12 @@ class JavaMavenCopyLayerArtifactsAction(JavaMavenCopyArtifactsAction):
             raise ActionFailedError("Required target/classes directory was not produced from 'mvn package'")
 
         try:
-            self.os_utils.copytree(lambda_build_output, os.path.join(self.artifacts_dir, "lib"), jar_file_filter)
+            self.os_utils.copytree(
+                lambda_build_output,
+                os.path.join(self.artifacts_dir, "lib"),
+                ignore=shutil.ignore_patterns(*self.IGNORED_FOLDERS),
+                include=jar_file_filter
+            )
             if self.os_utils.exists(dependency_output):
                 self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
         except Exception as ex:
