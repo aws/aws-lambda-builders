@@ -81,3 +81,34 @@ class JavaMavenCopyArtifactsAction(BaseAction):
                 self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
         except Exception as ex:
             raise ActionFailedError(str(ex))
+
+# Zip structure required for Layers in Java is not same as structure required for Lambda Function
+# Java Layers only use contents in java/lib for the classpath
+# see https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html
+# Lambda Function zip files can instead have classes in the root which aren't packaged in a jar
+class JavaMavenCopyLayerArtifactsAction(BaseAction):
+    NAME = "MavenCopyLayerArtifacts"
+    DESCRIPTION = "Copying the built artifacts"
+    PURPOSE = Purpose.COPY_SOURCE
+
+    def __init__(self, scratch_dir, artifacts_dir, os_utils):
+        self.scratch_dir = scratch_dir
+        self.artifacts_dir = artifacts_dir
+        self.os_utils = os_utils
+
+    def execute(self):
+        self._copy_artifacts()
+
+    def _copy_artifacts(self):
+        lambda_build_output = os.path.join(self.scratch_dir, "target")
+        dependency_output = os.path.join(self.scratch_dir, "target", "dependency")
+
+        if not self.os_utils.exists(lambda_build_output):
+            raise ActionFailedError("Required target/classes directory was not produced from 'mvn package'")
+
+        try:
+            self.os_utils.copyjars(lambda_build_output, os.path.join(self.artifacts_dir, "lib"))
+            if self.os_utils.exists(dependency_output):
+                self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
+        except Exception as ex:
+            raise ActionFailedError(str(ex))

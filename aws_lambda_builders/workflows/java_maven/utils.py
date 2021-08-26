@@ -46,6 +46,16 @@ class OSUtils(object):
             else:
                 self.copy(new_source, new_destination)
 
+    def copyjars(self, source, destination):
+        if not os.path.exists(destination):
+            self.makedirs(destination)
+        names = self.listdir(source)
+        for name in names:
+            if name.find('.jar') != -1:
+                new_source = os.path.join(source, name)
+                new_destination = os.path.join(destination, name)
+                self.copy(new_source, new_destination)
+
     def makedirs(self, d):
         return os.makedirs(d)
 
