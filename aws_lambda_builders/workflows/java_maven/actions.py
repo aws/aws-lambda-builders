@@ -82,6 +82,7 @@ class JavaMavenCopyArtifactsAction(BaseAction):
         except Exception as ex:
             raise ActionFailedError(str(ex))
 
+
 # Zip structure required for Layers in Java is not same as structure required for Lambda Function
 # Java Layers only use contents in java/lib for the classpath
 # see https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html

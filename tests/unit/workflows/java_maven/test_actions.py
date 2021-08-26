@@ -8,7 +8,7 @@ from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenCopyArtifactsAction,
     JavaMavenCopyDependencyAction,
     MavenExecutionError,
-    JavaMavenCopyLayerArtifactsAction
+    JavaMavenCopyLayerArtifactsAction,
 )
 
 
@@ -157,4 +157,3 @@ class TestJavaMavenCopyLayerArtifactsAction(TestCase):
         self.assertEqual(
             raised.exception.args[0], "Required target/classes directory was not " "produced from 'mvn package'"
         )
-
