@@ -51,7 +51,7 @@ class OSUtils(object):
             self.makedirs(destination)
         names = self.listdir(source)
         for name in names:
-            if name.find('.jar') != -1:
+            if name.find(".jar") != -1:
                 new_source = os.path.join(source, name)
                 new_destination = os.path.join(destination, name)
                 self.copy(new_source, new_destination)

@@ -5,7 +5,7 @@ from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenBuildAction,
     JavaMavenCopyArtifactsAction,
     JavaMavenCopyDependencyAction,
-    JavaMavenCopyLayerArtifactsAction
+    JavaMavenCopyLayerArtifactsAction,
 )
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolver
