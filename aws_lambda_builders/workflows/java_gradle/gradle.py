@@ -4,6 +4,7 @@ Wrapper around calls to Gradle through a subprocess.
 
 import logging
 import subprocess
+import sys
 
 LOG = logging.getLogger(__name__)
 
