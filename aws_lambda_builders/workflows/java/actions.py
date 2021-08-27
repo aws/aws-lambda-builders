@@ -3,7 +3,7 @@ Common Actions for the Java Workflows
 """
 
 import os
-from aws_lambda_builders.actions import BaseAction, Purpose
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 
 
 class JavaCopyDependenciesAction(BaseAction):
@@ -20,7 +20,10 @@ class JavaCopyDependenciesAction(BaseAction):
         self._copy_dependencies()
 
     def _copy_dependencies(self):
-        if not self.os_utils.exists(self.dependencies_dir):
-            self.os_utils.makedirs(self.dependencies_dir)
-        lib_folder = os.path.join(self.artifacts_dir, "lib")
-        self.os_utils.copytree(lib_folder, self.dependencies_dir)
+        try:
+            if not self.os_utils.exists(self.dependencies_dir):
+                self.os_utils.makedirs(self.dependencies_dir)
+            lib_folder = os.path.join(self.artifacts_dir, "lib")
+            self.os_utils.copytree(lib_folder, self.dependencies_dir)
+        except Exception as ex:
+            raise ActionFailedError(str(ex))
