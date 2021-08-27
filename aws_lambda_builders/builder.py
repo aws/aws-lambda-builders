@@ -64,6 +64,8 @@ class LambdaBuilder(object):
         options=None,
         executable_search_paths=None,
         mode=None,
+        download_dependencies=True,
+        dependencies_dir=None,
     ):
         """
         Actually build the code by running workflows
@@ -105,6 +107,14 @@ class LambdaBuilder(object):
         :type mode: str
         :param mode:
             Optional, Mode the build should produce
+
+        :type mode: bool
+        :param download_dependencies:
+            Optional, Should download dependencies when building
+
+        :type mode: str
+        :param dependencies_dir:
+            Optional, Path to folder the dependencies should be downloaded to
         """
 
         if not os.path.exists(scratch_dir):
@@ -120,6 +130,8 @@ class LambdaBuilder(object):
             options=options,
             executable_search_paths=executable_search_paths,
             mode=mode,
+            download_dependencies=download_dependencies,
+            dependencies_dir=dependencies_dir,
         )
 
         return workflow.run()
