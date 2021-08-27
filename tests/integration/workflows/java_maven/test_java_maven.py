@@ -13,7 +13,12 @@ p = os.path.join
 
 
 class TestJavaMaven(TestCase):
-    SINGLE_BUILD_TEST_DATA_DIR = os.path.join(os.path.dirname(Path(__file__).resolve()), "testdata", "single-build")
+    # Have to use str(Path(__file__).resolve()) here to workaround a Windows VSCode issue
+    # __file__ will return lower case drive letters. Ex: c:\folder\test.py instead of C:\folder\test.py
+    # This will break the hashing algorithm we use for build directory generation
+    SINGLE_BUILD_TEST_DATA_DIR = os.path.join(
+        os.path.dirname(str(Path(__file__).resolve())), "testdata", "single-build"
+    )
 
     def setUp(self):
         self.artifacts_dir = tempfile.mkdtemp()
