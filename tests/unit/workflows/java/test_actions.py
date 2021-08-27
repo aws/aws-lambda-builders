@@ -21,7 +21,9 @@ class TestJavaCopyDependenciesAction(TestCase):
         action = JavaCopyDependenciesAction(self.artifacts_dir, self.dependencies_dir, self.os_utils)
         action.execute()
 
-        self.os_utils.copytree.assert_called_with(os.path.join(self.artifacts_dir, "lib"), self.dependencies_dir)
+        self.os_utils.copytree.assert_called_with(
+            os.path.join(self.artifacts_dir, "lib"), os.path.join(self.dependencies_dir, "lib")
+        )
 
     def test_error_in_artifact_copy_raises_action_error(self):
         self.os_utils.copytree.side_effect = Exception("scandir failed!")
