@@ -21,9 +21,10 @@ class JavaCopyDependenciesAction(BaseAction):
 
     def _copy_dependencies(self):
         try:
-            if not self.os_utils.exists(self.dependencies_dir):
-                self.os_utils.makedirs(self.dependencies_dir)
+            dependencies_lib_dir = os.path.join(self.dependencies_dir, "lib")
+            if not self.os_utils.exists(dependencies_lib_dir):
+                self.os_utils.makedirs(dependencies_lib_dir)
             lib_folder = os.path.join(self.artifacts_dir, "lib")
-            self.os_utils.copytree(lib_folder, self.dependencies_dir)
+            self.os_utils.copytree(lib_folder, dependencies_lib_dir)
         except Exception as ex:
             raise ActionFailedError(str(ex))
