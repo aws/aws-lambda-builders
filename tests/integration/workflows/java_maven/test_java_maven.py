@@ -7,6 +7,8 @@ from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
+p = os.path.join
+
 
 class TestJavaMaven(TestCase):
     SINGLE_BUILD_TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "testdata", "single-build")
@@ -63,7 +65,3 @@ class TestJavaMaven(TestCase):
 
     def assert_src_dir_not_touched(self, source_dir):
         self.assertFalse(os.path.exists(os.path.join(source_dir, "target")))
-
-
-def p(path, *comps):
-    return os.path.join(path, *comps)
