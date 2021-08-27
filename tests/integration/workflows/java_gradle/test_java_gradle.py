@@ -2,19 +2,23 @@ import os
 import shutil
 import tempfile
 
-from zipfile import ZipFile
 from unittest import TestCase
+from pathlib import Path
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from tests.integration.workflows.common_test_utils import does_folder_contain_all_files, does_folder_contain_file
 
+
 p = os.path.join
 
 
 class TestJavaGradle(TestCase):
-    SINGLE_BUILD_TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "testdata", "single-build")
-    MULTI_BUILD_TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "testdata", "multi-build")
+    # Have to use Path(__file__).resolve() here to workaround a Windows VSCode issue
+    # __file__ will return lower case drive letters. Ex: c:\folder\test.py instead of C:\folder\test.py
+    # This will break the hashing algorithm we use for build directory generation
+    SINGLE_BUILD_TEST_DATA_DIR = os.path.join(os.path.dirname(Path(__file__).resolve()), "testdata", "single-build")
+    MULTI_BUILD_TEST_DATA_DIR = os.path.join(os.path.dirname(Path(__file__).resolve()), "testdata", "multi-build")
 
     def setUp(self):
         self.artifacts_dir = tempfile.mkdtemp()
@@ -26,6 +30,7 @@ class TestJavaGradle(TestCase):
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
+        shutil.rmtree(self.dependencies_dir)
 
     def test_build_single_build_with_deps(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, "with-deps")
@@ -112,7 +117,7 @@ class TestJavaGradle(TestCase):
             self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest_path, runtime=self.runtime)
         self.assertTrue(raised.exception.args[0].startswith("JavaGradleWorkflow:GradleBuild - Gradle Failed"))
 
-    def test_build_single_build_with_deps_folder(self):
+    def test_build_single_build_with_deps_dir(self):
         source_dir = os.path.join(self.SINGLE_BUILD_TEST_DATA_DIR, "with-deps")
         manifest_path = os.path.join(source_dir, "build.gradle")
         self.builder.build(
@@ -127,4 +132,30 @@ class TestJavaGradle(TestCase):
         dependencies_expected_files = [p("lib", "annotations-2.1.0.jar")]
 
         self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, artifact_expected_files))
+        self.assertTrue(does_folder_contain_all_files(self.dependencies_dir, dependencies_expected_files))
+
+    def test_build_multi_build_with_deps_dir_inter_module(self):
+        parent_dir = os.path.join(self.MULTI_BUILD_TEST_DATA_DIR, "with-deps-inter-module")
+        manifest_path = os.path.join(parent_dir, "lambda1", "build.gradle")
+
+        lambda1_source = os.path.join(parent_dir, "lambda1")
+        self.builder.build(
+            lambda1_source,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest_path,
+            runtime=self.runtime,
+            dependencies_dir=self.dependencies_dir,
+        )
+
+        lambda1_expected_files = [
+            p("aws", "lambdabuilders", "Lambda1_Main.class"),
+            p("lib", "annotations-2.1.0.jar"),
+            p("lib", "common.jar"),
+        ]
+        dependencies_expected_files = [
+            p("lib", "annotations-2.1.0.jar"),
+            p("lib", "common.jar"),
+        ]
+        self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, lambda1_expected_files))
         self.assertTrue(does_folder_contain_all_files(self.dependencies_dir, dependencies_expected_files))
