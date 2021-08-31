@@ -8,7 +8,7 @@ from collections import defaultdict, namedtuple
 import pytest
 import mock
 
-from aws_lambda_builders.workflows.python_pip.packager import PipRunner
+from aws_lambda_builders.workflows.python_pip.packager import PipRunner, UnsupportedPackageError
 from aws_lambda_builders.workflows.python_pip.packager import DependencyBuilder
 from aws_lambda_builders.workflows.python_pip.packager import Package
 from aws_lambda_builders.workflows.python_pip.packager import MissingDependencyError
@@ -858,18 +858,24 @@ class TestSdistMetadataFetcher(object):
     _SETUP_PY = "%s\n" "setup(\n" '    name="%s",\n' '    version="%s"\n' ")\n"
     _VALID_TAR_FORMATS = ["tar.gz", "tar.bz2"]
 
-    def _write_fake_sdist(self, setup_py, directory, ext):
+    def _write_fake_sdist(self, setup_py, directory, ext, pkg_info_contents=None):
         filename = "sdist.%s" % ext
         path = "%s/%s" % (directory, filename)
         if ext == "zip":
             with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as z:
                 z.writestr("sdist/setup.py", setup_py)
+                if pkg_info_contents is not None:
+                    z.writestr("sdist/PKG-INFO", pkg_info_contents)
         elif ext in self._VALID_TAR_FORMATS:
             compression_format = ext.split(".")[1]
             with tarfile.open(path, "w:%s" % compression_format) as tar:
                 tarinfo = tarfile.TarInfo("sdist/setup.py")
                 tarinfo.size = len(setup_py)
                 tar.addfile(tarinfo, io.BytesIO(setup_py.encode()))
+                if pkg_info_contents is not None:
+                    tarinfo = tarfile.TarInfo("sdist/PKG-INFO")
+                    tarinfo.size = len(pkg_info_contents)
+                    tar.addfile(tarinfo, io.BytesIO(pkg_info_contents.encode()))
         else:
             open(path, "a").close()
         filepath = os.path.join(directory, filename)
@@ -966,6 +972,29 @@ class TestSdistMetadataFetcher(object):
             filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz2")
             with pytest.raises(InvalidSourceDistributionNameError):
                 name, version = sdist_reader.get_package_name_and_version(filepath)
+
+    def test_cant_get_egg_info_filename(self, osutils, sdist_reader):
+        # In this scenario the setup.py file will fail with an import
+        # error so we should verify we try a fallback to look for
+        # PKG-INFO.
+        bad_setup_py = self._SETUP_PY % (
+            "import some_build_dependency",
+            "foo",
+            "1.0",
+        )
+        pkg_info_file = "Name: foo\n" "Version: 1.0\n"
+        with osutils.tempdir() as tempdir:
+            filepath = self._write_fake_sdist(bad_setup_py, tempdir, "zip", pkg_info_file)
+            name, version = sdist_reader.get_package_name_and_version(filepath)
+        assert name == "foo"
+        assert version == "1.0"
+
+    def test_pkg_info_fallback_fails_raises_error(self, osutils, sdist_reader):
+        setup_py = self._SETUP_PY % ("import build_time_dependency", "foo", "1.0")
+        with osutils.tempdir() as tempdir:
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz")
+            with pytest.raises(UnsupportedPackageError):
+                sdist_reader.get_package_name_and_version(filepath)
 
 
 class TestPackage(object):

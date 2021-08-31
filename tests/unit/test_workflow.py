@@ -176,6 +176,21 @@ class TestBaseWorkflow_run(TestCase):
             options={"c": "d"},
         )
 
+    def mock_binaries(self):
+        self.validator_mock = Mock()
+        self.validator_mock.validate = Mock()
+        self.validator_mock.validate.return_value = "/usr/bin/binary"
+        self.resolver_mock = Mock()
+        self.resolver_mock.exec_paths = ["/usr/bin/binary"]
+        self.binaries_mock = Mock()
+        self.binaries_mock.return_value = []
+
+        self.work.get_validators = lambda: self.validator_mock
+        self.work.get_resolvers = lambda: self.resolver_mock
+        self.work.binaries = {
+            "binary": BinaryPath(resolver=self.resolver_mock, validator=self.validator_mock, binary="binary")
+        }
+
     def test_get_binaries(self):
         self.assertIsNotNone(self.work.binaries)
         for binary, binary_path in self.work.binaries.items():
@@ -187,63 +202,39 @@ class TestBaseWorkflow_run(TestCase):
             self.assertTrue(isinstance(validator, RuntimeValidator))
 
     def test_must_execute_actions_in_sequence(self):
+        self.mock_binaries()
         action_mock = Mock()
-        validator_mock = Mock()
-        validator_mock.validate = Mock()
-        validator_mock.validate.return_value = "/usr/bin/binary"
-        resolver_mock = Mock()
-        resolver_mock.exec_paths = ["/usr/bin/binary"]
-        binaries_mock = Mock()
-        binaries_mock.return_value = []
-
-        self.work.get_validators = lambda: validator_mock
-        self.work.get_resolvers = lambda: resolver_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         self.work.run()
 
         self.assertEqual(
             action_mock.method_calls, [call.action1.execute(), call.action2.execute(), call.action3.execute()]
         )
-        self.assertTrue(validator_mock.validate.call_count, 1)
+        self.assertTrue(self.validator_mock.validate.call_count, 1)
 
     def test_must_fail_workflow_binary_resolution_failure(self):
+        self.mock_binaries()
         action_mock = Mock()
-        validator_mock = Mock()
-        validator_mock.validate = Mock()
-        validator_mock.validate.return_value = None
-        resolver_mock = Mock()
-        resolver_mock.exec_paths = MagicMock(side_effect=ValueError("Binary could not be resolved"))
-        binaries_mock = Mock()
-        binaries_mock.return_value = []
+        self.resolver_mock.exec_paths = MagicMock(side_effect=ValueError("Binary could not be resolved"))
 
-        self.work.get_validators = lambda: validator_mock
-        self.work.get_resolvers = lambda: resolver_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         with self.assertRaises(WorkflowFailedError) as ex:
             self.work.run()
 
     def test_must_fail_workflow_binary_validation_failure(self):
-        action_mock = Mock()
-        validator_mock = Mock()
-        validator_mock.validate = Mock()
-        validator_mock.validate = MagicMock(
+        self.mock_binaries()
+        self.validator_mock.validate = MagicMock(
             side_effect=MisMatchRuntimeError(language="test", required_runtime="test1", runtime_path="/usr/bin/binary")
         )
-        resolver_mock = Mock()
-        resolver_mock.exec_paths = ["/usr/bin/binary"]
-        binaries_mock = Mock()
-        binaries_mock.return_value = []
 
-        self.work.get_validators = lambda: validator_mock
-        self.work.get_resolvers = lambda: resolver_mock
+        action_mock = Mock()
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         with self.assertRaises(WorkflowFailedError) as ex:
             self.work.run()
 
     def test_must_raise_with_no_actions(self):
+        self.mock_binaries()
+
         self.work.actions = []
 
         with self.assertRaises(WorkflowFailedError) as ctx:
@@ -252,6 +243,7 @@ class TestBaseWorkflow_run(TestCase):
         self.assertIn("Workflow does not have any actions registered", str(ctx.exception))
 
     def test_must_raise_if_action_failed(self):
+        self.mock_binaries()
         action_mock = Mock()
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
 
@@ -264,6 +256,7 @@ class TestBaseWorkflow_run(TestCase):
         self.assertIn("testfailure", str(ctx.exception))
 
     def test_must_raise_if_action_crashed(self):
+        self.mock_binaries()
         action_mock = Mock()
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
 
@@ -290,6 +283,8 @@ class TestBaseWorkflow_run(TestCase):
             options={"c": "d"},
         )
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.mock_binaries()
+
         self.work.run()
 
 
