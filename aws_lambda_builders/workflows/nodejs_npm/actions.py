@@ -6,6 +6,7 @@ import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .npm import NpmExecutionError
+from ...utils import copytree
 
 LOG = logging.getLogger(__name__)
 
@@ -80,19 +81,27 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm):
+    def __init__(self, artifacts_dir, dependencies_dir, subprocess_npm, osutils):
         """
         :type artifacts_dir: str
         :param artifacts_dir: an existing (writable) directory with project source files.
             Dependencies will be installed in this directory.
 
+        :type dependencies_dir: str
+        :param dependencies_dir: Optional, Path to folder the dependencies should be downloaded to
+
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
+
+        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :param osutils: An instance of OS Utilities for file manipulation
         """
 
         super(NodejsNpmInstallAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.subprocess_npm = subprocess_npm
+        self.dependencies_dir = dependencies_dir
+        self.osutils = osutils
 
     def execute(self):
         """
@@ -107,6 +116,14 @@ class NodejsNpmInstallAction(BaseAction):
             self.subprocess_npm.run(
                 ["install", "-q", "--no-audit", "--no-save", "--production", "--unsafe-perm"], cwd=self.artifacts_dir
             )
+
+            # if dependencies folder is provided, move the dependencies from artifact folder to dependencies folder
+            # otherwise the dependencies will be installed into the artifact folder
+            if self.dependencies_dir:
+                node_modules_dir = self.osutils.joinpath(self.artifacts_dir, "node_modules")
+                destination_dir = self.osutils.joinpath(self.dependencies_dir, "node_modules")
+                copytree(node_modules_dir, destination_dir)
+                self.osutils.remove_directory(node_modules_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))

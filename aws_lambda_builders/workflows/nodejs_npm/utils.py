@@ -43,6 +43,9 @@ class OSUtils(object):
     def remove_file(self, filename):
         return os.remove(filename)
 
+    def remove_directory(self, dirpath):
+        shutil.rmtree(dirpath)
+
     def abspath(self, path):
         return os.path.abspath(path)
 

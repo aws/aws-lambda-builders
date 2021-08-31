@@ -32,7 +32,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
             osutils = OSUtils()
 
         subprocess_npm = SubprocessNpm(osutils)
-
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
 
@@ -40,17 +39,25 @@ class NodejsNpmWorkflow(BaseWorkflow):
             tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
         )
 
-        npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
-
         npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
         self.actions = [
             npm_pack,
             npm_copy_npmrc,
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            npm_install,
-            NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils),
         ]
+
+        if self.download_dependencies:
+            npm_install = NodejsNpmInstallAction(
+                artifacts_dir, self.dependencies_dir, subprocess_npm=subprocess_npm, osutils=osutils
+            )
+            self.actions.append(npm_install)
+
+        # if dependencies folder is provided, copy dependencies from dependencies folder to build folder
+        if self.dependencies_dir:
+            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+
+        self.actions.append(NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils))
 
     def get_resolvers(self):
         """
