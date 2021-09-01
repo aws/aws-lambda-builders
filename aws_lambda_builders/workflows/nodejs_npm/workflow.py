@@ -3,7 +3,7 @@ NodeJS NPM Workflow
 """
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
@@ -40,17 +40,29 @@ class NodejsNpmWorkflow(BaseWorkflow):
             tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
         )
 
-        npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
-
         npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
         self.actions = [
             npm_pack,
             npm_copy_npmrc,
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            npm_install,
-            NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils),
         ]
+
+        if self.download_dependencies:
+            # installed the dependencies into artifact folder
+            npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
+            self.actions.append(npm_install)
+
+            # if dependencies folder exists, copy dependencies into dependencies into dependencies folder
+            if self.dependencies_dir:
+                self.actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+        else:
+            # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
+            # dependencies folder to artifact folder
+            if self.dependencies_dir:
+                self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+
+        self.actions.append(NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils))
 
     def get_resolvers(self):
         """
