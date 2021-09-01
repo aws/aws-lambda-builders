@@ -124,6 +124,8 @@ def main():  # pylint: disable=too-many-statements
             optimizations=params["optimizations"],
             options=params["options"],
             mode=params.get("mode", None),
+            download_dependencies=params.get("download_dependencies", True),
+            dependencies_dir=params.get("dependencies_dir", None),
         )
 
         # Return a success response
