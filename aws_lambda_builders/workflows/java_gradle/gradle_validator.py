@@ -5,7 +5,7 @@ Gradle Binary Validation
 import logging
 import re
 
-from .utils import OSUtils
+from aws_lambda_builders.workflows.java.utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
