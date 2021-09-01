@@ -23,6 +23,7 @@ class TestRubyWorkflow(TestCase):
     def setUp(self):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
+        self.dependencies_dir = tempfile.mkdtemp()
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
         self.builder = LambdaBuilder(language="ruby", dependency_manager="bundler", application_framework=None)
         self.runtime = "ruby2.5"
@@ -84,3 +85,37 @@ class TestRubyWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
         mock_warning.assert_called_with("Gemfile not found. Continuing the build without dependencies.")
+
+    def test_builds_project_without_downloaded_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps")
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Gemfile"),
+            runtime=self.runtime,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=False,
+        )
+        expected_files = {"handler.rb", "Gemfile"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    def test_builds_project_with_downloaded_dependencies_and_dependencies_dir(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps")
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Gemfile"),
+            runtime=self.runtime,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=True,
+        )
+        expected_files = {"handler.rb", "Gemfile", "Gemfile.lock", ".bundle", "vendor"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        expected_dependencies_files = {"Gemfile.lock", ".bundle", "vendor"}
+        output_dependencies_files = set(os.listdir(self.dependencies_dir))
+        self.assertEqual(output_dependencies_files, expected_dependencies_files)

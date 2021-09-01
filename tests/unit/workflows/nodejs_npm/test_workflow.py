@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
@@ -17,7 +17,7 @@ class TestNodejsNpmWorkflow(TestCase):
     this is just a quick wiring test to provide fast feedback if things are badly broken
     """
 
-    def test_workflow_sets_up_npm_actions(self):
+    def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir(self):
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
@@ -32,3 +32,32 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
 
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+
+    def test_workflow_sets_up_npm_actions_without_download_dependencies(self):
+
+        workflow = NodejsNpmWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", download_dependencies=False
+        )
+
+        self.assertEqual(len(workflow.actions), 5)
+
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], CopySourceAction)
+        self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+
+    def test_workflow_sets_up_npm_actions_with_download_dependencies_and_dependencies_dir(self):
+
+        workflow = NodejsNpmWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", download_dependencies=True
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[4], CopyDependenciesAction)
+        self.assertIsInstance(workflow.actions[5], NodejsNpmrcCleanUpAction)
