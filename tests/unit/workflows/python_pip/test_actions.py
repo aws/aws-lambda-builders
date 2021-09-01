@@ -21,6 +21,7 @@ class TestPythonPipBuildAction(TestCase):
             "scratch_dir",
             "manifest",
             "runtime",
+            None,
             {"python": BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)},
         )
         action.execute()
@@ -39,6 +40,7 @@ class TestPythonPipBuildAction(TestCase):
             "scratch_dir",
             "manifest",
             "runtime",
+            None,
             {"python": BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)},
         )
 
@@ -54,8 +56,27 @@ class TestPythonPipBuildAction(TestCase):
             "scratch_dir",
             "manifest",
             "runtime",
+            None,
             {"python": BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)},
         )
 
         with self.assertRaises(ActionFailedError):
             action.execute()
+
+    @patch("aws_lambda_builders.workflows.python_pip.actions.PythonPipDependencyBuilder")
+    def test_action_must_call_builder_with_dependencies_dir(self, PythonPipDependencyBuilderMock):
+        builder_instance = PythonPipDependencyBuilderMock.return_value
+
+        action = PythonPipBuildAction(
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            "runtime",
+            "dependencies_dir",
+            {"python": BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)},
+        )
+        action.execute()
+
+        builder_instance.build_dependencies.assert_called_with(
+            artifacts_dir_path="dependencies_dir", scratch_dir_path="scratch_dir", requirements_path="manifest"
+        )

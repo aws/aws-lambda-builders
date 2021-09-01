@@ -25,6 +25,7 @@ class TestPythonPipWorkflow(TestCase):
         self.source_dir = self.TEST_DATA_FOLDER
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
+        self.dependencies_dir = tempfile.mkdtemp()
 
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
@@ -138,3 +139,71 @@ class TestPythonPipWorkflow(TestCase):
         mock_warning.assert_called_once_with(
             "requirements.txt file not found. Continuing the build without dependencies."
         )
+
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
+    def test_without_download_dependencies(self):
+        source_dir = os.path.join(self.source_dir, "local-dependencies")
+        manifest = os.path.join(source_dir, "requirements.txt")
+        path_to_package = os.path.join(self.source_dir, "local-dependencies")
+        # pip resolves dependencies in requirements files relative to the current working directory
+        # need to make sure the correct path is used in the requirements file locally and in CI
+        with open(manifest, "w") as f:
+            f.write(str(path_to_package))
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest,
+            runtime=self.runtime,
+            download_dependencies=False,
+            dependencies_dir=self.dependencies_dir,
+        )
+
+        # if download_dependencies is False and dependencies is empty, the artifacts_dir should just copy files from
+        # source package
+        expected_files = set(os.listdir(path_to_package))
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(output_files, expected_files)
+
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
+    def test_without_download_dependencies(self):
+        source_dir = os.path.join(self.source_dir, "local-dependencies")
+        manifest = os.path.join(source_dir, "requirements.txt")
+        path_to_package = os.path.join(self.source_dir, "local-dependencies")
+        # pip resolves dependencies in requirements files relative to the current working directory
+        # need to make sure the correct path is used in the requirements file locally and in CI
+        with open(manifest, "w") as f:
+            f.write(str(path_to_package))
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest,
+            runtime=self.runtime,
+            download_dependencies=True,
+            dependencies_dir=self.dependencies_dir,
+        )
+
+        # build artifact should be same as usual
+        expected_files = {
+            "local_package",
+            "local_package-0.0.0.dist-info",
+            "requests",
+            "requests-2.23.0.dist-info",
+            "setup.py",
+            "requirements.txt",
+        }
+        output_files = set(os.listdir(self.artifacts_dir))
+        for f in expected_files:
+            self.assertIn(f, output_files)
+
+        # if download_dependencies is True and dependencies dir is provided, we should have a copy of dependencies in the dependencies dir
+        expected_dependencies_files = {
+            "local_package",
+            "local_package-0.0.0.dist-info",
+            "requests",
+            "requests-2.23.0.dist-info",
+        }
+        dependencies_files = set(os.listdir(self.dependencies_dir))
+        for f in expected_dependencies_files:
+            self.assertIn(f, dependencies_files)

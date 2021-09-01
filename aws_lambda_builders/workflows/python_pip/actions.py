@@ -20,8 +20,8 @@ class PythonPipBuildAction(BaseAction):
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
         self.runtime = runtime
-        self.binaries = binaries
         self.dependencies_dir = dependencies_dir
+        self.binaries = binaries
 
     def execute(self):
         os_utils = OSUtils()
