@@ -49,6 +49,3 @@ class RubyBundlerWorkflow(BaseWorkflow):
             # dependencies folder to artifact folder
             if self.dependencies_dir:
                 self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
-
-
-
