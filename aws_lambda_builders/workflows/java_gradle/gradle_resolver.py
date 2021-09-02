@@ -2,7 +2,7 @@
 Gradle executable resolution
 """
 
-from aws_lambda_builders.workflows.java.utils import OSUtils
+from .utils import OSUtils
 
 
 class GradleResolver(object):

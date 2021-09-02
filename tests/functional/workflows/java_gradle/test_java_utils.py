@@ -4,7 +4,7 @@ import tempfile
 
 from unittest import TestCase
 
-from aws_lambda_builders.workflows.java import utils
+from aws_lambda_builders.workflows.java_gradle import utils
 
 
 class TestOSUtils(TestCase):
