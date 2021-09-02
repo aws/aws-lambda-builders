@@ -92,8 +92,16 @@ class PythonPipWorkflow(BaseWorkflow):
                 self.actions.append(
                     CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)
                 )
+
         else:
             LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
+
+        if not self.download_dependencies and not self.dependencies_dir:
+            LOG.info(
+                "download_dependencies is false and the dependencies_dir is not exists, just copying the source files "
+                "into the artifacts directory "
+            )
+
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
     def get_validators(self):

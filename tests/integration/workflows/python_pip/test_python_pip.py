@@ -53,6 +53,7 @@ class TestPythonPipWorkflow(TestCase):
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
+        shutil.rmtree(self.dependencies_dir)
 
     def test_must_build_python_project(self):
         self.builder.build(
