@@ -198,6 +198,6 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(expected_files, output_files)
 
         mock_info.assert_called_with(
-            "download_dependencies is false and the dependencies_dir is not exists, just copying the source "
-            "files into the artifacts directory "
+            "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
+            "artifacts directory. "
         )

@@ -66,8 +66,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
                 self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
             else:
                 LOG.info(
-                    "download_dependencies is false and the dependencies_dir is not exists, just copying the source "
-                    "files into the artifacts directory "
+                    "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
+                    "artifacts directory. "
                 )
 
         self.actions.append(NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils))
