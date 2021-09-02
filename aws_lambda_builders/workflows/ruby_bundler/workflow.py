@@ -1,12 +1,15 @@
 """
 Ruby Bundler Workflow
 """
+import logging
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 from .utils import OSUtils
 from .bundler import SubprocessBundler
+
+LOG = logging.getLogger(__name__)
 
 
 class RubyBundlerWorkflow(BaseWorkflow):
@@ -49,3 +52,8 @@ class RubyBundlerWorkflow(BaseWorkflow):
             # dependencies folder to artifact folder
             if self.dependencies_dir:
                 self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+            else:
+                LOG.info(
+                    "download_dependencies is false and the dependencies_dir is not exists, just copying the source "
+                    "files into the artifacts directory "
+                )

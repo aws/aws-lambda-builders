@@ -20,7 +20,7 @@ class TestRubyBundlerWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[1], RubyBundlerInstallAction)
         self.assertIsInstance(workflow.actions[2], RubyBundlerVendorAction)
 
-    def test_workflow_sets_up_npm_actions_without_download_dependencies(self):
+    def test_workflow_sets_up_npm_actions_without_download_dependencies_with_dependencies_dir(self):
         workflow = RubyBundlerWorkflow(
             "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", download_dependencies=False
         )
@@ -41,3 +41,12 @@ class TestRubyBundlerWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[1], RubyBundlerInstallAction)
         self.assertIsInstance(workflow.actions[2], RubyBundlerVendorAction)
         self.assertIsInstance(workflow.actions[3], CopyDependenciesAction)
+
+    def test_workflow_sets_up_bundler_actions_without_download_dependencies_without_dependencies_dir(self):
+        workflow = RubyBundlerWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", dependencies_dir=None, download_dependencies=False
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)

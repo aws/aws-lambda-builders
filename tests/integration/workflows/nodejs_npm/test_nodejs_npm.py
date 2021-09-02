@@ -1,11 +1,15 @@
+import logging
 import os
 import shutil
 import tempfile
 
 from unittest import TestCase
 
+import mock
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+
+workflow_logger = logging.getLogger("aws_lambda_builders.workflows.nodejs_npm.workflow")
 
 
 class TestNodejsNpmWorkflow(TestCase):
@@ -28,6 +32,7 @@ class TestNodejsNpmWorkflow(TestCase):
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
+        shutil.rmtree(self.dependencies_dir)
 
     def test_builds_project_without_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
@@ -128,7 +133,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.assertIn("Unexpected end of JSON input", str(ctx.exception))
 
-    def test_builds_project_with_remote_dependencies_without_download_dependencies(self):
+    def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
 
         self.builder.build(
@@ -173,3 +178,26 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_dependencies_files = {"node_modules"}
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
+
+    def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
+
+        with mock.patch.object(workflow_logger, "info") as mock_info:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+                dependencies_dir=None,
+                download_dependencies=False,
+            )
+
+        expected_files = {"package.json", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        mock_info.assert_called_with(
+            "download_dependencies is false and the dependencies_dir is not exists, just copying the source "
+            "files into the artifacts directory "
+        )

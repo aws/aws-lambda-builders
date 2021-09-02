@@ -33,7 +33,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
 
-    def test_workflow_sets_up_npm_actions_without_download_dependencies(self):
+    def test_workflow_sets_up_npm_actions_without_download_dependencies_with_dependencies_dir(self):
 
         workflow = NodejsNpmWorkflow(
             "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", download_dependencies=False
@@ -61,3 +61,16 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[4], CopyDependenciesAction)
         self.assertIsInstance(workflow.actions[5], NodejsNpmrcCleanUpAction)
+
+    def test_workflow_sets_up_npm_actions_without_download_dependencies_and_without_dependencies_dir(self):
+
+        workflow = NodejsNpmWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", dependencies_dir=None, download_dependencies=False
+        )
+
+        self.assertEqual(len(workflow.actions), 4)
+
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmrcCleanUpAction)

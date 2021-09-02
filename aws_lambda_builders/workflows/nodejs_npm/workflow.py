@@ -1,12 +1,16 @@
 """
 NodeJS NPM Workflow
 """
+import logging
+
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
+
+LOG = logging.getLogger(__name__)
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -50,8 +54,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         if self.download_dependencies:
             # installed the dependencies into artifact folder
-            npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
-            self.actions.append(npm_install)
+            self.actions.append(NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm))
 
             # if dependencies folder exists, copy dependencies into dependencies into dependencies folder
             if self.dependencies_dir:
@@ -61,6 +64,11 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # dependencies folder to artifact folder
             if self.dependencies_dir:
                 self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+            else:
+                LOG.info(
+                    "download_dependencies is false and the dependencies_dir is not exists, just copying the source "
+                    "files into the artifacts directory "
+                )
 
         self.actions.append(NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils))
 
