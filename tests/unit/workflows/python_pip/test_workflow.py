@@ -36,7 +36,7 @@ class TestPythonPipWorkflow(TestCase):
         for validator in self.workflow.get_validators():
             self.assertTrue(isinstance(validator, PythonRuntimeValidator))
 
-    def test_workflow_sets_up_actions_without_download_dependencies(self):
+    def test_workflow_sets_up_actions_without_download_dependencies_with_dependencies_dir(self):
         osutils_mock = mock.Mock(spec=self.osutils)
         osutils_mock.file_exists.return_value = True
         self.workflow = PythonPipWorkflow(
@@ -70,3 +70,19 @@ class TestPythonPipWorkflow(TestCase):
         self.assertIsInstance(self.workflow.actions[0], PythonPipBuildAction)
         self.assertIsInstance(self.workflow.actions[1], CopySourceAction)
         self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
+
+    def test_workflow_sets_up_actions_without_download_dependencies_without_dependencies_dir(self):
+        osutils_mock = mock.Mock(spec=self.osutils)
+        osutils_mock.file_exists.return_value = True
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.7",
+            osutils=osutils_mock,
+            dependencies_dir=None,
+            download_dependencies=False,
+        )
+        self.assertEqual(len(self.workflow.actions), 1)
+        self.assertIsInstance(self.workflow.actions[0], CopySourceAction)
