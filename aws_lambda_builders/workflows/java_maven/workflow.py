@@ -3,11 +3,12 @@ Java Maven Workflow
 """
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction
+from aws_lambda_builders.workflows.java.utils import OSUtils
 from .actions import JavaMavenBuildAction, JavaMavenCopyDependencyAction, JavaMavenCopyArtifactsAction
 from .maven import SubprocessMaven
 from .maven_resolver import MavenResolver
 from .maven_validator import MavenValidator
-from .utils import OSUtils
 
 
 class JavaMavenWorkflow(BaseWorkflow):
@@ -35,6 +36,8 @@ class JavaMavenWorkflow(BaseWorkflow):
             JavaMavenCopyDependencyAction(scratch_dir, subprocess_maven),
             JavaMavenCopyArtifactsAction(scratch_dir, artifacts_dir, self.os_utils),
         ]
+        if self.dependencies_dir:
+            self.actions.append(JavaCopyDependenciesAction(artifacts_dir, self.dependencies_dir, self.os_utils))
 
     def get_resolvers(self):
         return [MavenResolver(executable_search_paths=self.executable_search_paths)]
