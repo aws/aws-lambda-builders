@@ -142,7 +142,7 @@ class TestPythonPipWorkflow(TestCase):
         )
 
     @skipIf(IS_WINDOWS, "Skip in windows tests")
-    def test_without_download_dependencies(self):
+    def test_without_download_dependencies_with_dependencies_dir(self):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -167,7 +167,7 @@ class TestPythonPipWorkflow(TestCase):
         self.assertEqual(output_files, expected_files)
 
     @skipIf(IS_WINDOWS, "Skip in windows tests")
-    def test_without_download_dependencies(self):
+    def test_with_download_dependencies_and_dependencies_dir(self):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -208,3 +208,34 @@ class TestPythonPipWorkflow(TestCase):
         dependencies_files = set(os.listdir(self.dependencies_dir))
         for f in expected_dependencies_files:
             self.assertIn(f, dependencies_files)
+
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
+    def test_without_download_dependencies_without_dependencies_dir(self):
+        source_dir = os.path.join(self.source_dir, "local-dependencies")
+        manifest = os.path.join(source_dir, "requirements.txt")
+        path_to_package = os.path.join(self.source_dir, "local-dependencies")
+        # pip resolves dependencies in requirements files relative to the current working directory
+        # need to make sure the correct path is used in the requirements file locally and in CI
+        with open(manifest, "w") as f:
+            f.write(str(path_to_package))
+        with mock.patch.object(logger, "info") as mock_info:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                manifest,
+                runtime=self.runtime,
+                download_dependencies=False,
+                dependencies_dir=None,
+            )
+
+        # if download_dependencies is False and dependencies is None, the artifacts_dir should just copy files from
+        # source package
+        expected_files = set(os.listdir(path_to_package))
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(output_files, expected_files)
+
+        mock_info.assert_called_once_with(
+            "download_dependencies is false and the dependencies_dir is not exists, just copying the source files "
+            "into the artifacts directory "
+        )
