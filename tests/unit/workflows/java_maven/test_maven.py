@@ -21,7 +21,7 @@ class FakePopen:
 
 
 class TestSubprocessMaven(TestCase):
-    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.java_gradle.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.os_utils.exists.side_effect = lambda d: True
