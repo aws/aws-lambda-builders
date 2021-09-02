@@ -73,6 +73,12 @@ class PythonPipWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
+        if not self.download_dependencies and not self.dependencies_dir:
+            LOG.info(
+                "download_dependencies is false and the dependencies_dir is not exists, just copying the source files "
+                "into the artifacts directory "
+            )
+
         self.actions = []
         if osutils.file_exists(manifest_path):
             # If a requirements.txt exists, run pip builder before copy action.
@@ -95,12 +101,6 @@ class PythonPipWorkflow(BaseWorkflow):
 
         else:
             LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
-
-        if not self.download_dependencies and not self.dependencies_dir:
-            LOG.info(
-                "download_dependencies is false and the dependencies_dir is not exists, just copying the source files "
-                "into the artifacts directory "
-            )
 
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
