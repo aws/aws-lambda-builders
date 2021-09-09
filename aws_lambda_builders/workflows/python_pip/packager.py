@@ -709,6 +709,8 @@ class PipRunner(object):
                 "--no-deps",
                 "--platform",
                 "manylinux2014_x86_64",
+                "--platform",
+                "manylinux1_x86_64",
                 "--implementation",
                 "cp",
                 "--abi",
