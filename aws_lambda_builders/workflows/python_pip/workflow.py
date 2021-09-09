@@ -19,7 +19,7 @@ class PythonPipWorkflow(BaseWorkflow):
 
     CAPABILITY = Capability(language="python", dependency_manager="pip", application_framework=None)
 
-    # Common source files to exclude from build artifacts output
+    # Common source files to exclude from build artifacts output e
     # Trimmed version of https://github.com/github/gitignore/blob/master/Python.gitignore
     EXCLUDED_FILES = (
         ".aws-sam",
