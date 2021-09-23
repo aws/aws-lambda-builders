@@ -95,7 +95,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-        expected_modules = {"minimal-request-promise"}
+        expected_modules = {"minimal-request-promise", ".package-lock.json"}
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
 
@@ -115,7 +115,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.assertEqual(expected_files, output_files)
 
-        expected_modules = {"fake-http-request"}
+        expected_modules = {"fake-http-request", ".package-lock.json"}
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
 
