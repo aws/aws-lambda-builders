@@ -40,15 +40,15 @@ class NodejsNpmWorkflow(BaseWorkflow):
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
 
-        npm_pack = NodejsNpmPackAction(
-            tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
-        )
-
-        npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
-
-        npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
-
         if osutils.file_exists(manifest_path):
+            npm_pack = NodejsNpmPackAction(
+                tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
+            )
+
+            npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
+
+            npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
+
             self.actions = [
                 npm_pack,
                 npm_copy_npmrc,
