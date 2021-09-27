@@ -1,12 +1,16 @@
 """
 NodeJS NPM Workflow
 """
+import logging
+
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
+
+LOG = logging.getLogger(__name__)
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -36,21 +40,25 @@ class NodejsNpmWorkflow(BaseWorkflow):
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
 
-        npm_pack = NodejsNpmPackAction(
-            tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
-        )
+        if osutils.file_exists(manifest_path):
+            npm_pack = NodejsNpmPackAction(
+                tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
+            )
 
-        npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
+            npm_install = NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
 
-        npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
+            npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
-        self.actions = [
-            npm_pack,
-            npm_copy_npmrc,
-            CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            npm_install,
-            NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils),
-        ]
+            self.actions = [
+                npm_pack,
+                npm_copy_npmrc,
+                CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
+                npm_install,
+                NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils),
+            ]
+        else:
+            LOG.warning("package.json file not found. Continuing the build without dependencies.")
+            self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
 
     def get_resolvers(self):
         """
