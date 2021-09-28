@@ -27,7 +27,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
 
         self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm", application_framework=None)
-        self.runtime = "nodejs8.10"
+        self.runtime = "nodejs12.x"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
