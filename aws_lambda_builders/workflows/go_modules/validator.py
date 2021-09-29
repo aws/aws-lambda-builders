@@ -30,6 +30,15 @@ class GoRuntimeValidator(RuntimeValidator):
         except IndexError:
             return 0, 0
 
+    @staticmethod
+    def get_go_versions(version_string):
+        parts = GoRuntimeValidator.GO_VERSION_REGEX.findall(version_string)
+        try:
+            # NOTE(sriram-mv): The version parts need to be a list with a major and minor version.
+            return int(parts[0][0]), int(parts[0][1])
+        except IndexError:
+            return 0, 0
+
     def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
