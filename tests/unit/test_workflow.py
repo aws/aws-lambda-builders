@@ -13,7 +13,13 @@ from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
-from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError, MisMatchRuntimeError
+from aws_lambda_builders.exceptions import (
+    WorkflowFailedError,
+    WorkflowUnknownError,
+    MisMatchRuntimeError,
+    UnsupportedRuntimeError,
+    UnsupportedArchitectureError,
+)
 from aws_lambda_builders.actions import ActionFailedError
 
 
@@ -112,6 +118,7 @@ class TestBaseWorkflow_init(TestCase):
         self.assertEqual(self.work.executable_search_paths, [str(sys.executable)])
         self.assertEqual(self.work.optimizations, {"a": "b"})
         self.assertEqual(self.work.options, {"c": "d"})
+        self.assertEqual(self.work.architecture, "x86_64")
 
 
 class TestBaseWorkflow_is_supported(TestCase):
@@ -132,6 +139,7 @@ class TestBaseWorkflow_is_supported(TestCase):
             executable_search_paths=[],
             optimizations={"a": "b"},
             options={"c": "d"},
+            architecture="arm64",
         )
 
     def test_must_ignore_manifest_if_not_provided(self):
@@ -149,6 +157,9 @@ class TestBaseWorkflow_is_supported(TestCase):
         self.work.SUPPORTED_MANIFESTS = ["manifest.json", "someother_manifest"]
 
         self.assertTrue(self.work.is_supported())
+
+    def test_must_match_architecture_type(self):
+        self.assertEqual(self.work.architecture, "arm64")
 
     def test_must_fail_if_manifest_not_in_list(self):
         self.work.SUPPORTED_MANIFESTS = ["someother_manifest"]
@@ -269,7 +280,7 @@ class TestBaseWorkflow_run(TestCase):
         self.assertIn("somevalueerror", str(ctx.exception))
 
     def test_supply_executable_path(self):
-        # Run workflow with supplied executable path to search for executables.
+        # Run workflow with supplied executable path to search for executables
         action_mock = Mock()
 
         self.work = self.MyWorkflow(
@@ -286,6 +297,59 @@ class TestBaseWorkflow_run(TestCase):
         self.mock_binaries()
 
         self.work.run()
+
+    def test_must_raise_for_unknown_runtime(self):
+        action_mock = Mock()
+        validator_mock = Mock()
+        validator_mock.validate = Mock()
+        validator_mock.validate = MagicMock(side_effect=UnsupportedRuntimeError(runtime="runtime"))
+
+        resolver_mock = Mock()
+        resolver_mock.exec_paths = ["/usr/bin/binary"]
+        binaries_mock = Mock()
+        binaries_mock.return_value = []
+
+        self.work.get_validators = lambda: validator_mock
+        self.work.get_resolvers = lambda: resolver_mock
+        self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
+        with self.assertRaises(WorkflowFailedError) as ex:
+            self.work.run()
+
+        self.assertIn("Runtime runtime is not suppported", str(ex.exception))
+
+    def test_must_raise_for_incompatible_runtime_and_architecture(self):
+        self.work = self.MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="python2.7",
+            executable_search_paths=[str(pathlib.Path(os.getcwd()).parent)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
+        action_mock = Mock()
+        validator_mock = Mock()
+        validator_mock.validate = Mock()
+        validator_mock.validate = MagicMock(
+            side_effect=UnsupportedArchitectureError(runtime="python2.7", architecture="arm64")
+        )
+
+        resolver_mock = Mock()
+        resolver_mock.exec_paths = ["/usr/bin/binary"]
+        binaries_mock = Mock()
+        binaries_mock.return_value = []
+
+        self.work.architecture = "arm64"
+        self.work.get_validators = lambda: validator_mock
+        self.work.get_resolvers = lambda: resolver_mock
+        self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
+        with self.assertRaises(WorkflowFailedError) as ex:
+            self.work.run()
+
+        self.assertIn("Architecture arm64 is not supported for runtime python2.7", str(ex.exception))
 
 
 class TestBaseWorkflow_repr(TestCase):

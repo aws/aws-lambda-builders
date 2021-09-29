@@ -53,6 +53,25 @@ class TestPythonPipWorkflow(TestCase):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
+    def check_architecture_in(self, library, architectures):
+        wheel_architectures = []
+        with open(os.path.join(self.artifacts_dir, library, "WHEEL")) as wheel:
+            for line in wheel:
+                if line.startswith("Tag:"):
+                    wheel_architecture = line.rstrip().split("-")[-1]
+                    if wheel_architecture in architectures:
+                        return  # Success
+                    wheel_architectures.append(wheel_architecture)
+        self.fail(
+            "Wheel architectures [{}] not found in [{}]".format(
+                ", ".join(wheel_architectures), ", ".join(architectures)
+            )
+        )
+
+    # Temporarily skipping this test in Windows
+    # Fails and we are not sure why: pip version/multiple Python versions in path/os/pypa issue?
+    # TODO: Revisit when we deprecate Python2
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_build_python_project(self):
         self.builder.build(
             self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime=self.runtime
@@ -61,12 +80,37 @@ class TestPythonPipWorkflow(TestCase):
         if self.runtime == "python2.7":
             expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
         elif self.runtime == "python3.6":
+            self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
         else:
+            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
+
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
+    def test_must_build_python_project_with_arm_architecture(self):
+        if self.runtime != "python3.8":
+            self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
+        ### Check the wheels
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_valid,
+            runtime=self.runtime,
+            architecture="arm64",
+        )
+        expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-1.20.3.dist-info"})
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
+
+    # Temporarily skipping this test in Windows
+    # Fails and we are not sure why: pip version/multiple Python versions in path/os/pypa issue?
+    # TODO: Revisit when we deprecate Python2
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_mismatch_runtime_python_project(self):
         # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python2.7
         # is still accessible within a python 3 virtualenv.

@@ -1,3 +1,6 @@
+import logging
+import mock
+
 import os
 import shutil
 import tempfile
@@ -6,6 +9,8 @@ from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+
+logger = logging.getLogger("aws_lambda_builders.workflows.nodejs_npm.workflow")
 
 
 class TestNodejsNpmWorkflow(TestCase):
@@ -22,7 +27,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
 
         self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm", application_framework=None)
-        self.runtime = "nodejs8.10"
+        self.runtime = "nodejs12.x"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -41,6 +46,23 @@ class TestNodejsNpmWorkflow(TestCase):
 
         expected_files = {"package.json", "included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    def test_builds_project_without_manifest(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-manifest")
+
+        with mock.patch.object(logger, "warning") as mock_warning:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+            )
+
+        expected_files = {"app.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        mock_warning.assert_called_once_with("package.json file not found. Continuing the build without dependencies.")
         self.assertEqual(expected_files, output_files)
 
     def test_builds_project_and_excludes_hidden_aws_sam(self):
