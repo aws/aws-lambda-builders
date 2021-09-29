@@ -7,7 +7,6 @@ import os
 
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-
 from .actions import DepEnsureAction, GoBuildAction
 from .utils import OSUtils
 from .subproc_exec import SubprocessExec
@@ -48,5 +47,12 @@ class GoDepWorkflow(BaseWorkflow):
 
         self.actions = [
             DepEnsureAction(base_dir, subprocess_dep),
-            GoBuildAction(base_dir, osutils.abspath(source_dir), output_path, subprocess_go, env=osutils.environ),
+            GoBuildAction(
+                base_dir,
+                osutils.abspath(source_dir),
+                output_path,
+                subprocess_go,
+                self.architecture,
+                env=osutils.environ,
+            ),
         ]

@@ -17,6 +17,8 @@ mock==4.0.2; python_version >= '3.6'
 parameterized==0.7.4
 pathlib2==2.3.2; python_version<"3.4"
 futures==3.2.0; python_version<"3.2.3"
+pyelftools~=0.27 # Used to verify the generated Go binary architecture in integration tests (utils.py)
+
 
 # tempfile backport for < 3.6
 backports.tempfile==1.0; python_version<"3.7"
