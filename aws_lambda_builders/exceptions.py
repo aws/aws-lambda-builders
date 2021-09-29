@@ -37,7 +37,7 @@ class UnsupportedRuntimeError(RuntimeValidatorError):
     Raise when runtime is not supported
     """
 
-    MESSAGE = "Runtime {runtime} is not suppported"
+    MESSAGE = "Runtime {runtime} is not supported"
 
 
 class UnsupportedArchitectureError(RuntimeValidatorError):
