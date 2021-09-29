@@ -6,6 +6,9 @@ from aws_lambda_builders.validator import RuntimeValidator
 
 
 class CustomMakeRuntimeValidator(RuntimeValidator):
+    """
+    Default runtime validator for CustomMake workflow
+    """
     def __init__(self, runtime, architecture):
         super(CustomMakeRuntimeValidator, self).__init__(runtime, architecture)
         self._valid_runtime_path = None
