@@ -1,8 +1,13 @@
 from unittest import TestCase
 from mock import patch, ANY
 
-from aws_lambda_builders.actions import BaseAction, CopySourceAction, Purpose, CopyDependenciesAction, \
-    MoveDependenciesAction
+from aws_lambda_builders.actions import (
+    BaseAction,
+    CopySourceAction,
+    Purpose,
+    CopyDependenciesAction,
+    MoveDependenciesAction,
+)
 
 
 class TestBaseActionInheritance(TestCase):
