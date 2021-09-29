@@ -86,3 +86,21 @@ class TestPythonPipWorkflow(TestCase):
         )
         self.assertEqual(len(self.workflow.actions), 1)
         self.assertIsInstance(self.workflow.actions[0], CopySourceAction)
+
+    def test_workflow_sets_up_actions_without_combine_dependencies(self):
+        osutils_mock = mock.Mock(spec=self.osutils)
+        osutils_mock.file_exists.return_value = True
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.7",
+            osutils=osutils_mock,
+            dependencies_dir="dep",
+            download_dependencies=True,
+            combine_dependencies=False,
+        )
+        self.assertEqual(len(self.workflow.actions), 2)
+        self.assertIsInstance(self.workflow.actions[0], PythonPipBuildAction)
+        self.assertIsInstance(self.workflow.actions[1], CopySourceAction)

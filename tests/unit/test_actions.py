@@ -1,7 +1,8 @@
 from unittest import TestCase
 from mock import patch, ANY
 
-from aws_lambda_builders.actions import BaseAction, CopySourceAction, Purpose, CopyDependenciesAction
+from aws_lambda_builders.actions import BaseAction, CopySourceAction, Purpose, CopyDependenciesAction, \
+    MoveDependenciesAction
 
 
 class TestBaseActionInheritance(TestCase):
@@ -75,3 +76,23 @@ class TestCopyDependenciesAction_execute(TestCase):
         listdir_mock.assert_any_call(artifact_dir)
         copytree_mock.assert_called_once_with("dir1", "dir2")
         copy2_mock.assert_called_once_with("file1", "file2")
+
+
+class TestMoveDependenciesAction_execute(TestCase):
+    @patch("aws_lambda_builders.actions.shutil.move")
+    @patch("aws_lambda_builders.actions.os.listdir")
+    @patch("aws_lambda_builders.actions.os.path.join")
+    def test_must_copy(self, path_mock, listdir_mock, move_mock):
+        source_dir = "source"
+        artifact_dir = "artifact"
+        dest_dir = "dest"
+
+        listdir_mock.side_effect = [[1], [1, 2, 3]]
+        path_mock.side_effect = ["dir1", "dir2", "file1", "file2"]
+        action = MoveDependenciesAction(source_dir, artifact_dir, dest_dir)
+        action.execute()
+
+        listdir_mock.assert_any_call(source_dir)
+        listdir_mock.assert_any_call(artifact_dir)
+        move_mock.assert_any_call("dir1", "dir2")
+        move_mock.assert_any_call("file1", "file2")

@@ -142,6 +142,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         mode=BuildMode.RELEASE,
         download_dependencies=True,
         dependencies_dir=None,
+        combine_dependencies=True,
     ):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
@@ -192,6 +193,11 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         :type mode: str
         :param dependencies_dir:
             Optional, Path to folder the dependencies should be downloaded to
+        :type combine_dependencies: bool
+
+        :param combine_dependencies:
+            Optional, This flag will only be used if dependency_folder is specified. False will not copy dependencies
+            from dependency_folder into build folder
         """
 
         self.source_dir = source_dir
@@ -205,6 +211,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.mode = mode
         self.download_dependencies = download_dependencies
         self.dependencies_dir = dependencies_dir
+        self.combine_dependencies = combine_dependencies
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []

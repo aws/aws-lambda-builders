@@ -5,7 +5,7 @@ import logging
 
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, MoveDependenciesAction
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
@@ -56,19 +56,20 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # installed the dependencies into artifact folder
             self.actions.append(NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm))
 
-            # if dependencies folder exists, copy dependencies into dependencies into dependencies folder
+            # if dependencies folder exists, Move dependencies from artifact folder to dependencies folder
             if self.dependencies_dir:
-                self.actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+                self.actions.append(MoveDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+
+        # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
+        # dependencies folder to artifact folder
+        # if combine_dependencies is false, will not copy the dependencies from dependencies folder to artifact folder
+        if self.dependencies_dir and self.combine_dependencies:
+            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
         else:
-            # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
-            # dependencies folder to artifact folder
-            if self.dependencies_dir:
-                self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
-            else:
-                LOG.info(
-                    "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
-                    "artifacts directory. "
-                )
+            LOG.info(
+                "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
+                "artifacts directory. "
+            )
 
         self.actions.append(NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils))
 

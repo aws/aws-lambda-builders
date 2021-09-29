@@ -66,6 +66,7 @@ class LambdaBuilder(object):
         mode=None,
         download_dependencies=True,
         dependencies_dir=None,
+        combine_dependencies=True,
     ):
         """
         Actually build the code by running workflows
@@ -115,6 +116,11 @@ class LambdaBuilder(object):
         :type mode: str
         :param dependencies_dir:
             Optional, Path to folder the dependencies should be downloaded to
+
+        :type combine_dependencies: bool
+        :param combine_dependencies:
+            Optional, This flag will only be used if dependency_folder is specified. False will not copy dependencies
+            from dependency_folder into build folder
         """
 
         if not os.path.exists(scratch_dir):
@@ -132,6 +138,7 @@ class LambdaBuilder(object):
             mode=mode,
             download_dependencies=download_dependencies,
             dependencies_dir=dependencies_dir,
+            combine_dependencies=combine_dependencies,
         )
 
         return workflow.run()

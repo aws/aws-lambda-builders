@@ -94,7 +94,9 @@ class PythonPipWorkflow(BaseWorkflow):
                     )
                 )
             # if dependencies folder is provided, copy dependencies from dependencies folder to build folder
-            if self.dependencies_dir:
+            # if combine_dependencies is false, will not copy the dependencies from dependencies folder to artifact
+            # folder
+            if self.dependencies_dir and self.combine_dependencies:
                 self.actions.append(
                     CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)
                 )
