@@ -1,6 +1,7 @@
 """
 ProvidedMakeWorkflow
 """
+from aws_lambda_builders.workflows.custom_make.validator import CustomMakeRuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.path_resolver import PathResolver
@@ -56,3 +57,6 @@ class CustomMakeWorkflow(BaseWorkflow):
 
     def get_resolvers(self):
         return [PathResolver(runtime="provided", binary="make", executable_search_paths=self.executable_search_paths)]
+
+    def get_validators(self):
+        return [CustomMakeRuntimeValidator(runtime=self.runtime, architecture=self.architecture)]

@@ -316,7 +316,7 @@ class TestBaseWorkflow_run(TestCase):
         with self.assertRaises(WorkflowFailedError) as ex:
             self.work.run()
 
-        self.assertIn("Runtime runtime is not suppported", str(ex.exception))
+        self.assertIn("Runtime runtime is not supported", str(ex.exception))
 
     def test_must_raise_for_incompatible_runtime_and_architecture(self):
         self.work = self.MyWorkflow(
