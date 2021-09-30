@@ -123,7 +123,6 @@ class CopyDependenciesAction(BaseAction):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
-        self.excludes = excludes or []
 
     def execute(self):
         source = set(os.listdir(self.source_dir))
@@ -152,7 +151,6 @@ class MoveDependenciesAction(BaseAction):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
-        self.excludes = excludes or []
 
     def execute(self):
         source = set(os.listdir(self.source_dir))

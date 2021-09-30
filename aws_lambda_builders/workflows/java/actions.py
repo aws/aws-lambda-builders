@@ -7,6 +7,10 @@ from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 
 
 class JavaCopyDependenciesAction(BaseAction):
+    """
+    Class for copying Java dependencies from artifact folder to dependencies folder
+    """
+
     NAME = "JavaCopyDependencies"
     DESCRIPTION = "Copying dependencies"
     PURPOSE = Purpose.COPY_SOURCE
@@ -20,6 +24,9 @@ class JavaCopyDependenciesAction(BaseAction):
         self._copy_dependencies()
 
     def _copy_dependencies(self):
+        """
+        copy the entire lib directory from artifact folder to dependencies folder
+        """
         try:
             dependencies_lib_dir = os.path.join(self.dependencies_dir, "lib")
             if not self.os_utils.exists(dependencies_lib_dir):
@@ -31,6 +38,10 @@ class JavaCopyDependenciesAction(BaseAction):
 
 
 class JavaRemoveDependenciesAction(BaseAction):
+    """
+    Class for removing Java dependencies in the artifact folder
+    """
+
     NAME = "JavaRemoveDependencies"
     DESCRIPTION = "Remove dependencies"
     PURPOSE = Purpose.REMOVE_DEPENDENCIES
@@ -43,6 +54,9 @@ class JavaRemoveDependenciesAction(BaseAction):
         self._remove_dependencies()
 
     def _remove_dependencies(self):
+        """
+        delete the entire lib directory in the artifact folder
+        """
         try:
             artifacts_lib_dir = os.path.join(self.artifacts_dir, "lib")
             if self.os_utils.exists(artifacts_lib_dir):
