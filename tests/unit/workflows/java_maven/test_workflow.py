@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaRemoveDependenciesAction
 from aws_lambda_builders.workflows.java_maven.workflow import JavaMavenWorkflow
 from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenBuildAction,
@@ -54,3 +55,22 @@ class TestJavaMavenWorkflow(TestCase):
         self.assertEqual(".aws-sam", workflow.actions[0].excludes[0])
 
         self.assertEqual(".git", workflow.actions[0].excludes[1])
+
+    def test_workflow_sets_up_maven_actions_without_combine_dependencies(self):
+        workflow = JavaMavenWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", combine_dependencies=False
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+
+        self.assertIsInstance(workflow.actions[1], JavaMavenBuildAction)
+
+        self.assertIsInstance(workflow.actions[2], JavaMavenCopyDependencyAction)
+
+        self.assertIsInstance(workflow.actions[3], JavaMavenCopyArtifactsAction)
+
+        self.assertIsInstance(workflow.actions[4], JavaCopyDependenciesAction)
+
+        self.assertIsInstance(workflow.actions[5], JavaRemoveDependenciesAction)

@@ -4,7 +4,7 @@ Java Gradle Workflow
 import hashlib
 import os
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction
+from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaRemoveDependenciesAction
 from aws_lambda_builders.workflows.java.utils import OSUtils
 from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle

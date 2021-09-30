@@ -3,7 +3,7 @@ from mock import patch
 import os
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction
+from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaRemoveDependenciesAction
 
 
 class TestJavaCopyDependenciesAction(TestCase):
@@ -28,6 +28,28 @@ class TestJavaCopyDependenciesAction(TestCase):
     def test_error_in_artifact_copy_raises_action_error(self):
         self.os_utils.copytree.side_effect = Exception("scandir failed!")
         action = JavaCopyDependenciesAction(self.artifacts_dir, self.dependencies_dir, self.os_utils)
+        with self.assertRaises(ActionFailedError) as raised:
+            action.execute()
+        self.assertEqual(raised.exception.args[0], "scandir failed!")
+
+
+class TestJavaRemoveDependenciesAction(TestCase):
+    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
+    def setUp(self, MockOSUtils):
+        self.os_utils = MockOSUtils.return_value
+        self.artifacts_dir = "artifacts_dir"
+
+    def test_copies_artifacts(self):
+        self.os_utils.rmtree.side_effect = lambda src: None
+
+        action = JavaRemoveDependenciesAction(self.artifacts_dir, self.os_utils)
+        action.execute()
+
+        self.os_utils.rmtree.assert_called_with(os.path.join(self.artifacts_dir, "lib"))
+
+    def test_error_in_artifact_copy_raises_action_error(self):
+        self.os_utils.rmtree.side_effect = Exception("scandir failed!")
+        action = JavaRemoveDependenciesAction(self.artifacts_dir, self.os_utils)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
         self.assertEqual(raised.exception.args[0], "scandir failed!")

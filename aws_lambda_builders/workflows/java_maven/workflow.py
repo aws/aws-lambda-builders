@@ -30,10 +30,6 @@ class JavaMavenWorkflow(BaseWorkflow):
         root_dir = source_dir
         subprocess_maven = SubprocessMaven(maven_binary=self.binaries["mvn"], os_utils=self.os_utils)
 
-        artifacts_dir = "/Users/hmingku/Desktop/test/testNode/JavaA"
-        self.dependencies_dir = "/Users/hmingku/Desktop/test/testNode/JavaD"
-        self.combine_dependencies = False
-
         self.actions = [
             CopySourceAction(root_dir, scratch_dir, excludes=self.EXCLUDED_FILES),
             JavaMavenBuildAction(scratch_dir, subprocess_maven),
