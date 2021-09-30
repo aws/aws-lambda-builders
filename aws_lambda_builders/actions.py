@@ -37,6 +37,9 @@ class Purpose(object):
     # Action is moving dependencies
     MOVE_DEPENDENCIES = "MOVE_DEPENDENCIES"
 
+    # Action is removing dependencies
+    REMOVE_DEPENDENCIES = "REMOVE_DEPENDENCIES"
+
     # Action is compiling source code
     COMPILE_SOURCE = "COMPILE_SOURCE"
 

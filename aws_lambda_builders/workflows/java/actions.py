@@ -28,3 +28,24 @@ class JavaCopyDependenciesAction(BaseAction):
             self.os_utils.copytree(lib_folder, dependencies_lib_dir)
         except Exception as ex:
             raise ActionFailedError(str(ex))
+
+
+class JavaRemoveDependenciesAction(BaseAction):
+    NAME = "JavaRemoveDependencies"
+    DESCRIPTION = "Remove dependencies"
+    PURPOSE = Purpose.REMOVE_DEPENDENCIES
+
+    def __init__(self, artifacts_dir, os_utils):
+        self.artifacts_dir = artifacts_dir
+        self.os_utils = os_utils
+
+    def execute(self):
+        self._remove_dependencies()
+
+    def _remove_dependencies(self):
+        try:
+            artifacts_lib_dir = os.path.join(self.artifacts_dir, "lib")
+            if self.os_utils.exists(artifacts_lib_dir):
+                self.os_utils.rmtree(artifacts_lib_dir)
+        except Exception as ex:
+            raise ActionFailedError(str(ex))

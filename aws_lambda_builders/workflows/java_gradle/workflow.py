@@ -36,6 +36,8 @@ class JavaGradleWorkflow(BaseWorkflow):
         ]
         if self.dependencies_dir:
             self.actions.append(JavaCopyDependenciesAction(artifacts_dir, self.dependencies_dir, self.os_utils))
+            if not self.combine_dependencies:
+                self.actions.append(JavaRemoveDependenciesAction(artifacts_dir, self.os_utils))
 
     def get_resolvers(self):
         return [GradleResolver(executable_search_paths=self.executable_search_paths)]

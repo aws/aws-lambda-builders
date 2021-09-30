@@ -49,6 +49,9 @@ class OSUtils(object):
     def makedirs(self, d):
         return os.makedirs(d)
 
+    def rmtree(self, d):
+        shutil.rmtree(d)
+
     @property
     def pipe(self):
         return subprocess.PIPE
