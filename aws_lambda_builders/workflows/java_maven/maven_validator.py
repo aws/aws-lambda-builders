@@ -5,12 +5,14 @@ Maven Binary Validation
 import logging
 import re
 
+from aws_lambda_builders.validator import RuntimeValidator
+
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
 
-class MavenValidator(object):
+class MavenValidator(RuntimeValidator):
     VERSION_STRING_WARNING = (
         "%s failed to return a version string using the '-v' option. The workflow is unable to "
         "check that the version of the JVM used is compatible with AWS Lambda."
@@ -22,17 +24,30 @@ class MavenValidator(object):
         "been configured to be compatible with Java %s using 'maven.compiler.target' in Maven."
     )
 
-    def __init__(self, runtime, os_utils=None, log=None):
+    def __init__(self, runtime, architecture, os_utils=None, log=None):
+        super(MavenValidator, self).__init__(runtime, architecture)
         self.language = "java"
         self._valid_binary_path = None
-        self._runtime = runtime
         self.os_utils = OSUtils() if not os_utils else os_utils
         self.log = LOG if not log else log
 
-    def validate(self, maven_path):
+    def validate(self, runtime_path):
+        """
+        Parameters
+        ----------
+        runtime_path : str
+            maven_path to check eg: /usr/bin/java8
+
+        Returns
+        -------
+        str
+           runtime to check for the java binaries eg: /usr/bin/java8
+        """
+
+        maven_path = super(MavenValidator, self).validate(runtime_path)
         jvm_mv = self._get_major_version(maven_path)
 
-        language_version = self._runtime.replace("java", "")
+        language_version = self.runtime.replace("java", "")
 
         if jvm_mv:
             if int(jvm_mv) > int(language_version):
