@@ -44,6 +44,7 @@ class TestPythonPipBuildAction(TestCase):
             "scratch_dir",
             "manifest",
             "runtime",
+            None,
             {"python": BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)},
             ARM64,
         )
