@@ -37,29 +37,33 @@ class JavaCopyDependenciesAction(BaseAction):
             raise ActionFailedError(str(ex))
 
 
-class JavaRemoveDependenciesAction(BaseAction):
+class JavaMoveDependenciesAction(BaseAction):
     """
-    Class for removing Java dependencies in the artifact folder
+    Class for Moving Java dependencies from artifact folder to dependencies folder
     """
 
-    NAME = "JavaRemoveDependencies"
-    DESCRIPTION = "Remove dependencies"
-    PURPOSE = Purpose.REMOVE_DEPENDENCIES
+    NAME = "JavaMoveDependencies"
+    DESCRIPTION = "Move dependencies"
+    PURPOSE = Purpose.MOVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, os_utils):
+    def __init__(self, artifacts_dir, dependencies_dir, os_utils):
         self.artifacts_dir = artifacts_dir
+        self.dependencies_dir = dependencies_dir
         self.os_utils = os_utils
 
     def execute(self):
-        self._remove_dependencies()
+        self._move_dependencies()
 
-    def _remove_dependencies(self):
+    def _move_dependencies(self):
         """
-        delete the entire lib directory in the artifact folder
+        Move the entire lib directory from artifact folder to dependencies folder
         """
         try:
-            artifacts_lib_dir = os.path.join(self.artifacts_dir, "lib")
-            if self.os_utils.exists(artifacts_lib_dir):
-                self.os_utils.rmtree(artifacts_lib_dir)
+            dependencies_lib_dir = os.path.join(self.dependencies_dir, "lib")
+            if not self.os_utils.exists(dependencies_lib_dir):
+                self.os_utils.makedirs(dependencies_lib_dir)
+            lib_folder = os.path.join(self.artifacts_dir, "lib")
+            self.os_utils.movetree(lib_folder, dependencies_lib_dir)
+            self.os_utils.rmtree(lib_folder)  # remove the empty lib folder in the artifact
         except Exception as ex:
             raise ActionFailedError(str(ex))

@@ -119,7 +119,7 @@ class CopyDependenciesAction(BaseAction):
 
     PURPOSE = Purpose.COPY_DEPENDENCIES
 
-    def __init__(self, source_dir, artifact_dir, destination_dir, excludes=None):
+    def __init__(self, source_dir, artifact_dir, destination_dir):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
@@ -147,7 +147,7 @@ class MoveDependenciesAction(BaseAction):
 
     PURPOSE = Purpose.MOVE_DEPENDENCIES
 
-    def __init__(self, source_dir, artifact_dir, destination_dir, excludes=None):
+    def __init__(self, source_dir, artifact_dir, destination_dir):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
