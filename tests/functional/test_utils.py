@@ -40,6 +40,10 @@ class TestCopyTree(TestCase):
         self.assertEqual(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
         self.assertEqual(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
 
+    def test_must_skip_if_source_folder_does_not_exist(self):
+        copytree(os.path.join(self.source, "some-random-file"), self.dest)
+        self.assertEqual(set(os.listdir(self.dest)), set())
+
 
 def file(*args):
     path = os.path.join(*args)
