@@ -7,27 +7,19 @@ import re
 import os
 import subprocess
 
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
 
 LOG = logging.getLogger(__name__)
 
 
-class GoRuntimeValidator(object):
+class GoRuntimeValidator(RuntimeValidator):
     LANGUAGE = "go"
-    SUPPORTED_RUNTIMES = {"go1.x"}
     GO_VERSION_REGEX = re.compile("go(\\d)\\.(x|\\d+)")
 
-    def __init__(self, runtime):
-        self.runtime = runtime
+    def __init__(self, runtime, architecture):
+        super(GoRuntimeValidator, self).__init__(runtime, architecture)
         self._valid_runtime_path = None
-
-    def has_runtime(self):
-        """
-        Checks if the runtime is supported.
-        :param string runtime: Runtime to check
-        :return bool: True, if the runtime is supported.
-        """
-        return self.runtime in self.SUPPORTED_RUNTIMES
 
     @staticmethod
     def get_go_versions(version_string):
@@ -41,12 +33,24 @@ class GoRuntimeValidator(object):
     def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
-        :param string runtime_path: runtime to check eg: /usr/bin/go
-        :raises MisMatchRuntimeError: Version mismatch of the language vs the required runtime
+
+        Parameters
+        ----------
+        runtime_path : str
+            runtime to check eg: /usr/bin/go1.x
+
+        Returns
+        -------
+        str
+            runtime_path, runtime to check eg: /usr/bin/go1.x
+
+        Raises
+        ------
+        MisMatchRuntimeError
+            Raise runtime is not support or runtime does not support architecture.
         """
-        if not self.has_runtime():
-            LOG.warning("'%s' runtime is not " "a supported runtime", self.runtime)
-            return None
+
+        runtime_path = super(GoRuntimeValidator, self).validate(runtime_path)
 
         expected_major_version = int(self.runtime.replace(self.LANGUAGE, "").split(".")[0])
         min_expected_minor_version = 11 if expected_major_version == 1 else 0

@@ -12,8 +12,15 @@ from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
-from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError, MisMatchRuntimeError
+from aws_lambda_builders.exceptions import (
+    WorkflowFailedError,
+    WorkflowUnknownError,
+    MisMatchRuntimeError,
+    RuntimeValidatorError,
+)
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.architecture import X86_64
+
 
 LOG = logging.getLogger(__name__)
 
@@ -32,16 +39,17 @@ class BuildMode(object):
 
 
 # TODO: Move sanitize out to its own class.
-def sanitize(func):
+def sanitize(func):  # pylint: disable=too-many-statements
     """
     sanitize the executable path of the runtime specified by validating it.
     :param func: Workflow's run method is sanitized
     """
 
     @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self, *args, **kwargs):  # pylint: disable=too-many-statements
         valid_paths = {}
         invalid_paths = {}
+        validation_errors = []
         # NOTE: we need to access binaries to get paths and resolvers, before validating.
         for binary, binary_checker in self.binaries.items():
             invalid_paths[binary] = []
@@ -61,18 +69,30 @@ def sanitize(func):
                 except MisMatchRuntimeError as ex:
                     LOG.debug("Invalid executable for %s at %s", binary, executable_path, exc_info=str(ex))
                     invalid_paths[binary].append(executable_path)
+
+                except RuntimeValidatorError as ex:
+                    LOG.debug("Runtime validation error for %s", binary, exc_info=str(ex))
+                    if str(ex) not in validation_errors:
+                        validation_errors.append(str(ex))
+
                 if valid_paths.get(binary, None):
                     binary_checker.binary_path = valid_paths[binary]
                     break
+        if validation_errors:
+            raise WorkflowFailedError(
+                workflow_name=self.NAME, action_name="Validation", reason="\n".join(validation_errors)
+            )
+
         if len(self.binaries) != len(valid_paths):
             validation_failed_binaries = set(self.binaries.keys()).difference(valid_paths.keys())
-            messages = []
             for validation_failed_binary in validation_failed_binaries:
                 message = "Binary validation failed for {0}, searched for {0} in following locations  : {1} which did not satisfy constraints for runtime: {2}. Do you have {0} for runtime: {2} on your PATH?".format(
                     validation_failed_binary, invalid_paths[validation_failed_binary], self.runtime
                 )
-                messages.append(message)
-            raise WorkflowFailedError(workflow_name=self.NAME, action_name="Validation", reason="\n".join(messages))
+                validation_errors.append(message)
+            raise WorkflowFailedError(
+                workflow_name=self.NAME, action_name="Validation", reason="\n".join(validation_errors)
+            )
         func(self, *args, **kwargs)
 
     return wrapper
@@ -143,60 +163,42 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         download_dependencies=True,
         dependencies_dir=None,
         combine_dependencies=True,
+        architecture=X86_64,
     ):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
         build action must support at the minimum.
 
-        :type source_dir: str
-        :param source_dir:
+        Parameters
+        ----------
+        source_dir : str
             Path to a folder containing the source code
-
-        :type artifacts_dir: str
-        :param artifacts_dir:
+        artifacts_dir : str
             Path to a folder where the built artifacts should be placed
-
-        :type scratch_dir: str
-        :param scratch_dir:
+        scratch_dir : str
             Path to a directory that the workflow can use as scratch space. Workflows are expected to use this directory
             to write temporary files instead of ``/tmp`` or other OS-specific temp directories.
-
-        :type manifest_path: str
-        :param manifest_path:
+        manifest_path : str
             Path to the dependency manifest
-
-        :type runtime: str
-        :param runtime:
-            Optional, name of the AWS Lambda runtime that you are building for. This is sent to the builder for
-            informational purposes.
-
-        :type optimizations: dict
-        :param optimizations:
-            Optional dictionary of optimization flags to pass to the build action. **Not supported**.
-
-        :type options: dict
-        :param options:
-            Optional dictionary of options ot pass to build action. **Not supported**.
-
-        :type executable_search_paths: list
-        :param executable_search_paths:
-            Optional, Additional list of paths to search for executables required by the workflow.
-
-        :type mode: str
-        :param mode:
-            Optional, Mode the build should produce
-
-        :type mode: bool
-        :param download_dependencies:
-            Optional, Should download dependencies when building
-
-        :type mode: str
-        :param dependencies_dir:
-            Optional, Path to folder the dependencies should be downloaded to
-        :type combine_dependencies: bool
-
-        :param combine_dependencies:
-            Optional, This flag will only be used if dependency_folder is specified. False will not copy dependencies
+        runtime : str, optional
+            name of the AWS Lambda runtime that you are building for. This is sent to the builder for
+            informational purposes, by default None
+        executable_search_paths : list, optional
+            Additional list of paths to search for executables required by the workflow, by default None
+        optimizations : dict, optional
+            dictionary of optimization flags to pass to the build action. **Not supported**, by default None
+        options : dict, optional
+            dictionary of options ot pass to build action. **Not supported**., by default None
+        mode : str, optional
+            Mode the build should produce, by default BuildMode.RELEASE
+        download_dependencies: bool, optional
+            Should download dependencies when building
+        dependencies_dir : str, optional
+            Path to folder the dependencies should be downloaded to
+        architecture : str, optional
+            Architecture type either arm64 or x86_64 for which the build will be based on in AWS lambda, by default X86_64
+        combine_dependencies: bool, optional
+            This flag will only be used if dependency_folder is specified. False will not copy dependencies
             from dependency_folder into build folder
         """
 
@@ -212,6 +214,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.download_dependencies = download_dependencies
         self.dependencies_dir = dependencies_dir
         self.combine_dependencies = combine_dependencies
+        self.architecture = architecture
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
@@ -244,7 +247,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         """
         No-op validator that does not validate the runtime_path.
         """
-        return [RuntimeValidator(runtime=self.runtime)]
+        return [RuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
 
     @property
     def binaries(self):

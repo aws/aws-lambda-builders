@@ -389,5 +389,6 @@ $RECYCLE.BIN/
 /Dockerfile
 
 tests/integration/workflows/go_dep/data/src/*/vendor/*
+tests/integration/workflows/go_dep/data/pkg/*
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode

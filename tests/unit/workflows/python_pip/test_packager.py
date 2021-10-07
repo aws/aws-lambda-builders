@@ -5,6 +5,7 @@ from unittest import TestCase
 import mock
 import pytest
 
+from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_env_vars
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_shim
@@ -116,6 +117,18 @@ class TestPythonPipDependencyBuilder(object):
         mock_dep_builder.build_site_packages.assert_called_once_with(
             "path/to/requirements.txt", "artifacts/path/", "scratch_dir/path/"
         )
+
+    @mock.patch("aws_lambda_builders.workflows.python_pip.packager.DependencyBuilder")
+    def test_can_create_new_dependency_builder(self, DependencyBuilderMock, osutils):
+        osutils_mock = mock.Mock(spec=osutils)
+        builder = PythonPipDependencyBuilder(osutils=osutils_mock, runtime="runtime")
+        DependencyBuilderMock.assert_called_with(osutils_mock, "runtime", architecture=X86_64)
+
+    @mock.patch("aws_lambda_builders.workflows.python_pip.packager.DependencyBuilder")
+    def test_can_call_dependency_builder_with_architecture(self, DependencyBuilderMock, osutils):
+        osutils_mock = mock.Mock(spec=osutils)
+        builder = PythonPipDependencyBuilder(osutils=osutils_mock, runtime="runtime", architecture=ARM64)
+        DependencyBuilderMock.assert_called_with(osutils_mock, "runtime", architecture=ARM64)
 
 
 class TestPackage(object):

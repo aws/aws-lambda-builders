@@ -6,6 +6,9 @@ import logging
 import os
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.utils import get_goarch
+
 
 from .subproc_exec import ExecutionError
 
@@ -46,7 +49,7 @@ class GoBuildAction(BaseAction):
     DESCRIPTION = "Builds final binary"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, base_dir, source_path, output_path, subprocess_go, env=None):
+    def __init__(self, base_dir, source_path, output_path, subprocess_go, architecture=X86_64, env=None):
         super(GoBuildAction, self).__init__()
 
         self.base_dir = base_dir
@@ -54,11 +57,12 @@ class GoBuildAction(BaseAction):
         self.output_path = output_path
 
         self.subprocess_go = subprocess_go
+        self.goarch = get_goarch(architecture)
         self.env = env if not env is None else {}
 
     def execute(self):
         env = self.env
-        env.update({"GOOS": "linux", "GOARCH": "amd64"})
+        env.update({"GOOS": "linux", "GOARCH": self.goarch})
 
         try:
             self.subprocess_go.run(["build", "-o", self.output_path, self.source_path], cwd=self.source_path, env=env)

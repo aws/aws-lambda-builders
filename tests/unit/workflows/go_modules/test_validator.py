@@ -5,6 +5,7 @@ from parameterized import parameterized
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
 from aws_lambda_builders.workflows.go_modules.validator import GoRuntimeValidator
+from aws_lambda_builders.exceptions import UnsupportedRuntimeError
 
 
 class MockSubProcess(object):
@@ -19,16 +20,12 @@ class MockSubProcess(object):
 
 class TestGoRuntimeValidator(TestCase):
     def setUp(self):
-        self.validator = GoRuntimeValidator(runtime="go1.x")
-
-    @parameterized.expand(["go1.x"])
-    def test_supported_runtimes(self, runtime):
-        validator = GoRuntimeValidator(runtime=runtime)
-        self.assertTrue(validator.has_runtime())
+        self.validator = GoRuntimeValidator(runtime="go1.x", architecture="arm64")
 
     def test_runtime_validate_unsupported_language_fail_open(self):
-        validator = GoRuntimeValidator(runtime="go2.x")
-        validator.validate(runtime_path="/usr/bin/go2")
+        validator = GoRuntimeValidator(runtime="go2.x", architecture="arm64")
+        with self.assertRaises(UnsupportedRuntimeError):
+            validator.validate(runtime_path="/usr/bin/go2")
 
     @parameterized.expand(
         [
