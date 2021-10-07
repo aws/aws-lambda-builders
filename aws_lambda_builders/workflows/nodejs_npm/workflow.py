@@ -40,6 +40,11 @@ class NodejsNpmWorkflow(BaseWorkflow):
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
 
+        if not osutils.file_exists(manifest_path):
+            LOG.warning("package.json file not found. Continuing the build without dependencies.")
+            self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
+            return
+
         npm_pack = NodejsNpmPackAction(
             tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
         )
