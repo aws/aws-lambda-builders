@@ -46,6 +46,10 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
+        artifacts_dir = "/Users/hmingku/Desktop/test/testNode/JavaA"
+        self.dependencies_dir = "/Users/hmingku/Desktop/test/testNode/JavaD"
+        self.combine_dependencies = True
+
         self.actions = [
             npm_pack,
             npm_copy_npmrc,
@@ -56,20 +60,25 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # installed the dependencies into artifact folder
             self.actions.append(NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm))
 
-            # if dependencies folder exists, Move dependencies from artifact folder to dependencies folder
+            # if dependencies folder exists, copy or move dependencies from artifact folder to dependencies folder
+            # depends on the combine_dependencies flag
             if self.dependencies_dir:
-                self.actions.append(MoveDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
-
-        # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
-        # dependencies folder to artifact folder
-        # if combine_dependencies is false, will not copy the dependencies from dependencies folder to artifact folder
-        if self.dependencies_dir and self.combine_dependencies:
-            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+                # if combine_dependencies is set, we should keep dependencies and source code in the artifact folder
+                # while copying the dependencies. Otherwise we should separate the dependencies and source code
+                if self.combine_dependencies:
+                    self.actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+                else:
+                    self.actions.append(MoveDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
         else:
-            LOG.info(
-                "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
-                "artifacts directory. "
-            )
+            # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
+            # dependencies folder to artifact folder
+            if self.dependencies_dir and self.combine_dependencies:
+                self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+            else:
+                LOG.info(
+                    "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
+                    "artifacts directory. "
+                )
 
         self.actions.append(NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils))
 

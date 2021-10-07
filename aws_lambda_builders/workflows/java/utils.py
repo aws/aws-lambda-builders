@@ -27,7 +27,6 @@ class OSUtils(object):
 
     def move(self, src, dst):
         shutil.move(src, dst)
-        return dst
 
     def listdir(self, d):
         return os.listdir(d)
@@ -55,18 +54,6 @@ class OSUtils(object):
 
     def rmtree(self, d):
         shutil.rmtree(d)
-
-    def movetree(self, source, destination):
-        if not os.path.exists(destination):
-            self.makedirs(destination)
-        names = self.listdir(source)
-        for name in names:
-            new_source = os.path.join(source, name)
-            new_destination = os.path.join(destination, name)
-            if os.path.isdir(new_source):
-                self.movetree(new_source, new_destination)
-            else:
-                self.move(new_source, new_destination)
 
     @property
     def pipe(self):

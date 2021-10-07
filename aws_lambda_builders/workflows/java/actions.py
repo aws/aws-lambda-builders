@@ -59,11 +59,7 @@ class JavaMoveDependenciesAction(BaseAction):
         Move the entire lib directory from artifact folder to dependencies folder
         """
         try:
-            dependencies_lib_dir = os.path.join(self.dependencies_dir, "lib")
-            if not self.os_utils.exists(dependencies_lib_dir):
-                self.os_utils.makedirs(dependencies_lib_dir)
             lib_folder = os.path.join(self.artifacts_dir, "lib")
-            self.os_utils.movetree(lib_folder, dependencies_lib_dir)
-            self.os_utils.rmtree(lib_folder)  # remove the empty lib folder in the artifact
+            self.os_utils.move(lib_folder, self.dependencies_dir)
         except Exception as ex:
             raise ActionFailedError(str(ex))
