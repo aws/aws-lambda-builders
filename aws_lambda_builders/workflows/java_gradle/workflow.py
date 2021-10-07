@@ -6,6 +6,7 @@ import os
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
 from aws_lambda_builders.workflows.java.utils import OSUtils
+
 from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
 from .gradle_resolver import GradleResolver
@@ -28,6 +29,7 @@ class JavaGradleWorkflow(BaseWorkflow):
 
         self.os_utils = OSUtils()
         self.build_dir = None
+
         subprocess_gradle = SubprocessGradle(gradle_binary=self.binaries["gradle"], os_utils=self.os_utils)
 
         self.actions = [
@@ -45,7 +47,7 @@ class JavaGradleWorkflow(BaseWorkflow):
         return [GradleResolver(executable_search_paths=self.executable_search_paths)]
 
     def get_validators(self):
-        return [GradleValidator(self.runtime, self.os_utils)]
+        return [GradleValidator(self.runtime, self.architecture, self.os_utils)]
 
     @property
     def build_output_dir(self):

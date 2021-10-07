@@ -91,6 +91,7 @@ class PythonPipWorkflow(BaseWorkflow):
                         runtime,
                         self.dependencies_dir,
                         binaries=self.binaries,
+                        architecture=self.architecture,
                     )
                 )
             # if dependencies folder is provided, copy dependencies from dependencies folder to build folder
@@ -107,4 +108,4 @@ class PythonPipWorkflow(BaseWorkflow):
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
     def get_validators(self):
-        return [PythonRuntimeValidator(runtime=self.runtime)]
+        return [PythonRuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
