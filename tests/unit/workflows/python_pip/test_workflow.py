@@ -119,8 +119,8 @@ class TestPythonPipWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             "python3.7",
-            None,
             binaries=ANY,
             architecture="ARM64",
         )
         self.assertEqual(2, len(self.workflow.actions))
+

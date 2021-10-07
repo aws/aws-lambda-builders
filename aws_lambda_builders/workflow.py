@@ -181,7 +181,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         manifest_path : str
             Path to the dependency manifest
         runtime : str, optional
-            name of the AWS Lambda runtime that you are building for. This is sent to the builder for
+            Optional, name of the AWS Lambda runtime that you are building for. This is sent to the builder for
             informational purposes, by default None
         executable_search_paths : list, optional
             Additional list of paths to search for executables required by the workflow, by default None
@@ -195,11 +195,11 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             Should download dependencies when building
         dependencies_dir : str, optional
             Path to folder the dependencies should be downloaded to
-        architecture : str, optional
-            Architecture type either arm64 or x86_64 for which the build will be based on in AWS lambda, by default X86_64
         combine_dependencies: bool, optional
             This flag will only be used if dependency_folder is specified. False will not copy dependencies
-            from dependency_folder into build folder
+            from dependency_folder into build folder        
+        architecture : str, optional
+            Architecture type either arm64 or x86_64 for which the build will be based on in AWS lambda, by default X86_64
         """
 
         self.source_dir = source_dir

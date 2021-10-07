@@ -87,3 +87,4 @@ class TestJavaGradleWorkflow(TestCase):
 
         self.assertEqual(workflow.architecture, "x86_64")
         self.assertEqual(workflow_with_arm.architecture, "arm64")
+
