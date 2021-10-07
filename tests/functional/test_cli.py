@@ -74,11 +74,12 @@ class TestCliWithHelloWorkflow(TestCase):
                 "artifacts_dir": self.artifacts_dir,
                 "scratch_dir": self.scratch_dir,
                 "manifest_path": "/ignored",
-                "runtime": "ignored",
+                "runtime": "python3.8",
                 "optimizations": {},
                 "options": {},
                 "download_dependencies": False,
                 "dependencies_dir": "/ignored-dep",
+                "architecture": "x86_64",
             },
         }
 

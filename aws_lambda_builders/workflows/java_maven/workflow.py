@@ -5,6 +5,7 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction
 from aws_lambda_builders.workflows.java.utils import OSUtils
+
 from .actions import JavaMavenBuildAction, JavaMavenCopyDependencyAction, JavaMavenCopyArtifactsAction
 from .maven import SubprocessMaven
 from .maven_resolver import MavenResolver
@@ -43,4 +44,4 @@ class JavaMavenWorkflow(BaseWorkflow):
         return [MavenResolver(executable_search_paths=self.executable_search_paths)]
 
     def get_validators(self):
-        return [MavenValidator(self.runtime, self.os_utils)]
+        return [MavenValidator(self.runtime, self.architecture, self.os_utils)]

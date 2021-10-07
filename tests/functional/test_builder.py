@@ -51,6 +51,7 @@ class TestBuilderWithHelloWorkflow(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             "/ignored",
+            "python3.8",
             executable_search_paths=[str(pathlib.Path(sys.executable).parent)],
         )
 
