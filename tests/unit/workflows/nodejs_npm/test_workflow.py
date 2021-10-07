@@ -2,7 +2,7 @@ import mock
 
 from unittest import TestCase
 
-from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, MoveDependenciesAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, MoveDependenciesAction, CleanUpAction
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
@@ -73,14 +73,15 @@ class TestNodejsNpmWorkflow(TestCase):
             osutils=self.osutils_mock,
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 7)
 
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[4], CopyDependenciesAction)
-        self.assertIsInstance(workflow.actions[5], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[4], CleanUpAction)
+        self.assertIsInstance(workflow.actions[5], CopyDependenciesAction)
+        self.assertIsInstance(workflow.actions[6], NodejsNpmrcCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_without_download_dependencies_and_without_dependencies_dir(self):
 
@@ -118,14 +119,15 @@ class TestNodejsNpmWorkflow(TestCase):
             osutils=self.osutils_mock,
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 7)
 
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
-        self.assertIsInstance(workflow.actions[5], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[4], CleanUpAction)
+        self.assertIsInstance(workflow.actions[5], MoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[6], NodejsNpmrcCleanUpAction)
 
     def test_workflow_only_copy_action(self):
         self.osutils_mock.file_exists.return_value = False

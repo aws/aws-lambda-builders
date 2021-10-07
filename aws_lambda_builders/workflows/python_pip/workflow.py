@@ -4,7 +4,7 @@ Python PIP Workflow
 import logging
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
@@ -83,6 +83,9 @@ class PythonPipWorkflow(BaseWorkflow):
         if osutils.file_exists(manifest_path):
             # If a requirements.txt exists, run pip builder before copy action.
             if self.download_dependencies:
+                if self.dependencies_dir:
+                    # clean up the dependencies folder before installing
+                    self.actions.append(CleanUpAction(self.dependencies_dir))
                 self.actions.append(
                     PythonPipBuildAction(
                         artifacts_dir,

@@ -11,6 +11,7 @@ from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
 from .gradle_resolver import GradleResolver
 from .gradle_validator import GradleValidator
+from ...actions import CleanUpAction
 
 
 class JavaGradleWorkflow(BaseWorkflow):
@@ -38,6 +39,9 @@ class JavaGradleWorkflow(BaseWorkflow):
         ]
 
         if self.dependencies_dir:
+            # clean up the dependencies first
+            self.actions.append(CleanUpAction(self.dependencies_dir))
+
             if self.combine_dependencies:
                 self.actions.append(JavaCopyDependenciesAction(artifacts_dir, self.dependencies_dir, self.os_utils))
             else:

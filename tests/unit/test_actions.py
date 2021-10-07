@@ -7,6 +7,7 @@ from aws_lambda_builders.actions import (
     Purpose,
     CopyDependenciesAction,
     MoveDependenciesAction,
+    CleanUpAction,
 )
 
 
@@ -101,3 +102,23 @@ class TestMoveDependenciesAction_execute(TestCase):
         listdir_mock.assert_any_call(artifact_dir)
         move_mock.assert_any_call("dir1", "dir2")
         move_mock.assert_any_call("file1", "file2")
+
+
+class TestCleanUpAction_execute(TestCase):
+    @patch("aws_lambda_builders.actions.os.remove")
+    @patch("aws_lambda_builders.actions.shutil.rmtree")
+    @patch("aws_lambda_builders.actions.os.path.isdir")
+    @patch("aws_lambda_builders.actions.os.listdir")
+    @patch("aws_lambda_builders.actions.os.path.join")
+    def test_must_copy(self, path_mock, listdir_mock, isdir_mock, rmtree_mock, rm_mock):
+        target_dir = "target"
+
+        listdir_mock.side_effect = [[1, 2]]
+        path_mock.side_effect = ["dir", "file"]
+        isdir_mock.side_effect = [True, False]
+        action = CleanUpAction(target_dir)
+        action.execute()
+
+        listdir_mock.assert_any_call(target_dir)
+        rmtree_mock.assert_any_call("dir")
+        rm_mock.assert_any_call("file")
