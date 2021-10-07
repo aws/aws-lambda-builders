@@ -197,7 +197,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             Path to folder the dependencies should be downloaded to
         combine_dependencies: bool, optional
             This flag will only be used if dependency_folder is specified. False will not copy dependencies
-            from dependency_folder into build folder        
+            from dependency_folder into build folder
         architecture : str, optional
             Architecture type either arm64 or x86_64 for which the build will be based on in AWS lambda, by default X86_64
         """

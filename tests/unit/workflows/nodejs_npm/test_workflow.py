@@ -116,7 +116,6 @@ class TestNodejsNpmWorkflow(TestCase):
             download_dependencies=True,
             combine_dependencies=False,
             osutils=self.osutils_mock,
-
         )
 
         self.assertEqual(len(workflow.actions), 6)
@@ -159,4 +158,3 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.assertEqual(workflow.architecture, "x86_64")
         self.assertEqual(workflow_with_arm.architecture, "arm64")
-
