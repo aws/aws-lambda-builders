@@ -46,10 +46,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
-        artifacts_dir = "/Users/hmingku/Desktop/test/testNode/JavaA"
-        self.dependencies_dir = "/Users/hmingku/Desktop/test/testNode/JavaD"
-        self.combine_dependencies = True
-
         self.actions = [
             npm_pack,
             npm_copy_npmrc,
