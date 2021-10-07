@@ -79,6 +79,7 @@ class TestCliWithHelloWorkflow(TestCase):
                 "options": {},
                 "download_dependencies": False,
                 "dependencies_dir": "/ignored-dep",
+                "combine_dependencies": False,
                 "architecture": "x86_64",
             },
         }
@@ -143,6 +144,7 @@ class TestCliWithHelloWorkflow(TestCase):
                     "executable_search_paths": [str(pathlib.Path(sys.executable).parent)],
                     "download_dependencies": False,
                     "dependencies_dir": "/ignored-dep",
+                    "combine_dependencies": False,
                 },
             }
         )

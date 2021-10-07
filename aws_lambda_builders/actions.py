@@ -34,6 +34,9 @@ class Purpose(object):
     # Action is copying dependencies
     COPY_DEPENDENCIES = "COPY_DEPENDENCIES"
 
+    # Action is moving dependencies
+    MOVE_DEPENDENCIES = "MOVE_DEPENDENCIES"
+
     # Action is compiling source code
     COMPILE_SOURCE = "COMPILE_SOURCE"
 
@@ -113,11 +116,10 @@ class CopyDependenciesAction(BaseAction):
 
     PURPOSE = Purpose.COPY_DEPENDENCIES
 
-    def __init__(self, source_dir, artifact_dir, destination_dir, excludes=None):
+    def __init__(self, source_dir, artifact_dir, destination_dir):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
-        self.excludes = excludes or []
 
     def execute(self):
         source = set(os.listdir(self.source_dir))
@@ -132,3 +134,28 @@ class CopyDependenciesAction(BaseAction):
                 copytree(dependencies_source, new_destination)
             else:
                 shutil.copy2(dependencies_source, new_destination)
+
+
+class MoveDependenciesAction(BaseAction):
+
+    NAME = "MoveDependencies"
+
+    DESCRIPTION = "Moving dependencies while skipping source file"
+
+    PURPOSE = Purpose.MOVE_DEPENDENCIES
+
+    def __init__(self, source_dir, artifact_dir, destination_dir):
+        self.source_dir = source_dir
+        self.artifact_dir = artifact_dir
+        self.dest_dir = destination_dir
+
+    def execute(self):
+        source = set(os.listdir(self.source_dir))
+        artifact = set(os.listdir(self.artifact_dir))
+        dependencies = artifact - source
+
+        for name in dependencies:
+            dependencies_source = os.path.join(self.artifact_dir, name)
+            new_destination = os.path.join(self.dest_dir, name)
+
+            shutil.move(dependencies_source, new_destination)

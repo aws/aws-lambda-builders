@@ -127,6 +127,7 @@ def main():  # pylint: disable=too-many-statements
             mode=params.get("mode", None),
             download_dependencies=params.get("download_dependencies", True),
             dependencies_dir=params.get("dependencies_dir", None),
+            combine_dependencies=params.get("combine_dependencies", True),
             architecture=params.get("architecture", X86_64),
         )
 

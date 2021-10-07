@@ -67,6 +67,7 @@ class LambdaBuilder(object):
         mode=None,
         download_dependencies=True,
         dependencies_dir=None,
+        combine_dependencies=True,
         architecture=X86_64,
     ):
         """
@@ -118,6 +119,11 @@ class LambdaBuilder(object):
         :param dependencies_dir:
             Optional, Path to folder the dependencies should be downloaded to
 
+        :type combine_dependencies: bool
+        :param combine_dependencies:
+            Optional, This flag will only be used if dependency_folder is specified. False will not copy dependencies
+            from dependency_folder into build folder
+
         :type architecture: str
         :param architecture:
             Type of architecture x86_64 and arm64 for Lambda Function
@@ -138,6 +144,7 @@ class LambdaBuilder(object):
             mode=mode,
             download_dependencies=download_dependencies,
             dependencies_dir=dependencies_dir,
+            combine_dependencies=combine_dependencies,
             architecture=architecture,
         )
 

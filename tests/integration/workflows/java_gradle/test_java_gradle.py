@@ -164,3 +164,21 @@ class TestJavaGradle(TestCase):
         ]
         self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, lambda1_expected_files))
         self.assertTrue(does_folder_contain_all_files(self.dependencies_dir, dependencies_expected_files))
+
+    def test_build_single_build_with_deps_dir_wtihout_combine_dependencies(self):
+        source_dir = join(self.SINGLE_BUILD_TEST_DATA_DIR, "with-deps")
+        manifest_path = join(source_dir, "build.gradle")
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest_path,
+            runtime=self.runtime,
+            dependencies_dir=self.dependencies_dir,
+            combine_dependencies=False,
+        )
+        artifact_expected_files = [join("aws", "lambdabuilders", "Main.class")]
+        dependencies_expected_files = [join("lib", "annotations-2.1.0.jar")]
+
+        self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, artifact_expected_files))
+        self.assertTrue(does_folder_contain_all_files(self.dependencies_dir, dependencies_expected_files))

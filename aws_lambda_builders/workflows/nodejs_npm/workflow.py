@@ -5,7 +5,7 @@ import logging
 
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, MoveDependenciesAction
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
@@ -61,13 +61,19 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # installed the dependencies into artifact folder
             self.actions.append(NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm))
 
-            # if dependencies folder exists, copy dependencies into dependencies into dependencies folder
+            # if dependencies folder exists, copy or move dependencies from artifact folder to dependencies folder
+            # depends on the combine_dependencies flag
             if self.dependencies_dir:
-                self.actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+                # if combine_dependencies is set, we should keep dependencies and source code in the artifact folder
+                # while copying the dependencies. Otherwise we should separate the dependencies and source code
+                if self.combine_dependencies:
+                    self.actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+                else:
+                    self.actions.append(MoveDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
         else:
             # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
             # dependencies folder to artifact folder
-            if self.dependencies_dir:
+            if self.dependencies_dir and self.combine_dependencies:
                 self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
             else:
                 LOG.info(

@@ -86,3 +86,29 @@ class TestJavaMaven(TestCase):
 
     def assert_src_dir_not_touched(self, source_dir):
         self.assertFalse(os.path.exists(join(source_dir, "target")))
+
+    def test_build_single_build_with_deps_resources_exclude_test_jars_deps_dir_without_combine_dependencies(self):
+        source_dir = join(self.SINGLE_BUILD_TEST_DATA_DIR, "with-deps")
+        manifest_path = join(source_dir, "pom.xml")
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest_path,
+            runtime=self.runtime,
+            dependencies_dir=self.dependencies_dir,
+            combine_dependencies=False,
+        )
+        artifact_expected_files = [
+            join("aws", "lambdabuilders", "Main.class"),
+            join("some_data.txt"),
+        ]
+
+        dependencies_expected_files = [
+            join("lib", "software.amazon.awssdk.annotations-2.1.0.jar"),
+        ]
+
+        self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, artifact_expected_files))
+        self.assertTrue(does_folder_contain_all_files(self.dependencies_dir, dependencies_expected_files))
+        self.assertFalse(does_folder_contain_file(self.artifacts_dir, join("lib", "junit-4.12.jar")))
+        self.assert_src_dir_not_touched(source_dir)
