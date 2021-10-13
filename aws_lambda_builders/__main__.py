@@ -12,6 +12,7 @@ import os
 import logging
 import re
 
+from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowNotFoundError, WorkflowUnknownError, WorkflowFailedError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
@@ -124,6 +125,7 @@ def main():  # pylint: disable=too-many-statements
             optimizations=params["optimizations"],
             options=params["options"],
             mode=params.get("mode", None),
+            architecture=params.get("architecture", X86_64),
         )
 
         # Return a success response

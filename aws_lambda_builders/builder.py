@@ -6,6 +6,7 @@ import importlib
 import os
 import logging
 
+from aws_lambda_builders.architecture import X86_64, ARM64
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
 from aws_lambda_builders.workflow import Capability
 
@@ -64,6 +65,7 @@ class LambdaBuilder(object):
         options=None,
         executable_search_paths=None,
         mode=None,
+        architecture=X86_64,
     ):
         """
         Actually build the code by running workflows
@@ -105,6 +107,10 @@ class LambdaBuilder(object):
         :type mode: str
         :param mode:
             Optional, Mode the build should produce
+
+        :type architecture: str
+        :param architecture:
+            Type of architecture x86_64 and arm64 for Lambda Function
         """
 
         if not os.path.exists(scratch_dir):
@@ -120,6 +126,7 @@ class LambdaBuilder(object):
             options=options,
             executable_search_paths=executable_search_paths,
             mode=mode,
+            architecture=architecture,
         )
 
         return workflow.run()

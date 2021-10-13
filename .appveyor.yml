@@ -9,45 +9,35 @@ environment:
   nodejs_version: "10.10.0"
 
   matrix:
-
-  - PYTHON: "C:\\Python27-x64"
-    PYTHON_VERSION: '2.7'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '91'
-    NEW_FLAKE8: 0
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  - PYTHON: "C:\\Python36-x64"
-    PYTHON_VERSION: '3.6'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '91'
-    NEW_FLAKE8: 0
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  - PYTHON: "C:\\Python37-x64"
-    PYTHON_VERSION: '3.7'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '91'
-    NEW_FLAKE8: 0
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  - PYTHON: "C:\\Python38-x64"
-    PYTHON_VERSION: '3.8'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '72'
-    NEW_FLAKE8: 1
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  - PYTHON: "C:\\Python39-x64"
-    PYTHON_VERSION: '3.9'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '72'
-    NEW_FLAKE8: 1
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  
-
+    - PYTHON: "C:\\Python36-x64"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "91"
+      NEW_FLAKE8: 0
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+    - PYTHON: "C:\\Python37-x64"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "91"
+      NEW_FLAKE8: 0
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+    - PYTHON: "C:\\Python38-x64"
+      PYTHON_VERSION: "3.8"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "72"
+      NEW_FLAKE8: 1
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+    - PYTHON: "C:\\Python39-x64"
+      PYTHON_VERSION: "3.9"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "72"
+      NEW_FLAKE8: 1
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
 
 build: off
 
 for:
-  -
-    matrix:
+  - matrix:
       only:
         - image: Visual Studio 2019
 
@@ -55,46 +45,45 @@ for:
       GOPATH: c:\gopath
 
     install:
-    # To run Nodejs workflow integ tests
-    - ps: Install-Product node $env:nodejs_version
+      # To run Nodejs workflow integ tests
+      - ps: Install-Product node $env:nodejs_version
 
-    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
-    - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
-    - "%PYTHON%\\python.exe -m pip install -e ."
-    - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
-    - "gem --version"
-    - "gem install bundler -v 1.17.3"
-    - "bundler --version"
-    - "echo %PATH%"
+      - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+      - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
+      - "%PYTHON%\\python.exe -m pip install -e ."
+      - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
+      - "gem --version"
+      - "gem install bundler -v 1.17.3"
+      - "bundler --version"
+      - "echo %PATH%"
 
-    # setup go
-    - rmdir c:\go /s /q
-    - "choco install golang --version 1.15.7"
-    - "choco install bzr"
-    - "choco install dep"
-    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
-    - "go version"
-    # set set GO111MODULE to auto to enable module-aware mode only when a go.mod file is present in the current directory or any parent directory
-    # https://blog.golang.org/go116-module-changes#TOC_2.
-    # This is required for the go dep integration tests
-    - "go env -w GO111MODULE=auto"
-    - "go env"
+      # setup go
+      - rmdir c:\go /s /q
+      - "choco install golang --version 1.15.7"
+      - "choco install bzr"
+      - "choco install dep"
+      - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+      - "go version"
+      # set set GO111MODULE to auto to enable module-aware mode only when a go.mod file is present in the current directory or any parent directory
+      # https://blog.golang.org/go116-module-changes#TOC_2.
+      # This is required for the go dep integration tests
+      - "go env -w GO111MODULE=auto"
+      - "go env"
 
-    # setup Gradle
-    - "choco install gradle"
+      # setup Gradle
+      - "choco install gradle"
 
-    # setup make
-    - "choco install make"
+      # setup make
+      - "choco install make"
 
-    # Echo final Path
-    - "echo %PATH%"
+      # Echo final Path
+      - "echo %PATH%"
 
     test_script:
-    - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
-    - "%PYTHON%\\python.exe -m pytest tests/integration"
+      - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
+      - "%PYTHON%\\python.exe -m pytest tests/integration"
 
-  -
-    matrix:
+  - matrix:
       only:
         - image: Ubuntu
 
@@ -121,8 +110,8 @@ for:
       - sh: "go env -w GO111MODULE=auto"
 
     build_script:
-      - "python -c \"import sys; print(sys.executable)\""
-      - "LAMBDA_BUILDERS_DEV=1 pip install -e \".[dev]\""
+      - 'python -c "import sys; print(sys.executable)"'
+      - 'LAMBDA_BUILDERS_DEV=1 pip install -e ".[dev]"'
 
     test_script:
       - "LAMBDA_BUILDERS_DEV=1 pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under ${LINE_COVERAGE} tests/unit tests/functional"
