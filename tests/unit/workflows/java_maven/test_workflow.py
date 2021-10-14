@@ -7,7 +7,7 @@ from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenCopyArtifactsAction,
     JavaMavenCopyDependencyAction,
 )
-from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolver
 from aws_lambda_builders.workflows.java_maven.maven_validator import MavenValidator
 from aws_lambda_builders.architecture import ARM64
@@ -50,7 +50,7 @@ class TestJavaMavenWorkflow(TestCase):
             "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", combine_dependencies=False
         )
 
-        self.assertEqual(len(workflow.actions), 5)
+        self.assertEqual(len(workflow.actions), 6)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
 
@@ -60,14 +60,16 @@ class TestJavaMavenWorkflow(TestCase):
 
         self.assertIsInstance(workflow.actions[3], JavaMavenCopyArtifactsAction)
 
-        self.assertIsInstance(workflow.actions[4], JavaMoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[4], CleanUpAction)
+
+        self.assertIsInstance(workflow.actions[5], JavaMoveDependenciesAction)
 
     def test_workflow_sets_up_maven_actions_with_combine_dependencies(self):
         workflow = JavaMavenWorkflow(
             "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", combine_dependencies=True
         )
 
-        self.assertEqual(len(workflow.actions), 5)
+        self.assertEqual(len(workflow.actions), 6)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
 
@@ -77,7 +79,9 @@ class TestJavaMavenWorkflow(TestCase):
 
         self.assertIsInstance(workflow.actions[3], JavaMavenCopyArtifactsAction)
 
-        self.assertIsInstance(workflow.actions[4], JavaCopyDependenciesAction)
+        self.assertIsInstance(workflow.actions[4], CleanUpAction)
+
+        self.assertIsInstance(workflow.actions[5], JavaCopyDependenciesAction)
 
     def test_must_validate_architecture(self):
         workflow = JavaMavenWorkflow(

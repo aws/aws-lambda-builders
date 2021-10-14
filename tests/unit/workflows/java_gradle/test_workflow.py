@@ -3,6 +3,7 @@ from unittest import TestCase
 import hashlib
 import os
 
+from aws_lambda_builders.actions import CleanUpAction
 from aws_lambda_builders.workflows.java.actions import JavaMoveDependenciesAction, JavaCopyDependenciesAction
 from aws_lambda_builders.workflows.java_gradle.workflow import JavaGradleWorkflow
 from aws_lambda_builders.workflows.java_gradle.actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
@@ -47,26 +48,30 @@ class TestJavaGradleWorkflow(TestCase):
             "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", combine_dependencies=False
         )
 
-        self.assertEqual(len(workflow.actions), 3)
+        self.assertEqual(len(workflow.actions), 4)
 
         self.assertIsInstance(workflow.actions[0], JavaGradleBuildAction)
 
         self.assertIsInstance(workflow.actions[1], JavaGradleCopyArtifactsAction)
 
-        self.assertIsInstance(workflow.actions[2], JavaMoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[2], CleanUpAction)
+
+        self.assertIsInstance(workflow.actions[3], JavaMoveDependenciesAction)
 
     def test_workflow_sets_up_gradle_actions_with_combine_dependencies(self):
         workflow = JavaGradleWorkflow(
             "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", combine_dependencies=True
         )
 
-        self.assertEqual(len(workflow.actions), 3)
+        self.assertEqual(len(workflow.actions), 4)
 
         self.assertIsInstance(workflow.actions[0], JavaGradleBuildAction)
 
         self.assertIsInstance(workflow.actions[1], JavaGradleCopyArtifactsAction)
 
-        self.assertIsInstance(workflow.actions[2], JavaCopyDependenciesAction)
+        self.assertIsInstance(workflow.actions[2], CleanUpAction)
+
+        self.assertIsInstance(workflow.actions[3], JavaCopyDependenciesAction)
 
     def test_must_validate_architecture(self):
         workflow = JavaGradleWorkflow(

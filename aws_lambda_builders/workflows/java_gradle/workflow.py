@@ -3,6 +3,7 @@ Java Gradle Workflow
 """
 import hashlib
 import os
+from aws_lambda_builders.actions import CleanUpAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
 from aws_lambda_builders.workflows.java.utils import OSUtils
@@ -38,6 +39,9 @@ class JavaGradleWorkflow(BaseWorkflow):
         ]
 
         if self.dependencies_dir:
+            # clean up the dependencies first
+            self.actions.append(CleanUpAction(self.dependencies_dir))
+
             if self.combine_dependencies:
                 self.actions.append(JavaCopyDependenciesAction(artifacts_dir, self.dependencies_dir, self.os_utils))
             else:

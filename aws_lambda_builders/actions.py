@@ -40,6 +40,9 @@ class Purpose(object):
     # Action is compiling source code
     COMPILE_SOURCE = "COMPILE_SOURCE"
 
+    # Action is cleaning up the target folder
+    CLEAN_UP = "CLEAN_UP"
+
     @staticmethod
     def has_value(item):
         return item in Purpose.__dict__.values()
@@ -159,3 +162,31 @@ class MoveDependenciesAction(BaseAction):
             new_destination = os.path.join(self.dest_dir, name)
 
             shutil.move(dependencies_source, new_destination)
+
+
+class CleanUpAction(BaseAction):
+    """
+    Class for cleaning the directory. It will clean all the files in the directory but doesn't delete the directory
+    """
+
+    NAME = "CleanUp"
+
+    DESCRIPTION = "Cleaning up the target folder"
+
+    PURPOSE = Purpose.CLEAN_UP
+
+    def __init__(self, target_dir):
+        self.target_dir = target_dir
+
+    def execute(self):
+        targets = os.listdir(self.target_dir)
+        LOG.info("Clean up action: folder %s will be cleaned", str(self.target_dir))
+
+        for name in targets:
+            target_path = os.path.join(self.target_dir, name)
+            LOG.info("Clean up action: %s is deleted", str(target_path))
+
+            if os.path.isdir(target_path):
+                shutil.rmtree(target_path)
+            else:
+                os.remove(target_path)

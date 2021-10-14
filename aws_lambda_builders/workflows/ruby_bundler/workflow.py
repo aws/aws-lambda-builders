@@ -4,7 +4,7 @@ Ruby Bundler Workflow
 import logging
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 from .utils import OSUtils
 from .bundler import SubprocessBundler
@@ -46,6 +46,8 @@ class RubyBundlerWorkflow(BaseWorkflow):
 
             # if dependencies folder exists, copy dependencies into dependencies into dependencies folder
             if self.dependencies_dir:
+                # clean up the dependencies first
+                self.actions.append(CleanUpAction(self.dependencies_dir))
                 self.actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
         else:
             # if dependencies folder exists and not download dependencies, simply copy the dependencies from the

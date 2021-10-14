@@ -5,7 +5,7 @@ import logging
 
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, MoveDependenciesAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, MoveDependenciesAction, CleanUpAction
 from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
 from .utils import OSUtils
 from .npm import SubprocessNpm
@@ -64,6 +64,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # if dependencies folder exists, copy or move dependencies from artifact folder to dependencies folder
             # depends on the combine_dependencies flag
             if self.dependencies_dir:
+                # clean up the dependencies folder first
+                self.actions.append(CleanUpAction(self.dependencies_dir))
                 # if combine_dependencies is set, we should keep dependencies and source code in the artifact folder
                 # while copying the dependencies. Otherwise we should separate the dependencies and source code
                 if self.combine_dependencies:
