@@ -4,7 +4,7 @@ Python PIP Workflow
 import logging
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
@@ -73,24 +73,41 @@ class PythonPipWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
-        if osutils.file_exists(manifest_path):
-            # If a requirements.txt exists, run pip builder before copy action.
-            self.actions = [
+        if not self.download_dependencies and not self.dependencies_dir:
+            LOG.info(
+                "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
+                "artifacts directory. "
+            )
+
+        self.actions = []
+        if not osutils.file_exists(manifest_path):
+            LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
+            self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+            return
+
+        # If a requirements.txt exists, run pip builder before copy action.
+        if self.download_dependencies:
+            if self.dependencies_dir:
+                # clean up the dependencies folder before installing
+                self.actions.append(CleanUpAction(self.dependencies_dir))
+            self.actions.append(
                 PythonPipBuildAction(
                     artifacts_dir,
                     scratch_dir,
                     manifest_path,
                     runtime,
+                    self.dependencies_dir,
                     binaries=self.binaries,
                     architecture=self.architecture,
-                ),
-                CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            ]
-        else:
-            LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
-            self.actions = [
-                CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
-            ]
+                )
+            )
+        # if dependencies folder is provided, copy dependencies from dependencies folder to build folder
+        # if combine_dependencies is false, will not copy the dependencies from dependencies folder to artifact
+        # folder
+        if self.dependencies_dir and self.combine_dependencies:
+            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+
+        self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
     def get_validators(self):
         return [PythonRuntimeValidator(runtime=self.runtime, architecture=self.architecture)]

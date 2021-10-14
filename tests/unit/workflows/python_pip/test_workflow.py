@@ -1,7 +1,8 @@
+import mock
 from mock import patch, ANY, Mock
 from unittest import TestCase
 
-from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildAction, PythonPipWorkflow
@@ -33,6 +34,77 @@ class TestPythonPipWorkflow(TestCase):
         for validator in self.workflow.get_validators():
             self.assertTrue(isinstance(validator, PythonRuntimeValidator))
 
+    def test_workflow_sets_up_actions_without_download_dependencies_with_dependencies_dir(self):
+        osutils_mock = Mock(spec=self.osutils)
+        osutils_mock.file_exists.return_value = True
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.7",
+            osutils=osutils_mock,
+            dependencies_dir="dep",
+            download_dependencies=False,
+        )
+        self.assertEqual(len(self.workflow.actions), 2)
+        self.assertIsInstance(self.workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(self.workflow.actions[1], CopySourceAction)
+
+    def test_workflow_sets_up_actions_with_download_dependencies_and_dependencies_dir(self):
+        osutils_mock = Mock(spec=self.osutils)
+        osutils_mock.file_exists.return_value = True
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.7",
+            osutils=osutils_mock,
+            dependencies_dir="dep",
+            download_dependencies=True,
+        )
+        self.assertEqual(len(self.workflow.actions), 4)
+        self.assertIsInstance(self.workflow.actions[0], CleanUpAction)
+        self.assertIsInstance(self.workflow.actions[1], PythonPipBuildAction)
+        self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(self.workflow.actions[3], CopySourceAction)
+
+    def test_workflow_sets_up_actions_without_download_dependencies_without_dependencies_dir(self):
+        osutils_mock = Mock(spec=self.osutils)
+        osutils_mock.file_exists.return_value = True
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.7",
+            osutils=osutils_mock,
+            dependencies_dir=None,
+            download_dependencies=False,
+        )
+        self.assertEqual(len(self.workflow.actions), 1)
+        self.assertIsInstance(self.workflow.actions[0], CopySourceAction)
+
+    def test_workflow_sets_up_actions_without_combine_dependencies(self):
+        osutils_mock = mock.Mock(spec=self.osutils)
+        osutils_mock.file_exists.return_value = True
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.7",
+            osutils=osutils_mock,
+            dependencies_dir="dep",
+            download_dependencies=True,
+            combine_dependencies=False,
+        )
+        self.assertEqual(len(self.workflow.actions), 3)
+        self.assertIsInstance(self.workflow.actions[0], CleanUpAction)
+        self.assertIsInstance(self.workflow.actions[1], PythonPipBuildAction)
+        self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
+
     @patch("aws_lambda_builders.workflows.python_pip.workflow.PythonPipBuildAction")
     def test_must_build_with_architecture(self, PythonPipBuildActionMock):
         self.workflow = PythonPipWorkflow(
@@ -49,6 +121,7 @@ class TestPythonPipWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             "python3.7",
+            None,
             binaries=ANY,
             architecture="ARM64",
         )

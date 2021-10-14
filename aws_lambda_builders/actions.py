@@ -3,6 +3,7 @@ Definition of actions used in the workflow
 """
 
 import logging
+import os
 import shutil
 import six
 
@@ -30,8 +31,17 @@ class Purpose(object):
     # Action is copying source code
     COPY_SOURCE = "COPY_SOURCE"
 
+    # Action is copying dependencies
+    COPY_DEPENDENCIES = "COPY_DEPENDENCIES"
+
+    # Action is moving dependencies
+    MOVE_DEPENDENCIES = "MOVE_DEPENDENCIES"
+
     # Action is compiling source code
     COMPILE_SOURCE = "COMPILE_SOURCE"
+
+    # Action is cleaning up the target folder
+    CLEAN_UP = "CLEAN_UP"
 
     @staticmethod
     def has_value(item):
@@ -99,3 +109,84 @@ class CopySourceAction(BaseAction):
 
     def execute(self):
         copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
+
+
+class CopyDependenciesAction(BaseAction):
+
+    NAME = "CopyDependencies"
+
+    DESCRIPTION = "Copying dependencies while skipping source file"
+
+    PURPOSE = Purpose.COPY_DEPENDENCIES
+
+    def __init__(self, source_dir, artifact_dir, destination_dir):
+        self.source_dir = source_dir
+        self.artifact_dir = artifact_dir
+        self.dest_dir = destination_dir
+
+    def execute(self):
+        source = set(os.listdir(self.source_dir))
+        artifact = set(os.listdir(self.artifact_dir))
+        dependencies = artifact - source
+
+        for name in dependencies:
+            dependencies_source = os.path.join(self.artifact_dir, name)
+            new_destination = os.path.join(self.dest_dir, name)
+
+            if os.path.isdir(dependencies_source):
+                copytree(dependencies_source, new_destination)
+            else:
+                shutil.copy2(dependencies_source, new_destination)
+
+
+class MoveDependenciesAction(BaseAction):
+
+    NAME = "MoveDependencies"
+
+    DESCRIPTION = "Moving dependencies while skipping source file"
+
+    PURPOSE = Purpose.MOVE_DEPENDENCIES
+
+    def __init__(self, source_dir, artifact_dir, destination_dir):
+        self.source_dir = source_dir
+        self.artifact_dir = artifact_dir
+        self.dest_dir = destination_dir
+
+    def execute(self):
+        source = set(os.listdir(self.source_dir))
+        artifact = set(os.listdir(self.artifact_dir))
+        dependencies = artifact - source
+
+        for name in dependencies:
+            dependencies_source = os.path.join(self.artifact_dir, name)
+            new_destination = os.path.join(self.dest_dir, name)
+
+            shutil.move(dependencies_source, new_destination)
+
+
+class CleanUpAction(BaseAction):
+    """
+    Class for cleaning the directory. It will clean all the files in the directory but doesn't delete the directory
+    """
+
+    NAME = "CleanUp"
+
+    DESCRIPTION = "Cleaning up the target folder"
+
+    PURPOSE = Purpose.CLEAN_UP
+
+    def __init__(self, target_dir):
+        self.target_dir = target_dir
+
+    def execute(self):
+        targets = os.listdir(self.target_dir)
+        LOG.info("Clean up action: folder %s will be cleaned", str(self.target_dir))
+
+        for name in targets:
+            target_path = os.path.join(self.target_dir, name)
+            LOG.info("Clean up action: %s is deleted", str(target_path))
+
+            if os.path.isdir(target_path):
+                shutil.rmtree(target_path)
+            else:
+                os.remove(target_path)

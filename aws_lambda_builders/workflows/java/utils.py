@@ -25,6 +25,9 @@ class OSUtils(object):
         shutil.copy2(src, dst)
         return dst
 
+    def move(self, src, dst):
+        shutil.move(src, dst)
+
     def listdir(self, d):
         return os.listdir(d)
 
@@ -48,6 +51,9 @@ class OSUtils(object):
 
     def makedirs(self, d):
         return os.makedirs(d)
+
+    def rmtree(self, d):
+        shutil.rmtree(d)
 
     @property
     def pipe(self):

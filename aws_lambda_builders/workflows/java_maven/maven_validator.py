@@ -5,9 +5,8 @@ Maven Binary Validation
 import logging
 import re
 
+from aws_lambda_builders.workflows.java.utils import OSUtils
 from aws_lambda_builders.validator import RuntimeValidator
-
-from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
