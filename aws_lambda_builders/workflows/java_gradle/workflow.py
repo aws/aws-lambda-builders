@@ -3,6 +3,7 @@ Java Gradle Workflow
 """
 import hashlib
 import os
+from aws_lambda_builders.actions import CleanUpAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
 from aws_lambda_builders.workflows.java.utils import OSUtils
@@ -11,7 +12,6 @@ from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
 from .gradle import SubprocessGradle
 from .gradle_resolver import GradleResolver
 from .gradle_validator import GradleValidator
-from ...actions import CleanUpAction
 
 
 class JavaGradleWorkflow(BaseWorkflow):

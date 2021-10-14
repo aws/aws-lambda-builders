@@ -80,33 +80,32 @@ class PythonPipWorkflow(BaseWorkflow):
             )
 
         self.actions = []
-        if osutils.file_exists(manifest_path):
-            # If a requirements.txt exists, run pip builder before copy action.
-            if self.download_dependencies:
-                if self.dependencies_dir:
-                    # clean up the dependencies folder before installing
-                    self.actions.append(CleanUpAction(self.dependencies_dir))
-                self.actions.append(
-                    PythonPipBuildAction(
-                        artifacts_dir,
-                        scratch_dir,
-                        manifest_path,
-                        runtime,
-                        self.dependencies_dir,
-                        binaries=self.binaries,
-                        architecture=self.architecture,
-                    )
-                )
-            # if dependencies folder is provided, copy dependencies from dependencies folder to build folder
-            # if combine_dependencies is false, will not copy the dependencies from dependencies folder to artifact
-            # folder
-            if self.dependencies_dir and self.combine_dependencies:
-                self.actions.append(
-                    CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)
-                )
-
-        else:
+        if not osutils.file_exists(manifest_path):
             LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
+            self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+            return
+
+        # If a requirements.txt exists, run pip builder before copy action.
+        if self.download_dependencies:
+            if self.dependencies_dir:
+                # clean up the dependencies folder before installing
+                self.actions.append(CleanUpAction(self.dependencies_dir))
+            self.actions.append(
+                PythonPipBuildAction(
+                    artifacts_dir,
+                    scratch_dir,
+                    manifest_path,
+                    runtime,
+                    self.dependencies_dir,
+                    binaries=self.binaries,
+                    architecture=self.architecture,
+                )
+            )
+        # if dependencies folder is provided, copy dependencies from dependencies folder to build folder
+        # if combine_dependencies is false, will not copy the dependencies from dependencies folder to artifact
+        # folder
+        if self.dependencies_dir and self.combine_dependencies:
+            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 

@@ -165,6 +165,9 @@ class MoveDependenciesAction(BaseAction):
 
 
 class CleanUpAction(BaseAction):
+    """
+    Class for cleaning the directory. It will clean all the files in the directory but doesn't delete the directory
+    """
 
     NAME = "CleanUp"
 
@@ -177,9 +180,11 @@ class CleanUpAction(BaseAction):
 
     def execute(self):
         targets = os.listdir(self.target_dir)
+        LOG.info("Clean up action: folder %s will be cleaned", str(self.target_dir))
 
         for name in targets:
             target_path = os.path.join(self.target_dir, name)
+            LOG.info("Clean up action: %s is deleted", str(target_path))
 
             if os.path.isdir(target_path):
                 shutil.rmtree(target_path)
