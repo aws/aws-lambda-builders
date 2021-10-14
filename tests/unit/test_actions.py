@@ -115,7 +115,7 @@ class TestCleanUpAction_execute(TestCase):
 
         listdir_mock.side_effect = [[1, 2]]
         path_mock.side_effect = ["dir", "file"]
-        isdir_mock.side_effect = [True, False]
+        isdir_mock.side_effect = [True, True, False]
         action = CleanUpAction(target_dir)
         action.execute()
 
