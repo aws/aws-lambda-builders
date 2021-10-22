@@ -69,6 +69,8 @@ class TestPythonPipWorkflow(TestCase):
         self.assertIsInstance(self.workflow.actions[1], PythonPipBuildAction)
         self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
         self.assertIsInstance(self.workflow.actions[3], CopySourceAction)
+        # check copying dependencies does not have any exclude
+        self.assertEqual(self.workflow.actions[2].excludes, [])
 
     def test_workflow_sets_up_actions_without_download_dependencies_without_dependencies_dir(self):
         osutils_mock = Mock(spec=self.osutils)

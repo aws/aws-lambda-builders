@@ -105,7 +105,8 @@ class PythonPipWorkflow(BaseWorkflow):
         # if combine_dependencies is false, will not copy the dependencies from dependencies folder to artifact
         # folder
         if self.dependencies_dir and self.combine_dependencies:
-            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+            # when copying downloaded dependencies back to artifacts folder, don't exclude anything
+            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
 
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 

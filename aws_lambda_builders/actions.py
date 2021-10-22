@@ -187,7 +187,7 @@ class CleanUpAction(BaseAction):
 
         for name in targets:
             target_path = os.path.join(self.target_dir, name)
-            LOG.info("Clean up action: %s is deleted", str(target_path))
+            LOG.debug("Clean up action: %s is deleted", str(target_path))
 
             if os.path.isdir(target_path):
                 shutil.rmtree(target_path)
