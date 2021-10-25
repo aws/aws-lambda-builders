@@ -160,6 +160,9 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         optimizations=None,
         options=None,
         mode=BuildMode.RELEASE,
+        download_dependencies=True,
+        dependencies_dir=None,
+        combine_dependencies=True,
         architecture=X86_64,
     ):
         """
@@ -178,7 +181,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         manifest_path : str
             Path to the dependency manifest
         runtime : str, optional
-            name of the AWS Lambda runtime that you are building for. This is sent to the builder for
+            Optional, name of the AWS Lambda runtime that you are building for. This is sent to the builder for
             informational purposes, by default None
         executable_search_paths : list, optional
             Additional list of paths to search for executables required by the workflow, by default None
@@ -188,6 +191,13 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             dictionary of options ot pass to build action. **Not supported**., by default None
         mode : str, optional
             Mode the build should produce, by default BuildMode.RELEASE
+        download_dependencies: bool, optional
+            Should download dependencies when building
+        dependencies_dir : str, optional
+            Path to folder the dependencies should be downloaded to
+        combine_dependencies: bool, optional
+            This flag will only be used if dependency_folder is specified. False will not copy dependencies
+            from dependency_folder into build folder
         architecture : str, optional
             Architecture type either arm64 or x86_64 for which the build will be based on in AWS lambda, by default X86_64
         """
@@ -201,6 +211,9 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.options = options
         self.executable_search_paths = executable_search_paths
         self.mode = mode
+        self.download_dependencies = download_dependencies
+        self.dependencies_dir = dependencies_dir
+        self.combine_dependencies = combine_dependencies
         self.architecture = architecture
 
         # Actions are registered by the subclasses as they seem fit

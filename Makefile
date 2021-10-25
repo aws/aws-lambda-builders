@@ -28,6 +28,3 @@ black-check:
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
-
-# Verifications to run before sending a pull request, skipping black check because black requires Python 3.6+
-pr2.7: init dev
