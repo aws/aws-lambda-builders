@@ -1,5 +1,3 @@
-import mock
-
 from unittest import TestCase
 from mock import patch, call
 
@@ -45,16 +43,40 @@ class TestNodejsNpmWorkflow(TestCase):
         self.osutils.is_windows.side_effect = [False]
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
-    def test_workflow_fails_if_manifest_parsing_fails(self):
+    def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir(self):
+        self.osutils.file_exists.return_value = True
 
-        self.osutils.parse_json.side_effect = OSError("boom!")
+        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
 
-        with self.assertRaises(WorkflowFailedError) as raised:
-            NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+        self.assertEqual(len(workflow.actions), 6)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
 
-        self.assertEqual(raised.exception.args[0], "NodejsNpmBuilder:ParseManifest - boom!")
+    def test_workflow_sets_up_npm_actions_without_download_dependencies_with_dependencies_dir(self):
+        self.osutils.file_exists.return_value = True
 
-        self.osutils.parse_json.assert_called_with("manifest")
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            dependencies_dir="dep",
+            download_dependencies=False,
+            osutils=self.osutils,
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], CopySourceAction)
+        self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_without_bundler_if_manifest_doesnt_request_it(self):
 
@@ -67,6 +89,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_with_download_dependencies_and_dependencies_dir(self):
 
@@ -157,6 +180,17 @@ class TestNodejsNpmWorkflow(TestCase):
         self.osutils.file_exists.assert_has_calls(
             [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
         )
+
+    def test_workflow_fails_if_manifest_parsing_fails(self):
+
+        self.osutils.parse_json.side_effect = OSError("boom!")
+
+        with self.assertRaises(WorkflowFailedError) as raised:
+            NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+
+        self.assertEqual(raised.exception.args[0], "NodejsNpmBuilder:ParseManifest - boom!")
+
+        self.osutils.parse_json.assert_called_with("manifest")
 
     def test_sets_up_esbuild_search_path_from_npm_bin(self):
 

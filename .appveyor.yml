@@ -6,7 +6,7 @@ image:
 environment:
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
-  nodejs_version: "10.10.0"
+  nodejs_version: "14.18.1"
 
   matrix:
     - PYTHON: "C:\\Python36-x64"
