@@ -3,6 +3,7 @@ Wrapper around calling esbuild through a subprocess.
 """
 
 import logging
+
 LOG = logging.getLogger(__name__)
 
 
@@ -51,7 +52,7 @@ class SubprocessEsbuild(object):
         """
 
         LOG.debug("checking for esbuild in: %s", self.executable_search_paths)
-        binaries = self.which('esbuild', executable_search_paths=self.executable_search_paths)
+        binaries = self.which("esbuild", executable_search_paths=self.executable_search_paths)
         LOG.debug("potential esbuild binaries: %s", binaries)
 
         if len(binaries) > 0:

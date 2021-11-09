@@ -81,7 +81,7 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm, mode="--production"):
+    def __init__(self, artifacts_dir, subprocess_npm, is_production=True):
         """
         :type artifacts_dir: str
         :param artifacts_dir: an existing (writable) directory with project source files.
@@ -97,7 +97,7 @@ class NodejsNpmInstallAction(BaseAction):
         super(NodejsNpmInstallAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.subprocess_npm = subprocess_npm
-        self.mode = mode
+        self.is_production = is_production
 
     def execute(self):
         """
@@ -106,11 +106,13 @@ class NodejsNpmInstallAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
 
+        mode = "--production" if self.is_production else "--production=false"
+
         try:
             LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
 
             self.subprocess_npm.run(
-                ["install", "-q", "--no-audit", "--no-save", self.mode, "--unsafe-perm"], cwd=self.artifacts_dir
+                ["install", "-q", "--no-audit", "--no-save", mode, "--unsafe-perm"], cwd=self.artifacts_dir
             )
 
         except NpmExecutionError as ex:
@@ -154,9 +156,7 @@ class NodejsNpmCIAction(BaseAction):
         try:
             LOG.debug("NODEJS installing ci in: %s", self.artifacts_dir)
 
-            self.subprocess_npm.run(
-                ["ci"], cwd=self.artifacts_dir
-            )
+            self.subprocess_npm.run(["ci"], cwd=self.artifacts_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
@@ -330,10 +330,10 @@ class EsbuildBundleAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
         """
 
-        if 'entry_points' not in self.bundler_config:
+        if "entry_points" not in self.bundler_config:
             raise ActionFailedError("entry_points not set ({})".format(self.bundler_config))
 
-        entry_points = self.bundler_config['entry_points']
+        entry_points = self.bundler_config["entry_points"]
 
         if not isinstance(entry_points, list):
             raise ActionFailedError("entry_points must be a list ({})".format(self.bundler_config))

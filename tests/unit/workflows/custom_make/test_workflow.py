@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from aws_lambda_builders.architecture import X86_64, ARM64
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.custom_make.workflow import CustomMakeWorkflow
@@ -29,3 +30,19 @@ class TestProvidedMakeWorkflow(TestCase):
 
         with self.assertRaises(WorkflowFailedError):
             CustomMakeWorkflow("source", "artifacts", "scratch_dir", "manifest")
+
+    def test_must_validate_architecture(self):
+        workflow = CustomMakeWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", options={"build_logical_id": "hello"}
+        )
+        workflow_with_arm = CustomMakeWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            options={"build_logical_id": "hello"},
+            architecture=ARM64,
+        )
+
+        self.assertEqual(workflow.architecture, "x86_64")
+        self.assertEqual(workflow_with_arm.architecture, "arm64")

@@ -88,7 +88,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
-            executable_search_paths=[binpath]
+            executable_search_paths=[binpath],
         )
 
         expected_files = {"included.js", "included.js.map"}

@@ -89,10 +89,10 @@ Sort the downloaded packages into three categories:
 Pip will give us a wheel when it can, but some distributions do not ship with
 wheels at all in which case we will have an sdist for it. In some cases a
 platform specific wheel file may be availble so pip will have downloaded that,
-if our platform does not match the platform lambda runs on
-(linux_x86_64/manylinux) then the downloaded wheel file may not be compatible
-with lambda. Pure python wheels still will be compatible because they have no
-platform specific dependencies.
+if our platform does not match the platform defined for the lambda function
+(linux/manylinux x86_64 or aarch64) then the downloaded wheel file may not be
+compatible with lambda. Pure python wheels still will be compatible because
+they have no platform specific dependencies.
 
 #### Step 3: Try to download a compatible wheel for each incompatible package
 
@@ -100,7 +100,7 @@ Next we need to go through the downloaded packages and pick out any
 dependencies that do not have a compatible wheel file downloaded. For these
 packages we need to explicitly try to download a compatible wheel file. A
 compatible wheel file means one that is explicitly for marked as supporting the
-linux_x86_64 or manylinux1.
+corresponding architecture for the function.
 
 #### Step 4: Try to compile wheel files ourselves
 

@@ -30,7 +30,12 @@ class DotnetCliPackageWorkflow(BaseWorkflow):
         dotnetcli_install = GlobalToolInstallAction(subprocess_dotnet=subprocess_dotnetcli)
 
         dotnetcli_deployment = RunPackageAction(
-            source_dir, subprocess_dotnet=subprocess_dotnetcli, artifacts_dir=artifacts_dir, options=options, mode=mode
+            source_dir,
+            subprocess_dotnet=subprocess_dotnetcli,
+            artifacts_dir=artifacts_dir,
+            options=options,
+            mode=mode,
+            architecture=self.architecture,
         )
         self.actions = [dotnetcli_install, dotnetcli_deployment]
 

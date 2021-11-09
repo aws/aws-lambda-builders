@@ -5,6 +5,7 @@ from parameterized import parameterized
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
+from aws_lambda_builders.exceptions import UnsupportedRuntimeError, UnsupportedArchitectureError
 
 
 class MockSubProcess(object):
@@ -17,16 +18,12 @@ class MockSubProcess(object):
 
 class TestPythonRuntimeValidator(TestCase):
     def setUp(self):
-        self.validator = PythonRuntimeValidator(runtime="python3.7")
-
-    @parameterized.expand(["python2.7", "python3.6", "python3.7", "python3.8"])
-    def test_supported_runtimes(self, runtime):
-        validator = PythonRuntimeValidator(runtime=runtime)
-        self.assertTrue(validator.has_runtime())
+        self.validator = PythonRuntimeValidator(runtime="python3.7", architecture="x86_64")
 
     def test_runtime_validate_unsupported_language_fail_open(self):
-        validator = PythonRuntimeValidator(runtime="python2.6")
-        validator.validate(runtime_path="/usr/bin/python2.6")
+        validator = PythonRuntimeValidator(runtime="python2.6", architecture="arm64")
+        with self.assertRaises(UnsupportedRuntimeError):
+            validator.validate(runtime_path="/usr/bin/python2.6")
 
     def test_runtime_validate_supported_version_runtime(self):
         with mock.patch("subprocess.Popen") as mock_subprocess:
@@ -46,3 +43,15 @@ class TestPythonRuntimeValidator(TestCase):
         version_strings = ["sys.version_info.major == 3", "sys.version_info.minor == 7"]
         for version_string in version_strings:
             self.assertTrue(all([part for part in cmd if version_string in part]))
+
+    @parameterized.expand(
+        [
+            ("python2.7", "arm64"),
+            ("python3.6", "arm64"),
+            ("python3.7", "arm64"),
+        ]
+    )
+    def test_runtime_validate_with_incompatible_architecture(self, runtime, architecture):
+        validator = PythonRuntimeValidator(runtime=runtime, architecture=architecture)
+        with self.assertRaises(UnsupportedArchitectureError):
+            validator.validate(runtime_path="/usr/bin/python")

@@ -30,7 +30,9 @@ class TestSubprocessEsbuild(TestCase):
 
         self.under_test.run(["arg-a", "arg-b"])
 
-        self.osutils.popen.assert_called_with(["/a/b/esbuild", "arg-a", "arg-b"], cwd=None, stderr="PIPE", stdout="PIPE")
+        self.osutils.popen.assert_called_with(
+            ["/a/b/esbuild", "arg-a", "arg-b"], cwd=None, stderr="PIPE", stdout="PIPE"
+        )
 
     def test_uses_cwd_if_supplied(self):
         self.under_test.run(["arg-a", "arg-b"], cwd="/a/cwd")
@@ -63,7 +65,6 @@ class TestSubprocessEsbuild(TestCase):
             self.under_test.run(["pack"])
 
         self.assertEqual(raised.exception.args[0], "Esbuild Failed: cannot find esbuild")
-
 
     def test_raises_ValueError_if_args_not_a_list(self):
         with self.assertRaises(ValueError) as raised:

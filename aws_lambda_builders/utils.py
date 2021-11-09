@@ -7,6 +7,7 @@ import sys
 import os
 import logging
 
+from aws_lambda_builders.architecture import X86_64, ARM64
 
 LOG = logging.getLogger(__name__)
 
@@ -29,6 +30,10 @@ def copytree(source, destination, ignore=None):
         A function that returns a set of file names to ignore, given a list of available file names. Similar to the
         ``ignore`` property of ``shutils.copytree`` method
     """
+
+    if not os.path.exists(source):
+        LOG.warning("Skipping copy operation since source %s does not exist", source)
+        return
 
     if not os.path.exists(destination):
         os.makedirs(destination)
@@ -148,3 +153,18 @@ def which(cmd, mode=os.F_OK | os.X_OK, executable_search_paths=None):  # pragma:
                 if _access_check(name, mode):
                     paths.append(name)
     return paths
+
+
+def get_goarch(architecture):
+    """
+    Parameters
+    ----------
+    architecture : str
+        name of the type of architecture
+
+    Returns
+    -------
+    str
+        returns a valid GO Architecture value
+    """
+    return "arm64" if architecture == ARM64 else "amd64"

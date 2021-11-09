@@ -1,11 +1,12 @@
 from unittest import TestCase
 
-from concurrent.futures import ThreadPoolExecutor
-from mock import patch
 import os
 import platform
+from concurrent.futures import ThreadPoolExecutor
+from mock import patch
 
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
 from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
 
@@ -66,46 +67,89 @@ class TestRunPackageAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.utils.OSUtils")
     def setUp(self, MockSubprocessDotnetCLI, MockOSUtils):
         self.subprocess_dotnet = MockSubprocessDotnetCLI.return_value
-        self.os_utils = MockOSUtils
-        self.source_dir = os.path.join("/source_dir")
-        self.artifacts_dir = os.path.join("/artifacts_dir")
-        self.scratch_dir = os.path.join("/scratch_dir")
+        self.os_utils = MockOSUtils.return_value
+        self.source_dir = "/source_dir"
+        self.artifacts_dir = "/artifacts_dir"
+        self.scratch_dir = "/scratch_dir"
 
     def tearDown(self):
         self.subprocess_dotnet.reset_mock()
+        self.os_utils.reset_mock()
 
     def test_build_package(self):
         mode = "Release"
 
         options = {}
         action = RunPackageAction(
-            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, self.os_utils
+            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, os_utils=self.os_utils
         )
 
         action.execute()
 
-        zipFilePath = os.path.join("/", "artifacts_dir", "source_dir.zip")
+        zip_path = os.path.join(self.artifacts_dir, "source_dir.zip")
 
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["lambda", "package", "--output-package", zipFilePath], cwd="/source_dir"
+            ["lambda", "package", "--output-package", zip_path, "--msbuild-parameters", "--runtime linux-x64"],
+            cwd="/source_dir",
+        )
+
+    def test_build_package_x86(self):
+        mode = "Release"
+
+        options = {}
+        action = RunPackageAction(
+            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, X86_64, os_utils=self.os_utils
+        )
+
+        action.execute()
+
+        zip_path = os.path.join(self.artifacts_dir, "source_dir.zip")
+
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["lambda", "package", "--output-package", zip_path, "--msbuild-parameters", "--runtime linux-x64"],
+            cwd="/source_dir",
+        )
+
+    def test_build_package_arm64(self):
+        mode = "Release"
+
+        options = {}
+        action = RunPackageAction(
+            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, ARM64, os_utils=self.os_utils
+        )
+
+        action.execute()
+
+        zip_path = os.path.join(self.artifacts_dir, "source_dir.zip")
+
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["lambda", "package", "--output-package", zip_path, "--msbuild-parameters", "--runtime linux-arm64"],
+            cwd="/source_dir",
         )
 
     def test_build_package_arguments(self):
         mode = "Release"
         options = {"--framework": "netcoreapp2.1"}
         action = RunPackageAction(
-            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, self.os_utils
+            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, os_utils=self.os_utils
         )
 
         action.execute()
 
-        if platform.system().lower() == "windows":
-            zipFilePath = "/artifacts_dir\\source_dir.zip"
-        else:
-            zipFilePath = "/artifacts_dir/source_dir.zip"
+        zip_path = self.artifacts_dir + ("\\" if platform.system().lower() == "windows" else "/") + "source_dir.zip"
 
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["lambda", "package", "--output-package", zipFilePath, "--framework", "netcoreapp2.1"], cwd="/source_dir"
+            [
+                "lambda",
+                "package",
+                "--output-package",
+                zip_path,
+                "--msbuild-parameters",
+                "--runtime linux-x64",
+                "--framework",
+                "netcoreapp2.1",
+            ],
+            cwd="/source_dir",
         )
 
     def test_build_error(self):
@@ -114,7 +158,7 @@ class TestRunPackageAction(TestCase):
         self.subprocess_dotnet.run.side_effect = DotnetCLIExecutionError(message="Failed Package")
         options = {}
         action = RunPackageAction(
-            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, self.os_utils
+            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, os_utils=self.os_utils
         )
 
         self.assertRaises(ActionFailedError, action.execute)
@@ -123,13 +167,23 @@ class TestRunPackageAction(TestCase):
         mode = "Debug"
         options = None
         action = RunPackageAction(
-            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, self.os_utils
+            self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, os_utils=self.os_utils
         )
 
-        zipFilePath = os.path.join("/", "artifacts_dir", "source_dir.zip")
+        zip_path = os.path.join("/", "artifacts_dir", "source_dir.zip")
 
         action.execute()
 
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["lambda", "package", "--output-package", zipFilePath, "--configuration", "Debug"], cwd="/source_dir"
+            [
+                "lambda",
+                "package",
+                "--output-package",
+                zip_path,
+                "--msbuild-parameters",
+                "--runtime linux-x64",
+                "--configuration",
+                "Debug",
+            ],
+            cwd="/source_dir",
         )

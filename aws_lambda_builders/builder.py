@@ -6,6 +6,7 @@ import importlib
 import os
 import logging
 
+from aws_lambda_builders.architecture import X86_64, ARM64
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
 from aws_lambda_builders.workflow import Capability
 
@@ -64,6 +65,10 @@ class LambdaBuilder(object):
         options=None,
         executable_search_paths=None,
         mode=None,
+        download_dependencies=True,
+        dependencies_dir=None,
+        combine_dependencies=True,
+        architecture=X86_64,
     ):
         """
         Actually build the code by running workflows
@@ -105,6 +110,23 @@ class LambdaBuilder(object):
         :type mode: str
         :param mode:
             Optional, Mode the build should produce
+
+        :type download_dependencies: bool
+        :param download_dependencies:
+            Optional, Should download dependencies when building
+
+        :type dependencies_dir: str
+        :param dependencies_dir:
+            Optional, Path to folder the dependencies should be downloaded to
+
+        :type combine_dependencies: bool
+        :param combine_dependencies:
+            Optional, This flag will only be used if dependency_folder is specified. False will not copy dependencies
+            from dependency_folder into build folder
+
+        :type architecture: str
+        :param architecture:
+            Type of architecture x86_64 and arm64 for Lambda Function
         """
 
         if not os.path.exists(scratch_dir):
@@ -120,6 +142,10 @@ class LambdaBuilder(object):
             options=options,
             executable_search_paths=executable_search_paths,
             mode=mode,
+            download_dependencies=download_dependencies,
+            dependencies_dir=dependencies_dir,
+            combine_dependencies=combine_dependencies,
+            architecture=architecture,
         )
 
         return workflow.run()

@@ -4,7 +4,7 @@ import shutil
 
 from unittest import TestCase
 
-from aws_lambda_builders.utils import copytree
+from aws_lambda_builders.utils import copytree, get_goarch
 
 
 class TestCopyTree(TestCase):
@@ -39,6 +39,15 @@ class TestCopyTree(TestCase):
         self.assertEqual(set(os.listdir(os.path.join(self.dest, "nested"))), set())
         self.assertEqual(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
         self.assertEqual(set(os.listdir(os.path.join(self.dest, "a"))), {"c"})
+
+    def test_must_skip_if_source_folder_does_not_exist(self):
+        copytree(os.path.join(self.source, "some-random-file"), self.dest)
+        self.assertEqual(set(os.listdir(self.dest)), set())
+
+    def test_must_return_valid_go_architecture(self):
+        self.assertEqual(get_goarch("arm64"), "arm64")
+        self.assertEqual(get_goarch("x86_64"), "amd64")
+        self.assertEqual(get_goarch(""), "amd64")
 
 
 def file(*args):

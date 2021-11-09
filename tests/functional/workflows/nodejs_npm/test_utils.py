@@ -128,5 +128,5 @@ class TestOSUtils(TestCase):
 
         json_file = os.path.join(os.path.dirname(__file__), "test_data", "test.json")
         json_contents = self.osutils.parse_json(json_file)
-        self.assertEqual(json_contents['a'], 1)
-        self.assertEqual(json_contents['b']['c'], 2)
+        self.assertEqual(json_contents["a"], 1)
+        self.assertEqual(json_contents["b"]["c"], 2)
