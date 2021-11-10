@@ -69,7 +69,7 @@ class TestNodejsNpmWorkflow(TestCase):
             osutils=self.osutils,
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 7)
 
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
@@ -77,6 +77,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], CopySourceAction)
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
         self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
+        self.assertIsInstance(workflow.actions[6], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_without_bundler_if_manifest_doesnt_request_it(self):
 
@@ -105,7 +106,7 @@ class TestNodejsNpmWorkflow(TestCase):
             osutils=self.osutils,
         )
 
-        self.assertEqual(len(workflow.actions), 8)
+        self.assertEqual(len(workflow.actions), 9)
 
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
@@ -115,6 +116,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[5], CopyDependenciesAction)
         self.assertIsInstance(workflow.actions[6], NodejsNpmrcCleanUpAction)
         self.assertIsInstance(workflow.actions[7], NodejsNpmLockFileCleanUpAction)
+        self.assertIsInstance(workflow.actions[8], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_without_download_dependencies_and_without_dependencies_dir(self):
         workflow = NodejsNpmWorkflow(
@@ -150,7 +152,7 @@ class TestNodejsNpmWorkflow(TestCase):
             osutils=self.osutils,
         )
 
-        self.assertEqual(len(workflow.actions), 8)
+        self.assertEqual(len(workflow.actions), 9)
 
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcCopyAction)
@@ -160,6 +162,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[5], MoveDependenciesAction)
         self.assertIsInstance(workflow.actions[6], NodejsNpmrcCleanUpAction)
         self.assertIsInstance(workflow.actions[7], NodejsNpmLockFileCleanUpAction)
+        self.assertIsInstance(workflow.actions[8], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_with_bundler_if_manifest_requests_it(self):
 

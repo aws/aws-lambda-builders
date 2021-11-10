@@ -84,6 +84,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
         actions.append(NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils))
         actions.append(NodejsNpmLockFileCleanUpAction(artifacts_dir, osutils=osutils))
 
+        if self.dependencies_dir:
+            actions.append(NodejsNpmLockFileCleanUpAction(self.dependencies_dir, osutils=osutils))
+
         return actions
 
     def actions_with_bundler(self, source_dir, artifacts_dir, bundler_config, osutils, subprocess_npm):
