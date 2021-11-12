@@ -4,7 +4,7 @@ import tempfile
 from contextlib import contextmanager
 from unittest import TestCase
 
-from aws_lambda_builders.workflows.java_maven.utils import OSUtils
+from aws_lambda_builders.workflows.java.utils import OSUtils
 
 
 @contextmanager
