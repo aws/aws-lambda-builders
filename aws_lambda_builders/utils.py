@@ -31,6 +31,10 @@ def copytree(source, destination, ignore=None):
         ``ignore`` property of ``shutils.copytree`` method
     """
 
+    if not os.path.exists(source):
+        LOG.warning("Skipping copy operation since source %s does not exist", source)
+        return
+
     if not os.path.exists(destination):
         os.makedirs(destination)
 
