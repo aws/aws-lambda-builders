@@ -16,11 +16,14 @@ class PythonPipBuildAction(BaseAction):
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
     LANGUAGE = "python"
 
-    def __init__(self, artifacts_dir, scratch_dir, manifest_path, runtime, binaries, architecture=X86_64):
+    def __init__(
+        self, artifacts_dir, scratch_dir, manifest_path, runtime, dependencies_dir, binaries, architecture=X86_64
+    ):
         self.artifacts_dir = artifacts_dir
         self.manifest_path = manifest_path
         self.scratch_dir = scratch_dir
         self.runtime = runtime
+        self.dependencies_dir = dependencies_dir
         self.binaries = binaries
         self.architecture = architecture
 
@@ -40,8 +43,13 @@ class PythonPipBuildAction(BaseAction):
             osutils=os_utils, runtime=self.runtime, dependency_builder=dependency_builder
         )
         try:
+            target_artifact_dir = self.artifacts_dir
+            # if dependencies folder is provided, download the dependencies into dependencies folder
+            if self.dependencies_dir:
+                target_artifact_dir = self.dependencies_dir
+
             package_builder.build_dependencies(
-                artifacts_dir_path=self.artifacts_dir,
+                artifacts_dir_path=target_artifact_dir,
                 scratch_dir_path=self.scratch_dir,
                 requirements_path=self.manifest_path,
             )

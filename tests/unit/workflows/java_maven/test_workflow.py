@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
 from aws_lambda_builders.workflows.java_maven.workflow import JavaMavenWorkflow, JavaMavenLayersWorkflow
 from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenBuildAction,
@@ -7,7 +8,7 @@ from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenCopyDependencyAction,
     JavaMavenCopyLayerArtifactsAction
 )
-from aws_lambda_builders.actions import CopySourceAction
+from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolver
 from aws_lambda_builders.workflows.java_maven.maven_validator import MavenValidator
 from aws_lambda_builders.architecture import ARM64
@@ -70,6 +71,44 @@ class TestJavaMavenWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertEqual(".aws-sam", workflow.actions[0].excludes[0])
         self.assertEqual(".git", workflow.actions[0].excludes[1])
+
+    def test_workflow_sets_up_maven_actions_without_combine_dependencies(self):
+        workflow = JavaMavenWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", combine_dependencies=False
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+
+        self.assertIsInstance(workflow.actions[1], JavaMavenBuildAction)
+
+        self.assertIsInstance(workflow.actions[2], JavaMavenCopyDependencyAction)
+
+        self.assertIsInstance(workflow.actions[3], JavaMavenCopyArtifactsAction)
+
+        self.assertIsInstance(workflow.actions[4], CleanUpAction)
+
+        self.assertIsInstance(workflow.actions[5], JavaMoveDependenciesAction)
+
+    def test_workflow_sets_up_maven_actions_with_combine_dependencies(self):
+        workflow = JavaMavenWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", dependencies_dir="dep", combine_dependencies=True
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+
+        self.assertIsInstance(workflow.actions[1], JavaMavenBuildAction)
+
+        self.assertIsInstance(workflow.actions[2], JavaMavenCopyDependencyAction)
+
+        self.assertIsInstance(workflow.actions[3], JavaMavenCopyArtifactsAction)
+
+        self.assertIsInstance(workflow.actions[4], CleanUpAction)
+
+        self.assertIsInstance(workflow.actions[5], JavaCopyDependenciesAction)
 
     def test_must_validate_architecture(self):
         workflow = JavaMavenWorkflow(
