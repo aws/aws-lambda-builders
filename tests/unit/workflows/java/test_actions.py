@@ -46,7 +46,9 @@ class TestJavaMoveDependenciesAction(TestCase):
         action = JavaMoveDependenciesAction(self.artifacts_dir, self.dependencies_dir, self.os_utils)
         action.execute()
 
-        self.os_utils.move.assert_called_with(os.path.join(self.artifacts_dir, "lib"), self.dependencies_dir)
+        self.os_utils.move.assert_called_with(
+            os.path.join(self.artifacts_dir, "lib"), os.path.join(self.dependencies_dir, "lib")
+        )
 
     def test_error_in_artifact_copy_raises_action_error(self):
         self.os_utils.move.side_effect = Exception("scandir failed!")
