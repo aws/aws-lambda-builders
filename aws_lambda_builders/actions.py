@@ -136,6 +136,7 @@ class CopyDependenciesAction(BaseAction):
             if os.path.isdir(dependencies_source):
                 copytree(dependencies_source, new_destination)
             else:
+                os.makedirs(os.path.dirname(dependencies_source), exist_ok=True)
                 shutil.copy2(dependencies_source, new_destination)
 
 
