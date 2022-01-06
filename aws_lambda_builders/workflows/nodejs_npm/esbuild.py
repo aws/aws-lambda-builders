@@ -55,7 +55,7 @@ class SubprocessEsbuild(object):
         binaries = self.which("esbuild", executable_search_paths=self.executable_search_paths)
         LOG.debug("potential esbuild binaries: %s", binaries)
 
-        if len(binaries) > 0:
+        if binaries:
             return binaries[0]
         else:
             raise EsbuildExecutionError(message="cannot find esbuild")

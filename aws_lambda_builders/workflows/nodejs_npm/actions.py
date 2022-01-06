@@ -338,7 +338,7 @@ class EsbuildBundleAction(BaseAction):
         if not isinstance(entry_points, list):
             raise ActionFailedError("entry_points must be a list ({})".format(self.bundler_config))
 
-        if len(entry_points) < 1:
+        if not entry_points:
             raise ActionFailedError("entry_points must not be empty ({})".format(self.bundler_config))
 
         entry_paths = [self.osutils.joinpath(self.source_dir, entry_point) for entry_point in entry_points]
@@ -350,16 +350,14 @@ class EsbuildBundleAction(BaseAction):
                 raise ActionFailedError("entry point {} does not exist".format(entry_point))
 
         args = entry_points + ["--bundle", "--platform=node", "--format=cjs"]
-        skip_minify = "minify" in self.bundler_config and not self.bundler_config["minify"]
-        skip_sourcemap = "sourcemap" in self.bundler_config and not self.bundler_config["sourcemap"]
-        if not skip_minify:
+        minify = self.bundler_config.get("minify", True)
+        sourcemap = self.bundler_config.get("sourcemap", True)
+        target = self.bundler_config.get("target", "es2020")
+        if minify:
             args.append("--minify")
-        if not skip_sourcemap:
+        if sourcemap:
             args.append("--sourcemap")
-        if "target" not in self.bundler_config:
-            args.append("--target=es2020")
-        else:
-            args.append("--target={}".format(self.bundler_config["target"]))
+        args.append("--target={}".format(target))
         args.append("--outdir={}".format(self.artifacts_dir))
         try:
             self.subprocess_esbuild.run(args, cwd=self.source_dir)
