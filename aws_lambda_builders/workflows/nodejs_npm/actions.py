@@ -90,8 +90,8 @@ class NodejsNpmInstallAction(BaseAction):
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
 
-        :type mode: str
-        :param mode: NPM installation mode (eg --production=false to force dev dependencies)
+        :type is_production: bool
+        :param is_production: NPM installation mode is production (eg --production=false to force dev dependencies)
         """
 
         super(NodejsNpmInstallAction, self).__init__()

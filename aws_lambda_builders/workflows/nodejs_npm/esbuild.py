@@ -32,9 +32,13 @@ class SubprocessEsbuild(object):
         :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
-        :type bin_path: str
-        :param bin_path: Path to the NPM package binary utilities. This will
+        :type executable_search_paths: list
+        :param executable_search_paths: List of paths to the NPM package binary utilities. This will
             be used to find embedded esbuild at runtime if present in the package
+
+        :type which: aws_lambda_builders.utils.which
+        :param which: Function to get paths which conform to the given mode on the PATH
+            with the prepended additional search paths
         """
         self.osutils = osutils
         self.executable_search_paths = executable_search_paths

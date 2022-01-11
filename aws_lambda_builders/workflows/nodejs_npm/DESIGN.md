@@ -82,7 +82,7 @@ Lambda environment.
 
 ### Choosing the packaging type
 
-For a large majority of projects, packaging is using a bundler has significant
+For a large majority of projects, packaging using a bundler has significant
 advantages (speed and runtime package size, supporting local dependencies). 
 
 However, there are also some drawbacks to using a bundler for a small set of
