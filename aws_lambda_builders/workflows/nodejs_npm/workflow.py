@@ -68,7 +68,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         if manifest_config["bundler"] == "esbuild":
             self.actions = self.actions_with_bundler(
-                source_dir, artifacts_dir, scratch_dir, manifest_path, manifest_config, osutils, subprocess_npm
+                source_dir, artifacts_dir, manifest_config, osutils, subprocess_npm
             )
         else:
             self.actions = self.actions_without_bundler(
@@ -147,9 +147,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         return actions
 
-    def actions_with_bundler(
-        self, source_dir, artifacts_dir, scratch_dir, manifest_path, bundler_config, osutils, subprocess_npm
-    ):
+    def actions_with_bundler(self, source_dir, artifacts_dir, bundler_config, osutils, subprocess_npm):
         """
         Generate a list of Nodejs build actions with a bundler
 
@@ -158,12 +156,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         :type artifacts_dir: str
         :param artifacts_dir: an existing (writable) directory where to store the output.
-
-        :type scratch_dir: str
-        :param scratch_dir: an existing (writable) directory for temporary files
-
-        :type manifest_path: str
-        :param manifest_path: path to package.json of an NPM project with the source to pack
 
         :type bundler_config: dict
         :param bundler_config: configurations for the bundler action
@@ -190,29 +182,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
         else:
             install_action = NodejsNpmInstallAction(source_dir, subprocess_npm=subprocess_npm, is_production=False)
 
-        actions = []
-
-        if self.download_dependencies:
-            actions.append(install_action)
-            if self.dependencies_dir:
-                if self.combine_dependencies:
-                    # If combine_dependencies, bundle the code then copy bundled source and
-                    # dependencies from artifacts dir to dep dir
-                    actions.append(CleanUpAction(self.dependencies_dir))
-                    actions.append(
-                        EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-                    )
-                    actions.append(CopySourceAction(artifacts_dir, self.dependencies_dir, excludes=self.EXCLUDED_FILES))
-                    return actions
-                else:
-                    # In order for auto dependency layer to work for sam accelerate local testing,
-                    # we need to forgo bundling in this case
-                    return self.actions_without_bundler(
-                        source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm
-                    )
-
-        actions.append(EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild))
-        return actions
+        esbuild_action = EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+        return [install_action, esbuild_action]
 
     def get_manifest_config(self, osutils, manifest_path):
         """

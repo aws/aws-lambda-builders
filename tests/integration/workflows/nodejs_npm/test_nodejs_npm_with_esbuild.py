@@ -17,7 +17,6 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def setUp(self):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
-        self.dependencies_dir = tempfile.mkdtemp()
 
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
 
@@ -27,7 +26,6 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
-        shutil.rmtree(self.dependencies_dir)
 
     def test_builds_javascript_project_with_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
@@ -96,24 +94,3 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_files = {"included.js", "included.js.map"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
-
-    def test_with_download_dependencies_and_dependencies_dir(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
-
-        self.builder.build(
-            source_dir,
-            self.artifacts_dir,
-            self.scratch_dir,
-            os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
-            dependencies_dir=self.dependencies_dir,
-            download_dependencies=True,
-        )
-
-        expected_files = {"included.js.map", "included.js"}
-        output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEqual(expected_files, output_files)
-
-        expected_modules = {"included.js.map", "included.js"}
-        output_modules = set(os.listdir(os.path.join(self.dependencies_dir)))
-        self.assertEqual(expected_modules, output_modules)
