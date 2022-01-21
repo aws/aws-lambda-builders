@@ -11,7 +11,8 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
     NodejsNpmInstallAction,
     NodejsNpmrcAndLockfileCopyAction,
-    NodejsNpmrcCleanUpAction, NodejsNpmCIAction,
+    NodejsNpmrcCleanUpAction,
+    NodejsNpmCIAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 

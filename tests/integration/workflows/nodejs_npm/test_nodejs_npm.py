@@ -129,7 +129,7 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_files_by_dir_name = {
             "package-lock": {"package-lock.json"},
             "shrinkwrap": {"npm-shrinkwrap.json"},
-            "package-lock-and-shrinkwrap": {"package-lock.json", "npm-shrinkwrap.json"}
+            "package-lock-and-shrinkwrap": {"package-lock.json", "npm-shrinkwrap.json"},
         }
 
         source_dir = os.path.join(self.TEST_DATA_FOLDER, dir_name)

@@ -111,7 +111,9 @@ class TestNodejsCopyAction(TestCase):
             "npm-shrinkwrap.json": shrinkwrap_exists,
         }
         file_exists_calls = [call("source/{}".format(filename)) for filename in filename_exists]
-        copy_file_calls = [call("source/{}".format(filename), "artifacts") for filename, exists in filename_exists.items() if exists]
+        copy_file_calls = [
+            call("source/{}".format(filename), "artifacts") for filename, exists in filename_exists.items() if exists
+        ]
         osutils.file_exists.assert_has_calls(file_exists_calls)
         osutils.copy_file.assert_has_calls(copy_file_calls)
 

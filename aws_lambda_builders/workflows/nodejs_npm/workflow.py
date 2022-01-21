@@ -32,6 +32,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     EXCLUDED_FILES = (".aws-sam", ".git")
 
+    # pylint: disable=too-many-statements
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
         super(NodejsNpmWorkflow, self).__init__(
