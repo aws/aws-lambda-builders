@@ -1,11 +1,12 @@
 from unittest import TestCase
-from mock import patch
+from mock import patch, call
+from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
     NodejsNpmInstallAction,
-    NodejsNpmrcCopyAction,
+    NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
@@ -80,30 +81,39 @@ class TestNodejsNpmInstallAction(TestCase):
         self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
 
 
-class TestNodejsNpmrcCopyAction(TestCase):
+class TestNodejsCopyAction(TestCase):
+    @parameterized.expand(
+        [
+            [False, False, False],
+            [True, False, False],
+            [False, True, False],
+            [False, False, True],
+            [True, True, False],
+            [True, False, True],
+            [False, True, True],
+            [True, True, True],
+        ]
+    )
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
-    def test_copies_npmrc_into_a_project(self, OSUtilMock):
+    def test_copies_into_a_project_if_file_exists(
+        self, npmrc_exists, package_lock_exists, shrinkwrap_exists, OSUtilMock
+    ):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
-        action = NodejsNpmrcCopyAction("artifacts", "source", osutils=osutils)
-        osutils.file_exists.side_effect = [True]
+        action = NodejsNpmrcAndLockfileCopyAction("artifacts", "source", osutils=osutils)
+        osutils.file_exists.side_effect = [npmrc_exists, package_lock_exists, shrinkwrap_exists]
         action.execute()
 
-        osutils.file_exists.assert_called_with("source/.npmrc")
-        osutils.copy_file.assert_called_with("source/.npmrc", "artifacts")
-
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
-    def test_skips_copying_npmrc_into_a_project_if_npmrc_doesnt_exist(self, OSUtilMock):
-        osutils = OSUtilMock.return_value
-        osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
-
-        action = NodejsNpmrcCopyAction("artifacts", "source", osutils=osutils)
-        osutils.file_exists.side_effect = [False]
-        action.execute()
-
-        osutils.file_exists.assert_called_with("source/.npmrc")
-        osutils.copy_file.assert_not_called()
+        filename_exists = {
+            ".npmrc": npmrc_exists,
+            "package-lock.json": package_lock_exists,
+            "npm-shrinkwrap.json": shrinkwrap_exists,
+        }
+        file_exists_calls = [call("source/{}".format(filename)) for filename in filename_exists]
+        copy_file_calls = [call("source/{}".format(filename), "artifacts") for filename, exists in filename_exists.items() if exists]
+        osutils.file_exists.assert_has_calls(file_exists_calls)
+        osutils.copy_file.assert_has_calls(copy_file_calls)
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     def test_raises_action_failed_when_copying_fails(self, OSUtilMock):
@@ -112,7 +122,7 @@ class TestNodejsNpmrcCopyAction(TestCase):
 
         osutils.copy_file.side_effect = OSError()
 
-        action = NodejsNpmrcCopyAction("artifacts", "source", osutils=osutils)
+        action = NodejsNpmrcAndLockfileCopyAction("artifacts", "source", osutils=osutils)
 
         with self.assertRaises(ActionFailedError):
             action.execute()

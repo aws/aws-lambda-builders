@@ -6,7 +6,13 @@ import logging
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, MoveDependenciesAction, CleanUpAction
-from .actions import NodejsNpmPackAction, NodejsNpmInstallAction, NodejsNpmrcCopyAction, NodejsNpmrcCleanUpAction
+from .actions import (
+    NodejsNpmPackAction,
+    NodejsNpmInstallAction,
+    NodejsNpmrcAndLockfileCopyAction,
+    NodejsNpmrcCleanUpAction,
+    NodejsNpmCIAction,
+)
 from .utils import OSUtils
 from .npm import SubprocessNpm
 
@@ -49,17 +55,23 @@ class NodejsNpmWorkflow(BaseWorkflow):
             tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
         )
 
-        npm_copy_npmrc = NodejsNpmrcCopyAction(tar_package_dir, source_dir, osutils=osutils)
+        npm_copy = NodejsNpmrcAndLockfileCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
         self.actions = [
             npm_pack,
-            npm_copy_npmrc,
+            npm_copy,
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
 
         if self.download_dependencies:
+            lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
+            shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
+
             # installed the dependencies into artifact folder
-            self.actions.append(NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm))
+            if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
+                self.actions.append(NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm))
+            else:
+                self.actions.append(NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm))
 
             # if dependencies folder exists, copy or move dependencies from artifact folder to dependencies folder
             # depends on the combine_dependencies flag

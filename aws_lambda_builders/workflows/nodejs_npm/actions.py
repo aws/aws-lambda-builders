@@ -112,14 +112,55 @@ class NodejsNpmInstallAction(BaseAction):
             raise ActionFailedError(str(ex))
 
 
-class NodejsNpmrcCopyAction(BaseAction):
+class NodejsNpmCIAction(BaseAction):
 
     """
-    A Lambda Builder Action that copies NPM config file .npmrc
+    A Lambda Builder Action that installs NPM project dependencies
+    using the CI method - which is faster and better reproducible
+    for CI environments, but requires a lockfile (package-lock.json
+    or npm-shrinkwrap.json)
     """
 
-    NAME = "CopyNpmrc"
-    DESCRIPTION = "Copying configuration from .npmrc"
+    NAME = "NpmCI"
+    DESCRIPTION = "Installing dependencies from NPM using the CI method"
+    PURPOSE = Purpose.RESOLVE_DEPENDENCIES
+
+    def __init__(self, artifacts_dir, subprocess_npm):
+        """
+        :type artifacts_dir: str
+        :param artifacts_dir: an existing (writable) directory with project source files.
+            Dependencies will be installed in this directory.
+        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+        :param subprocess_npm: An instance of the NPM process wrapper
+        """
+
+        super(NodejsNpmCIAction, self).__init__()
+        self.artifacts_dir = artifacts_dir
+        self.subprocess_npm = subprocess_npm
+
+    def execute(self):
+        """
+        Runs the action.
+        :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
+        """
+
+        try:
+            LOG.debug("NODEJS installing ci in: %s", self.artifacts_dir)
+
+            self.subprocess_npm.run(["ci"], cwd=self.artifacts_dir)
+
+        except NpmExecutionError as ex:
+            raise ActionFailedError(str(ex))
+
+
+class NodejsNpmrcAndLockfileCopyAction(BaseAction):
+
+    """
+    A Lambda Builder Action that copies lockfile and NPM config file .npmrc
+    """
+
+    NAME = "CopyNpmrcAndLockfile"
+    DESCRIPTION = "Copying configuration from .npmrc and dependencies from lockfile"
     PURPOSE = Purpose.COPY_SOURCE
 
     def __init__(self, artifacts_dir, source_dir, osutils):
@@ -135,7 +176,7 @@ class NodejsNpmrcCopyAction(BaseAction):
         :param osutils: An instance of OS Utilities for file manipulation
         """
 
-        super(NodejsNpmrcCopyAction, self).__init__()
+        super(NodejsNpmrcAndLockfileCopyAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.source_dir = source_dir
         self.osutils = osutils
@@ -144,14 +185,15 @@ class NodejsNpmrcCopyAction(BaseAction):
         """
         Runs the action.
 
-        :raises lambda_builders.actions.ActionFailedError: when .npmrc copying fails
+        :raises lambda_builders.actions.ActionFailedError: when copying fails
         """
 
         try:
-            npmrc_path = self.osutils.joinpath(self.source_dir, ".npmrc")
-            if self.osutils.file_exists(npmrc_path):
-                LOG.debug(".npmrc copying in: %s", self.artifacts_dir)
-                self.osutils.copy_file(npmrc_path, self.artifacts_dir)
+            for filename in [".npmrc", "package-lock.json", "npm-shrinkwrap.json"]:
+                file_path = self.osutils.joinpath(self.source_dir, filename)
+                if self.osutils.file_exists(file_path):
+                    LOG.debug("%s copying in: %s", filename, self.artifacts_dir)
+                    self.osutils.copy_file(file_path, self.artifacts_dir)
 
         except OSError as ex:
             raise ActionFailedError(str(ex))

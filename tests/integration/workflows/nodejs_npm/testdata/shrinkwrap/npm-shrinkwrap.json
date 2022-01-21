@@ -1,0 +1,16 @@
+{
+  "name": "shrinkwrap",
+  "version": "1.0.0",
+  "lockfileVersion": 2,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "shrinkwrap",
+      "version": "1.0.0",
+      "license": "APACHE2.0",
+      "dependencies": {
+        "minimal-request-promise": "*"
+      }
+    }
+  }
+}
