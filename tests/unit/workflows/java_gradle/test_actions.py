@@ -1,12 +1,14 @@
 from unittest import TestCase
-from mock import patch
+from mock import patch, call
 import os
 
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.workflows.java.utils import jar_file_filter
 from aws_lambda_builders.workflows.java_gradle.actions import (
     JavaGradleBuildAction,
     JavaGradleCopyArtifactsAction,
     GradleExecutionError,
+    JavaGradleCopyLayerArtifactsAction,
 )
 
 
@@ -89,3 +91,24 @@ class TestJavaGradleCopyArtifactsAction(TestCase):
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
         self.assertEqual(raised.exception.args[0], "scandir failed!")
+
+
+class TestJavaGradleCopyLayerArtifactsAction(TestJavaGradleCopyArtifactsAction):
+    def test_copies_artifacts(self):
+        action = JavaGradleCopyLayerArtifactsAction(self.source_dir, self.artifacts_dir, self.build_dir, self.os_utils)
+        action.execute()
+
+        self.os_utils.copytree.assert_has_calls(
+            [
+                call(
+                    os.path.join(self.build_dir, "build", "libs"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    jar_file_filter,
+                ),
+                call(
+                    os.path.join(self.build_dir, "build", "distributions", "lambda-build", "lib"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    jar_file_filter,
+                ),
+            ]
+        )

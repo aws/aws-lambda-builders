@@ -7,6 +7,7 @@ import logging
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from .maven import MavenExecutionError
+from ..java.utils import jar_file_filter
 
 LOG = logging.getLogger(__name__)
 
@@ -77,6 +78,30 @@ class JavaMavenCopyArtifactsAction(BaseAction):
 
         try:
             self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
+            if self.os_utils.exists(dependency_output):
+                self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
+        except Exception as ex:
+            raise ActionFailedError(str(ex))
+
+
+class JavaMavenCopyLayerArtifactsAction(JavaMavenCopyArtifactsAction):
+    """
+    Java layers does not support using .class files in it.
+    This action (different from the parent one) copies contents of the layer as jar files and place it
+    into the artifact folder
+    """
+
+    NAME = "MavenCopyLayerArtifacts"
+
+    def _copy_artifacts(self):
+        lambda_build_output = os.path.join(self.scratch_dir, "target")
+        dependency_output = os.path.join(self.scratch_dir, "target", "dependency")
+
+        if not self.os_utils.exists(lambda_build_output):
+            raise ActionFailedError("Required target/classes directory was not produced from 'mvn package'")
+
+        try:
+            self.os_utils.copytree(lambda_build_output, os.path.join(self.artifacts_dir, "lib"), jar_file_filter)
             if self.os_utils.exists(dependency_output):
                 self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
         except Exception as ex:

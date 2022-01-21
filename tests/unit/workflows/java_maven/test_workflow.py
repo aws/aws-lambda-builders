@@ -1,11 +1,14 @@
 from unittest import TestCase
+from mock import patch, ANY
 
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
+from aws_lambda_builders.workflows.java.utils import EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG
 from aws_lambda_builders.workflows.java_maven.workflow import JavaMavenWorkflow
 from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenBuildAction,
     JavaMavenCopyArtifactsAction,
     JavaMavenCopyDependencyAction,
+    JavaMavenCopyLayerArtifactsAction,
 )
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolver
@@ -102,3 +105,25 @@ class TestJavaMavenWorkflow(TestCase):
 
         self.assertEqual(workflow.architecture, "x86_64")
         self.assertEqual(workflow_with_arm.architecture, "arm64")
+
+    @patch("aws_lambda_builders.workflows.java_maven.workflow.SubprocessMaven")
+    def test_workflow_sets_up_maven_actions_with_combine_dependencies(self, patched_maven_process):
+        workflow = JavaMavenWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            is_building_layer=True,
+            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG],
+        )
+
+        patched_maven_process.assert_called_with(
+            maven_binary=ANY, os_utils=ANY, is_experimental_maven_scope_enabled=True
+        )
+
+        self.assertEqual(len(workflow.actions), 4)
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], JavaMavenBuildAction)
+        self.assertIsInstance(workflow.actions[2], JavaMavenCopyDependencyAction)
+        self.assertIsInstance(workflow.actions[3], JavaMavenCopyLayerArtifactsAction)

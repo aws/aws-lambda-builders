@@ -3,11 +3,13 @@ from mock import patch, call
 import os
 
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.workflows.java.utils import jar_file_filter
 from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenBuildAction,
     JavaMavenCopyArtifactsAction,
     JavaMavenCopyDependencyAction,
     MavenExecutionError,
+    JavaMavenCopyLayerArtifactsAction,
 )
 
 
@@ -102,4 +104,31 @@ class TestJavaMavenCopyArtifactsAction(TestCase):
             action.execute()
         self.assertEqual(
             raised.exception.args[0], "Required target/classes directory was not " "produced from 'mvn package'"
+        )
+
+
+class TestJavaMavenCopyLayerArtifactsAction(TestJavaMavenCopyArtifactsAction):
+    def test_copies_artifacts_no_deps(self):
+        self.os_utils.exists.return_value = True
+
+        action = JavaMavenCopyLayerArtifactsAction(self.scratch_dir, self.artifacts_dir, self.os_utils)
+        action.execute()
+
+        self.os_utils.copytree.assert_has_calls(
+            [call(os.path.join(self.scratch_dir, "target"), os.path.join(self.artifacts_dir, "lib"), jar_file_filter)]
+        )
+
+    def test_copies_artifacts_with_deps(self):
+        self.os_utils.exists.return_value = True
+        os.path.join(self.scratch_dir, "target", "dependency")
+
+        action = JavaMavenCopyLayerArtifactsAction(self.scratch_dir, self.artifacts_dir, self.os_utils)
+        action.execute()
+        self.os_utils.copytree.assert_has_calls(
+            [
+                call(
+                    os.path.join(self.scratch_dir, "target"), os.path.join(self.artifacts_dir, "lib"), jar_file_filter
+                ),
+                call(os.path.join(self.scratch_dir, "target", "dependency"), os.path.join(self.artifacts_dir, "lib")),
+            ]
         )

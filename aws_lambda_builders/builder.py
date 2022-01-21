@@ -69,6 +69,8 @@ class LambdaBuilder(object):
         dependencies_dir=None,
         combine_dependencies=True,
         architecture=X86_64,
+        is_building_layer=False,
+        experimental_flags=None,
     ):
         """
         Actually build the code by running workflows
@@ -127,6 +129,14 @@ class LambdaBuilder(object):
         :type architecture: str
         :param architecture:
             Type of architecture x86_64 and arm64 for Lambda Function
+
+        :type is_building_layer: bool
+        :param is_building_layer:
+            Boolean flag which will be set True if current build operation is being executed for layers
+
+        :type experimental_flags: list
+        :param experimental_flags:
+            List of strings, which will indicate enabled experimental flags for the current build session
         """
 
         if not os.path.exists(scratch_dir):
@@ -146,6 +156,8 @@ class LambdaBuilder(object):
             dependencies_dir=dependencies_dir,
             combine_dependencies=combine_dependencies,
             architecture=architecture,
+            is_building_layer=is_building_layer,
+            experimental_flags=experimental_flags,
         )
 
         return workflow.run()

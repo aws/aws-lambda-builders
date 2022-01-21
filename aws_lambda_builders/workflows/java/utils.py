@@ -6,7 +6,10 @@ import os
 import platform
 import shutil
 import subprocess
-from aws_lambda_builders.utils import which
+from aws_lambda_builders.utils import which, copytree
+
+
+EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG = "experimentalMavenScopeAndLayer"
 
 
 class OSUtils(object):
@@ -37,17 +40,8 @@ class OSUtils(object):
     def which(self, executable, executable_search_paths=None):
         return which(executable, executable_search_paths=executable_search_paths)
 
-    def copytree(self, source, destination):
-        if not os.path.exists(destination):
-            self.makedirs(destination)
-        names = self.listdir(source)
-        for name in names:
-            new_source = os.path.join(source, name)
-            new_destination = os.path.join(destination, name)
-            if os.path.isdir(new_source):
-                self.copytree(new_source, new_destination)
-            else:
-                self.copy(new_source, new_destination)
+    def copytree(self, source, destination, include=None):
+        copytree(source, destination, include=include)
 
     def makedirs(self, d):
         return os.makedirs(d)
@@ -58,3 +52,21 @@ class OSUtils(object):
     @property
     def pipe(self):
         return subprocess.PIPE
+
+
+def jar_file_filter(file_name):
+    """
+    A function that will filter .jar files for copy operation
+
+    :type file_name: str
+    :param file_name:
+        Name of the file that will be checked against if it ends with .jar or not
+    """
+    return bool(file_name) and isinstance(file_name, str) and file_name.endswith(".jar")
+
+
+def is_experimental_maven_scope_and_layers_active(experimental_flags):
+    """
+    A function which will determine if experimental maven scope and layer changes are active
+    """
+    return bool(experimental_flags) and EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG in experimental_flags

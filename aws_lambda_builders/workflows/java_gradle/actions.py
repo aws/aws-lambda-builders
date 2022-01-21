@@ -5,6 +5,7 @@ Actions for the Java Gradle Workflow
 import os
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from .gradle import GradleExecutionError
+from ..java.utils import jar_file_filter
 
 
 class JavaGradleBuildAction(BaseAction):
@@ -56,7 +57,7 @@ class JavaGradleBuildAction(BaseAction):
 
 
 class JavaGradleCopyArtifactsAction(BaseAction):
-    NAME = "CopyArtifacts"
+    NAME = "JavaGradleCopyArtifacts"
     DESCRIPTION = "Copying the built artifacts"
     PURPOSE = Purpose.COPY_SOURCE
 
@@ -75,5 +76,26 @@ class JavaGradleCopyArtifactsAction(BaseAction):
             if not self.os_utils.exists(self.artifacts_dir):
                 self.os_utils.makedirs(self.artifacts_dir)
             self.os_utils.copytree(lambda_build_output, self.artifacts_dir)
+        except Exception as ex:
+            raise ActionFailedError(str(ex))
+
+
+class JavaGradleCopyLayerArtifactsAction(JavaGradleCopyArtifactsAction):
+    """
+    Java layers does not support using .class files in it.
+    This action (different from the parent one) copies contents of the layer as jar files and place it
+    into the artifact folder
+    """
+
+    NAME = "JavaGradleCopyLayerArtifacts"
+
+    def _copy_artifacts(self):
+        lambda_build_output = os.path.join(self.build_dir, "build", "libs")
+        layer_dependencies = os.path.join(self.build_dir, "build", "distributions", "lambda-build", "lib")
+        try:
+            if not self.os_utils.exists(self.artifacts_dir):
+                self.os_utils.makedirs(self.artifacts_dir)
+            self.os_utils.copytree(lambda_build_output, os.path.join(self.artifacts_dir, "lib"), jar_file_filter)
+            self.os_utils.copytree(layer_dependencies, os.path.join(self.artifacts_dir, "lib"), jar_file_filter)
         except Exception as ex:
             raise ActionFailedError(str(ex))
