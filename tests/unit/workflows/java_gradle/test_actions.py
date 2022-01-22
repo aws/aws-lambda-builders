@@ -103,12 +103,12 @@ class TestJavaGradleCopyLayerArtifactsAction(TestJavaGradleCopyArtifactsAction):
                 call(
                     os.path.join(self.build_dir, "build", "libs"),
                     os.path.join(self.artifacts_dir, "lib"),
-                    jar_file_filter,
+                    include=jar_file_filter,
                 ),
                 call(
                     os.path.join(self.build_dir, "build", "distributions", "lambda-build", "lib"),
                     os.path.join(self.artifacts_dir, "lib"),
-                    jar_file_filter,
+                    include=jar_file_filter,
                 ),
             ]
         )

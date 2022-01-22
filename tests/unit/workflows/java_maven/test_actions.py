@@ -1,5 +1,6 @@
+import shutil
 from unittest import TestCase
-from mock import patch, call
+from mock import patch, call, ANY
 import os
 
 from aws_lambda_builders.actions import ActionFailedError
@@ -115,7 +116,14 @@ class TestJavaMavenCopyLayerArtifactsAction(TestJavaMavenCopyArtifactsAction):
         action.execute()
 
         self.os_utils.copytree.assert_has_calls(
-            [call(os.path.join(self.scratch_dir, "target"), os.path.join(self.artifacts_dir, "lib"), jar_file_filter)]
+            [
+                call(
+                    os.path.join(self.scratch_dir, "target"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    ignore=ANY,
+                    include=jar_file_filter,
+                )
+            ]
         )
 
     def test_copies_artifacts_with_deps(self):
@@ -127,8 +135,14 @@ class TestJavaMavenCopyLayerArtifactsAction(TestJavaMavenCopyArtifactsAction):
         self.os_utils.copytree.assert_has_calls(
             [
                 call(
-                    os.path.join(self.scratch_dir, "target"), os.path.join(self.artifacts_dir, "lib"), jar_file_filter
+                    os.path.join(self.scratch_dir, "target"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    ignore=ANY,
+                    include=jar_file_filter,
                 ),
-                call(os.path.join(self.scratch_dir, "target", "dependency"), os.path.join(self.artifacts_dir, "lib")),
+                call(
+                    os.path.join(self.scratch_dir, "target", "dependency"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                ),
             ]
         )

@@ -9,8 +9,11 @@ from os.path import join
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.java.utils import EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG
-from tests.integration.workflows.common_test_utils import does_folder_contain_all_files, does_folder_contain_file, \
-    folder_should_not_contain_files
+from tests.integration.workflows.common_test_utils import (
+    does_folder_contain_all_files,
+    does_folder_contain_file,
+    folder_should_not_contain_files,
+)
 
 
 class TestJavaMaven(TestCase):
@@ -131,7 +134,7 @@ class TestJavaMaven(TestCase):
             layer_manifest_path,
             runtime=self.runtime,
             is_building_layer=True,
-            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG]
+            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG],
         )
         artifact_expected_files = [
             join("lib", "com.amazonaws.aws-lambda-java-core-1.2.0.jar"),
@@ -151,7 +154,7 @@ class TestJavaMaven(TestCase):
             function_manifest_path,
             runtime=self.runtime,
             is_building_layer=False,
-            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG]
+            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG],
         )
         artifact_expected_files = [
             join("aws", "lambdabuilders", "Main.class"),

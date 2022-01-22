@@ -107,7 +107,7 @@ class JavaMavenCopyLayerArtifactsAction(JavaMavenCopyArtifactsAction):
                 lambda_build_output,
                 os.path.join(self.artifacts_dir, "lib"),
                 ignore=shutil.ignore_patterns(*self.IGNORED_FOLDERS),
-                include=jar_file_filter
+                include=jar_file_filter,
             )
             if self.os_utils.exists(dependency_output):
                 self.os_utils.copytree(dependency_output, os.path.join(self.artifacts_dir, "lib"))
