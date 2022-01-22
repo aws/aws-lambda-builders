@@ -7,6 +7,9 @@ import platform
 import tarfile
 import subprocess
 import shutil
+import json
+
+EXPERIMENTAL_FLAG_ESBUILD = "experimentalEsbuild"
 
 
 class OSUtils(object):
@@ -48,3 +51,14 @@ class OSUtils(object):
 
     def is_windows(self):
         return platform.system().lower() == "windows"
+
+    def parse_json(self, path):
+        with open(path) as json_file:
+            return json.load(json_file)
+
+
+def is_experimental_esbuild_scope(experimental_flags):
+    """
+    A function which will determine if experimental esbuild scope is active
+    """
+    return bool(experimental_flags) and EXPERIMENTAL_FLAG_ESBUILD in experimental_flags
