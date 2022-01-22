@@ -9,7 +9,9 @@ from os.path import join
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
-from tests.integration.workflows.common_test_utils import does_folder_contain_all_files, does_folder_contain_file
+from aws_lambda_builders.workflows.java.utils import EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG
+from tests.integration.workflows.common_test_utils import does_folder_contain_all_files, does_folder_contain_file, \
+    folder_should_not_contain_files
 
 
 class TestJavaGradle(TestCase):
@@ -182,3 +184,50 @@ class TestJavaGradle(TestCase):
 
         self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, artifact_expected_files))
         self.assertTrue(does_folder_contain_all_files(self.dependencies_dir, dependencies_expected_files))
+
+    def test_build_with_layers_and_scope(self):
+        # first build layer and validate
+        self.validate_layer_build()
+        # then build function which uses this layer as dependency with provided scope
+        self.validate_function_build()
+
+    def validate_layer_build(self):
+        layer_source_dir = join(self.SINGLE_BUILD_TEST_DATA_DIR, "layer")
+        layer_manifest_path = join(layer_source_dir, "build.gradle")
+        self.builder.build(
+            layer_source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            layer_manifest_path,
+            runtime=self.runtime,
+            is_building_layer=True,
+            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG]
+        )
+        artifact_expected_files = [
+            join("lib", "aws-lambda-java-core-1.2.0.jar"),
+            join("lib", "common-layer-gradle-1.0.jar"),
+        ]
+        self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, artifact_expected_files))
+
+    def validate_function_build(self):
+        self.setUp()  # re-initialize folders
+        function_source_dir = join(self.SINGLE_BUILD_TEST_DATA_DIR, "with-layer-deps")
+        function_manifest_path = join(function_source_dir, "build.gradle")
+        self.builder.build(
+            function_source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            function_manifest_path,
+            runtime=self.runtime,
+            is_building_layer=False,
+            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG]
+        )
+        artifact_expected_files = [
+            join("aws", "lambdabuilders", "Main.class"),
+        ]
+        artifact_not_expected_files = [
+            join("lib", "com.amazonaws.aws-lambda-java-core-1.2.0.jar"),
+            join("lib", "common-layer-1.0.jar"),
+        ]
+        self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, artifact_expected_files))
+        self.assertTrue(folder_should_not_contain_files(self.artifacts_dir, artifact_not_expected_files))

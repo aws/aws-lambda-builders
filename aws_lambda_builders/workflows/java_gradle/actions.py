@@ -95,7 +95,9 @@ class JavaGradleCopyLayerArtifactsAction(JavaGradleCopyArtifactsAction):
         try:
             if not self.os_utils.exists(self.artifacts_dir):
                 self.os_utils.makedirs(self.artifacts_dir)
-            self.os_utils.copytree(lambda_build_output, os.path.join(self.artifacts_dir, "lib"), jar_file_filter)
-            self.os_utils.copytree(layer_dependencies, os.path.join(self.artifacts_dir, "lib"), jar_file_filter)
+            self.os_utils.copytree(
+                lambda_build_output, os.path.join(self.artifacts_dir, "lib"), include=jar_file_filter
+            )
+            self.os_utils.copytree(layer_dependencies, os.path.join(self.artifacts_dir, "lib"), include=jar_file_filter)
         except Exception as ex:
             raise ActionFailedError(str(ex))
