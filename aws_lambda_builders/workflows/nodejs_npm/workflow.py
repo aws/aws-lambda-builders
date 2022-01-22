@@ -26,7 +26,7 @@ from .actions import (
     NodejsNpmCIAction,
     EsbuildBundleAction,
 )
-from .utils import OSUtils, EXPERIMENTAL_FLAG_ESBUILD, is_experimental_esbuild_scope
+from .utils import OSUtils, is_experimental_esbuild_scope
 from .npm import SubprocessNpm
 from .esbuild import SubprocessEsbuild
 
