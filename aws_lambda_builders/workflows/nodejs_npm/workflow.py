@@ -26,7 +26,7 @@ from .actions import (
     NodejsNpmCIAction,
     EsbuildBundleAction,
 )
-from .utils import OSUtils
+from .utils import OSUtils, EXPERIMENTAL_FLAG_ESBUILD, is_experimental_esbuild_scope
 from .npm import SubprocessNpm
 from .esbuild import SubprocessEsbuild
 
@@ -66,7 +66,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         manifest_config = self.get_manifest_config(osutils, manifest_path)
 
-        if manifest_config["bundler"] == "esbuild":
+        if manifest_config["bundler"] == "esbuild" and is_experimental_esbuild_scope(self.experimental_flags):
             self.actions = self.actions_with_bundler(
                 source_dir, artifacts_dir, manifest_config, osutils, subprocess_npm
             )

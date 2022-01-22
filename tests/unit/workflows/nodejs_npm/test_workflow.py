@@ -15,6 +15,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmCIAction,
     EsbuildBundleAction,
 )
+from aws_lambda_builders.workflows.nodejs_npm.utils import EXPERIMENTAL_FLAG_ESBUILD
 
 
 class FakePopen:
@@ -170,7 +171,14 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.osutils.file_exists.side_effect = [True, False, False]
 
-        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
 
         self.assertEqual(len(workflow.actions), 2)
 
@@ -200,7 +208,14 @@ class TestNodejsNpmWorkflow(TestCase):
         self.popen.out = b"project/bin"
         self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
 
-        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
 
         self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="source")
 
@@ -222,6 +237,7 @@ class TestNodejsNpmWorkflow(TestCase):
             "manifest",
             osutils=self.osutils,
             executable_search_paths=["other/bin"],
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="source")
@@ -237,7 +253,14 @@ class TestNodejsNpmWorkflow(TestCase):
         self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
         self.osutils.file_exists.side_effect = [True, True]
 
-        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
 
         self.assertEqual(len(workflow.actions), 2)
 
@@ -252,7 +275,14 @@ class TestNodejsNpmWorkflow(TestCase):
         self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
         self.osutils.file_exists.side_effect = [True, False, True]
 
-        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
 
         self.assertEqual(len(workflow.actions), 2)
 

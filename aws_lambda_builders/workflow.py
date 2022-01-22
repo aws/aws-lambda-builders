@@ -164,6 +164,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         dependencies_dir=None,
         combine_dependencies=True,
         architecture=X86_64,
+        experimental_flags=None,
     ):
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
@@ -200,6 +201,8 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             from dependency_folder into build folder
         architecture : str, optional
             Architecture type either arm64 or x86_64 for which the build will be based on in AWS lambda, by default X86_64
+        experimental_flags: list, optional
+            List of strings, which will indicate enabled experimental flags for the current build session
         """
 
         self.source_dir = source_dir
@@ -215,6 +218,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         self.dependencies_dir = dependencies_dir
         self.combine_dependencies = combine_dependencies
         self.architecture = architecture
+        self.experimental_flags = experimental_flags if experimental_flags else []
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
