@@ -72,6 +72,7 @@ class LambdaBuilder(object):
         is_building_layer=False,
         experimental_flags=None,
     ):
+        # pylint: disable-msg=too-many-locals
         """
         Actually build the code by running workflows
 
@@ -133,7 +134,7 @@ class LambdaBuilder(object):
         :type is_building_layer: bool
         :param is_building_layer:
             Boolean flag which will be set True if current build operation is being executed for layers
-
+        
         :type experimental_flags: list
         :param experimental_flags:
             List of strings, which will indicate enabled experimental flags for the current build session

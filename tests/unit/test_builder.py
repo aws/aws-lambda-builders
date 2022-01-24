@@ -130,7 +130,6 @@ class TestLambdaBuilder_build(TestCase):
         )
     )
     @patch("aws_lambda_builders.builder.os")
-    @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
     def test_with_mocks(
         self,

@@ -123,3 +123,10 @@ class TestOSUtils(TestCase):
         self.assertEqual(p.returncode, 0)
 
         self.assertEqual(out.decode("utf8").strip(), os.path.abspath(testdata_dir))
+
+    def test_parse_json_reads_json_contents_into_memory(self):
+
+        json_file = os.path.join(os.path.dirname(__file__), "test_data", "test.json")
+        json_contents = self.osutils.parse_json(json_file)
+        self.assertEqual(json_contents["a"], 1)
+        self.assertEqual(json_contents["b"]["c"], 2)

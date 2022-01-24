@@ -202,8 +202,10 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
             from dependency_folder into build folder
         architecture : str, optional
             Architecture type either arm64 or x86_64 for which the build will be based on in AWS lambda, by default X86_64
+
         is_building_layer: bool, optional
             Boolean flag which will be set True if current build operation is being executed for layers
+
         experimental_flags: list, optional
             List of strings, which will indicate enabled experimental flags for the current build session
         """
