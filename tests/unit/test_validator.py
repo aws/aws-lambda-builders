@@ -22,7 +22,7 @@ class TestRuntimeValidator(TestCase):
             validator.validate("/usr/bin/unknown_runtime")
 
     def test_validate_with_runtime_and_incompatible_architecture(self):
-        runtime_list = ["dotnetcore2.1", "nodejs10.x", "ruby2.5", "python3.6", "python3.7", "python2.7"]
+        runtime_list = ["dotnetcore2.1", "nodejs10.x", "python3.6", "python3.7", "python2.7"]
         for runtime in runtime_list:
             validator = RuntimeValidator(runtime=runtime, architecture="arm64")
             with self.assertRaises(UnsupportedArchitectureError):
