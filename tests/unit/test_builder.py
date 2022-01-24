@@ -140,7 +140,6 @@ class TestLambdaBuilder_build(TestCase):
         is_building_layer,
         experimental_flags,
         get_workflow_mock,
-        importlib_mock,
         os_mock,
     ):
         workflow_cls = Mock()
