@@ -11,7 +11,6 @@ from aws_lambda_builders.exceptions import UnsupportedRuntimeError, UnsupportedA
 LOG = logging.getLogger(__name__)
 
 SUPPORTED_RUNTIMES = {
-    "nodejs10.x": [X86_64],
     "nodejs12.x": [ARM64, X86_64],
     "nodejs14.x": [ARM64, X86_64],
     "python2.7": [X86_64],
