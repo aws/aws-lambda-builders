@@ -38,7 +38,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             runtime=self.runtime,
         )
 
-        expected_files = {"included.js", "node_modules", "excluded.js", "package.json"}
+        expected_files = {"included.js", "node_modules", "excluded.js", "package.json", "package-lock.json"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
