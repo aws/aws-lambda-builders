@@ -198,7 +198,7 @@ class NodejsNpmrcAndLockfileCopyAction(BaseAction):
         """
 
         try:
-            for filename in [".npmrc", "package-lock.json", "npm-shrinkwrap.json"]:
+            for filename in [".npmrc", "package-lock.json"]:
                 file_path = self.osutils.joinpath(self.source_dir, filename)
                 if self.osutils.file_exists(file_path):
                     LOG.debug("%s copying in: %s", filename, self.artifacts_dir)
