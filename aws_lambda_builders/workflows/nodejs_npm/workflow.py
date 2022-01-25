@@ -7,7 +7,13 @@ import json
 
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, CopyDependenciesAction, MoveDependenciesAction
+from aws_lambda_builders.actions import (
+    CopySourceAction,
+    CleanUpAction,
+    CopyDependenciesAction,
+    MoveDependenciesAction,
+    BaseAction,
+)
 from aws_lambda_builders.utils import which
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from .actions import (
@@ -99,23 +105,18 @@ class NodejsNpmWorkflow(BaseWorkflow):
             tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
         )
 
-        npm_copy = NodejsNpmrcAndLockfileCopyAction(tar_package_dir, source_dir, osutils=osutils)
+        npm_copy_npmrc_and_lockfile = NodejsNpmrcAndLockfileCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
         actions = [
             npm_pack,
-            npm_copy,
+            npm_copy_npmrc_and_lockfile,
             CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
         ]
 
         if self.download_dependencies:
-            lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
-            shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
-
             # installed the dependencies into artifact folder
-            if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
-                actions.append(NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm))
-            else:
-                actions.append(NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm))
+            install_action = NodejsNpmWorkflow.get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils)
+            actions.append(install_action)
 
             # if dependencies folder exists, copy or move dependencies from artifact folder to dependencies folder
             # depends on the combine_dependencies flag
@@ -169,19 +170,13 @@ class NodejsNpmWorkflow(BaseWorkflow):
         :rtype: list
         :return: List of build actions to execute
         """
-        lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
-        shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
         npm_bin_path = subprocess_npm.run(["bin"], cwd=source_dir)
         executable_search_paths = [npm_bin_path]
         if self.executable_search_paths is not None:
             executable_search_paths = executable_search_paths + self.executable_search_paths
         subprocess_esbuild = SubprocessEsbuild(osutils, executable_search_paths, which=which)
 
-        if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
-            install_action = NodejsNpmCIAction(source_dir, subprocess_npm=subprocess_npm)
-        else:
-            install_action = NodejsNpmInstallAction(source_dir, subprocess_npm=subprocess_npm, is_production=False)
-
+        install_action = NodejsNpmWorkflow.get_install_action(source_dir, source_dir, subprocess_npm, osutils)
         esbuild_action = EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
         return [install_action, esbuild_action]
 
@@ -213,3 +208,31 @@ class NodejsNpmWorkflow(BaseWorkflow):
         specialized path resolver that just returns the list of executable for the runtime on the path.
         """
         return [PathResolver(runtime=self.runtime, binary="npm")]
+
+    @staticmethod
+    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils):
+        """
+        Get the install action used to install dependencies at artifacts_dir
+
+        :type source_dir: str
+        :param source_dir: an existing (readable) directory containing source files
+
+        :type artifacts_dir: str
+        :param artifacts_dir: Dependencies will be installed in this directory.
+
+        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :param osutils: An instance of OS Utilities for file manipulation
+
+        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+        :param subprocess_npm: An instance of the NPM process wrapper
+
+        :rtype: BaseAction
+        :return: Install action to use
+        """
+        lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
+        shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
+
+        if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
+            return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
+        else:
+            return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
