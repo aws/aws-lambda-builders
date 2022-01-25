@@ -1,5 +1,4 @@
 import logging
-import mock
 import os
 import shutil
 import tempfile
@@ -176,7 +175,7 @@ class TestNodejsNpmWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("Unexpected end of JSON input", str(ctx.exception))
+        self.assertIn("NodejsNpmBuilder:ParseManifest", str(ctx.exception))
 
     def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")

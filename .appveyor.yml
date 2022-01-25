@@ -6,7 +6,7 @@ image:
 environment:
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
-  nodejs_version: "10.10.0"
+  nodejs_version: "14.17.6"
 
   matrix:
     - PYTHON: "C:\\Python36-x64"
@@ -93,7 +93,7 @@ for:
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
       - sh: "nvm install ${nodejs_version}"
-      - sh: "npm install npm@5.7.0 -g"
+      - sh: "npm install npm@7.24.2 -g"
       - sh: "npm -v"
       - sh: "echo $PATH"
       - sh: "java --version"
