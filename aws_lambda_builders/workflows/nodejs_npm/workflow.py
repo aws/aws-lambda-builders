@@ -176,7 +176,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
             executable_search_paths = executable_search_paths + self.executable_search_paths
         subprocess_esbuild = SubprocessEsbuild(osutils, executable_search_paths, which=which)
 
-        install_action = NodejsNpmWorkflow.get_install_action(source_dir, source_dir, subprocess_npm, osutils)
+        install_action = NodejsNpmWorkflow.get_install_action(source_dir, source_dir, subprocess_npm, osutils, False)
         esbuild_action = EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
         return [install_action, esbuild_action]
 
@@ -210,7 +210,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     @staticmethod
-    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils):
+    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, is_production=True):
         """
         Get the install action used to install dependencies at artifacts_dir
 
@@ -226,6 +226,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
 
+        :type is_production: bool
+        :param is_production: NPM installation mode is production (eg --production=false to force dev dependencies)
+
         :rtype: BaseAction
         :return: Install action to use
         """
@@ -235,4 +238,4 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
             return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
         else:
-            return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
+            return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm, is_production=is_production)
