@@ -13,7 +13,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.aws.lambda.builders</groupId>
+            <groupId>aws.lambdabuilders</groupId>
             <artifactId>common-layer</artifactId>
             <version>1.0</version>
             <scope>provided</scope>
