@@ -30,7 +30,7 @@ def copytree(source, destination, ignore=None, include=None):
         A function that returns a set of file names to ignore, given a list of available file names. Similar to the
         ``ignore`` property of ``shutils.copytree`` method
 
-    :type include: function
+    :type include: Callable[[str], bool]
     :param include:
         A function that will decide whether a file should be copied or skipped it. It accepts file name as parameter
         and return True or False. Returning True will continue copy operation, returning False will skip copy operation
