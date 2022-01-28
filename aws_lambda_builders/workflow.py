@@ -167,6 +167,7 @@ class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
         is_building_layer=False,
         experimental_flags=None,
     ):
+        # pylint: disable-msg=too-many-locals
         """
         Initialize the builder with given arguments. These arguments together form the "public API" that each
         build action must support at the minimum.
