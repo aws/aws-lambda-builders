@@ -23,7 +23,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
 
-        self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm", application_framework="esbuild")
+        self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm-esbuild", application_framework=None)
         self.runtime = "nodejs14.x"
 
     def tearDown(self):
