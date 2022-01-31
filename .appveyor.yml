@@ -90,7 +90,6 @@ for:
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-      - sh: "rvm use 2.5"
       - sh: "nvm install ${nodejs_version}"
       - sh: "npm install npm@7.24.2 -g"
       - sh: "npm -v"
