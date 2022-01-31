@@ -172,6 +172,7 @@ class DependencyBuilder(object):
 
     _COMPATIBLE_PLATFORM_ARM64 = {
         "any",
+        "linux_aarch64",
         "manylinux2014_aarch64",
     }
 

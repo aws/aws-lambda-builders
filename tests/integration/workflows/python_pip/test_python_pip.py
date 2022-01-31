@@ -12,6 +12,7 @@ import logging
 
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
+NOT_ARM = platform.processor() != "aarch64"
 
 
 class TestPythonPipWorkflow(TestCase):
@@ -29,12 +30,14 @@ class TestPythonPipWorkflow(TestCase):
 
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
+        self.manifest_path_sdist = os.path.join(self.TEST_DATA_FOLDER, "requirements-wrapt.txt")
 
         self.test_data_files = {
             "__init__.py",
             "main.py",
             "requirements-invalid.txt",
             "requirements-numpy.txt",
+            "requirements-wrapt.txt",
             "local-dependencies",
         }
 
@@ -91,8 +94,27 @@ class TestPythonPipWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
+    @skipIf(NOT_ARM, "Skip if not running on ARM64")
+    def test_must_build_python_project_from_sdist_with_arm(self):
+        if self.runtime not in {"python3.8", "python3.9"}:
+            self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
+
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_sdist,
+            runtime=self.runtime,
+            architecture="arm64",
+        )
+        expected_files = self.test_data_files.union({"wrapt", "wrapt-1.13.3.dist-info"})
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        self.check_architecture_in("wrapt-1.13.3.dist-info", ["linux_aarch64"])
+
     def test_must_build_python_project_with_arm_architecture(self):
-        if self.runtime != "python3.8":
+        if self.runtime not in {"python3.8", "python3.9"}:
             self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
         ### Check the wheels
         self.builder.build(
