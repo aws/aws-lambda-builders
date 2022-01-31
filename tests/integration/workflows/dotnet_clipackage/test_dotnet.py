@@ -25,7 +25,7 @@ class TestDotnetBase(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.builder = LambdaBuilder(language="dotnet", dependency_manager="cli-package", application_framework=None)
-        self.runtime = "dotnetcore3.1"  # default to 2.1
+        self.runtime = "dotnetcore3.1"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
