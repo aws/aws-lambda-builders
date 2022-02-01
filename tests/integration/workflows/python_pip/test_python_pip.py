@@ -115,7 +115,7 @@ class TestPythonPipWorkflow(TestCase):
         self.check_architecture_in("wrapt-1.13.3.dist-info", ["linux_aarch64"])
 
     def test_must_build_python_project_with_arm_architecture(self):
-        if self.runtime not in {"python3.8", "python3.9"}:
+        if self.runtime not in ARM_RUNTIMES:
             self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
         ### Check the wheels
         self.builder.build(
