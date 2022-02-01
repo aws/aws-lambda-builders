@@ -13,6 +13,7 @@ import logging
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
 NOT_ARM = platform.processor() != "aarch64"
+ARM_RUNTIMES = {"python3.8", "python3.9"}
 
 
 class TestPythonPipWorkflow(TestCase):
@@ -96,7 +97,7 @@ class TestPythonPipWorkflow(TestCase):
 
     @skipIf(NOT_ARM, "Skip if not running on ARM64")
     def test_must_build_python_project_from_sdist_with_arm(self):
-        if self.runtime not in {"python3.8", "python3.9"}:
+        if self.runtime not in ARM_RUNTIMES:
             self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
 
         self.builder.build(
