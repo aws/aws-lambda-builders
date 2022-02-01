@@ -3,8 +3,11 @@ import shutil
 import tempfile
 from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
+from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
-from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils, EXPERIMENTAL_FLAG_ESBUILD
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildExecutionError
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_ESBUILD
 
 
 class TestNodejsNpmWorkflowWithEsbuild(TestCase):
@@ -20,27 +23,25 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
 
-        self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm", application_framework=None)
+        self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm-esbuild", application_framework=None)
         self.runtime = "nodejs14.x"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
-    def test_invokes_old_builder_without_feature_flag(self):
+    def test_doesnt_build_without_feature_flag(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
-        self.builder.build(
-            source_dir,
-            self.artifacts_dir,
-            self.scratch_dir,
-            os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
-        )
-
-        expected_files = {"included.js", "node_modules", "excluded.js", "package.json"}
-        output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEqual(expected_files, output_files)
+        with self.assertRaises(EsbuildExecutionError) as context:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+            )
+        self.assertEqual(str(context.exception), "Esbuild Failed: Feature flag must be enabled to use this workflow")
 
     def test_builds_javascript_project_with_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
@@ -113,3 +114,19 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_files = {"included.js", "included.js.map"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    def test_fails_if_package_json_is_broken(self):
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-package")
+
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+                experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            )
+
+        self.assertIn("NodejsNpmEsbuildBuilder:ParseManifest", str(ctx.exception))

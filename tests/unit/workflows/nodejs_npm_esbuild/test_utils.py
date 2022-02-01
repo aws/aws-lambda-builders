@@ -1,7 +1,10 @@
 from unittest import TestCase
 from parameterized import parameterized
 
-from aws_lambda_builders.workflows.nodejs_npm.utils import EXPERIMENTAL_FLAG_ESBUILD, is_experimental_esbuild_scope
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import (
+    EXPERIMENTAL_FLAG_ESBUILD,
+    is_experimental_esbuild_scope,
+)
 
 
 class TestNodejsUtils(TestCase):
