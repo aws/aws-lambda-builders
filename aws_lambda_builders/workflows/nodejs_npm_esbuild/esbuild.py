@@ -4,10 +4,12 @@ Wrapper around calling esbuild through a subprocess.
 
 import logging
 
+from aws_lambda_builders.exceptions import LambdaBuilderError
+
 LOG = logging.getLogger(__name__)
 
 
-class EsbuildExecutionError(Exception):
+class EsbuildExecutionError(LambdaBuilderError):
 
     """
     Exception raised in case NPM execution fails.
