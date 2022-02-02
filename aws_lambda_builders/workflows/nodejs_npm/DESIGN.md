@@ -323,7 +323,7 @@ directly.
 }
 ```
 
-For a full example, see the [`with-deps-esbuild`](../../../tests/integration/workflows/nodejs_npm/testdata/with-deps-esbuild/) test project.
+For a full example, see the [`with-deps-esbuild`](../../../tests/integration/workflows/nodejs_npm_esbuild/testdata/with-deps-esbuild/) test project.
 
 #### Building typescript
 
@@ -350,7 +350,7 @@ as in the example below. There is no transpiling process needed upfront.
 }
 ```
 
-For a full example, see the [`with-deps-esbuild-typescript`](../../../tests/integration/workflows/nodejs_npm/testdata/with-deps-esbuild-typescript/) test project.
+For a full example, see the [`with-deps-esbuild-typescript`](../../../tests/integration/workflows/nodejs_npm_esbuild/testdata/with-deps-esbuild-typescript/) test project.
 
 **important note:** esbuild does not perform type checking, so users wanting to ensure type-checks need to run the `tsc` process as part of their 
 testing flow before invoking `sam build`. For additional typescript caveats with esbuild, check out <https://esbuild.github.io/content-types/#typescript>.

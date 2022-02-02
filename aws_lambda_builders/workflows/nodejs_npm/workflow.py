@@ -3,8 +3,6 @@ NodeJS NPM Workflow
 """
 
 import logging
-import json
-from typing import List
 
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
@@ -13,22 +11,17 @@ from aws_lambda_builders.actions import (
     CleanUpAction,
     CopyDependenciesAction,
     MoveDependenciesAction,
-    BaseAction,
 )
-from aws_lambda_builders.utils import which
-from aws_lambda_builders.exceptions import WorkflowFailedError
+
 from .actions import (
     NodejsNpmPackAction,
     NodejsNpmLockFileCleanUpAction,
     NodejsNpmInstallAction,
     NodejsNpmrcCopyAction,
     NodejsNpmrcCleanUpAction,
-    NodejsNpmCIAction,
-    EsbuildBundleAction,
 )
-from .utils import OSUtils, is_experimental_esbuild_scope
+from .utils import OSUtils
 from .npm import SubprocessNpm
-from .esbuild import SubprocessEsbuild
 
 LOG = logging.getLogger(__name__)
 
@@ -64,16 +57,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         subprocess_npm = SubprocessNpm(osutils)
 
-        manifest_config = self.get_manifest_config(osutils, manifest_path)
-
-        if manifest_config["bundler"] == "esbuild" and is_experimental_esbuild_scope(self.experimental_flags):
-            self.actions = self.actions_with_bundler(
-                source_dir, artifacts_dir, manifest_config, osutils, subprocess_npm
-            )
-        else:
-            self.actions = self.actions_without_bundler(
-                source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm
-            )
+        self.actions = self.actions_without_bundler(
+            source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm
+        )
 
     def actions_without_bundler(self, source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
         """
@@ -146,67 +132,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
             actions.append(NodejsNpmLockFileCleanUpAction(self.dependencies_dir, osutils=osutils))
 
         return actions
-
-    def actions_with_bundler(self, source_dir, artifacts_dir, bundler_config, osutils, subprocess_npm):
-        """
-        Generate a list of Nodejs build actions with a bundler
-
-        :type source_dir: str
-        :param source_dir: an existing (readable) directory containing source files
-
-        :type artifacts_dir: str
-        :param artifacts_dir: an existing (writable) directory where to store the output.
-
-        :type bundler_config: dict
-        :param bundler_config: configurations for the bundler action
-
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
-
-        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
-        :param subprocess_npm: An instance of the NPM process wrapper
-
-        :rtype: list
-        :return: List of build actions to execute
-        """
-        lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
-        shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
-        npm_bin_path = subprocess_npm.run(["bin"], cwd=source_dir)
-        executable_search_paths = [npm_bin_path]
-        if self.executable_search_paths is not None:
-            executable_search_paths = executable_search_paths + self.executable_search_paths
-        subprocess_esbuild = SubprocessEsbuild(osutils, executable_search_paths, which=which)
-
-        if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
-            install_action = NodejsNpmCIAction(source_dir, subprocess_npm=subprocess_npm)
-        else:
-            install_action = NodejsNpmInstallAction(source_dir, subprocess_npm=subprocess_npm, is_production=False)
-
-        esbuild_action = EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-        return [install_action, esbuild_action]
-
-    def get_manifest_config(self, osutils, manifest_path):
-        """
-        Get the aws_sam specific properties from the manifest, if they exist.
-
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
-
-        :type manifest_path: str
-        :param manifest_path: Path to the manifest file
-
-        :rtype: dict
-        :return: Dict with aws_sam specific bundler configs
-        """
-        LOG.debug("NODEJS reading manifest from %s", manifest_path)
-        try:
-            manifest = osutils.parse_json(manifest_path)
-            if self.CONFIG_PROPERTY in manifest and isinstance(manifest[self.CONFIG_PROPERTY], dict):
-                return manifest[self.CONFIG_PROPERTY]
-            else:
-                return {"bundler": ""}
-        except (OSError, json.decoder.JSONDecodeError) as ex:
-            raise WorkflowFailedError(workflow_name=self.NAME, action_name="ParseManifest", reason=str(ex))
 
     def get_resolvers(self):
         """
