@@ -46,12 +46,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def test_builds_javascript_project_with_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
+        options = {"entry_points": ["included.js"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -62,12 +65,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def test_builds_javascript_project_with_multiple_entrypoints(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-multiple-entrypoints")
 
+        options = {"entry_points": ["included.js", "included2.js"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -78,12 +84,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def test_builds_typescript_projects(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-typescript")
 
+        options = {"entry_points": ["included.ts"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -101,12 +110,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         binpath = npm.run(["bin"], cwd=esbuild_dir)
 
+        options = {"entry_points": ["included.js"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             executable_search_paths=[binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
@@ -115,11 +127,10 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_fails_if_package_json_is_broken(self):
+    def test_no_options_passed_to_esbuild(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-package")
-
-        with self.assertRaises(WorkflowFailedError) as ctx:
+        with self.assertRaises(WorkflowFailedError) as context:
             self.builder.build(
                 source_dir,
                 self.artifacts_dir,
@@ -129,4 +140,4 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
-        self.assertIn("NodejsNpmEsbuildBuilder:ParseManifest", str(ctx.exception))
+        self.assertEqual(str(context.exception), "NodejsNpmEsbuildBuilder:EsbuildBundle - entry_points not set ({})")

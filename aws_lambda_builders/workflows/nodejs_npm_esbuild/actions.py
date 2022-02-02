@@ -19,7 +19,7 @@ class EsbuildBundleAction(BaseAction):
     DESCRIPTION = "Packaging source using Esbuild"
     PURPOSE = Purpose.COPY_SOURCE
 
-    ENTRY_POINTS = "EntryPoints"
+    ENTRY_POINTS = "entry_points"
 
     def __init__(self, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild):
         """
@@ -70,9 +70,9 @@ class EsbuildBundleAction(BaseAction):
                 raise ActionFailedError("entry point {} does not exist".format(entry_point))
 
         args = entry_points + ["--bundle", "--platform=node", "--format=cjs"]
-        minify = self.bundler_config.get("Minify", True)
-        sourcemap = self.bundler_config.get("SourceMap", True)
-        target = self.bundler_config.get("Target", "es2020")
+        minify = self.bundler_config.get("minify", True)
+        sourcemap = self.bundler_config.get("sourcemap", True)
+        target = self.bundler_config.get("target", "es2020")
         if minify:
             args.append("--minify")
         if sourcemap:

@@ -4,9 +4,5 @@
   "description": "",
   "keywords": [],
   "author": "",
-  "license": "APACHE2.0",
-  "aws_sam": {
-    "bundler": "esbuild",
-    "entry_points": ["included.js"]
-  }
+  "license": "APACHE2.0"
 }

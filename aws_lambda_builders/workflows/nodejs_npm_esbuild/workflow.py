@@ -10,7 +10,6 @@ from aws_lambda_builders.actions import (
     CopySourceAction,
 )
 from aws_lambda_builders.utils import which
-from aws_lambda_builders.exceptions import WorkflowFailedError
 from .actions import (
     EsbuildBundleAction,
 )
@@ -27,8 +26,8 @@ LOG = logging.getLogger(__name__)
 class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
     """
-    A Lambda builder workflow that knows how to pack
-    NodeJS projects using NPM.
+    A Lambda builder workflow that uses esbuild to bundle Node.js and transpile TS
+    NodeJS projects using NPM with esbuild.
     """
 
     NAME = "NodejsNpmEsbuildBuilder"
@@ -116,7 +115,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :return: Dict with aws_sam specific bundler configs
         """
         if self.options and isinstance(self.options, dict):
-            LOG.debug(f"Lambda Builders found the following esbuild properties:\n{json.dumps(self.options)}")
+            LOG.debug("Lambda Builders found the following esbuild properties:\n%s", json.dumps(self.options))
             return self.options
         return {}
 
