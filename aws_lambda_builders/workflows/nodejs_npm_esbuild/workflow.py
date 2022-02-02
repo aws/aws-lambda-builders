@@ -56,16 +56,18 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
             return
 
-        manifest_config = self.get_manifest_config()
+        bundler_config = self.get_manifest_config()
 
-        # if not is_experimental_esbuild_scope(self.experimental_flags):
-        #     raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
+        if not is_experimental_esbuild_scope(self.experimental_flags):
+            raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
 
         self.actions = self.actions_with_bundler(
-            source_dir, scratch_dir, artifacts_dir, manifest_config, osutils, subprocess_npm, subprocess_esbuild
+            source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
         )
 
-    def actions_with_bundler(self, source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild):
+    def actions_with_bundler(
+        self, source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
+    ):
         """
         Generate a list of Nodejs build actions with a bundler
 
@@ -86,6 +88,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
+
+        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
+        :param subprocess_esbuild: An instance of the esbuild process wrapper
 
         :rtype: list
         :return: List of build actions to execute
@@ -121,7 +126,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         """
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
-    def _get_esbuild_subprocess(self, subprocess_npm, scratch_dir, osutils):
+    def _get_esbuild_subprocess(self, subprocess_npm, scratch_dir, osutils) -> SubprocessEsbuild:
         npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
         executable_search_paths = [npm_bin_path]
         if self.executable_search_paths is not None:
