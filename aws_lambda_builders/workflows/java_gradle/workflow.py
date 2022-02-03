@@ -6,9 +6,9 @@ import os
 from aws_lambda_builders.actions import CleanUpAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
-from aws_lambda_builders.workflows.java.utils import OSUtils
+from aws_lambda_builders.workflows.java.utils import OSUtils, is_experimental_maven_scope_and_layers_active
 
-from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction
+from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction, JavaGradleCopyLayerArtifactsAction
 from .gradle import SubprocessGradle
 from .gradle_resolver import GradleResolver
 from .gradle_validator import GradleValidator
@@ -33,9 +33,16 @@ class JavaGradleWorkflow(BaseWorkflow):
 
         subprocess_gradle = SubprocessGradle(gradle_binary=self.binaries["gradle"], os_utils=self.os_utils)
 
+        copy_artifacts_action = JavaGradleCopyArtifactsAction(
+            source_dir, artifacts_dir, self.build_output_dir, self.os_utils
+        )
+        if self.is_building_layer and is_experimental_maven_scope_and_layers_active(self.experimental_flags):
+            copy_artifacts_action = JavaGradleCopyLayerArtifactsAction(
+                source_dir, artifacts_dir, self.build_output_dir, self.os_utils
+            )
         self.actions = [
             JavaGradleBuildAction(source_dir, manifest_path, subprocess_gradle, scratch_dir, self.os_utils),
-            JavaGradleCopyArtifactsAction(source_dir, artifacts_dir, self.build_output_dir, self.os_utils),
+            copy_artifacts_action,
         ]
 
         if self.dependencies_dir:
