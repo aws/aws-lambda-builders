@@ -74,3 +74,15 @@ class TestSubprocessMaven(TestCase):
         with self.assertRaises(MavenExecutionError) as err:
             maven.copy_dependency(self.source_dir)
         self.assertEqual(err.exception.args[0], "Maven Failed: Some Error Message")
+
+    def test_experimental_scope(self):
+        maven = SubprocessMaven(
+            maven_binary=self.maven_binary, os_utils=self.os_utils, is_experimental_maven_scope_enabled=True
+        )
+        maven.copy_dependency(self.source_dir)
+        self.os_utils.popen.assert_called_with(
+            [self.maven_path, "dependency:copy-dependencies", "-DincludeScope=runtime", "-Dmdep.prependGroupId=true"],
+            cwd=self.source_dir,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
