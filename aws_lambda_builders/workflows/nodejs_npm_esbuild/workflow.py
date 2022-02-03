@@ -57,8 +57,8 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
         bundler_config = self.get_manifest_config()
 
-        # if not is_experimental_esbuild_scope(self.experimental_flags):
-        #     raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
+        if not is_experimental_esbuild_scope(self.experimental_flags):
+            raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
 
         self.actions = self.actions_with_bundler(
             source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
