@@ -133,7 +133,7 @@ class TestNodejsNpmWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("No matching version found for minimal-request-promise@0.0.0-NON_EXISTENT", str(ctx.exception))
+        self.assertIn("No matching version found for aws-sdk@2.997.999", str(ctx.exception))
 
     def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
