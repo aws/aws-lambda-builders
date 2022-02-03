@@ -6,7 +6,6 @@ from pathlib import Path
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .esbuild import EsbuildExecutionError
-from .utils import get_typescript_file_type, get_javascript_file_type
 
 LOG = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ class EsbuildBundleAction(BaseAction):
         LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
 
         explicit_entry_points = []
-        for entry_path, entry_point in list(zip(entry_paths, entry_points)):
+        for entry_path, entry_point in zip(entry_paths, entry_points):
             explicit_entry_points.append(self._get_explicit_file_type(entry_point, entry_path))
 
         args = explicit_entry_points + ["--bundle", "--platform=node", "--format=cjs"]
@@ -88,15 +87,28 @@ class EsbuildBundleAction(BaseAction):
             raise ActionFailedError(str(ex))
 
     def _get_explicit_file_type(self, entry_point, entry_path):
+        """
+        Get an entry point with an explicit .ts or .js suffix.
+
+        :type entry_point: str
+        :param entry_point: path to entry file from code uri
+
+        :type entry_path: str
+        :param entry_path: full path of entry file
+
+        :rtype: str
+        :return: entry point with appropriate file extension
+
+        :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
+        """
         if Path(entry_point).suffix:
             if self.osutils.file_exists(entry_path):
                 return entry_point
             raise ActionFailedError("entry point {} does not exist".format(entry_path))
 
-        if self.osutils.file_exists(get_typescript_file_type(entry_path)):
-            return get_typescript_file_type(entry_point)
-
-        if self.osutils.file_exists(get_javascript_file_type(entry_path)):
-            return get_javascript_file_type(entry_point)
+        for ext in [".ts", ".js"]:
+            entry_path_with_ext = entry_path + ext
+            if self.osutils.file_exists(entry_path_with_ext):
+                return entry_point + ext
 
         raise ActionFailedError("entry point {} does not exist".format(entry_path))

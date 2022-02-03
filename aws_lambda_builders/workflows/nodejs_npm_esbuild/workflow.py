@@ -50,12 +50,12 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         subprocess_npm = SubprocessNpm(osutils)
         subprocess_esbuild = self._get_esbuild_subprocess(subprocess_npm, scratch_dir, osutils)
 
-        if not osutils.file_exists(manifest_path):
-            LOG.warning("package.json file not found. Continuing the build without dependencies.")
-            self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
-            return
+        bundler_config = self.get_build_properties()
 
-        bundler_config = self.get_manifest_config()
+        if not osutils.file_exists(manifest_path):
+            LOG.warning("package.json file not found. Bundling source without dependencies.")
+            self.actions = [EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)]
+            return
 
         if not is_experimental_esbuild_scope(self.experimental_flags):
             raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
@@ -107,7 +107,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         esbuild_action = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
         return [copy_action, install_action, esbuild_action]
 
-    def get_manifest_config(self):
+    def get_build_properties(self):
         """
         Get the aws_sam specific properties from the manifest, if they exist.
 

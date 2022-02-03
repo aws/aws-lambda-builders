@@ -160,3 +160,22 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_files = {"included.js.map", "implicit.js.map", "implicit.js", "included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    def test_bundles_project_without_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-package-esbuild")
+
+        options = {"entry_points": ["included"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js.map", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
