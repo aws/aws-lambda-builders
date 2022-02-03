@@ -151,7 +151,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid, runtime=self.runtime
             )
 
-        message_in_exception = "Invalid requirement: 'adfasf=1.2.3'" in str(ctx.exception)
+        message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(ctx.exception)
         self.assertTrue(message_in_exception)
 
     def test_must_log_warning_if_requirements_not_found(self):

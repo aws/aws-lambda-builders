@@ -1,7 +1,7 @@
 from unittest import TestCase
 from mock import patch
 
-from aws_lambda_builders.workflows.nodejs_npm.esbuild import SubprocessEsbuild, EsbuildExecutionError
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild, EsbuildExecutionError
 
 
 class FakePopen:

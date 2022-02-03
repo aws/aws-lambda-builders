@@ -79,12 +79,28 @@ source directory.
 
 ```bash
 mvn clean install
-mvn dependency:copy-dependencies -DincludeScope=compile
+mvn dependency:copy-dependencies -DincludeScope=runtime
 ```
+
+Building artifact for an `AWS::Serverless::LayerVersion` requires different packaging than a 
+`AWS::Serverless::Function`. [Layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html)
+ use only artifacts under `java/lib/` which differs from Functions in that they in addition allow classes at 
+the root level similar to normal jar packaging.  `JavaMavenLayersWorkflow` handles packaging for Layers and
+`JavaMavenWorkflow` handles packaging for Functions.
 
 #### Step 4: Copy to artifact directory
 
-Built Java classes and dependencies are copied from `scratch_dir/target/classes` and `scratch_dir/target/dependency`
-to `artifact_dir` and `artifact_dir/lib` respectively.
+Built Java classes and dependencies for Functions are copied from `scratch_dir/target/classes` and `scratch_dir/target/dependency`
+to `artifact_dir` and `artifact_dir/lib` respectively. Built Java classes and dependencies for Layers are copied from 
+`scratch_dir/target/*.jar` and `scratch_dir/target/dependency` to  `artifact_dir/lib`. Copy all the artifacts 
+required for runtime execution.
+
+### Notes on changes of original implementation
+
+The original implementation was not handling Layers well.  Maven has provided a scope called `provided` which is
+used to declare that a particular dependency is required for compilation but should not be packaged with the
+declaring project artifact.  Naturally this is the scope a maven java project would use for artifacts
+provided by Layers.  Original implementation would package those `provided` scoped entities with the Function,
+and thus if a project was using Layers it would have the artifact both in the Layer and in the Function.
 
 [Gradle Lambda Builder]:https://github.com/awslabs/aws-lambda-builders/blob/develop/aws_lambda_builders/workflows/java_gradle/DESIGN.md
