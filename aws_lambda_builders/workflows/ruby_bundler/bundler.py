@@ -6,6 +6,12 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
+"""
+Bundler error codes can be found here:
+https://github.com/rubygems/bundler/blob/3f0638c6c8d340c2f2405ecb84eb3b39c433e36e/lib/bundler/errors.rb#L36
+"""
+GEMFILE_NOT_FOUND = 10
+
 
 class BundlerExecutionError(Exception):
     """
@@ -51,7 +57,15 @@ class SubprocessBundler(object):
         out, _ = p.communicate()
 
         if p.returncode != 0:
-            # Bundler has relevant information in stdout, not stderr.
-            raise BundlerExecutionError(message=out.decode("utf8").strip())
+            if p.returncode == GEMFILE_NOT_FOUND:
+                LOG.warning("Gemfile not found. Continuing the build without dependencies.")
+
+                # Clean up '.bundle' dir that gets generated before the build fails
+                check_dir = self.osutils.get_bundle_dir(cwd)
+                if self.osutils.directory_exists(check_dir):
+                    self.osutils.remove_directory(check_dir)
+            else:
+                # Bundler has relevant information in stdout, not stderr.
+                raise BundlerExecutionError(message=out.decode("utf8").strip())
 
         return out.decode("utf8").strip()

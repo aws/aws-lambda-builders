@@ -7,6 +7,8 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmInstallAction,
     NodejsNpmrcCopyAction,
     NodejsNpmrcCleanUpAction,
+    NodejsNpmLockFileCleanUpAction,
+    NodejsNpmCIAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
@@ -54,7 +56,7 @@ class TestNodejsNpmPackAction(TestCase):
 
 class TestNodejsNpmInstallAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
-    def test_tars_and_unpacks_npm_project(self, SubprocessNpmMock):
+    def test_installs_npm_production_dependencies_for_npm_project(self, SubprocessNpmMock):
         subprocess_npm = SubprocessNpmMock.return_value
 
         action = NodejsNpmInstallAction("artifacts", subprocess_npm=subprocess_npm)
@@ -66,6 +68,18 @@ class TestNodejsNpmInstallAction(TestCase):
         subprocess_npm.run.assert_called_with(expected_args, cwd="artifacts")
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_can_set_mode(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmInstallAction("artifacts", subprocess_npm=subprocess_npm, is_production=False)
+
+        action.execute()
+
+        expected_args = ["install", "-q", "--no-audit", "--no-save", "--production=false", "--unsafe-perm"]
+
+        subprocess_npm.run.assert_called_with(expected_args, cwd="artifacts")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
     def test_raises_action_failed_when_npm_fails(self, SubprocessNpmMock):
         subprocess_npm = SubprocessNpmMock.return_value
 
@@ -73,6 +87,32 @@ class TestNodejsNpmInstallAction(TestCase):
         builder_instance.run.side_effect = NpmExecutionError(message="boom!")
 
         action = NodejsNpmInstallAction("artifacts", subprocess_npm=subprocess_npm)
+
+        with self.assertRaises(ActionFailedError) as raised:
+            action.execute()
+
+        self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
+
+
+class TestNodejsNpmCIAction(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_tars_and_unpacks_npm_project(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmCIAction("sources", subprocess_npm=subprocess_npm)
+
+        action.execute()
+
+        subprocess_npm.run.assert_called_with(["ci"], cwd="sources")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_raises_action_failed_when_npm_fails(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        builder_instance = SubprocessNpmMock.return_value
+        builder_instance.run.side_effect = NpmExecutionError(message="boom!")
+
+        action = NodejsNpmCIAction("sources", subprocess_npm=subprocess_npm)
 
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
@@ -140,3 +180,51 @@ class TestNodejsNpmrcCleanUpAction(TestCase):
         action.execute()
 
         osutils.remove_file.assert_not_called()
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_raises_action_failed_when_removing_fails(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
+
+        osutils.remove_file.side_effect = OSError()
+
+        action = NodejsNpmrcCleanUpAction("artifacts", osutils=osutils)
+
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
+
+class TestNodejsNpmLockFileCleanUpAction(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_removes_dot_package_lock_if_exists(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
+
+        action = NodejsNpmLockFileCleanUpAction("artifacts", osutils=osutils)
+        osutils.file_exists.side_effect = [True]
+        action.execute()
+
+        osutils.remove_file.assert_called_with("artifacts/node_modules/.package-lock.json")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_skips_lockfile_removal_if_it_doesnt_exist(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
+
+        action = NodejsNpmLockFileCleanUpAction("artifacts", osutils=osutils)
+        osutils.file_exists.side_effect = [False]
+        action.execute()
+
+        osutils.remove_file.assert_not_called()
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_raises_action_failed_when_removing_fails(self, OSUtilMock):
+        osutils = OSUtilMock.return_value
+        osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
+
+        osutils.remove_file.side_effect = OSError()
+
+        action = NodejsNpmLockFileCleanUpAction("artifacts", osutils=osutils)
+
+        with self.assertRaises(ActionFailedError):
+            action.execute()

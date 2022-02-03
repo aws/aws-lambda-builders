@@ -6,40 +6,46 @@ import logging
 import os
 import subprocess
 
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
 
-class PythonRuntimeValidator(object):
-    SUPPORTED_RUNTIMES = {"python2.7", "python3.6", "python3.7", "python3.8"}
-
-    def __init__(self, runtime):
+class PythonRuntimeValidator(RuntimeValidator):
+    def __init__(self, runtime, architecture):
+        super(PythonRuntimeValidator, self).__init__(runtime, architecture)
         self.language = "python"
-        self.runtime = runtime
         self._valid_runtime_path = None
-
-    def has_runtime(self):
-        """
-        Checks if the runtime is supported.
-        :param string runtime: Runtime to check
-        :return bool: True, if the runtime is supported.
-        """
-        return self.runtime in self.SUPPORTED_RUNTIMES
 
     def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
-        :param string runtime_path: runtime to check eg: /usr/bin/python3.6
-        :raises MisMatchRuntimeError: Version mismatch of the language vs the required runtime
+
+        Parameters
+        ----------
+        runtime_path : str
+            runtime to check eg: /usr/bin/go
+
+        Returns
+        -------
+        str
+            runtime_path, runtime to check eg: /usr/bin/python3.6
+
+        Raises
+        ------
+        MisMatchRuntimeError
+            Raise runtime is not support or runtime does not support architecture.
         """
-        if not self.has_runtime():
-            LOG.warning("'%s' runtime is not " "a supported runtime", self.runtime)
-            return
+
+        runtime_path = super(PythonRuntimeValidator, self).validate(runtime_path)
 
         cmd = self._validate_python_cmd(runtime_path)
 
-        p = subprocess.Popen(cmd, cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(
+            cmd, cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=OSUtils().original_environ()
+        )
         p.communicate()
         if p.returncode != 0:
             raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)

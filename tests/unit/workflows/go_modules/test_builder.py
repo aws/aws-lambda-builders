@@ -54,9 +54,20 @@ class TestGoBuilder(TestCase):
         self.under_test = GoModulesBuilder(self.osutils, self.binaries, "Debug")
         self.under_test.build("source_dir", "output_path")
         self.osutils.popen.assert_called_with(
-            ["/path/to/go", "build", "-gcflags='all=-N -l'", "-o", "output_path", "source_dir"],
+            ["/path/to/go", "build", "-gcflags", "all=-N -l", "-o", "output_path", "source_dir"],
             cwd="source_dir",
             env={"GOOS": "linux", "GOARCH": "amd64"},
+            stderr="PIPE",
+            stdout="PIPE",
+        )
+
+    def test_debug_configuration_set_with_arm_architecture(self):
+        self.under_test = GoModulesBuilder(self.osutils, self.binaries, "Debug", "arm64")
+        self.under_test.build("source_dir", "output_path")
+        self.osutils.popen.assert_called_with(
+            ["/path/to/go", "build", "-gcflags", "all=-N -l", "-o", "output_path", "source_dir"],
+            cwd="source_dir",
+            env={"GOOS": "linux", "GOARCH": "arm64"},
             stderr="PIPE",
             stdout="PIPE",
         )

@@ -1,13 +1,16 @@
+import shutil
 from unittest import TestCase
-from mock import patch, call
+from mock import patch, call, ANY
 import os
 
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.workflows.java.utils import jar_file_filter
 from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenBuildAction,
     JavaMavenCopyArtifactsAction,
     JavaMavenCopyDependencyAction,
     MavenExecutionError,
+    JavaMavenCopyLayerArtifactsAction,
 )
 
 
@@ -52,7 +55,7 @@ class TestJavaMavenCopyDependencyAction(TestCase):
 
 
 class TestJavaMavenCopyArtifactsAction(TestCase):
-    @patch("aws_lambda_builders.workflows.java_maven.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.os_utils.copy.side_effect = lambda src, dst: dst
@@ -102,4 +105,44 @@ class TestJavaMavenCopyArtifactsAction(TestCase):
             action.execute()
         self.assertEqual(
             raised.exception.args[0], "Required target/classes directory was not " "produced from 'mvn package'"
+        )
+
+
+class TestJavaMavenCopyLayerArtifactsAction(TestJavaMavenCopyArtifactsAction):
+    def test_copies_artifacts_no_deps(self):
+        self.os_utils.exists.return_value = True
+
+        action = JavaMavenCopyLayerArtifactsAction(self.scratch_dir, self.artifacts_dir, self.os_utils)
+        action.execute()
+
+        self.os_utils.copytree.assert_has_calls(
+            [
+                call(
+                    os.path.join(self.scratch_dir, "target"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    ignore=ANY,
+                    include=jar_file_filter,
+                )
+            ]
+        )
+
+    def test_copies_artifacts_with_deps(self):
+        self.os_utils.exists.return_value = True
+        os.path.join(self.scratch_dir, "target", "dependency")
+
+        action = JavaMavenCopyLayerArtifactsAction(self.scratch_dir, self.artifacts_dir, self.os_utils)
+        action.execute()
+        self.os_utils.copytree.assert_has_calls(
+            [
+                call(
+                    os.path.join(self.scratch_dir, "target"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    ignore=ANY,
+                    include=jar_file_filter,
+                ),
+                call(
+                    os.path.join(self.scratch_dir, "target", "dependency"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                ),
+            ]
         )

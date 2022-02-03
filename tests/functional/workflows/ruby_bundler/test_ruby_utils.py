@@ -48,3 +48,28 @@ class TestOSUtils(TestCase):
         out, err = p.communicate()
         self.assertEqual(p.returncode, 0)
         self.assertEqual(out.decode("utf8").strip(), os.path.abspath(testdata_dir))
+
+    def test_returns_true_if_directory_exists(self):
+        testdata_dir = os.path.dirname(__file__)
+        out = self.osutils.directory_exists(testdata_dir)
+        self.assertTrue(out)
+
+    def test_returns_false_if_directory_not_found(self):
+        testdata_dir = os.path.join(os.path.dirname(__file__), "test")
+        out = self.osutils.directory_exists(testdata_dir)
+        self.assertFalse(out)
+
+    def test_returns_bundle_directory(self):
+        testdata_dir = os.path.dirname(__file__)
+        out = self.osutils.get_bundle_dir(testdata_dir)
+        self.assertEqual(out, os.path.join(os.path.dirname(__file__), ".bundle"))
+
+    def test_removes_directory_if_exists(self):
+        test_dir = tempfile.mkdtemp()
+        bundle_dir = os.path.join(test_dir, ".bundle")
+        expected_files = set(os.listdir(test_dir))
+        os.mkdir(bundle_dir)
+        self.osutils.remove_directory(bundle_dir)
+        actual_files = set(os.listdir(test_dir))
+        shutil.rmtree(test_dir)
+        self.assertEqual(actual_files, expected_files)

@@ -4,7 +4,7 @@ init:
 test:
 	# Run unit tests
 	# Fail if coverage falls below 94%
-	LAMBDA_BUILDERS_DEV=1 pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under 94 tests/unit tests/functional
+	LAMBDA_BUILDERS_DEV=1 pytest -vv --cov aws_lambda_builders --cov-report term-missing --cov-fail-under 94 tests/unit tests/functional
 
 func-test:
 	LAMBDA_BUILDERS_DEV=1 pytest tests/functional
@@ -28,6 +28,3 @@ black-check:
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
-
-# Verifications to run before sending a pull request, skipping black check because black requires Python 3.6+
-pr2.7: init dev
