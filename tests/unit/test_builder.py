@@ -125,6 +125,7 @@ class TestLambdaBuilder_build(TestCase):
             [True, False],  # download_dependencies
             [None, "dependency_dir"],  # dependency_dir
             [True, False],  # combine_dependencies
+            [True, False],  # is_building_layer
             [None, [], ["a", "b"]],  # experimental flags
         )
     )
@@ -136,6 +137,7 @@ class TestLambdaBuilder_build(TestCase):
         download_dependencies,
         dependency_dir,
         combine_dependencies,
+        is_building_layer,
         experimental_flags,
         get_workflow_mock,
         os_mock,
@@ -163,6 +165,7 @@ class TestLambdaBuilder_build(TestCase):
             download_dependencies=download_dependencies,
             dependencies_dir=dependency_dir,
             combine_dependencies=combine_dependencies,
+            is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
         )
 
@@ -180,6 +183,7 @@ class TestLambdaBuilder_build(TestCase):
             download_dependencies=download_dependencies,
             dependencies_dir=dependency_dir,
             combine_dependencies=combine_dependencies,
+            is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
         )
         workflow_instance.run.assert_called_once()

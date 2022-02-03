@@ -4,9 +4,14 @@ Java Maven Workflow
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
-from aws_lambda_builders.workflows.java.utils import OSUtils
+from aws_lambda_builders.workflows.java.utils import OSUtils, is_experimental_maven_scope_and_layers_active
 
-from .actions import JavaMavenBuildAction, JavaMavenCopyDependencyAction, JavaMavenCopyArtifactsAction
+from .actions import (
+    JavaMavenBuildAction,
+    JavaMavenCopyDependencyAction,
+    JavaMavenCopyArtifactsAction,
+    JavaMavenCopyLayerArtifactsAction,
+)
 from .maven import SubprocessMaven
 from .maven_resolver import MavenResolver
 from .maven_validator import MavenValidator
@@ -29,13 +34,24 @@ class JavaMavenWorkflow(BaseWorkflow):
         self.os_utils = OSUtils()
         # Assuming root_dir is the same as source_dir for now
         root_dir = source_dir
-        subprocess_maven = SubprocessMaven(maven_binary=self.binaries["mvn"], os_utils=self.os_utils)
+        is_experimental_maven_scope_and_layers_enabled = is_experimental_maven_scope_and_layers_active(
+            self.experimental_flags
+        )
+        subprocess_maven = SubprocessMaven(
+            maven_binary=self.binaries["mvn"],
+            os_utils=self.os_utils,
+            is_experimental_maven_scope_enabled=is_experimental_maven_scope_and_layers_enabled,
+        )
+
+        copy_artifacts_action = JavaMavenCopyArtifactsAction(scratch_dir, artifacts_dir, self.os_utils)
+        if self.is_building_layer and is_experimental_maven_scope_and_layers_enabled:
+            copy_artifacts_action = JavaMavenCopyLayerArtifactsAction(scratch_dir, artifacts_dir, self.os_utils)
 
         self.actions = [
             CopySourceAction(root_dir, scratch_dir, excludes=self.EXCLUDED_FILES),
             JavaMavenBuildAction(scratch_dir, subprocess_maven),
             JavaMavenCopyDependencyAction(scratch_dir, subprocess_maven),
-            JavaMavenCopyArtifactsAction(scratch_dir, artifacts_dir, self.os_utils),
+            copy_artifacts_action,
         ]
 
         if self.dependencies_dir:
