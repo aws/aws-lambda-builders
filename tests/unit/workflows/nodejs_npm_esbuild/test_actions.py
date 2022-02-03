@@ -175,7 +175,6 @@ class TestEsbuildBundleAction(TestCase):
 
 
 class TestImplicitFileTypeResolution(TestCase):
-
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
     def setUp(self, OSUtilMock, SubprocessEsbuildMock):
@@ -189,20 +188,24 @@ class TestImplicitFileTypeResolution(TestCase):
             self.subprocess_esbuild,
         )
 
-    @parameterized.expand([
-        ([True], "file.ts", "file.ts"),
-        ([False, True], "file", "file.js"),
-        ([True], "file", "file.ts"),
-    ])
+    @parameterized.expand(
+        [
+            ([True], "file.ts", "file.ts"),
+            ([False, True], "file", "file.js"),
+            ([True], "file", "file.ts"),
+        ]
+    )
     def test_implicit_and_explicit_file_types(self, file_exists, entry_point, expected):
         self.osutils.file_exists.side_effect = file_exists
         explicit_entry_point = self.action._get_explicit_file_type(entry_point, "")
         self.assertEqual(expected, explicit_entry_point)
 
-    @parameterized.expand([
-        ([False], "file.ts"),
-        ([False, False], "file"),
-    ])
+    @parameterized.expand(
+        [
+            ([False], "file.ts"),
+            ([False, False], "file"),
+        ]
+    )
     def test_throws_exception_entry_point_not_found(self, file_exists, entry_point):
         self.osutils.file_exists.side_effect = file_exists
         with self.assertRaises(ActionFailedError) as context:
