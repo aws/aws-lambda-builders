@@ -8,7 +8,7 @@ import subprocess
 import logging
 from email.parser import FeedParser
 
-
+from aws_lambda_builders.architecture import ARM64, X86_64
 from .compat import pip_import_string
 from .compat import pip_no_compile_c_env_vars
 from .compat import pip_no_compile_c_shim
@@ -35,6 +35,11 @@ class InvalidSourceDistributionNameError(PackagerError):
 
 
 class RequirementsFileNotFoundError(PackagerError):
+    """
+    Exceptions is no longer raised.
+    Keeping it here because this exception is 'public' and could still be used by a customer.
+    """
+
     def __init__(self, requirements_path):
         super(RequirementsFileNotFoundError, self).__init__("Requirements file not found: %s" % requirements_path)
 
@@ -59,6 +64,14 @@ class PackageDownloadError(PackagerError):
     pass
 
 
+class UnsupportedPackageError(Exception):
+    """Unable to parse package metadata."""
+
+    def __init__(self, package_name):
+        # type: (str) -> None
+        super(UnsupportedPackageError, self).__init__("Unable to retrieve name/version for package: %s" % package_name)
+
+
 class UnsupportedPythonVersion(PackagerError):
     """Generic networking error during a package download."""
 
@@ -67,7 +80,13 @@ class UnsupportedPythonVersion(PackagerError):
 
 
 def get_lambda_abi(runtime):
-    supported = {"python2.7": "cp27mu", "python3.6": "cp36m", "python3.7": "cp37m", "python3.8": "cp38"}
+    supported = {
+        "python2.7": "cp27mu",
+        "python3.6": "cp36m",
+        "python3.7": "cp37m",
+        "python3.8": "cp38",
+        "python3.9": "cp39",
+    }
 
     if runtime not in supported:
         raise UnsupportedPythonVersion(runtime)
@@ -76,7 +95,7 @@ def get_lambda_abi(runtime):
 
 
 class PythonPipDependencyBuilder(object):
-    def __init__(self, runtime, osutils=None, dependency_builder=None):
+    def __init__(self, runtime, osutils=None, dependency_builder=None, architecture=X86_64):
         """Initialize a PythonPipDependencyBuilder.
 
         :type runtime: str
@@ -91,13 +110,17 @@ class PythonPipDependencyBuilder(object):
         :type dependency_builder: :class:`DependencyBuilder`
         :param dependency_builder: This class will be used to build the
             dependencies of the project.
+
+        :type architecture: str
+        :param description: Architecture used to build dependencies for. This can
+        be either arm64 or x86_64. The default value is x86_64 if it's not provided.
         """
         self.osutils = osutils
         if osutils is None:
             self.osutils = OSUtils()
 
         if dependency_builder is None:
-            dependency_builder = DependencyBuilder(self.osutils, runtime)
+            dependency_builder = DependencyBuilder(self.osutils, runtime, architecture=architecture)
         self._dependency_builder = dependency_builder
 
     def build_dependencies(self, artifacts_dir_path, scratch_dir_path, requirements_path, ui=None, config=None):
@@ -131,9 +154,6 @@ class PythonPipDependencyBuilder(object):
         # by finding/creating a virtualenv of the correct version and when
         # pip is called set the appropriate env vars.
 
-        if not self.osutils.file_exists(requirements_path):
-            raise RequirementsFileNotFoundError(requirements_path)
-
         self._dependency_builder.build_site_packages(requirements_path, artifacts_dir_path, scratch_dir_path)
 
 
@@ -150,26 +170,46 @@ class DependencyBuilder(object):
     packager.
     """
 
-    _ADDITIONAL_COMPATIBLE_PLATFORM = {"any", "linux_x86_64"}
+    _COMPATIBLE_PLATFORM_ARM64 = {
+        "any",
+        "manylinux2014_aarch64",
+    }
+
+    _COMPATIBLE_PLATFORM_X86_64 = {
+        "any",
+        "linux_x86_64",
+        "manylinux1_x86_64",
+        "manylinux2010_x86_64",
+        "manylinux2014_x86_64",
+    }
+
+    _COMPATIBLE_PLATFORMS = {
+        ARM64: _COMPATIBLE_PLATFORM_ARM64,
+        X86_64: _COMPATIBLE_PLATFORM_X86_64,
+    }
+
     _MANYLINUX_LEGACY_MAP = {
         "manylinux1_x86_64": "manylinux_2_5_x86_64",
         "manylinux2010_x86_64": "manylinux_2_12_x86_64",
         "manylinux2014_x86_64": "manylinux_2_17_x86_64",
     }
+
+    _COMPATIBLE_PACKAGE_ALLOWLIST = {"sqlalchemy"}
+
     # Mapping of abi to glibc version in Lambda runtime.
     _RUNTIME_GLIBC = {
         "cp27mu": (2, 17),
         "cp36m": (2, 17),
         "cp37m": (2, 17),
         "cp38": (2, 26),
+        "cp39": (2, 26),
     }
     # Fallback version if we're on an unknown python version
     # not in _RUNTIME_GLIBC.
     # Unlikely to hit this case.
     _DEFAULT_GLIBC = (2, 17)
-    _COMPATIBLE_PACKAGE_ALLOWLIST = {"sqlalchemy"}
 
-    def __init__(self, osutils, runtime, pip_runner=None):
+    def __init__(self, osutils, runtime, pip_runner=None, architecture=X86_64):
         """Initialize a DependencyBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -182,12 +222,16 @@ class DependencyBuilder(object):
         :type pip_runner: :class:`PipRunner`
         :param pip_runner: This class is responsible for executing our pip
             on our behalf.
+
+        :type architecture: str
+        :param architecture: Architecture to build for.
         """
         self._osutils = osutils
         if pip_runner is None:
             pip_runner = PipRunner(python_exe=None, pip=SubprocessPip(osutils))
         self._pip = pip_runner
         self.runtime = runtime
+        self.architecture = architecture
 
     def build_site_packages(self, requirements_filepath, target_directory, scratch_directory):
         """Build site-packages directory for a set of requiremetns.
@@ -245,9 +289,10 @@ class DependencyBuilder(object):
         # ship with wheels at all in which case we will have an sdist for it.
         # In some cases a platform specific wheel file may be availble so pip
         # will have downloaded that, if our platform does not match the
-        # platform lambda runs on (linux_x86_64/manylinux) then the downloaded
-        # wheel file may not be compatible with lambda. Pure python wheels
-        # still will be compatible because they have no platform dependencies.
+        # platform that the function will run on (x86_64 or arm64) then the
+        # downloaded wheel file may not be compatible with Lambda. Pure python
+        # wheels still will be compatible because they have no platform
+        # dependencies.
         compatible_wheels = set()
         incompatible_wheels = set()
         sdists = set()
@@ -326,7 +371,8 @@ class DependencyBuilder(object):
         # Try to get binary wheels for each package that isn't compatible.
         LOG.debug("Downloading missing wheels: %s", packages)
         lambda_abi = get_lambda_abi(self.runtime)
-        self._pip.download_manylinux_wheels([pkg.identifier for pkg in packages], directory, lambda_abi)
+        platform = "manylinux2014_aarch64" if self.architecture == ARM64 else "manylinux2014_x86_64"
+        self._pip.download_manylinux_wheels([pkg.identifier for pkg in packages], directory, lambda_abi, platform)
 
     def _build_sdists(self, sdists, directory, compile_c=True):
         LOG.debug("Build missing wheels from sdists " "(C compiling %s): %s", compile_c, sdists)
@@ -382,29 +428,43 @@ class DependencyBuilder(object):
 
         In addition to checking the tag pattern, we also need to verify the glibc version
         """
-        if platform in self._ADDITIONAL_COMPATIBLE_PLATFORM:
+        if platform in self._COMPATIBLE_PLATFORMS[self.architecture]:
             return True
-        elif platform.startswith("manylinux"):
-            perennial_tag = self._MANYLINUX_LEGACY_MAP.get(platform, platform)
-            m = re.match("manylinux_([0-9]+)_([0-9]+)_(.*)", perennial_tag)
-            if m is None:
-                return False
-            tag_major, tag_minor = [int(x) for x in m.groups()[:2]]
-            runtime_major, runtime_minor = self._RUNTIME_GLIBC.get(expected_abi, self._DEFAULT_GLIBC)
-            if (tag_major, tag_minor) <= (runtime_major, runtime_minor):
-                # glibc version is compatible with Lambda Runtime
-                return True
-        return False
+
+        arch = "aarch64" if self.architecture == ARM64 else "x86_64"
+
+        # Verify the tag pattern
+        # Try to get the matching value for legacy values or keep the current
+        perennial_tag = self._MANYLINUX_LEGACY_MAP.get(platform, platform)
+
+        match = re.match("manylinux_([0-9]+)_([0-9]+)_" + arch, perennial_tag)
+        if match is None:
+            return False
+
+        # Get the glibc major and minor versions and compare them with the expected ABI
+        # platform: manylinux_2_17_aarch64 -> 2 and 17
+        # expected_abi: cp37m -> compat glibc -> 2 and 17
+        # -> Compatible
+        tag_major, tag_minor = [int(x) for x in match.groups()[:2]]
+        runtime_major, runtime_minor = self._RUNTIME_GLIBC.get(expected_abi, self._DEFAULT_GLIBC)
+
+        return (tag_major, tag_minor) <= (runtime_major, runtime_minor)
 
     def _iter_all_compatibility_tags(self, wheel):
         """
         Generates all possible combination of tag sets as described in PEP 425
         https://www.python.org/dev/peps/pep-0425/#compressed-tag-sets
         """
+        # ex: wheel = numpy-1.20.3-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64
         implementation_tag, abi_tag, platform_tag = wheel.split("-")[-3:]
+        # cp38, cp38, manylinux_2_17_aarch64.manylinux2014_aarch64
         for implementation in implementation_tag.split("."):
+            # cp38
             for abi in abi_tag.split("."):
+                # cp38
                 for platform in platform_tag.split("."):
+                    # manylinux_2_17_aarch64
+                    # manylinux2014_aarch64
                     yield (implementation, abi, platform)
 
     def _apply_wheel_allowlist(self, compatible_wheels, incompatible_wheels):
@@ -529,7 +589,7 @@ class SDistMetadataFetcher(object):
         parser.feed(data)
         return parser.close()
 
-    def _generate_egg_info(self, package_dir):
+    def _get_pkg_info_filepath(self, package_dir):
         setup_py = self._osutils.joinpath(package_dir, "setup.py")
         script = self._SETUPTOOLS_SHIM % setup_py
 
@@ -539,9 +599,20 @@ class SDistMetadataFetcher(object):
         p = subprocess.Popen(
             cmd, cwd=package_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self._osutils.original_environ()
         )
-        p.communicate()
+        _, stderr = p.communicate()
         info_contents = self._osutils.get_directory_contents(egg_info_dir)
-        pkg_info_path = self._osutils.joinpath(egg_info_dir, info_contents[0], "PKG-INFO")
+        if p.returncode != 0:
+            LOG.debug("Non zero rc (%s) from the setup.py egg_info command: %s", p.returncode, stderr)
+        if info_contents:
+            pkg_info_path = self._osutils.joinpath(egg_info_dir, info_contents[0], "PKG-INFO")
+        else:
+            # This might be a pep 517 package in which case this PKG-INFO file
+            # should be available right in the top level directory of the sdist
+            # in the case where the egg_info command fails.
+            LOG.debug("Using fallback location for PKG-INFO file in package directory: %s", package_dir)
+            pkg_info_path = self._osutils.joinpath(package_dir, "PKG-INFO")
+        if not self._osutils.file_exists(pkg_info_path):
+            raise UnsupportedPackageError(self._osutils.basename(package_dir))
         return pkg_info_path
 
     def _unpack_sdist_into_dir(self, sdist_path, unpack_dir):
@@ -558,7 +629,7 @@ class SDistMetadataFetcher(object):
     def get_package_name_and_version(self, sdist_path):
         with self._osutils.tempdir() as tempdir:
             package_dir = self._unpack_sdist_into_dir(sdist_path, tempdir)
-            pkg_info_filepath = self._generate_egg_info(package_dir)
+            pkg_info_filepath = self._get_pkg_info_filepath(package_dir)
             metadata = self._parse_pkg_info_file(pkg_info_filepath)
             name = metadata["Name"]
             version = metadata["Version"]
@@ -594,7 +665,10 @@ class SubprocessPip(object):
 class PipRunner(object):
     """Wrapper around pip calls used by chalice."""
 
-    _LINK_IS_DIR_PATTERN = "Processing (.+?)\n  Link is a directory, ignoring download_dir"
+    # Update regex pattern to correspond with the updated output from pip
+    # Specific commit:
+    # https://github.com/pypa/pip/commit/b28e2c4928cc62d90b738a4613886fb1e2ad6a81#diff-5225c8e359020adb25dfc8c7a505950fd649c6c5775789c6f6517f7913f94542L529
+    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)\n"]
 
     def __init__(self, python_exe, pip, osutils=None):
         if osutils is None:
@@ -642,10 +716,16 @@ class PipRunner(object):
                 package_name = match.group(1)
                 raise NoSuchPackageError(str(package_name))
             raise PackageDownloadError(error)
+
+        # Extract local packages from pip output.
+        # Iterate over possible pip outputs depending on pip version.
         stdout = out.decode()
-        matches = re.finditer(self._LINK_IS_DIR_PATTERN, stdout)
-        for match in matches:
-            wheel_package_path = str(match.group(1))
+        wheel_package_paths = set()
+        for pattern in self._LINK_IS_DIR_PATTERNS:
+            for match in re.finditer(pattern, stdout):
+                wheel_package_paths.add(str(match.group(1)))
+
+        for wheel_package_path in wheel_package_paths:
             # Looks odd we do not check on the error status of building the
             # wheel here. We can assume this is a valid package path since
             # we already passed the pip download stage. This stage would have
@@ -656,22 +736,22 @@ class PipRunner(object):
             # complain at deployment time.
             self.build_wheel(wheel_package_path, directory)
 
-    def download_manylinux_wheels(self, packages, directory, lambda_abi):
+    def download_manylinux_wheels(self, packages, directory, lambda_abi, platform="manylinux2014_x86_64"):
         """Download wheel files for manylinux for all the given packages."""
         # If any one of these dependencies fails pip will bail out. Since we
         # are only interested in all the ones we can download, we need to feed
         # each package to pip individually. The return code of pip doesn't
         # matter here since we will inspect the working directory to see which
         # wheels were downloaded. We are only interested in wheel files
-        # compatible with lambda, which means manylinux1_x86_64 platform and
-        # cpython implementation. The compatible abi depends on the python
+        # compatible with Lambda, which depends on the function architecture,
+        # and cpython implementation. The compatible abi depends on the python
         # version and is checked later.
         for package in packages:
             arguments = [
                 "--only-binary=:all:",
                 "--no-deps",
                 "--platform",
-                "manylinux2014_x86_64",
+                platform,
                 "--implementation",
                 "cp",
                 "--abi",

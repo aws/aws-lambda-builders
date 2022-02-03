@@ -5,6 +5,7 @@ from unittest import TestCase
 import mock
 import pytest
 
+from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_env_vars
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_shim
@@ -101,6 +102,9 @@ class TestGetLambdaAbi(object):
     def test_get_lambda_abi_python38(self):
         assert "cp38" == get_lambda_abi("python3.8")
 
+    def test_get_lambda_abi_python39(self):
+        assert "cp39" == get_lambda_abi("python3.9")
+
 
 class TestPythonPipDependencyBuilder(object):
     def test_can_call_dependency_builder(self, osutils):
@@ -113,7 +117,18 @@ class TestPythonPipDependencyBuilder(object):
         mock_dep_builder.build_site_packages.assert_called_once_with(
             "path/to/requirements.txt", "artifacts/path/", "scratch_dir/path/"
         )
-        osutils_mock.file_exists.assert_called_once_with("path/to/requirements.txt")
+
+    @mock.patch("aws_lambda_builders.workflows.python_pip.packager.DependencyBuilder")
+    def test_can_create_new_dependency_builder(self, DependencyBuilderMock, osutils):
+        osutils_mock = mock.Mock(spec=osutils)
+        builder = PythonPipDependencyBuilder(osutils=osutils_mock, runtime="runtime")
+        DependencyBuilderMock.assert_called_with(osutils_mock, "runtime", architecture=X86_64)
+
+    @mock.patch("aws_lambda_builders.workflows.python_pip.packager.DependencyBuilder")
+    def test_can_call_dependency_builder_with_architecture(self, DependencyBuilderMock, osutils):
+        osutils_mock = mock.Mock(spec=osutils)
+        builder = PythonPipDependencyBuilder(osutils=osutils_mock, runtime="runtime", architecture=ARM64)
+        DependencyBuilderMock.assert_called_with(osutils_mock, "runtime", architecture=ARM64)
 
 
 class TestPackage(object):
@@ -254,7 +269,7 @@ class TestPipRunner(object):
 
     def test_does_find_local_directory(self, pip_factory):
         pip, runner = pip_factory()
-        pip.add_return((0, (b"Processing ../local-dir\n" b"  Link is a directory," b" ignoring download_dir"), b""))
+        pip.add_return((0, b"Processing ../local-dir\n", b""))
         runner.download_all_dependencies("requirements.txt", "directory")
         assert len(pip.calls) == 2
         assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir"]
@@ -266,20 +281,21 @@ class TestPipRunner(object):
                 0,
                 (
                     b"Processing ../local-dir-1\n"
-                    b"  Link is a directory,"
-                    b" ignoring download_dir"
                     b"\nsome pip output...\n"
                     b"Processing ../local-dir-2\n"
                     b"  Link is a directory,"
                     b" ignoring download_dir"
+                    b"Processing ../local-dir-3\n"
                 ),
                 b"",
             )
         )
         runner.download_all_dependencies("requirements.txt", "directory")
-        assert len(pip.calls) == 3
-        assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-1"]
-        assert pip.calls[2].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-2"]
+        pip_calls = [call.args for call in pip.calls]
+        assert len(pip.calls) == 4
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-1"] in pip_calls
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-2"] in pip_calls
+        assert ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir-3"] in pip_calls
 
     def test_raise_no_such_package_error(self, pip_factory):
         pip, runner = pip_factory()

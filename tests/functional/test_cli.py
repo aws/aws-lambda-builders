@@ -74,9 +74,13 @@ class TestCliWithHelloWorkflow(TestCase):
                 "artifacts_dir": self.artifacts_dir,
                 "scratch_dir": self.scratch_dir,
                 "manifest_path": "/ignored",
-                "runtime": "ignored",
+                "runtime": "python3.8",
                 "optimizations": {},
                 "options": {},
+                "download_dependencies": False,
+                "dependencies_dir": "/ignored-dep",
+                "combine_dependencies": False,
+                "architecture": "x86_64",
             },
         }
 
@@ -138,6 +142,9 @@ class TestCliWithHelloWorkflow(TestCase):
                     "optimizations": {},
                     "options": {},
                     "executable_search_paths": [str(pathlib.Path(sys.executable).parent)],
+                    "download_dependencies": False,
+                    "dependencies_dir": "/ignored-dep",
+                    "combine_dependencies": False,
                 },
             }
         )

@@ -7,11 +7,12 @@ import sys
 import os
 import logging
 
+from aws_lambda_builders.architecture import X86_64, ARM64
 
 LOG = logging.getLogger(__name__)
 
 
-def copytree(source, destination, ignore=None):
+def copytree(source, destination, ignore=None, include=None):
     """
     Similar to shutil.copytree except that it removes the limitation that the destination directory should
     be present.
@@ -28,13 +29,25 @@ def copytree(source, destination, ignore=None):
     :param ignore:
         A function that returns a set of file names to ignore, given a list of available file names. Similar to the
         ``ignore`` property of ``shutils.copytree`` method
+
+    :type include: Callable[[str], bool]
+    :param include:
+        A function that will decide whether a file should be copied or skipped it. It accepts file name as parameter
+        and return True or False. Returning True will continue copy operation, returning False will skip copy operation
+        for that file
     """
 
+    if not os.path.exists(source):
+        LOG.warning("Skipping copy operation since source %s does not exist", source)
+        return
+
     if not os.path.exists(destination):
+        LOG.debug("Creating target folders at %s", destination)
         os.makedirs(destination)
 
         try:
             # Let's try to copy the directory metadata from source to destination
+            LOG.debug("Copying directory metadata from source (%s) to destination (%s)", source, destination)
             shutil.copystat(source, destination)
         except OSError as ex:
             # Can't copy file access times in Windows
@@ -49,14 +62,20 @@ def copytree(source, destination, ignore=None):
     for name in names:
         # Skip ignored names
         if name in ignored_names:
+            LOG.debug("File (%s) is in ignored set, skipping it", name)
             continue
 
         new_source = os.path.join(source, name)
         new_destination = os.path.join(destination, name)
 
+        if include and not os.path.isdir(new_source) and not include(name):
+            LOG.debug("File (%s) doesn't satisfy the include rule, skipping it", name)
+            continue
+
         if os.path.isdir(new_source):
-            copytree(new_source, new_destination, ignore=ignore)
+            copytree(new_source, new_destination, ignore=ignore, include=include)
         else:
+            LOG.debug("Copying source file (%s) to destination (%s)", new_source, new_destination)
             shutil.copy2(new_source, new_destination)
 
 
@@ -148,3 +167,18 @@ def which(cmd, mode=os.F_OK | os.X_OK, executable_search_paths=None):  # pragma:
                 if _access_check(name, mode):
                     paths.append(name)
     return paths
+
+
+def get_goarch(architecture):
+    """
+    Parameters
+    ----------
+    architecture : str
+        name of the type of architecture
+
+    Returns
+    -------
+    str
+        returns a valid GO Architecture value
+    """
+    return "arm64" if architecture == ARM64 else "amd64"
