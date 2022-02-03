@@ -2,8 +2,11 @@
 Actions specific to the esbuild bundler
 """
 import logging
+from pathlib import Path
+
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
 from .esbuild import EsbuildExecutionError
+from .utils import get_typescript_file_type, get_javascript_file_type
 
 LOG = logging.getLogger(__name__)
 
@@ -65,11 +68,11 @@ class EsbuildBundleAction(BaseAction):
 
         LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
 
-        for entry_point in entry_paths:
-            if not self.osutils.file_exists(entry_point):
-                raise ActionFailedError("entry point {} does not exist".format(entry_point))
+        explicit_entry_points = []
+        for entry_path, entry_point in list(zip(entry_paths, entry_points)):
+            explicit_entry_points.append(self._get_explicit_file_type(entry_point, entry_path))
 
-        args = entry_points + ["--bundle", "--platform=node", "--format=cjs"]
+        args = explicit_entry_points + ["--bundle", "--platform=node", "--format=cjs"]
         minify = self.bundler_config.get("minify", True)
         sourcemap = self.bundler_config.get("sourcemap", True)
         target = self.bundler_config.get("target", "es2020")
@@ -83,3 +86,17 @@ class EsbuildBundleAction(BaseAction):
             self.subprocess_esbuild.run(args, cwd=self.scratch_dir)
         except EsbuildExecutionError as ex:
             raise ActionFailedError(str(ex))
+
+    def _get_explicit_file_type(self, entry_point, entry_path):
+        if Path(entry_point).suffix:
+            if self.osutils.file_exists(entry_path):
+                return entry_point
+            raise ActionFailedError("entry point {} does not exist".format(entry_path))
+
+        if self.osutils.file_exists(get_typescript_file_type(entry_path)):
+            return get_typescript_file_type(entry_point)
+
+        if self.osutils.file_exists(get_javascript_file_type(entry_path)):
+            return get_javascript_file_type(entry_point)
+
+        raise ActionFailedError("entry point {} does not exist".format(entry_path))

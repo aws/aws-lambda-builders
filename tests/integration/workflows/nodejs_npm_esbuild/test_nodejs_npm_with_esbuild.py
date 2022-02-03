@@ -141,3 +141,22 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             )
 
         self.assertEqual(str(context.exception), "NodejsNpmEsbuildBuilder:EsbuildBundle - entry_points not set ({})")
+
+    def test_bundle_with_implicit_file_types(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "implicit-file-types")
+
+        options = {"entry_points": ["included", "implicit"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js.map", "implicit.js.map", "implicit.js", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
