@@ -21,7 +21,7 @@ class FakePopen:
 
 
 class TestSubprocessMaven(TestCase):
-    @patch("aws_lambda_builders.workflows.java_gradle.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.os_utils.exists.side_effect = lambda d: True
@@ -35,12 +35,12 @@ class TestSubprocessMaven(TestCase):
     def test_no_os_utils_build_init_throws(self):
         with self.assertRaises(ValueError) as err_assert:
             SubprocessMaven(maven_binary=self.maven_binary)
-        self.assertEquals(err_assert.exception.args[0], "Must provide OSUtils")
+        self.assertEqual(err_assert.exception.args[0], "Must provide OSUtils")
 
     def test_no_maven_exec_init_throws(self):
         with self.assertRaises(ValueError) as err_assert:
             SubprocessMaven(None)
-        self.assertEquals(err_assert.exception.args[0], "Must provide Maven BinaryPath")
+        self.assertEqual(err_assert.exception.args[0], "Must provide Maven BinaryPath")
 
     def test_build_project(self):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
@@ -55,13 +55,13 @@ class TestSubprocessMaven(TestCase):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
             maven.build(self.source_dir)
-        self.assertEquals(err.exception.args[0], "Maven Failed: Some Error Message")
+        self.assertEqual(err.exception.args[0], "Maven Failed: Some Error Message")
 
     def test_copy_dependency(self):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         maven.copy_dependency(self.source_dir)
         self.os_utils.popen.assert_called_with(
-            [self.maven_path, "dependency:copy-dependencies", "-DincludeScope=compile"],
+            [self.maven_path, "dependency:copy-dependencies", "-DincludeScope=compile", "-Dmdep.prependGroupId=true"],
             cwd=self.source_dir,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -73,4 +73,16 @@ class TestSubprocessMaven(TestCase):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
             maven.copy_dependency(self.source_dir)
-        self.assertEquals(err.exception.args[0], "Maven Failed: Some Error Message")
+        self.assertEqual(err.exception.args[0], "Maven Failed: Some Error Message")
+
+    def test_experimental_scope(self):
+        maven = SubprocessMaven(
+            maven_binary=self.maven_binary, os_utils=self.os_utils, is_experimental_maven_scope_enabled=True
+        )
+        maven.copy_dependency(self.source_dir)
+        self.os_utils.popen.assert_called_with(
+            [self.maven_path, "dependency:copy-dependencies", "-DincludeScope=runtime", "-Dmdep.prependGroupId=true"],
+            cwd=self.source_dir,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )

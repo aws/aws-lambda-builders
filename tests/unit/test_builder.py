@@ -1,3 +1,4 @@
+import itertools
 from unittest import TestCase
 from mock import patch, call, Mock
 from parameterized import parameterized, param
@@ -23,7 +24,7 @@ class TesetLambdaBuilder_init(TestCase):
         # instantiate
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework)
 
-        self.assertEquals(builder.supported_workflows, [self.DEFAULT_WORKFLOW_MODULE])
+        self.assertEqual(builder.supported_workflows, [self.DEFAULT_WORKFLOW_MODULE])
 
         # First check if the module was loaded
         importlib_mock.import_module.assert_called_once_with(self.DEFAULT_WORKFLOW_MODULE)
@@ -44,7 +45,7 @@ class TesetLambdaBuilder_init(TestCase):
         # instantiate
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=modules)
 
-        self.assertEquals(builder.supported_workflows, modules)
+        self.assertEqual(builder.supported_workflows, modules)
 
         # Make sure the modules are loaded in same order as passed
         importlib_mock.import_module.assert_has_calls([call(m) for m in modules], any_order=False)
@@ -56,14 +57,13 @@ class TesetLambdaBuilder_init(TestCase):
         modules = []  # Load no modules
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=modules)
 
-        self.assertEquals(builder.supported_workflows, [])
+        self.assertEqual(builder.supported_workflows, [])
 
         # Make sure the modules are loaded in same order as passed
         importlib_mock.import_module.assert_not_called()
 
     def test_with_real_workflow_class(self):
-        """Define a real workflow class and try to fetch it. This ensures the workflow registration actually works.
-        """
+        """Define a real workflow class and try to fetch it. This ensures the workflow registration actually works."""
 
         # Declare my test workflow.
         class MyWorkflow(BaseWorkflow):
@@ -83,6 +83,9 @@ class TesetLambdaBuilder_init(TestCase):
                 options=None,
                 executable_search_paths=None,
                 mode=None,
+                download_dependencies=True,
+                dependencies_dir=None,
+                combine_dependencies=True,
             ):
                 super(MyWorkflow, self).__init__(
                     source_dir,
@@ -94,6 +97,9 @@ class TesetLambdaBuilder_init(TestCase):
                     options=options,
                     executable_search_paths=executable_search_paths,
                     mode=mode,
+                    download_dependencies=download_dependencies,
+                    dependencies_dir=dependencies_dir,
+                    combine_dependencies=combine_dependencies,
                 )
 
         # Don't load any other workflows. The above class declaration will automatically load the workflow into registry
@@ -103,7 +109,7 @@ class TesetLambdaBuilder_init(TestCase):
         self.assertEqual(builder.selected_workflow_cls, MyWorkflow)
 
 
-class TesetLambdaBuilder_build(TestCase):
+class TestLambdaBuilder_build(TestCase):
     def tearDown(self):
         # we don't want test classes lurking around and interfere with other tests
         DEFAULT_REGISTRY.clear()
@@ -113,11 +119,29 @@ class TesetLambdaBuilder_build(TestCase):
         self.lang_framework = "pip"
         self.app_framework = "chalice"
 
-    @parameterized.expand([param(True), param(False)])
+    @parameterized.expand(
+        itertools.product(
+            [True, False],  # scratch_dir_exists
+            [True, False],  # download_dependencies
+            [None, "dependency_dir"],  # dependency_dir
+            [True, False],  # combine_dependencies
+            [True, False],  # is_building_layer
+            [None, [], ["a", "b"]],  # experimental flags
+        )
+    )
     @patch("aws_lambda_builders.builder.os")
-    @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
-    def test_with_mocks(self, scratch_dir_exists, get_workflow_mock, importlib_mock, os_mock):
+    def test_with_mocks(
+        self,
+        scratch_dir_exists,
+        download_dependencies,
+        dependency_dir,
+        combine_dependencies,
+        is_building_layer,
+        experimental_flags,
+        get_workflow_mock,
+        os_mock,
+    ):
         workflow_cls = Mock()
         workflow_instance = workflow_cls.return_value = Mock()
 
@@ -132,11 +156,17 @@ class TesetLambdaBuilder_build(TestCase):
             "artifacts_dir",
             "scratch_dir",
             "manifest_path",
+            architecture="arm64",
             runtime="runtime",
             optimizations="optimizations",
             options="options",
             executable_search_paths="executable_search_paths",
             mode=None,
+            download_dependencies=download_dependencies,
+            dependencies_dir=dependency_dir,
+            combine_dependencies=combine_dependencies,
+            is_building_layer=is_building_layer,
+            experimental_flags=experimental_flags,
         )
 
         workflow_cls.assert_called_with(
@@ -144,11 +174,17 @@ class TesetLambdaBuilder_build(TestCase):
             "artifacts_dir",
             "scratch_dir",
             "manifest_path",
+            architecture="arm64",
             runtime="runtime",
             optimizations="optimizations",
             options="options",
             executable_search_paths="executable_search_paths",
             mode=None,
+            download_dependencies=download_dependencies,
+            dependencies_dir=dependency_dir,
+            combine_dependencies=combine_dependencies,
+            is_building_layer=is_building_layer,
+            experimental_flags=experimental_flags,
         )
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")

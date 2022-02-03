@@ -1,96 +1,98 @@
 version: 1.0.{build}
 image:
-  - Visual Studio 2017
+  - Visual Studio 2019
   - Ubuntu
 
 environment:
-  GOPATH: c:\gopath
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
-  nodejs_version: "8.10.0"
+  nodejs_version: "14.17.6"
 
   matrix:
-
-  - PYTHON: "C:\\Python27-x64"
-    PYTHON_VERSION: '2.7.18'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '91'
-    NEW_FLAKE8: 0
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  - PYTHON: "C:\\Python36-x64"
-    PYTHON_VERSION: '3.6.10'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '91'
-    NEW_FLAKE8: 0
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  - PYTHON: "C:\\Python37-x64"
-    PYTHON_VERSION: '3.7.7'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '91'
-    NEW_FLAKE8: 0
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-  - PYTHON: "C:\\Python38-x64"
-    PYTHON_VERSION: '3.8.2'
-    PYTHON_ARCH: '64'
-    LINE_COVERAGE: '72'
-    NEW_FLAKE8: 1
-    JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
-
+    - PYTHON: "C:\\Python36-x64"
+      PYTHON_VERSION: "3.6"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "91"
+      NEW_FLAKE8: 0
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+    - PYTHON: "C:\\Python37-x64"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "91"
+      NEW_FLAKE8: 0
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+    - PYTHON: "C:\\Python38-x64"
+      PYTHON_VERSION: "3.8"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "72"
+      NEW_FLAKE8: 1
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+    - PYTHON: "C:\\Python39-x64"
+      PYTHON_VERSION: "3.9"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "72"
+      NEW_FLAKE8: 1
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
 
 build: off
 
 for:
-  -
-    matrix:
+  - matrix:
       only:
-        - image: Visual Studio 2017
+        - image: Visual Studio 2019
+
+    environment:
+      GOPATH: c:\gopath
 
     install:
-    # To run Nodejs workflow integ tests
-    - ps: Install-Product node 8.10
+      # To run Nodejs workflow integ tests
+      - ps: Install-Product node $env:nodejs_version
 
-    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
-    - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
-    - "%PYTHON%\\python.exe -m pip install -e ."
-    - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
-    - "gem --version"
-    - "gem install bundler -v 1.17.3"
-    - "bundler --version"
-    - "echo %PATH%"
+      - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+      - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
+      - "%PYTHON%\\python.exe -m pip install -e ."
+      - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
+      - "gem --version"
+      - "gem install bundler -v 1.17.3"
+      - "bundler --version"
+      - "echo %PATH%"
 
-    # setup go
-    - rmdir c:\go /s /q
-    - "choco install golang"
-    - "choco install bzr"
-    - "choco install dep"
-    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
-    - "go version"
-    - "go env"
+      # setup go
+      - rmdir c:\go /s /q
+      - "choco install golang --version 1.15.7"
+      - "choco install bzr"
+      - "choco install dep"
+      - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+      - "go version"
+      # set set GO111MODULE to auto to enable module-aware mode only when a go.mod file is present in the current directory or any parent directory
+      # https://blog.golang.org/go116-module-changes#TOC_2.
+      # This is required for the go dep integration tests
+      - "go env -w GO111MODULE=auto"
+      - "go env"
 
-    # setup Gradle
-    - "choco install gradle"
+      # setup Gradle
+      - "choco install gradle"
 
-    # setup make
-    - "choco install make"
+      # setup make
+      - "choco install make"
+      
+      # setup rust
+      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      - set RUST_BACKTRACE=1
+      - rustup target add x86_64-unknown-linux-musl --toolchain stable
+      - rustc -V
+      - cargo -V
 
-    # setup rust
-    - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-    - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
-    - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-    - set RUST_BACKTRACE=1
-    - rustup target add x86_64-unknown-linux-musl --toolchain stable
-    - rustc -V
-    - cargo -V
-
-    # Echo final Path
-    - "echo %PATH%"
+      # Echo final Path
+      - "echo %PATH%"
 
     test_script:
-    - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
-    - "%PYTHON%\\python.exe -m pytest tests/integration"
+      - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
+      - "%PYTHON%\\python.exe -m pytest tests/integration"
 
-  -
-    matrix:
+  - matrix:
       only:
         - image: Ubuntu
 
@@ -100,7 +102,7 @@ for:
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
       - sh: "nvm install ${nodejs_version}"
-      - sh: "npm install npm@5.6.0 -g"
+      - sh: "npm install npm@7.24.2 -g"
       - sh: "npm -v"
       - sh: "echo $PATH"
       - sh: "java --version"
@@ -120,14 +122,14 @@ for:
       - sh: "rustc -V"
       - sh: "cargo -V"
 
-      # Install black
-      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
-      - sh: "chmod +x /tmp/black"
-      - sh: "/tmp/black --version"
+      # set set GO111MODULE to auto to enable module-aware mode only when a go.mod file is present in the current directory or any parent directory
+      # https://blog.golang.org/go116-module-changes#TOC_2.
+      # This is required for the go dep integration tests
+      - sh: "go env -w GO111MODULE=auto"
 
     build_script:
-      - "python -c \"import sys; print(sys.executable)\""
-      - "LAMBDA_BUILDERS_DEV=1 pip install -e \".[dev]\""
+      - 'python -c "import sys; print(sys.executable)"'
+      - 'LAMBDA_BUILDERS_DEV=1 pip install -e ".[dev]"'
 
     test_script:
       - "LAMBDA_BUILDERS_DEV=1 pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under ${LINE_COVERAGE} tests/unit tests/functional"
@@ -136,5 +138,5 @@ for:
       # Runs only in Linux
       - "LAMBDA_BUILDERS_DEV=1 pytest -vv tests/integration"
 
-      # Validate Code was formatted with Black
-      - "/tmp/black --check setup.py tests aws_lambda_builders"
+      # Validate Code was formatted with Black, black is only supported in Python 3
+      - if [[ $PYTHON_VERSION = "3"* ]]; then black --check setup.py tests aws_lambda_builders; fi

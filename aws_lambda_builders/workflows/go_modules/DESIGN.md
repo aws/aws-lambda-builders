@@ -31,7 +31,13 @@ def build(self, source_dir_path, artifacts_dir_path, executable_name):
 The general algorithm for preparing a Go package for use on AWS Lambda
 is very simple. It's as follows:
 
-Pass in GOOS=linux and GOARCH=amd64 to the `go build` command to target the
+Depending on the architecture pass in either:
+ 
+ - `GOOS=linux and GOARCH=arm64` for ARM architecture or
+
+ - `GOOS=linux and GOARCH=amd64` for an X86 architecture
+
+to the `go build` command to target the
 OS and architecture used on AWS Lambda. Let go tooling handle the
 cross-compilation, regardless of the build environment. Move the resulting
 static binary to the artifacts folder to be shipped as a single-file zip

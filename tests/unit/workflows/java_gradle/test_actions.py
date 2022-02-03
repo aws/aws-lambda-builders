@@ -1,17 +1,19 @@
 from unittest import TestCase
-from mock import patch
+from mock import patch, call
 import os
 
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.workflows.java.utils import jar_file_filter
 from aws_lambda_builders.workflows.java_gradle.actions import (
     JavaGradleBuildAction,
     JavaGradleCopyArtifactsAction,
     GradleExecutionError,
+    JavaGradleCopyLayerArtifactsAction,
 )
 
 
 class TestJavaGradleBuildAction(TestCase):
-    @patch("aws_lambda_builders.workflows.java_gradle.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.java_gradle.gradle.SubprocessGradle")
     def setUp(self, MockSubprocessGradle, MockOSUtils):
         self.subprocess_gradle = MockSubprocessGradle.return_value
@@ -42,7 +44,7 @@ class TestJavaGradleBuildAction(TestCase):
         )
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "Copy failed!")
+        self.assertEqual(raised.exception.args[0], "Copy failed!")
 
     def test_error_building_project_raises_action_error(self):
         self.subprocess_gradle.build.side_effect = GradleExecutionError(message="Build failed!")
@@ -51,19 +53,19 @@ class TestJavaGradleBuildAction(TestCase):
         )
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "Gradle Failed: Build failed!")
+        self.assertEqual(raised.exception.args[0], "Gradle Failed: Build failed!")
 
     def test_computes_correct_cache_dir(self):
         action = JavaGradleBuildAction(
             self.source_dir, self.manifest_path, self.subprocess_gradle, self.scratch_dir, self.os_utils
         )
-        self.assertEquals(
+        self.assertEqual(
             action.gradle_cache_dir, os.path.join(self.scratch_dir, JavaGradleBuildAction.GRADLE_CACHE_DIR_NAME)
         )
 
 
 class TestJavaGradleCopyArtifactsAction(TestCase):
-    @patch("aws_lambda_builders.workflows.java_gradle.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.os_utils.copy.side_effect = lambda src, dst: dst
@@ -88,4 +90,25 @@ class TestJavaGradleCopyArtifactsAction(TestCase):
         action = JavaGradleCopyArtifactsAction(self.source_dir, self.artifacts_dir, self.build_dir, self.os_utils)
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
-        self.assertEquals(raised.exception.args[0], "scandir failed!")
+        self.assertEqual(raised.exception.args[0], "scandir failed!")
+
+
+class TestJavaGradleCopyLayerArtifactsAction(TestJavaGradleCopyArtifactsAction):
+    def test_copies_artifacts(self):
+        action = JavaGradleCopyLayerArtifactsAction(self.source_dir, self.artifacts_dir, self.build_dir, self.os_utils)
+        action.execute()
+
+        self.os_utils.copytree.assert_has_calls(
+            [
+                call(
+                    os.path.join(self.build_dir, "build", "libs"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    include=jar_file_filter,
+                ),
+                call(
+                    os.path.join(self.build_dir, "build", "distributions", "lambda-build", "lib"),
+                    os.path.join(self.artifacts_dir, "lib"),
+                    include=jar_file_filter,
+                ),
+            ]
+        )

@@ -13,7 +13,13 @@ from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
-from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowUnknownError, MisMatchRuntimeError
+from aws_lambda_builders.exceptions import (
+    WorkflowFailedError,
+    WorkflowUnknownError,
+    MisMatchRuntimeError,
+    UnsupportedRuntimeError,
+    UnsupportedArchitectureError,
+)
 from aws_lambda_builders.actions import ActionFailedError
 
 
@@ -36,8 +42,8 @@ class TestRegisteringWorkflows(TestCase):
             CAPABILITY = self.CAPABILITY1
 
         result_cls = get_workflow(self.CAPABILITY1)
-        self.assertEquals(len(DEFAULT_REGISTRY), 1)
-        self.assertEquals(result_cls, TestWorkflow)
+        self.assertEqual(len(DEFAULT_REGISTRY), 1)
+        self.assertEqual(result_cls, TestWorkflow)
 
     def test_must_register_two_workflows(self):
         class TestWorkflow1(BaseWorkflow):
@@ -48,9 +54,9 @@ class TestRegisteringWorkflows(TestCase):
             NAME = "TestWorkflow2"
             CAPABILITY = self.CAPABILITY2
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 2)
-        self.assertEquals(get_workflow(self.CAPABILITY1), TestWorkflow1)
-        self.assertEquals(get_workflow(self.CAPABILITY2), TestWorkflow2)
+        self.assertEqual(len(DEFAULT_REGISTRY), 2)
+        self.assertEqual(get_workflow(self.CAPABILITY1), TestWorkflow1)
+        self.assertEqual(get_workflow(self.CAPABILITY2), TestWorkflow2)
 
     def test_must_fail_if_name_not_present(self):
 
@@ -59,8 +65,8 @@ class TestRegisteringWorkflows(TestCase):
             class TestWorkflow1(BaseWorkflow):
                 CAPABILITY = self.CAPABILITY1
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 0)
-        self.assertEquals(str(ctx.exception), "Workflow must provide a valid name")
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
+        self.assertEqual(str(ctx.exception), "Workflow must provide a valid name")
 
     def test_must_fail_if_capabilities_not_present(self):
 
@@ -69,8 +75,8 @@ class TestRegisteringWorkflows(TestCase):
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 0)
-        self.assertEquals(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
+        self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
 
     def test_must_fail_if_capabilities_is_wrong_type(self):
 
@@ -80,8 +86,8 @@ class TestRegisteringWorkflows(TestCase):
                 NAME = "somename"
                 CAPABILITY = "wrong data type"
 
-        self.assertEquals(len(DEFAULT_REGISTRY), 0)
-        self.assertEquals(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
+        self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
 
 
 class TestBaseWorkflow_init(TestCase):
@@ -104,14 +110,15 @@ class TestBaseWorkflow_init(TestCase):
             options={"c": "d"},
         )
 
-        self.assertEquals(self.work.source_dir, "source_dir")
-        self.assertEquals(self.work.artifacts_dir, "artifacts_dir")
-        self.assertEquals(self.work.scratch_dir, "scratch_dir")
-        self.assertEquals(self.work.manifest_path, "manifest_path")
-        self.assertEquals(self.work.runtime, "runtime")
-        self.assertEquals(self.work.executable_search_paths, [str(sys.executable)])
-        self.assertEquals(self.work.optimizations, {"a": "b"})
-        self.assertEquals(self.work.options, {"c": "d"})
+        self.assertEqual(self.work.source_dir, "source_dir")
+        self.assertEqual(self.work.artifacts_dir, "artifacts_dir")
+        self.assertEqual(self.work.scratch_dir, "scratch_dir")
+        self.assertEqual(self.work.manifest_path, "manifest_path")
+        self.assertEqual(self.work.runtime, "runtime")
+        self.assertEqual(self.work.executable_search_paths, [str(sys.executable)])
+        self.assertEqual(self.work.optimizations, {"a": "b"})
+        self.assertEqual(self.work.options, {"c": "d"})
+        self.assertEqual(self.work.architecture, "x86_64")
 
 
 class TestBaseWorkflow_is_supported(TestCase):
@@ -132,6 +139,7 @@ class TestBaseWorkflow_is_supported(TestCase):
             executable_search_paths=[],
             optimizations={"a": "b"},
             options={"c": "d"},
+            architecture="arm64",
         )
 
     def test_must_ignore_manifest_if_not_provided(self):
@@ -149,6 +157,9 @@ class TestBaseWorkflow_is_supported(TestCase):
         self.work.SUPPORTED_MANIFESTS = ["manifest.json", "someother_manifest"]
 
         self.assertTrue(self.work.is_supported())
+
+    def test_must_match_architecture_type(self):
+        self.assertEqual(self.work.architecture, "arm64")
 
     def test_must_fail_if_manifest_not_in_list(self):
         self.work.SUPPORTED_MANIFESTS = ["someother_manifest"]
@@ -176,6 +187,21 @@ class TestBaseWorkflow_run(TestCase):
             options={"c": "d"},
         )
 
+    def mock_binaries(self):
+        self.validator_mock = Mock()
+        self.validator_mock.validate = Mock()
+        self.validator_mock.validate.return_value = "/usr/bin/binary"
+        self.resolver_mock = Mock()
+        self.resolver_mock.exec_paths = ["/usr/bin/binary"]
+        self.binaries_mock = Mock()
+        self.binaries_mock.return_value = []
+
+        self.work.get_validators = lambda: self.validator_mock
+        self.work.get_resolvers = lambda: self.resolver_mock
+        self.work.binaries = {
+            "binary": BinaryPath(resolver=self.resolver_mock, validator=self.validator_mock, binary="binary")
+        }
+
     def test_get_binaries(self):
         self.assertIsNotNone(self.work.binaries)
         for binary, binary_path in self.work.binaries.items():
@@ -187,63 +213,39 @@ class TestBaseWorkflow_run(TestCase):
             self.assertTrue(isinstance(validator, RuntimeValidator))
 
     def test_must_execute_actions_in_sequence(self):
+        self.mock_binaries()
         action_mock = Mock()
-        validator_mock = Mock()
-        validator_mock.validate = Mock()
-        validator_mock.validate.return_value = "/usr/bin/binary"
-        resolver_mock = Mock()
-        resolver_mock.exec_paths = ["/usr/bin/binary"]
-        binaries_mock = Mock()
-        binaries_mock.return_value = []
-
-        self.work.get_validators = lambda: validator_mock
-        self.work.get_resolvers = lambda: resolver_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         self.work.run()
 
-        self.assertEquals(
+        self.assertEqual(
             action_mock.method_calls, [call.action1.execute(), call.action2.execute(), call.action3.execute()]
         )
-        self.assertTrue(validator_mock.validate.call_count, 1)
+        self.assertTrue(self.validator_mock.validate.call_count, 1)
 
     def test_must_fail_workflow_binary_resolution_failure(self):
+        self.mock_binaries()
         action_mock = Mock()
-        validator_mock = Mock()
-        validator_mock.validate = Mock()
-        validator_mock.validate.return_value = None
-        resolver_mock = Mock()
-        resolver_mock.exec_paths = MagicMock(side_effect=ValueError("Binary could not be resolved"))
-        binaries_mock = Mock()
-        binaries_mock.return_value = []
+        self.resolver_mock.exec_paths = MagicMock(side_effect=ValueError("Binary could not be resolved"))
 
-        self.work.get_validators = lambda: validator_mock
-        self.work.get_resolvers = lambda: resolver_mock
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         with self.assertRaises(WorkflowFailedError) as ex:
             self.work.run()
 
     def test_must_fail_workflow_binary_validation_failure(self):
-        action_mock = Mock()
-        validator_mock = Mock()
-        validator_mock.validate = Mock()
-        validator_mock.validate = MagicMock(
+        self.mock_binaries()
+        self.validator_mock.validate = MagicMock(
             side_effect=MisMatchRuntimeError(language="test", required_runtime="test1", runtime_path="/usr/bin/binary")
         )
-        resolver_mock = Mock()
-        resolver_mock.exec_paths = ["/usr/bin/binary"]
-        binaries_mock = Mock()
-        binaries_mock.return_value = []
 
-        self.work.get_validators = lambda: validator_mock
-        self.work.get_resolvers = lambda: resolver_mock
+        action_mock = Mock()
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
-        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
         with self.assertRaises(WorkflowFailedError) as ex:
             self.work.run()
 
     def test_must_raise_with_no_actions(self):
+        self.mock_binaries()
+
         self.work.actions = []
 
         with self.assertRaises(WorkflowFailedError) as ctx:
@@ -252,6 +254,7 @@ class TestBaseWorkflow_run(TestCase):
         self.assertIn("Workflow does not have any actions registered", str(ctx.exception))
 
     def test_must_raise_if_action_failed(self):
+        self.mock_binaries()
         action_mock = Mock()
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
 
@@ -264,6 +267,7 @@ class TestBaseWorkflow_run(TestCase):
         self.assertIn("testfailure", str(ctx.exception))
 
     def test_must_raise_if_action_crashed(self):
+        self.mock_binaries()
         action_mock = Mock()
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
 
@@ -276,7 +280,7 @@ class TestBaseWorkflow_run(TestCase):
         self.assertIn("somevalueerror", str(ctx.exception))
 
     def test_supply_executable_path(self):
-        # Run workflow with supplied executable path to search for executables.
+        # Run workflow with supplied executable path to search for executables
         action_mock = Mock()
 
         self.work = self.MyWorkflow(
@@ -290,7 +294,62 @@ class TestBaseWorkflow_run(TestCase):
             options={"c": "d"},
         )
         self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.mock_binaries()
+
         self.work.run()
+
+    def test_must_raise_for_unknown_runtime(self):
+        action_mock = Mock()
+        validator_mock = Mock()
+        validator_mock.validate = Mock()
+        validator_mock.validate = MagicMock(side_effect=UnsupportedRuntimeError(runtime="runtime"))
+
+        resolver_mock = Mock()
+        resolver_mock.exec_paths = ["/usr/bin/binary"]
+        binaries_mock = Mock()
+        binaries_mock.return_value = []
+
+        self.work.get_validators = lambda: validator_mock
+        self.work.get_resolvers = lambda: resolver_mock
+        self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
+        with self.assertRaises(WorkflowFailedError) as ex:
+            self.work.run()
+
+        self.assertIn("Runtime runtime is not supported", str(ex.exception))
+
+    def test_must_raise_for_incompatible_runtime_and_architecture(self):
+        self.work = self.MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="python2.7",
+            executable_search_paths=[str(pathlib.Path(os.getcwd()).parent)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
+        action_mock = Mock()
+        validator_mock = Mock()
+        validator_mock.validate = Mock()
+        validator_mock.validate = MagicMock(
+            side_effect=UnsupportedArchitectureError(runtime="python2.7", architecture="arm64")
+        )
+
+        resolver_mock = Mock()
+        resolver_mock.exec_paths = ["/usr/bin/binary"]
+        binaries_mock = Mock()
+        binaries_mock.return_value = []
+
+        self.work.architecture = "arm64"
+        self.work.get_validators = lambda: validator_mock
+        self.work.get_resolvers = lambda: resolver_mock
+        self.work.actions = [action_mock.action1, action_mock.action2, action_mock.action3]
+        self.work.binaries = {"binary": BinaryPath(resolver=resolver_mock, validator=validator_mock, binary="binary")}
+        with self.assertRaises(WorkflowFailedError) as ex:
+            self.work.run()
+
+        self.assertIn("Architecture arm64 is not supported for runtime python2.7", str(ex.exception))
 
 
 class TestBaseWorkflow_repr(TestCase):
@@ -334,4 +393,4 @@ Actions=
 \tName=Action2, Purpose=RESOLVE_DEPENDENCIES, Description=Resolves dependencies
 \tName=Action3, Purpose=COMPILE_SOURCE, Description=Compiles code"""
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)

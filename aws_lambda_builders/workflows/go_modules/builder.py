@@ -4,6 +4,8 @@ Build a Go project using standard Go tooling
 import logging
 
 from aws_lambda_builders.workflow import BuildMode
+from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.utils import get_goarch
 
 LOG = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ class GoModulesBuilder(object):
 
     LANGUAGE = "go"
 
-    def __init__(self, osutils, binaries, mode=BuildMode.RELEASE):
+    def __init__(self, osutils, binaries, mode=BuildMode.RELEASE, architecture=X86_64):
         """Initialize a GoModulesBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -28,10 +30,14 @@ class GoModulesBuilder(object):
 
         :type binaries: dict
         :param binaries: A dict of language binaries
+
+        :type architecture: str
+        :param architecture: name of the type of architecture
         """
         self.osutils = osutils
         self.binaries = binaries
         self.mode = mode
+        self.goarch = get_goarch(architecture)
 
     def build(self, source_dir_path, output_path):
         """Builds a go project onto an output path.
@@ -44,12 +50,12 @@ class GoModulesBuilder(object):
         """
         env = {}
         env.update(self.osutils.environ)
-        env.update({"GOOS": "linux", "GOARCH": "amd64"})
+        env.update({"GOOS": "linux", "GOARCH": self.goarch})
         runtime_path = self.binaries[self.LANGUAGE].binary_path
         cmd = [runtime_path, "build"]
         if self.mode and self.mode.lower() == BuildMode.DEBUG:
             LOG.debug("Debug build requested: Setting configuration to Debug")
-            cmd += ["-gcflags='all=-N -l'"]
+            cmd += ["-gcflags", "all=-N -l"]
         cmd += ["-o", output_path, source_dir_path]
 
         p = self.osutils.popen(cmd, cwd=source_dir_path, env=env, stdout=self.osutils.pipe, stderr=self.osutils.pipe)

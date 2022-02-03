@@ -12,3 +12,4 @@ import aws_lambda_builders.workflows.java_maven
 import aws_lambda_builders.workflows.dotnet_clipackage
 import aws_lambda_builders.workflows.custom_make
 import aws_lambda_builders.workflows.rust_cargo
+import aws_lambda_builders.workflows.nodejs_npm_esbuild

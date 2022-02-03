@@ -3,6 +3,11 @@ from mock import patch
 
 from aws_lambda_builders.workflows.ruby_bundler.bundler import SubprocessBundler, BundlerExecutionError
 
+import mock
+import logging
+
+logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.bundler")
+
 
 class FakePopen:
     def __init__(self, out=b"out", err=b"err", retcode=0):
@@ -56,9 +61,22 @@ class TestSubprocessBundler(TestCase):
         result = self.under_test.run(["install", "--without", "development", "test"])
         self.assertEqual(result, "some encoded text")
 
+    def test_logs_warning_when_gemfile_missing(self):
+        self.popen.returncode = 10
+        with mock.patch.object(logger, "warning") as mock_warning:
+            self.under_test.run(["install", "--without", "development", "test"])
+        mock_warning.assert_called_once_with("Gemfile not found. Continuing the build without dependencies.")
+
+    def test_bundle_file_removed_if_generated(self):
+        self.popen.returncode = 10
+        self.osutils.directory_exists.return_value = True
+        self.under_test.run(["install", "--without", "development", "test"])
+        self.osutils.get_bundle_dir.assert_called_once()
+        self.osutils.remove_directory.assert_called_once()
+
     def test_raises_BundlerExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
-        self.popen.err = b"some error text\n\n"
+        self.popen.out = b"some error text\n\n"
         with self.assertRaises(BundlerExecutionError) as raised:
             self.under_test.run(["install", "--without", "development", "test"])
         self.assertEqual(raised.exception.args[0], "Bundler Failed: some error text")

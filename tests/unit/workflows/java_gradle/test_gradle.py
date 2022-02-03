@@ -25,7 +25,7 @@ class FakePopen:
 
 
 class TestSubprocessGradle(TestCase):
-    @patch("aws_lambda_builders.workflows.java_gradle.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.os_utils.exists.side_effect = lambda d: True
@@ -40,19 +40,19 @@ class TestSubprocessGradle(TestCase):
     def test_no_os_utils_build_init_throws(self):
         with self.assertRaises(ValueError) as err_assert:
             SubprocessGradle(gradle_binary=self.gradle_binary)
-        self.assertEquals(err_assert.exception.args[0], "Must provide OSUtils")
+        self.assertEqual(err_assert.exception.args[0], "Must provide OSUtils")
 
     def test_no_gradle_exec_init_throws(self):
         with self.assertRaises(ValueError) as err_assert:
             SubprocessGradle(None)
-        self.assertEquals(err_assert.exception.args[0], "Must provide Gradle BinaryPath")
+        self.assertEqual(err_assert.exception.args[0], "Must provide Gradle BinaryPath")
 
     def test_no_build_file_throws(self):
         self.os_utils.exists.side_effect = lambda d: False
         gradle = SubprocessGradle(gradle_binary=self.gradle_binary, os_utils=self.os_utils)
         with self.assertRaises(BuildFileNotFoundError) as raised:
             gradle.build(self.source_dir, self.manifest_path)
-        self.assertEquals(
+        self.assertEqual(
             raised.exception.args[0], "Gradle Failed: Gradle build file not found: %s" % self.manifest_path
         )
 
@@ -92,7 +92,7 @@ class TestSubprocessGradle(TestCase):
         gradle = SubprocessGradle(gradle_binary=self.gradle_binary, os_utils=self.os_utils)
         with self.assertRaises(GradleExecutionError) as err:
             gradle.build(self.source_dir, self.manifest_path)
-        self.assertEquals(err.exception.args[0], "Gradle Failed: Some Error Message")
+        self.assertEqual(err.exception.args[0], "Gradle Failed: Some Error Message")
 
     def test_includes_build_properties_in_command(self):
         gradle = SubprocessGradle(gradle_binary=self.gradle_binary, os_utils=self.os_utils)

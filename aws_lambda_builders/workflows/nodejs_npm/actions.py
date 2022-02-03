@@ -80,6 +80,57 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
+    def __init__(self, artifacts_dir, subprocess_npm, is_production=True):
+        """
+        :type artifacts_dir: str
+        :param artifacts_dir: an existing (writable) directory with project source files.
+            Dependencies will be installed in this directory.
+
+        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+        :param subprocess_npm: An instance of the NPM process wrapper
+
+        :type is_production: bool
+        :param is_production: NPM installation mode is production (eg --production=false to force dev dependencies)
+        """
+
+        super(NodejsNpmInstallAction, self).__init__()
+        self.artifacts_dir = artifacts_dir
+        self.subprocess_npm = subprocess_npm
+        self.is_production = is_production
+
+    def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
+        """
+
+        mode = "--production" if self.is_production else "--production=false"
+
+        try:
+            LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
+
+            self.subprocess_npm.run(
+                ["install", "-q", "--no-audit", "--no-save", mode, "--unsafe-perm"], cwd=self.artifacts_dir
+            )
+
+        except NpmExecutionError as ex:
+            raise ActionFailedError(str(ex))
+
+
+class NodejsNpmCIAction(BaseAction):
+
+    """
+    A Lambda Builder Action that installs NPM project dependencies
+    using the CI method - which is faster and better reproducible
+    for CI environments, but requires a lockfile (package-lock.json
+    or npm-shrinkwrap.json)
+    """
+
+    NAME = "NpmCI"
+    DESCRIPTION = "Installing dependencies from NPM using the CI method"
+    PURPOSE = Purpose.RESOLVE_DEPENDENCIES
+
     def __init__(self, artifacts_dir, subprocess_npm):
         """
         :type artifacts_dir: str
@@ -90,7 +141,7 @@ class NodejsNpmInstallAction(BaseAction):
         :param subprocess_npm: An instance of the NPM process wrapper
         """
 
-        super(NodejsNpmInstallAction, self).__init__()
+        super(NodejsNpmCIAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.subprocess_npm = subprocess_npm
 
@@ -102,11 +153,9 @@ class NodejsNpmInstallAction(BaseAction):
         """
 
         try:
-            LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
+            LOG.debug("NODEJS installing ci in: %s", self.artifacts_dir)
 
-            self.subprocess_npm.run(
-                ["install", "-q", "--no-audit", "--no-save", "--production", "--unsafe-perm"], cwd=self.artifacts_dir
-            )
+            self.subprocess_npm.run(["ci"], cwd=self.artifacts_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
@@ -185,13 +234,54 @@ class NodejsNpmrcCleanUpAction(BaseAction):
         """
         Runs the action.
 
-        :raises lambda_builders.actions.ActionFailedError: when .npmrc copying fails
+        :raises lambda_builders.actions.ActionFailedError: when deleting .npmrc fails
         """
 
         try:
             npmrc_path = self.osutils.joinpath(self.artifacts_dir, ".npmrc")
             if self.osutils.file_exists(npmrc_path):
                 LOG.debug(".npmrc cleanup in: %s", self.artifacts_dir)
+                self.osutils.remove_file(npmrc_path)
+
+        except OSError as ex:
+            raise ActionFailedError(str(ex))
+
+
+class NodejsNpmLockFileCleanUpAction(BaseAction):
+
+    """
+    A Lambda Builder Action that cleans up garbage lockfile left by 7 in node_modules
+    """
+
+    NAME = "LockfileCleanUp"
+    DESCRIPTION = "Cleans garbage lockfiles dir"
+    PURPOSE = Purpose.COPY_SOURCE
+
+    def __init__(self, artifacts_dir, osutils):
+        """
+        :type artifacts_dir: str
+        :param artifacts_dir: an existing (writable) directory with project source files.
+            Dependencies will be installed in this directory.
+
+        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :param osutils: An instance of OS Utilities for file manipulation
+        """
+
+        super(NodejsNpmLockFileCleanUpAction, self).__init__()
+        self.artifacts_dir = artifacts_dir
+        self.osutils = osutils
+
+    def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when deleting the lockfile fails
+        """
+
+        try:
+            npmrc_path = self.osutils.joinpath(self.artifacts_dir, "node_modules", ".package-lock.json")
+            if self.osutils.file_exists(npmrc_path):
+                LOG.debug(".package-lock cleanup in: %s", self.artifacts_dir)
                 self.osutils.remove_file(npmrc_path)
 
         except OSError as ex:

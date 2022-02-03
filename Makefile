@@ -4,7 +4,7 @@ init:
 test:
 	# Run unit and functional tests
 	# Fail if coverage falls below 94%
-	LAMBDA_BUILDERS_DEV=1 pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under 94 tests/unit tests/functional
+	LAMBDA_BUILDERS_DEV=1 pytest -vv --cov aws_lambda_builders --cov-report term-missing --cov-fail-under 94 tests/unit tests/functional
 
 unit-test:
 	LAMBDA_BUILDERS_DEV=1 pytest tests/unit

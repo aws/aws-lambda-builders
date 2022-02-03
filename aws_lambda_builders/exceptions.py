@@ -24,6 +24,30 @@ class MisMatchRuntimeError(LambdaBuilderError):
     )
 
 
+class RuntimeValidatorError(LambdaBuilderError):
+    """
+    Raise when runtime is not supported or when runtime is not compatible with architecture
+    """
+
+    MESSAGE = "Runtime validation error for {runtime}"
+
+
+class UnsupportedRuntimeError(RuntimeValidatorError):
+    """
+    Raise when runtime is not supported
+    """
+
+    MESSAGE = "Runtime {runtime} is not supported"
+
+
+class UnsupportedArchitectureError(RuntimeValidatorError):
+    """
+    Raise when runtime does not support architecture
+    """
+
+    MESSAGE = "Architecture {architecture} is not supported for runtime {runtime}"
+
+
 class WorkflowNotFoundError(LambdaBuilderError):
     """
     Raised when a workflow matching the given capabilities was not found
