@@ -133,7 +133,7 @@ class TestNodejsNpmWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("No matching version found for minimal-request-promise@0.0.0-NON_EXISTENT", str(ctx.exception))
+        self.assertIn("No matching version found for aws-sdk@2.997.999", str(ctx.exception))
 
     def test_fails_if_package_json_is_broken(self):
 

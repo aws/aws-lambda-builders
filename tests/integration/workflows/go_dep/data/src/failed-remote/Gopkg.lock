@@ -2,16 +2,77 @@
 
 
 [[projects]]
-  digest = "1:69b1cc331fca23d702bd72f860c6a647afd0aa9fcbc1d0659b1365e26546dd70"
-  name = "not-really-a-git-repo.com/pkg/log"
-  packages = ["."]
+  digest = "1:e49c533579c1f736baa81f294d2c8e1cf911b47ee2611a0b7ee1b84b32ff2acc"
+  name = "github.com/aws/aws-sdk-go-v2"
+  packages = [
+    ".",
+    "aws",
+    "aws/defaults",
+    "aws/middleware",
+    "aws/protocol/query",
+    "aws/protocol/restjson",
+    "aws/protocol/xml",
+    "aws/ratelimit",
+    "aws/retry",
+    "aws/signer/internal/v4",
+    "aws/signer/v4",
+    "aws/transport/http",
+    "config",
+    "credentials",
+    "credentials/ec2rolecreds",
+    "credentials/endpointcreds",
+    "credentials/endpointcreds/internal/client",
+    "credentials/processcreds",
+    "credentials/ssocreds",
+    "credentials/stscreds",
+    "feature/ec2/imds",
+    "feature/ec2/imds/internal/config",
+    "internal/configsources",
+    "internal/endpoints/v2",
+    "internal/ini",
+    "internal/rand",
+    "internal/sdk",
+    "internal/sdkio",
+    "internal/strings",
+    "internal/sync/singleflight",
+    "internal/timeconv",
+    "service/internal/presigned-url",
+    "service/sso",
+    "service/sso/internal/endpoints",
+    "service/sso/types",
+    "service/sts",
+    "service/sts/internal/endpoints",
+    "service/sts/types",
+  ]
   pruneopts = "UT"
-  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
-  version = "v1.0.0"
+  revision = "e10c0d2c8db721bd0e3b16070f3a74f6bc7171de"
+  version = "v1.13.0"
+
+[[projects]]
+  digest = "1:eecb561f241c16676e4afb9e35ea545b5bb815edd403713727e3b4920fa667dd"
+  name = "github.com/aws/smithy-go"
+  packages = [
+    ".",
+    "document",
+    "encoding",
+    "encoding/httpbinding",
+    "encoding/xml",
+    "io",
+    "logging",
+    "middleware",
+    "ptr",
+    "rand",
+    "time",
+    "transport/http",
+    "transport/http/internal/io",
+  ]
+  pruneopts = "UT"
+  revision = "7d70c9b6e1b77bb0d8df4e2e6d5e787cd76aedf6"
+  version = "v1.10.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["not-really-a-git-repo.com/pkg/log"]
+  input-imports = ["github.com/aws/aws-sdk-go-v2/config"]
   solver-name = "gps-cdcl"
   solver-version = 1

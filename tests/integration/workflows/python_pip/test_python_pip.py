@@ -164,9 +164,9 @@ class TestPythonPipWorkflow(TestCase):
 
         # In Python2 a 'u' is now added to the exception string. To account for this, we see if either one is in the
         # output
-        message_in_exception = "Invalid requirement: 'adfasf=1.2.3'" in str(
+        message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(
             ctx.exception
-        ) or "Invalid requirement: u'adfasf=1.2.3'" in str(ctx.exception)
+        ) or "Invalid requirement: u'boto3=1.19.99'" in str(ctx.exception)
         self.assertTrue(message_in_exception)
 
     def test_must_log_warning_if_requirements_not_found(self):
