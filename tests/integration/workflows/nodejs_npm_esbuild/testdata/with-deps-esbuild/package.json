@@ -5,10 +5,6 @@
   "keywords": [],
   "author": "",
   "license": "APACHE2.0",
-  "aws_sam": {
-    "bundler": "esbuild",
-    "entry_points": ["included.js"]
-  },
   "dependencies": {
     "minimal-request-promise": "^1.5.0"
   },

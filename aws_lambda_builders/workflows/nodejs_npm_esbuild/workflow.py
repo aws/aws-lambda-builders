@@ -10,7 +10,6 @@ from aws_lambda_builders.actions import (
     CopySourceAction,
 )
 from aws_lambda_builders.utils import which
-from aws_lambda_builders.exceptions import WorkflowFailedError
 from .actions import (
     EsbuildBundleAction,
 )
@@ -27,8 +26,8 @@ LOG = logging.getLogger(__name__)
 class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
     """
-    A Lambda builder workflow that knows how to pack
-    NodeJS projects using NPM.
+    A Lambda builder workflow that uses esbuild to bundle Node.js and transpile TS
+    NodeJS projects using NPM with esbuild.
     """
 
     NAME = "NodejsNpmEsbuildBuilder"
@@ -48,26 +47,34 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
-        if not osutils.file_exists(manifest_path):
-            LOG.warning("package.json file not found. Continuing the build without dependencies.")
-            self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
-            return
-
         subprocess_npm = SubprocessNpm(osutils)
+        subprocess_esbuild = self._get_esbuild_subprocess(subprocess_npm, scratch_dir, osutils)
 
-        manifest_config = self.get_manifest_config(osutils, manifest_path)
+        bundler_config = self.get_build_properties()
+
+        if not osutils.file_exists(manifest_path):
+            LOG.warning("package.json file not found. Bundling source without dependencies.")
+            self.actions = [EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)]
+            return
 
         if not is_experimental_esbuild_scope(self.experimental_flags):
             raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
 
-        self.actions = self.actions_with_bundler(source_dir, artifacts_dir, manifest_config, osutils, subprocess_npm)
+        self.actions = self.actions_with_bundler(
+            source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
+        )
 
-    def actions_with_bundler(self, source_dir, artifacts_dir, bundler_config, osutils, subprocess_npm):
+    def actions_with_bundler(
+        self, source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
+    ):
         """
         Generate a list of Nodejs build actions with a bundler
 
         :type source_dir: str
         :param source_dir: an existing (readable) directory containing source files
+
+        :type scratch_dir: str
+        :param scratch_dir: an existing (writable) directory for temporary files
 
         :type artifacts_dir: str
         :param artifacts_dir: an existing (writable) directory where to store the output.
@@ -81,50 +88,46 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
 
+        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
+        :param subprocess_esbuild: An instance of the esbuild process wrapper
+
         :rtype: list
         :return: List of build actions to execute
         """
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
-        npm_bin_path = subprocess_npm.run(["bin"], cwd=source_dir)
-        executable_search_paths = [npm_bin_path]
-        if self.executable_search_paths is not None:
-            executable_search_paths = executable_search_paths + self.executable_search_paths
-        subprocess_esbuild = SubprocessEsbuild(osutils, executable_search_paths, which=which)
+
+        copy_action = CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES)
 
         if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
-            install_action = NodejsNpmCIAction(source_dir, subprocess_npm=subprocess_npm)
+            install_action = NodejsNpmCIAction(scratch_dir, subprocess_npm=subprocess_npm)
         else:
-            install_action = NodejsNpmInstallAction(source_dir, subprocess_npm=subprocess_npm, is_production=False)
+            install_action = NodejsNpmInstallAction(scratch_dir, subprocess_npm=subprocess_npm, is_production=False)
 
-        esbuild_action = EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-        return [install_action, esbuild_action]
+        esbuild_action = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+        return [copy_action, install_action, esbuild_action]
 
-    def get_manifest_config(self, osutils, manifest_path):
+    def get_build_properties(self):
         """
         Get the aws_sam specific properties from the manifest, if they exist.
-
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
-
-        :type manifest_path: str
-        :param manifest_path: Path to the manifest file
 
         :rtype: dict
         :return: Dict with aws_sam specific bundler configs
         """
-        LOG.debug("NODEJS reading manifest from %s", manifest_path)
-        try:
-            manifest = osutils.parse_json(manifest_path)
-            if self.CONFIG_PROPERTY in manifest and isinstance(manifest[self.CONFIG_PROPERTY], dict):
-                return manifest[self.CONFIG_PROPERTY]
-            else:
-                return {"bundler": ""}
-        except (OSError, json.decoder.JSONDecodeError) as ex:
-            raise WorkflowFailedError(workflow_name=self.NAME, action_name="ParseManifest", reason=str(ex))
+        if self.options and isinstance(self.options, dict):
+            LOG.debug("Lambda Builders found the following esbuild properties:\n%s", json.dumps(self.options))
+            return self.options
+        return {}
 
     def get_resolvers(self):
         """
         specialized path resolver that just returns the list of executable for the runtime on the path.
         """
         return [PathResolver(runtime=self.runtime, binary="npm")]
+
+    def _get_esbuild_subprocess(self, subprocess_npm, scratch_dir, osutils) -> SubprocessEsbuild:
+        npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
+        executable_search_paths = [npm_bin_path]
+        if self.executable_search_paths is not None:
+            executable_search_paths = executable_search_paths + self.executable_search_paths
+        return SubprocessEsbuild(osutils, executable_search_paths, which=which)

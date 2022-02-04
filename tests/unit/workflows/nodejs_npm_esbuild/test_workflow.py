@@ -1,6 +1,7 @@
 from unittest import TestCase
 from mock import patch, call
 
+from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAction, NodejsNpmCIAction
@@ -50,23 +51,13 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 2)
-        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
-        self.osutils.parse_json.assert_called_with("manifest")
+        self.assertEqual(len(workflow.actions), 3)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls(
             [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
         )
-
-    def test_workflow_fails_if_manifest_parsing_fails(self):
-
-        self.osutils.parse_json.side_effect = OSError("boom!")
-
-        with self.assertRaises(WorkflowFailedError) as raised:
-            NodejsNpmEsbuildWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
-
-        self.assertEqual(raised.exception.args[0], "NodejsNpmEsbuildBuilder:ParseManifest - boom!")
-        self.osutils.parse_json.assert_called_with("manifest")
 
     def test_sets_up_esbuild_search_path_from_npm_bin(self):
 
@@ -82,8 +73,8 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="source")
-        esbuild = workflow.actions[1].subprocess_esbuild
+        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
+        esbuild = workflow.actions[2].subprocess_esbuild
 
         self.assertIsInstance(esbuild, SubprocessEsbuild)
         self.assertEqual(esbuild.executable_search_paths, ["project/bin"])
@@ -103,8 +94,8 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="source")
-        esbuild = workflow.actions[1].subprocess_esbuild
+        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
+        esbuild = workflow.actions[2].subprocess_esbuild
         self.assertIsInstance(esbuild, SubprocessEsbuild)
         self.assertEqual(esbuild.executable_search_paths, ["project/bin", "other/bin"])
 
@@ -122,9 +113,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 2)
-        self.assertIsInstance(workflow.actions[0], NodejsNpmCIAction)
-        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 3)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls([call("source/package-lock.json")])
 
     def test_workflow_uses_npm_ci_if_shrinkwrap_exists(self):
@@ -141,9 +133,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 2)
-        self.assertIsInstance(workflow.actions[0], NodejsNpmCIAction)
-        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 3)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls(
             [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
         )
