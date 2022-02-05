@@ -9,12 +9,6 @@ environment:
   nodejs_version: "14.17.6"
 
   matrix:
-    - PYTHON: "C:\\Python36-x64"
-      PYTHON_VERSION: "3.6"
-      PYTHON_ARCH: "64"
-      LINE_COVERAGE: "91"
-      NEW_FLAKE8: 0
-      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
     - PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
@@ -29,6 +23,12 @@ environment:
       JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
     - PYTHON: "C:\\Python39-x64"
       PYTHON_VERSION: "3.9"
+      PYTHON_ARCH: "64"
+      LINE_COVERAGE: "72"
+      NEW_FLAKE8: 1
+      JAVA_HOME: "C:\\Program Files\\Java\\jdk11"
+    - PYTHON: "C:\\Python310-x64"
+      PYTHON_VERSION: "3.10"
       PYTHON_ARCH: "64"
       LINE_COVERAGE: "72"
       NEW_FLAKE8: 1
@@ -117,9 +117,7 @@ for:
     test_script:
       - "LAMBDA_BUILDERS_DEV=1 pytest --cov aws_lambda_builders --cov-report term-missing --cov-fail-under ${LINE_COVERAGE} tests/unit tests/functional"
       - "pylint --rcfile .pylintrc aws_lambda_builders"
+      - "black --check setup.py tests aws_lambda_builders"
 
       # Runs only in Linux
       - "LAMBDA_BUILDERS_DEV=1 pytest -vv tests/integration"
-
-      # Validate Code was formatted with Black, black is only supported in Python 3
-      - if [[ $PYTHON_VERSION = "3"* ]]; then black --check setup.py tests aws_lambda_builders; fi
