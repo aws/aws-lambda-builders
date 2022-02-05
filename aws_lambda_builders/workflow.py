@@ -6,7 +6,6 @@ import os
 import logging
 
 from collections import namedtuple
-import six
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.path_resolver import PathResolver
@@ -118,7 +117,7 @@ class _WorkflowMetaClass(type):
         # Validate class variables
 
         # All classes must provide a name
-        if not isinstance(cls.NAME, six.string_types):
+        if not isinstance(cls.NAME, str):
             raise ValueError("Workflow must provide a valid name")
 
         # All workflows must express their capabilities
@@ -131,7 +130,7 @@ class _WorkflowMetaClass(type):
         return cls
 
 
-class BaseWorkflow(six.with_metaclass(_WorkflowMetaClass, object)):
+class BaseWorkflow(metaclass=_WorkflowMetaClass):
     """
     Default implementation of the builder workflow. It provides several useful capabilities out-of-box that help
     minimize the scope of build actions.
