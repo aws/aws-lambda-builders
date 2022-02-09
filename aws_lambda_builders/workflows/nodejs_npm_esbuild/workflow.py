@@ -100,6 +100,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :return: List of build actions to execute
         """
         # pylint: disable=R0915
+        # pylint: disable=R0914
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
 
@@ -148,7 +149,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 else:
                     actions.append(esbuild_check_version)
                     actions.append(esbuild_skip_deps)
-                    actions.append(CopySourceAction(scratch_dir, artifacts_dir, excludes=excluded))
 
         return actions
 

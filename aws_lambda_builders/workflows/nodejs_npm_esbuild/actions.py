@@ -2,7 +2,7 @@
 Actions specific to the esbuild bundler
 """
 import logging
-import shutil
+from tempfile import NamedTemporaryFile
 
 from pathlib import Path
 
@@ -109,17 +109,14 @@ class EsbuildBundleAction(BaseAction):
             raise ActionFailedError(str(ex))
 
     def _run_external_esbuild_in_nodejs(self, script):
-        bundle_config_filename = "bundle-scratch.js"
-        args = [bundle_config_filename]
-        bundle_file = Path(self.scratch_dir, bundle_config_filename)
-
-        with open(bundle_file, "a") as file:
-            file.write(script)
-
-        try:
-            self.subprocess_nodejs.run(args, cwd=self.scratch_dir)
-        except EsbuildExecutionError as ex:
-            raise ActionFailedError(str(ex))
+        with NamedTemporaryFile(dir=self.scratch_dir) as tmp:
+            with open(tmp.name, "a") as file:
+                file.write(script)
+            args = [tmp.name]
+            try:
+                self.subprocess_nodejs.run(args, cwd=self.scratch_dir)
+            except EsbuildExecutionError as ex:
+                raise ActionFailedError(str(ex))
 
     @staticmethod
     def _get_node_esbuild_template(entry_points, target, out_dir, minify, sourcemap):
