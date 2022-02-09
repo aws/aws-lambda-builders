@@ -2,6 +2,8 @@
 Actions specific to the esbuild bundler
 """
 import logging
+import shutil
+
 from pathlib import Path
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
@@ -23,7 +25,16 @@ class EsbuildBundleAction(BaseAction):
 
     ENTRY_POINTS = "entry_points"
 
-    def __init__(self, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild):
+    def __init__(
+        self,
+        scratch_dir,
+        artifacts_dir,
+        bundler_config,
+        osutils,
+        subprocess_esbuild,
+        subprocess_nodejs=None,
+        skip_deps=False,
+    ):
         """
         :type scratch_dir: str
         :param scratch_dir: an existing (writable) directory for temporary files
@@ -44,6 +55,8 @@ class EsbuildBundleAction(BaseAction):
         self.bundler_config = bundler_config
         self.osutils = osutils
         self.subprocess_esbuild = subprocess_esbuild
+        self.skip_deps = skip_deps
+        self.subprocess_nodejs = subprocess_nodejs
 
     def execute(self):
         """
@@ -81,10 +94,59 @@ class EsbuildBundleAction(BaseAction):
             args.append("--sourcemap")
         args.append("--target={}".format(target))
         args.append("--outdir={}".format(self.artifacts_dir))
+
+        if self.skip_deps:
+            LOG.debug("Running custom esbuild using Node.js")
+            script = EsbuildBundleAction._get_node_esbuild_template(
+                explicit_entry_points, target, self.artifacts_dir, minify, sourcemap
+            )
+            self._run_external_esbuild_in_nodejs(script)
+            return
+
         try:
             self.subprocess_esbuild.run(args, cwd=self.scratch_dir)
         except EsbuildExecutionError as ex:
             raise ActionFailedError(str(ex))
+
+    def _run_external_esbuild_in_nodejs(self, script):
+        bundle_config_filename = "bundle-scratch.js"
+        args = [bundle_config_filename]
+        bundle_file = Path(self.scratch_dir, bundle_config_filename)
+
+        with open(bundle_file, "a") as file:
+            file.write(script)
+
+        try:
+            self.subprocess_nodejs.run(args, cwd=self.scratch_dir)
+        except EsbuildExecutionError as ex:
+            raise ActionFailedError(str(ex))
+
+    @staticmethod
+    def _get_node_esbuild_template(entry_points, target, out_dir, minify, sourcemap):
+        # pylint: disable=W1401
+        minify_node = "true" if minify else "false"
+        sourcemap_node = "true" if sourcemap else "false"
+        return f"""
+                let skipBundleNodeModules = {{
+                  name: 'make-all-packages-external',
+                  setup(build) {{
+                    let filter = /^[^.\/]|^\.[^.\/]|^\.\.[^\/]/ // Must not start with "/" or "./" or "../"
+                    build.onResolve({{ filter }}, args => ({{ path: args.path, external: true }}))
+                  }},
+                }}
+
+                require('esbuild').build({{
+                  entryPoints: {entry_points},
+                  bundle: true,
+                  platform: 'node',
+                  format: 'cjs',
+                  sourcemap: {sourcemap_node},
+                  target: '{target}',
+                  outdir: '{out_dir}',
+                  minify: {minify_node},
+                  plugins: [skipBundleNodeModules],
+                }}).catch(() => process.exit(1))
+                """
 
     def _get_explicit_file_type(self, entry_point, entry_path):
         """
@@ -112,3 +174,72 @@ class EsbuildBundleAction(BaseAction):
                 return entry_point + ext
 
         raise ActionFailedError("entry point {} does not exist".format(entry_path))
+
+
+class EsbuildMoveBundledArtifactsAction(BaseAction):
+
+    NAME = "EsbuildMoveBundledArtifactsAction"
+    DESCRIPTION = "Move bundled artifacts from scratch dir to artifacts dir"
+    PURPOSE = Purpose.COPY_SOURCE
+
+    def __init__(self, bundler_config, scratch_dir, artifacts_dir):
+        self.bundler_config = bundler_config
+        self.scratch_dir = scratch_dir
+        self.artifacts_dir = artifacts_dir
+
+    def execute(self):
+
+        if not Path(self.artifacts_dir).exists():
+            Path(self.artifacts_dir).mkdir(parents=True, exist_ok=False)
+
+        entry_points = self.bundler_config.get("entry_points")
+        for entry_point in entry_points:
+            artifact = entry_point + ".js"
+            source_path = str(Path(self.scratch_dir, artifact))
+            shutil.move(source_path, self.artifacts_dir)
+            if self.bundler_config.get("sourcemap", False):
+                source_map = artifact + ".map"
+                source_map_path = str(Path(self.scratch_dir, source_map))
+                shutil.move(source_map_path, self.artifacts_dir)
+
+
+class EsbuildCheckVersionAction(BaseAction):
+    """
+    A Lambda Builder Action that verifies that esbuild is a version supported by sam accelerate
+    """
+
+    NAME = "EsbuildCheckVersion"
+    DESCRIPTION = "Checking esbuild version"
+    PURPOSE = Purpose.COMPILE_SOURCE
+
+    MIN_VERSION = "0.14.13"
+
+    def __init__(self, scratch_dir, subprocess_esbuild):
+        self.scratch_dir = scratch_dir
+        self.subprocess_esbuild = subprocess_esbuild
+
+    def execute(self):
+        args = ["--version"]
+
+        try:
+            version = self.subprocess_esbuild.run(args, cwd=self.scratch_dir)
+        except EsbuildExecutionError as ex:
+            raise ActionFailedError(str(ex))
+
+        LOG.debug("Found esbuild with version: %s", version)
+
+        try:
+            check_version = EsbuildCheckVersionAction._get_version_tuple(self.MIN_VERSION)
+            esbuild_version = EsbuildCheckVersionAction._get_version_tuple(version)
+
+            if esbuild_version < check_version:
+                raise ActionFailedError(
+                    f"Unsupported esbuild version. To use a dependency layer, the esbuild version must be at "
+                    f"least {self.MIN_VERSION}. Version found: {version}"
+                )
+        except (TypeError, ValueError) as ex:
+            raise ActionFailedError(f"Unable to parse esbuild version: {str(ex)}")
+
+    @staticmethod
+    def _get_version_tuple(version_string):
+        return tuple(map(int, version_string.split(".")))

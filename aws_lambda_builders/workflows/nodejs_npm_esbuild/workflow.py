@@ -8,11 +8,17 @@ import json
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import (
     CopySourceAction,
+    CleanUpAction,
+    CopyDependenciesAction,
+    MoveDependenciesAction,
 )
 from aws_lambda_builders.utils import which
 from .actions import (
     EsbuildBundleAction,
+    EsbuildCheckVersionAction,
+    EsbuildMoveBundledArtifactsAction,
 )
+from .node import SubprocessNodejs
 from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm.actions import NodejsNpmCIAction, NodejsNpmInstallAction
@@ -57,8 +63,8 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             self.actions = [EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)]
             return
 
-        if not is_experimental_esbuild_scope(self.experimental_flags):
-            raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
+        # if not is_experimental_esbuild_scope(self.experimental_flags):
+        #     raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
 
         self.actions = self.actions_with_bundler(
             source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
@@ -94,18 +100,73 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :rtype: list
         :return: List of build actions to execute
         """
+        # pylint: disable=R0915
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
 
-        copy_action = CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES)
+        excluded = self.EXCLUDED_FILES + tuple("node_modules")
+        actions = [CopySourceAction(source_dir, scratch_dir, excludes=excluded)]
+
+        subprocess_node = SubprocessNodejs(osutils, self.executable_search_paths, which=which)
 
         if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
             install_action = NodejsNpmCIAction(scratch_dir, subprocess_npm=subprocess_npm)
         else:
             install_action = NodejsNpmInstallAction(scratch_dir, subprocess_npm=subprocess_npm, is_production=False)
 
-        esbuild_action = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-        return [copy_action, install_action, esbuild_action]
+        if self.download_dependencies:
+            actions.append(install_action)
+            if self.dependencies_dir:
+                actions.append(CleanUpAction(self.dependencies_dir))
+                if self.combine_dependencies:
+                    actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+                    actions.append(
+                        EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+                    )
+                else:
+                    # Bundle dependencies separately in a dependency layer. We need to check the esbuild
+                    # version here to ensure that it supports skipping dependency bundling
+                    actions.append(EsbuildCheckVersionAction(scratch_dir, subprocess_esbuild))
+                    actions.append(
+                        EsbuildBundleAction(
+                            scratch_dir,
+                            artifacts_dir,
+                            bundler_config,
+                            osutils,
+                            subprocess_esbuild,
+                            subprocess_node,
+                            skip_deps=True,
+                        )
+                    )
+                    actions.append(MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir))
+            else:
+                # Standard build case
+                actions.append(
+                    EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+                )
+        else:
+            if self.dependencies_dir:
+                if self.combine_dependencies:
+                    actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+                    actions.append(
+                        EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+                    )
+                else:
+                    actions.append(EsbuildCheckVersionAction(scratch_dir, subprocess_esbuild))
+                    actions.append(
+                        EsbuildBundleAction(
+                            scratch_dir,
+                            artifacts_dir,
+                            bundler_config,
+                            osutils,
+                            subprocess_esbuild,
+                            subprocess_node,
+                            skip_deps=True,
+                        )
+                    )
+                    actions.append(CopySourceAction(scratch_dir, artifacts_dir, excludes=excluded))
+
+        return actions
 
     def get_build_properties(self):
         """

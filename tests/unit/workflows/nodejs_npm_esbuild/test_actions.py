@@ -1,9 +1,11 @@
 from unittest import TestCase
+from unittest.mock import Mock
+
 from mock import patch
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction, EsbuildCheckVersionAction
 
 
 class TestEsbuildBundleAction(TestCase):
@@ -63,6 +65,27 @@ class TestEsbuildBundleAction(TestCase):
             ],
             cwd="source",
         )
+
+    # def test_packages_javascript_with_skipping_deps(self):
+    #     action = EsbuildBundleAction(
+    #         "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild, skip_deps=True
+    #     )
+    #     action.execute()
+    #
+    #     self.subprocess_esbuild.run.assert_called_with(
+    #         [
+    #             "x.js",
+    #             "--bundle",
+    #             "--platform=node",
+    #             "--format=cjs",
+    #             "--minify",
+    #             "--sourcemap",
+    #             "--target=es2020",
+    #             "--outdir=artifacts",
+    #             "--external:./node_modules/*",
+    #         ],
+    #         cwd="source",
+    #     )
 
     def test_checks_if_single_entrypoint_exists(self):
 
@@ -211,3 +234,39 @@ class TestImplicitFileTypeResolution(TestCase):
         with self.assertRaises(ActionFailedError) as context:
             self.action._get_explicit_file_type(entry_point, "invalid")
         self.assertEqual(str(context.exception), "entry point invalid does not exist")
+
+
+class TestEsbuildVersionCheckerAction(TestCase):
+    @parameterized.expand(["0.14.0", "0.0.0", "0.14.12"])
+    def test_outdated_esbuild_versions(self, version):
+        subprocess_esbuild = Mock()
+        subprocess_esbuild.run.return_value = version
+        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
+        with self.assertRaises(ActionFailedError) as content:
+            action.execute()
+        self.assertEqual(
+            str(content.exception),
+            f"Unsupported esbuild version. To use a dependency layer, the esbuild version "
+            f"must be at least 0.14.13. Version found: {version}",
+        )
+
+    @parameterized.expand(["a.0.0", "a.b.c"])
+    def test_invalid_esbuild_versions(self, version):
+        subprocess_esbuild = Mock()
+        subprocess_esbuild.run.return_value = version
+        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
+        with self.assertRaises(ActionFailedError) as content:
+            action.execute()
+        self.assertEqual(
+            str(content.exception), "Unable to parse esbuild version: invalid literal for int() with base 10: 'a'"
+        )
+
+    @parameterized.expand(["0.14.13", "1.0.0", "10.0.10"])
+    def test_valid_esbuild_versions(self, version):
+        subprocess_esbuild = Mock()
+        subprocess_esbuild.run.return_value = version
+        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
+        try:
+            action.execute()
+        except ActionFailedError:
+            self.fail("Encountered an unexpected exception.")
