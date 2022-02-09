@@ -1,5 +1,5 @@
 """
-Wrapper around calling esbuild through a subprocess.
+Wrapper around calling nodejs through a subprocess.
 """
 
 import logging

@@ -176,33 +176,6 @@ class EsbuildBundleAction(BaseAction):
         raise ActionFailedError("entry point {} does not exist".format(entry_path))
 
 
-class EsbuildMoveBundledArtifactsAction(BaseAction):
-
-    NAME = "EsbuildMoveBundledArtifactsAction"
-    DESCRIPTION = "Move bundled artifacts from scratch dir to artifacts dir"
-    PURPOSE = Purpose.COPY_SOURCE
-
-    def __init__(self, bundler_config, scratch_dir, artifacts_dir):
-        self.bundler_config = bundler_config
-        self.scratch_dir = scratch_dir
-        self.artifacts_dir = artifacts_dir
-
-    def execute(self):
-
-        if not Path(self.artifacts_dir).exists():
-            Path(self.artifacts_dir).mkdir(parents=True, exist_ok=False)
-
-        entry_points = self.bundler_config.get("entry_points")
-        for entry_point in entry_points:
-            artifact = entry_point + ".js"
-            source_path = str(Path(self.scratch_dir, artifact))
-            shutil.move(source_path, self.artifacts_dir)
-            if self.bundler_config.get("sourcemap", False):
-                source_map = artifact + ".map"
-                source_map_path = str(Path(self.scratch_dir, source_map))
-                shutil.move(source_map_path, self.artifacts_dir)
-
-
 class EsbuildCheckVersionAction(BaseAction):
     """
     A Lambda Builder Action that verifies that esbuild is a version supported by sam accelerate

@@ -66,27 +66,6 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
-    # def test_packages_javascript_with_skipping_deps(self):
-    #     action = EsbuildBundleAction(
-    #         "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild, skip_deps=True
-    #     )
-    #     action.execute()
-    #
-    #     self.subprocess_esbuild.run.assert_called_with(
-    #         [
-    #             "x.js",
-    #             "--bundle",
-    #             "--platform=node",
-    #             "--format=cjs",
-    #             "--minify",
-    #             "--sourcemap",
-    #             "--target=es2020",
-    #             "--outdir=artifacts",
-    #             "--external:./node_modules/*",
-    #         ],
-    #         cwd="source",
-    #     )
-
     def test_checks_if_single_entrypoint_exists(self):
 
         action = EsbuildBundleAction(

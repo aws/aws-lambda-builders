@@ -16,7 +16,6 @@ from aws_lambda_builders.utils import which
 from .actions import (
     EsbuildBundleAction,
     EsbuildCheckVersionAction,
-    EsbuildMoveBundledArtifactsAction,
 )
 from .node import SubprocessNodejs
 from .utils import is_experimental_esbuild_scope
@@ -108,6 +107,17 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         actions = [CopySourceAction(source_dir, scratch_dir, excludes=excluded)]
 
         subprocess_node = SubprocessNodejs(osutils, self.executable_search_paths, which=which)
+        esbuild_check_version = EsbuildCheckVersionAction(scratch_dir, subprocess_esbuild)
+        esbuild_with_deps = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+        esbuild_skip_deps = EsbuildBundleAction(
+            scratch_dir,
+            artifacts_dir,
+            bundler_config,
+            osutils,
+            subprocess_esbuild,
+            subprocess_node,
+            skip_deps=True,
+        )
 
         if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
             install_action = NodejsNpmCIAction(scratch_dir, subprocess_npm=subprocess_npm)
@@ -120,50 +130,24 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 actions.append(CleanUpAction(self.dependencies_dir))
                 if self.combine_dependencies:
                     actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
-                    actions.append(
-                        EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-                    )
+                    actions.append(esbuild_with_deps)
                 else:
                     # Bundle dependencies separately in a dependency layer. We need to check the esbuild
                     # version here to ensure that it supports skipping dependency bundling
-                    actions.append(EsbuildCheckVersionAction(scratch_dir, subprocess_esbuild))
-                    actions.append(
-                        EsbuildBundleAction(
-                            scratch_dir,
-                            artifacts_dir,
-                            bundler_config,
-                            osutils,
-                            subprocess_esbuild,
-                            subprocess_node,
-                            skip_deps=True,
-                        )
-                    )
+                    actions.append(esbuild_check_version)
+                    actions.append(esbuild_skip_deps)
                     actions.append(MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir))
             else:
                 # Standard build case
-                actions.append(
-                    EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-                )
+                actions.append(esbuild_with_deps)
         else:
             if self.dependencies_dir:
                 if self.combine_dependencies:
                     actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
-                    actions.append(
-                        EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-                    )
+                    actions.append(esbuild_with_deps)
                 else:
-                    actions.append(EsbuildCheckVersionAction(scratch_dir, subprocess_esbuild))
-                    actions.append(
-                        EsbuildBundleAction(
-                            scratch_dir,
-                            artifacts_dir,
-                            bundler_config,
-                            osutils,
-                            subprocess_esbuild,
-                            subprocess_node,
-                            skip_deps=True,
-                        )
-                    )
+                    actions.append(esbuild_check_version)
+                    actions.append(esbuild_skip_deps)
                     actions.append(CopySourceAction(scratch_dir, artifacts_dir, excludes=excluded))
 
         return actions
