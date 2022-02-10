@@ -118,12 +118,11 @@ class EsbuildBundleAction(BaseAction):
 
         :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
         """
-        with NamedTemporaryFile(dir=self.scratch_dir) as tmp:
-            with open(tmp.name, "a") as file:
-                file.write(script)
-            args = [tmp.name]
+        with NamedTemporaryFile(dir=self.scratch_dir, mode="w") as tmp:
+            tmp.write(script)
+            tmp.flush()
             try:
-                self.subprocess_nodejs.run(args, cwd=self.scratch_dir)
+                self.subprocess_nodejs.run([tmp.name], cwd=self.scratch_dir)
             except EsbuildExecutionError as ex:
                 raise ActionFailedError(str(ex))
 
