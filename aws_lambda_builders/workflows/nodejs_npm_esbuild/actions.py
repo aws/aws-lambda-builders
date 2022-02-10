@@ -96,7 +96,7 @@ class EsbuildBundleAction(BaseAction):
         args.append("--outdir={}".format(self.artifacts_dir))
 
         if self.skip_deps:
-            LOG.debug("Running custom esbuild using Node.js")
+            LOG.info("Running custom esbuild using Node.js")
             script = EsbuildBundleAction._get_node_esbuild_template(
                 explicit_entry_points, target, self.artifacts_dir, minify, sourcemap
             )

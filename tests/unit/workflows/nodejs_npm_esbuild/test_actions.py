@@ -1,3 +1,4 @@
+import tempfile
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock
@@ -180,7 +181,7 @@ class TestEsbuildBundleAction(TestCase):
 
     def test_runs_node_subprocess_if_deps_skipped(self):
         action = EsbuildBundleAction(
-            str(Path(__file__).resolve().parent),
+            tempfile.mkdtemp(),
             "artifacts",
             {"entry_points": ["app.ts"]},
             self.osutils,

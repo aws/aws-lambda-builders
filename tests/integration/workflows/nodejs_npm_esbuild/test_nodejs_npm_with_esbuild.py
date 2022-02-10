@@ -191,6 +191,12 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
         options = {"entry_points": ["included.js"]}
 
+        osutils = OSUtils()
+        npm = SubprocessNpm(osutils)
+        esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+        npm.run(["ci"], cwd=esbuild_dir)
+        binpath = npm.run(["bin"], cwd=esbuild_dir)
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
@@ -201,6 +207,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             dependencies_dir=self.dependencies_dir,
             download_dependencies=False,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            executable_search_paths=[binpath],
         )
 
         expected_files = {"included.js.map", "included.js"}
