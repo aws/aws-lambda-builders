@@ -2,6 +2,13 @@ import os
 from zipfile import ZipFile
 
 
+def folder_should_not_contain_files(folder, files):
+    for f in files:
+        if does_folder_contain_file(folder, f):
+            return False
+    return True
+
+
 def does_folder_contain_all_files(folder, files):
     for f in files:
         if not does_folder_contain_file(folder, f):

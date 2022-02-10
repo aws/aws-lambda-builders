@@ -7,6 +7,7 @@ import platform
 import tarfile
 import subprocess
 import shutil
+import json
 
 
 class OSUtils(object):
@@ -48,3 +49,7 @@ class OSUtils(object):
 
     def is_windows(self):
         return platform.system().lower() == "windows"
+
+    def parse_json(self, path):
+        with open(path) as json_file:
+            return json.load(json_file)

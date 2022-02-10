@@ -1,5 +1,4 @@
 import logging
-import mock
 import os
 import shutil
 import tempfile
@@ -134,22 +133,7 @@ class TestNodejsNpmWorkflow(TestCase):
                 runtime=self.runtime,
             )
 
-        self.assertIn("No matching version found for minimal-request-promise@0.0.0-NON_EXISTENT", str(ctx.exception))
-
-    def test_fails_if_package_json_is_broken(self):
-
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-package")
-
-        with self.assertRaises(WorkflowFailedError) as ctx:
-            self.builder.build(
-                source_dir,
-                self.artifacts_dir,
-                self.scratch_dir,
-                os.path.join(source_dir, "package.json"),
-                runtime=self.runtime,
-            )
-
-        self.assertIn("Unexpected end of JSON input", str(ctx.exception))
+        self.assertIn("No matching version found for aws-sdk@2.997.999", str(ctx.exception))
 
     def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
