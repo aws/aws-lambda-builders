@@ -1,2 +1,6 @@
 //included
-const x = 5
+const request = require('minimal-request-promise');
+exports.handler = async (event, context) => {
+	const result = await(request.get(event.url));
+	return request;
+};

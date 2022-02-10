@@ -188,7 +188,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         self.assertEqual(expected_files, output_files)
 
     def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
 
         osutils = OSUtils()
