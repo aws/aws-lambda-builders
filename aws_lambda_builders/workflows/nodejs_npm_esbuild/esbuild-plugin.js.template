@@ -13,7 +13,7 @@ require('esbuild').build({{
   format: 'cjs',
   target: '{target}',
   sourcemap: {sourcemap},
-  outdir: '{out_dir}',
+  outdir: {out_dir},
   minify: {minify},
   plugins: [skipBundleNodeModules],
 }}).catch(() => process.exit(1))

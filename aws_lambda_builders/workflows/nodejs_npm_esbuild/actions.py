@@ -156,7 +156,7 @@ class EsbuildBundleAction(BaseAction):
                 target=target,
                 minify="true" if minify else "false",
                 sourcemap="true" if sourcemap else "false",
-                out_dir=out_dir,
+                out_dir=repr(out_dir),
                 entry_points=entry_points,
             )
         return result
