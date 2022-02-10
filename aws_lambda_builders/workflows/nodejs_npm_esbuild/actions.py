@@ -150,7 +150,8 @@ class EsbuildBundleAction(BaseAction):
         :rtype: str
         :return: formatted template
         """
-        with open(str(Path(Path(__file__).resolve().parent, "esbuild-plugin.js.template")), "r") as f:
+        curr_dir = Path(__file__).resolve().parent
+        with open(str(Path(curr_dir, "esbuild-plugin.js.template")), "r") as f:
             input_str = f.read()
             result = input_str.format(
                 target=target,
