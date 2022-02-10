@@ -170,7 +170,14 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_without_dependencies_dir(self):
         self.osutils.file_exists.return_value = True
 
-        workflow = NodejsNpmEsbuildWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
 
         self.assertEqual(len(workflow.actions), 3)
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
@@ -189,6 +196,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             download_dependencies=False,
             combine_dependencies=True,
             osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         self.assertEqual(len(workflow.actions), 3)
@@ -208,12 +216,14 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             download_dependencies=False,
             combine_dependencies=False,
             osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 3)
+        self.assertEqual(len(workflow.actions), 4)
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], EsbuildCheckVersionAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[1], CopySourceAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildCheckVersionAction)
+        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir(self):
 
@@ -227,6 +237,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             dependencies_dir="dep",
             download_dependencies=True,
             osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         self.assertEqual(len(workflow.actions), 5)
@@ -234,8 +245,8 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
         self.assertIsInstance(workflow.actions[2], CleanUpAction)
-        self.assertIsInstance(workflow.actions[3], CopyDependenciesAction)
-        self.assertIsInstance(workflow.actions[4], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[4], CopyDependenciesAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir_no_combine_deps(self):
         workflow = NodejsNpmEsbuildWorkflow(
@@ -247,6 +258,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             download_dependencies=True,
             combine_dependencies=False,
             osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         self.assertEqual(len(workflow.actions), 6)

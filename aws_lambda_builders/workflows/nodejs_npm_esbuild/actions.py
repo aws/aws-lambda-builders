@@ -109,6 +109,15 @@ class EsbuildBundleAction(BaseAction):
             raise ActionFailedError(str(ex))
 
     def _run_external_esbuild_in_nodejs(self, script):
+        """
+        Run esbuild in a separate process through Node.js
+        Workaround for https://github.com/evanw/esbuild/issues/1958
+
+        :type script: str
+        :param script: Node.js script to execute
+
+        :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
+        """
         with NamedTemporaryFile(dir=self.scratch_dir) as tmp:
             with open(tmp.name, "a") as file:
                 file.write(script)
@@ -120,30 +129,37 @@ class EsbuildBundleAction(BaseAction):
 
     @staticmethod
     def _get_node_esbuild_template(entry_points, target, out_dir, minify, sourcemap):
-        # pylint: disable=W1401
-        minify_node = "true" if minify else "false"
-        sourcemap_node = "true" if sourcemap else "false"
-        return f"""
-                let skipBundleNodeModules = {{
-                  name: 'make-all-packages-external',
-                  setup(build) {{
-                    let filter = /^[^.\/]|^\.[^.\/]|^\.\.[^\/]/ // Must not start with "/" or "./" or "../"
-                    build.onResolve({{ filter }}, args => ({{ path: args.path, external: true }}))
-                  }},
-                }}
+        """
+        Get the esbuild nodejs plugin template
 
-                require('esbuild').build({{
-                  entryPoints: {entry_points},
-                  bundle: true,
-                  platform: 'node',
-                  format: 'cjs',
-                  sourcemap: {sourcemap_node},
-                  target: '{target}',
-                  outdir: '{out_dir}',
-                  minify: {minify_node},
-                  plugins: [skipBundleNodeModules],
-                }}).catch(() => process.exit(1))
-                """
+        :type entry_points: List[str]
+        :param entry_points: list of entry points
+
+        :type target: str
+        :param target: target version
+
+        :type out_dir: str
+        :param out_dir: output directory to bundle into
+
+        :type minify: bool
+        :param minify: if bundled code should be minified
+
+        :type sourcemap: bool
+        :param sourcemap: if esbuild should produce a sourcemap
+
+        :rtype: str
+        :return: formatted template
+        """
+        with open(str(Path(Path(__file__).resolve().parent, "esbuild-plugin.js.template")), "r") as f:
+            input_str = f.read()
+            result = input_str.format(
+                target=target,
+                minify="true" if minify else "false",
+                sourcemap="true" if sourcemap else "false",
+                out_dir=out_dir,
+                entry_points=entry_points,
+            )
+        return result
 
     def _get_explicit_file_type(self, entry_point, entry_path):
         """
@@ -189,6 +205,11 @@ class EsbuildCheckVersionAction(BaseAction):
         self.subprocess_esbuild = subprocess_esbuild
 
     def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when esbuild version checking fails
+        """
         args = ["--version"]
 
         try:
@@ -212,4 +233,13 @@ class EsbuildCheckVersionAction(BaseAction):
 
     @staticmethod
     def _get_version_tuple(version_string):
+        """
+        Get an integer tuple representation of the version for comparison
+
+        :type version_string: str
+        :param version_string: string containing the esbuild version
+
+        :rtype: tuple
+        :return: version tuple used for comparison
+        """
         return tuple(map(int, version_string.split(".")))

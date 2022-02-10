@@ -62,8 +62,8 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             self.actions = [EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)]
             return
 
-        # if not is_experimental_esbuild_scope(self.experimental_flags):
-        #     raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
+        if not is_experimental_esbuild_scope(self.experimental_flags):
+            raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
 
         self.actions = self.actions_with_bundler(
             source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
@@ -130,9 +130,11 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             if self.dependencies_dir:
                 actions.append(CleanUpAction(self.dependencies_dir))
                 if self.combine_dependencies:
-                    actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
+                    # Auto dependency layer disabled, first build
                     actions.append(esbuild_with_deps)
+                    actions.append(CopyDependenciesAction(source_dir, scratch_dir, self.dependencies_dir))
                 else:
+                    # Auto dependency layer enabled, first build
                     # Bundle dependencies separately in a dependency layer. We need to check the esbuild
                     # version here to ensure that it supports skipping dependency bundling
                     actions.append(esbuild_check_version)
@@ -144,9 +146,12 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         else:
             if self.dependencies_dir:
                 if self.combine_dependencies:
-                    actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+                    # Auto dependency layer disabled, subsequent builds
+                    actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
                     actions.append(esbuild_with_deps)
                 else:
+                    # Auto dependency layer enabled, subsequent builds
+                    actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
                     actions.append(esbuild_check_version)
                     actions.append(esbuild_skip_deps)
 

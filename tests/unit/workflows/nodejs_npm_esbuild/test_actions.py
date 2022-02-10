@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock
 
@@ -11,9 +12,11 @@ from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBund
 class TestEsbuildBundleAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
-    def setUp(self, OSUtilMock, SubprocessEsbuildMock):
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.node.SubprocessNodejs")
+    def setUp(self, OSUtilMock, SubprocessEsbuildMock, SubprocessNodejsMock):
         self.osutils = OSUtilMock.return_value
         self.subprocess_esbuild = SubprocessEsbuildMock.return_value
+        self.subprocess_nodejs = SubprocessNodejsMock.return_value
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
         self.osutils.file_exists.side_effect = [True, True]
 
@@ -174,6 +177,43 @@ class TestEsbuildBundleAction(TestCase):
             ],
             cwd="source",
         )
+
+    def test_runs_node_subprocess_if_deps_skipped(self):
+        action = EsbuildBundleAction(
+            str(Path(__file__).resolve().parent),
+            "artifacts",
+            {"entry_points": ["app.ts"]},
+            self.osutils,
+            self.subprocess_esbuild,
+            self.subprocess_nodejs,
+            True,
+        )
+        action.execute()
+        self.subprocess_nodejs.run.assert_called()
+
+    def test_reads_nodejs_bundle_template_file(self):
+        template = EsbuildBundleAction._get_node_esbuild_template(["app.ts"], "es2020", "outdir", False, True)
+        expected_template = """let skipBundleNodeModules = {
+  name: 'make-all-packages-external',
+  setup(build) {
+    let filter = /^[^.\/]|^\.[^.\/]|^\.\.[^\/]/ // Must not start with "/" or "./" or "../"
+    build.onResolve({ filter }, args => ({ path: args.path, external: true }))
+  },
+}
+
+require('esbuild').build({
+  entryPoints: ['app.ts'],
+  bundle: true,
+  platform: 'node',
+  format: 'cjs',
+  target: 'es2020',
+  sourcemap: true,
+  outdir: 'outdir',
+  minify: false,
+  plugins: [skipBundleNodeModules],
+}).catch(() => process.exit(1))
+"""
+        self.assertEqual(template, expected_template)
 
 
 class TestImplicitFileTypeResolution(TestCase):

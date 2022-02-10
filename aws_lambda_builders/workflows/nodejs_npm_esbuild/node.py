@@ -13,7 +13,7 @@ class NodejsExecutionError(LambdaBuilderError):
 
     """
     Exception raised in case nodejs execution fails.
-    It will pass on the standard error output from the esbuild console.
+    It will pass on the standard error output from the Node.js console.
     """
 
     MESSAGE = "Nodejs Failed: {message}"
@@ -32,8 +32,8 @@ class SubprocessNodejs(object):
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type executable_search_paths: list
-        :param executable_search_paths: List of paths to the NPM package binary utilities. This will
-            be used to find embedded esbuild at runtime if present in the package
+        :param executable_search_paths: List of paths to the node package binary utilities. This will
+            be used to find embedded Nodejs at runtime if present in the package
 
         :type which: aws_lambda_builders.utils.which
         :param which: Function to get paths which conform to the given mode on the PATH
@@ -45,12 +45,12 @@ class SubprocessNodejs(object):
 
     def nodejs_binary(self):
         """
-        Finds the esbuild binary at runtime.
+        Finds the Nodejs binary at runtime.
 
         The utility may be present as a package dependency of the Lambda project,
         or in the global path. If there is one in the Lambda project, it should
         be preferred over a global utility. The check has to be executed
-        at runtime, since NPM dependencies will be installed by the workflow
+        at runtime, since nodejs dependencies will be installed by the workflow
         using one of the previous actions.
         """
 
@@ -69,7 +69,7 @@ class SubprocessNodejs(object):
         Runs the action.
 
         :type args: list
-        :param args: Command line arguments to pass to Esbuild
+        :param args: Command line arguments to pass to Nodejs
 
         :type cwd: str
         :param cwd: Directory where to execute the command (defaults to current dir)
@@ -77,7 +77,7 @@ class SubprocessNodejs(object):
         :rtype: str
         :return: text of the standard output from the command
 
-        :raises aws_lambda_builders.workflows.nodejs_npm.npm.EsbuildExecutionError:
+        :raises aws_lambda_builders.workflows.nodejs_npm.npm.NodejsExecutionError:
             when the command executes with a non-zero return code. The exception will
             contain the text of the standard error output from the command.
 
