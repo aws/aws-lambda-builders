@@ -104,7 +104,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
 
-        excluded = self.EXCLUDED_FILES + tuple("node_modules")
+        excluded = self.EXCLUDED_FILES + tuple(["node_modules"])
         actions = [CopySourceAction(source_dir, scratch_dir, excludes=excluded)]
 
         subprocess_node = SubprocessNodejs(osutils, self.executable_search_paths, which=which)
