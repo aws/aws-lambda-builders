@@ -104,7 +104,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
 
-        excluded = self.EXCLUDED_FILES + tuple("node_modules")
+        excluded = self.EXCLUDED_FILES + tuple(["node_modules"])
         actions = [CopySourceAction(source_dir, scratch_dir, excludes=excluded)]
 
         subprocess_node = SubprocessNodejs(osutils, self.executable_search_paths, which=which)
@@ -125,37 +125,40 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         else:
             install_action = NodejsNpmInstallAction(scratch_dir, subprocess_npm=subprocess_npm, is_production=False)
 
-        if self.download_dependencies:
-            actions.append(install_action)
-            if self.dependencies_dir:
-                actions.append(CleanUpAction(self.dependencies_dir))
-                if self.combine_dependencies:
-                    # Auto dependency layer disabled, first build
-                    actions.append(esbuild_with_deps)
-                    actions.append(CopyDependenciesAction(source_dir, scratch_dir, self.dependencies_dir))
-                else:
-                    # Auto dependency layer enabled, first build
-                    # Bundle dependencies separately in a dependency layer. We need to check the esbuild
-                    # version here to ensure that it supports skipping dependency bundling
-                    actions.append(esbuild_check_version)
-                    actions.append(esbuild_skip_deps)
-                    actions.append(MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir))
-            else:
-                # Standard build case
-                actions.append(esbuild_with_deps)
-        else:
-            if self.dependencies_dir:
-                if self.combine_dependencies:
-                    # Auto dependency layer disabled, subsequent builds
-                    actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
-                    actions.append(esbuild_with_deps)
-                else:
-                    # Auto dependency layer enabled, subsequent builds
-                    actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
-                    actions.append(esbuild_check_version)
-                    actions.append(esbuild_skip_deps)
+        if self.download_dependencies and not self.dependencies_dir:
+            # Standard workflow
+            return actions + [install_action, esbuild_with_deps]
 
-        return actions
+        # Accelerate workflows
+        if self.download_dependencies and self.dependencies_dir:
+            # Initial builds and dependency updates
+            actions += [install_action, CleanUpAction(self.dependencies_dir)]
+            if self.combine_dependencies:
+                # Combining dependencies, no separate dependency layer
+                return actions + [
+                    esbuild_with_deps,
+                    CopyDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
+                ]
+            # Use a separate dependency layer
+            return actions + [
+                esbuild_check_version,
+                esbuild_skip_deps,
+                MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
+            ]
+
+        if not self.dependencies_dir:
+            # Invalid workflow, can't have no dependency dir and no installation
+            raise EsbuildExecutionError(message="Lambda Builders encountered and invalid workflow")
+
+        # Download dependencies is false, use existing dependencies
+        actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
+        if self.combine_dependencies:
+            # Subsequent builds without a dependency layer
+            actions.append(esbuild_with_deps)
+            return actions
+
+        # Subsequent builds with a dependency layer
+        return actions + [esbuild_check_version, esbuild_skip_deps]
 
     def get_build_properties(self):
         """
