@@ -46,8 +46,14 @@ class EsbuildBundleAction(BaseAction):
         :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
-        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessEsbuild
+        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
         :param subprocess_esbuild: An instance of the Esbuild process wrapper
+
+        :type subprocess_nodejs: aws_lambda_builders.workflows.nodejs_npm_esbuild.node.SubprocessNodejs
+        :param subprocess_nodejs: An instance of the nodejs process wrapper
+
+        :type skip_deps: bool
+        :param skip_deps: if dependencies should be omitted from bundling
         """
         super(EsbuildBundleAction, self).__init__()
         self.scratch_dir = scratch_dir
@@ -201,6 +207,14 @@ class EsbuildCheckVersionAction(BaseAction):
     MIN_VERSION = "0.14.13"
 
     def __init__(self, scratch_dir, subprocess_esbuild):
+        """
+        :type scratch_dir: str
+        :param scratch_dir: temporary directory where esbuild is executed
+
+        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
+        :param subprocess_esbuild: An instance of the Esbuild process wrapper
+        """
+        super(EsbuildCheckVersionAction, self).__init__()
         self.scratch_dir = scratch_dir
         self.subprocess_esbuild = subprocess_esbuild
 
