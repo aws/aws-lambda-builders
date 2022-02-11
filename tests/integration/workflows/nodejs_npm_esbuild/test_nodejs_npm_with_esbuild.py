@@ -245,20 +245,19 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
 
-        self.builder.build(
-            source_dir,
-            self.artifacts_dir,
-            self.scratch_dir,
-            os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
-            dependencies_dir=None,
-            download_dependencies=False,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
-        )
+        with self.assertRaises(EsbuildExecutionError) as context:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+                dependencies_dir=None,
+                download_dependencies=False,
+                experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            )
 
-        expected_files = set()
-        output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEqual(expected_files, output_files)
+        self.assertEqual(str(context.exception), "Esbuild Failed: Lambda Builders encountered and invalid workflow")
 
     def test_builds_project_without_combine_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")

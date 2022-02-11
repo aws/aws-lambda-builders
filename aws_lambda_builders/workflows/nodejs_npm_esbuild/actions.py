@@ -214,7 +214,7 @@ class EsbuildCheckVersionAction(BaseAction):
         :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
         :param subprocess_esbuild: An instance of the Esbuild process wrapper
         """
-        super(EsbuildCheckVersionAction, self).__init__()
+        super().__init__()
         self.scratch_dir = scratch_dir
         self.subprocess_esbuild = subprocess_esbuild
 
