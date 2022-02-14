@@ -4,15 +4,22 @@ NodeJS NPM Workflow using the esbuild bundler
 
 import logging
 import json
+from typing import List
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import (
     CopySourceAction,
+    CleanUpAction,
+    CopyDependenciesAction,
+    MoveDependenciesAction,
+    BaseAction,
 )
 from aws_lambda_builders.utils import which
 from .actions import (
     EsbuildBundleAction,
+    EsbuildCheckVersionAction,
 )
+from .node import SubprocessNodejs
 from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm.actions import NodejsNpmCIAction, NodejsNpmInstallAction
@@ -66,7 +73,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
     def actions_with_bundler(
         self, source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
-    ):
+    ) -> List[BaseAction]:
         """
         Generate a list of Nodejs build actions with a bundler
 
@@ -97,15 +104,89 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
 
-        copy_action = CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES)
+        actions: List[BaseAction] = [
+            CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES + tuple(["node_modules"]))
+        ]
+
+        subprocess_node = SubprocessNodejs(osutils, self.executable_search_paths, which=which)
+
+        # Bundle dependencies separately in a dependency layer. We need to check the esbuild
+        # version here to ensure that it supports skipping dependency bundling
+        esbuild_no_deps = [
+            EsbuildCheckVersionAction(scratch_dir, subprocess_esbuild),
+            EsbuildBundleAction(
+                scratch_dir,
+                artifacts_dir,
+                bundler_config,
+                osutils,
+                subprocess_esbuild,
+                subprocess_node,
+                skip_deps=True,
+            ),
+        ]
+        esbuild_with_deps = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
 
         if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
             install_action = NodejsNpmCIAction(scratch_dir, subprocess_npm=subprocess_npm)
         else:
             install_action = NodejsNpmInstallAction(scratch_dir, subprocess_npm=subprocess_npm, is_production=False)
 
-        esbuild_action = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
-        return [copy_action, install_action, esbuild_action]
+        if self.download_dependencies and not self.dependencies_dir:
+            return actions + [install_action, esbuild_with_deps]
+
+        return self._accelerate_workflow_actions(
+            source_dir, scratch_dir, actions, install_action, esbuild_with_deps, esbuild_no_deps
+        )
+
+    def _accelerate_workflow_actions(
+        self, source_dir, scratch_dir, actions, install_action, esbuild_with_deps, esbuild_no_deps
+    ):
+        """
+        Generate a list of Nodejs build actions for incremental build and auto dependency layer
+
+        :type source_dir: str
+        :param source_dir: an existing (readable) directory containing source files
+
+        :type scratch_dir: str
+        :param scratch_dir: an existing (writable) directory for temporary files
+
+        :type actions: List[BaseAction]
+        :param actions: List of existing actions
+
+        :type install_action: BaseAction
+        :param install_action: Installation action for npm
+
+        :type esbuild_with_deps: BaseAction
+        :param esbuild_with_deps: Standard esbuild action bundling source with deps
+
+        :type esbuild_no_deps: List[BaseAction]
+        :param esbuild_no_deps: esbuild action not including dependencies in the bundled artifacts
+
+        :rtype: list
+        :return: List of build actions to execute
+        """
+        if self.download_dependencies:
+            actions += [install_action, CleanUpAction(self.dependencies_dir)]
+            if self.combine_dependencies:
+                # Auto dependency layer disabled, first build
+                actions += [esbuild_with_deps, CopyDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
+            else:
+                # Auto dependency layer enabled, first build
+                actions += esbuild_no_deps + [MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
+        else:
+            if self.dependencies_dir:
+                actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
+                if self.combine_dependencies:
+                    # Auto dependency layer disabled, subsequent builds
+                    actions += [esbuild_with_deps]
+                else:
+                    # Auto dependency layer enabled, subsequent builds
+                    actions += esbuild_no_deps
+            else:
+                # Invalid workflow, can't have no dependency dir and no installation
+                raise EsbuildExecutionError(message="Lambda Builders encountered and invalid workflow")
+
+        return actions
 
     def get_build_properties(self):
         """
