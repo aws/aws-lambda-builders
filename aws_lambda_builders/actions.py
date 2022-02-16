@@ -129,6 +129,10 @@ class CopyDependenciesAction(BaseAction):
         artifact = set(os.listdir(self.artifact_dir))
         dependencies = artifact - source
 
+        if not os.path.exists(self.dest_dir):
+            LOG.debug("Creating target folders at %s", self.dest_dir)
+            os.makedirs(self.dest_dir)
+
         for name in dependencies:
             dependencies_source = os.path.join(self.artifact_dir, name)
             new_destination = os.path.join(self.dest_dir, name)
@@ -157,6 +161,10 @@ class MoveDependenciesAction(BaseAction):
         source = set(os.listdir(self.source_dir))
         artifact = set(os.listdir(self.artifact_dir))
         dependencies = artifact - source
+
+        if not os.path.exists(self.dest_dir):
+            LOG.debug("Creating target folders at %s", self.dest_dir)
+            os.makedirs(self.dest_dir)
 
         for name in dependencies:
             dependencies_source = os.path.join(self.artifact_dir, name)
