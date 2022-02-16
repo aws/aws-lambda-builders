@@ -81,6 +81,8 @@ class TestCliWithHelloWorkflow(TestCase):
                 "dependencies_dir": "/ignored-dep",
                 "combine_dependencies": False,
                 "architecture": "x86_64",
+                "is_building_layer": False,
+                "experimental_flags": ["experimental"],
             },
         }
 
@@ -145,6 +147,8 @@ class TestCliWithHelloWorkflow(TestCase):
                     "download_dependencies": False,
                     "dependencies_dir": "/ignored-dep",
                     "combine_dependencies": False,
+                    "is_building_layer": False,
+                    "experimental_flags": ["experimental"],
                 },
             }
         )
