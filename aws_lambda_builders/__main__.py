@@ -129,6 +129,8 @@ def main():  # pylint: disable=too-many-statements
             dependencies_dir=params.get("dependencies_dir", None),
             combine_dependencies=params.get("combine_dependencies", True),
             architecture=params.get("architecture", X86_64),
+            is_building_layer=params.get("is_building_layer", False),
+            experimental_flags=params.get("experimental_flags", []),
         )
 
         # Return a success response
