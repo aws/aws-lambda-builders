@@ -10,12 +10,13 @@ from aws_lambda_builders.utils import copytree
 
 
 class TestCopyDependenciesAction(TestCase):
-
-    @parameterized.expand([
-        ("single_file",),
-        ("multiple_files",),
-        ("empty_subfolders",),
-    ])
+    @parameterized.expand(
+        [
+            ("single_file",),
+            ("multiple_files",),
+            ("empty_subfolders",),
+        ]
+    )
     def test_copy_dependencies_action(self, source_folder):
         curr_dir = Path(__file__).resolve().parent
         test_folder = os.path.join(curr_dir, "testdata", source_folder)
@@ -32,12 +33,13 @@ class TestCopyDependenciesAction(TestCase):
 
 
 class TestMoveDependenciesAction(TestCase):
-
-    @parameterized.expand([
-        ("single_file",),
-        ("multiple_files",),
-        ("empty_subfolders",),
-    ])
+    @parameterized.expand(
+        [
+            ("single_file",),
+            ("multiple_files",),
+            ("empty_subfolders",),
+        ]
+    )
     def test_move_dependencies_action(self, source_folder):
         curr_dir = Path(__file__).resolve().parent
         test_folder = os.path.join(curr_dir, "testdata", source_folder)
