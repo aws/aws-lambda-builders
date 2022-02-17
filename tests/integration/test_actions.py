@@ -24,7 +24,6 @@ class TestCopyDependenciesAction(TestCase):
             target = os.path.join(tmpdir, "target")
 
             os.mkdir(empty_source)
-            os.mkdir(target)
 
             copy_dependencies_action = CopyDependenciesAction(empty_source, test_folder, target)
             copy_dependencies_action.execute()
@@ -49,7 +48,6 @@ class TestMoveDependenciesAction(TestCase):
 
             os.mkdir(test_source)
             os.mkdir(empty_source)
-            os.mkdir(target)
 
             copytree(test_folder, test_source)
 
