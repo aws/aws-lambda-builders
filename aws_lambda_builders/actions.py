@@ -129,10 +129,6 @@ class CopyDependenciesAction(BaseAction):
         artifact = set(os.listdir(self.artifact_dir))
         dependencies = artifact - source
 
-        if not os.path.exists(self.dest_dir):
-            LOG.debug("Creating target folders at %s", self.dest_dir)
-            os.makedirs(self.dest_dir)
-
         for name in dependencies:
             dependencies_source = os.path.join(self.artifact_dir, name)
             new_destination = os.path.join(self.dest_dir, name)
@@ -140,7 +136,7 @@ class CopyDependenciesAction(BaseAction):
             if os.path.isdir(dependencies_source):
                 copytree(dependencies_source, new_destination)
             else:
-                os.makedirs(os.path.dirname(dependencies_source), exist_ok=True)
+                os.makedirs(os.path.dirname(new_destination), exist_ok=True)
                 shutil.copy2(dependencies_source, new_destination)
 
 
@@ -162,13 +158,13 @@ class MoveDependenciesAction(BaseAction):
         artifact = set(os.listdir(self.artifact_dir))
         dependencies = artifact - source
 
-        if not os.path.exists(self.dest_dir):
-            LOG.debug("Creating target folders at %s", self.dest_dir)
-            os.makedirs(self.dest_dir)
-
         for name in dependencies:
             dependencies_source = os.path.join(self.artifact_dir, name)
             new_destination = os.path.join(self.dest_dir, name)
+
+            # shutil.move can't create subfolders if this is the first file in that folder
+            if os.path.isfile(dependencies_source):
+                os.makedirs(os.path.dirname(new_destination), exist_ok=True)
 
             shutil.move(dependencies_source, new_destination)
 
