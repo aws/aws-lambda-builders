@@ -324,7 +324,7 @@ class TestBaseWorkflow_run(TestCase):
             "artifacts_dir",
             "scratch_dir",
             "manifest_path",
-            runtime="python3.7",
+            runtime="python2.7",
             executable_search_paths=[str(pathlib.Path(os.getcwd()).parent)],
             optimizations={"a": "b"},
             options={"c": "d"},
@@ -333,7 +333,7 @@ class TestBaseWorkflow_run(TestCase):
         validator_mock = Mock()
         validator_mock.validate = Mock()
         validator_mock.validate = MagicMock(
-            side_effect=UnsupportedArchitectureError(runtime="python3.7", architecture="arm64")
+            side_effect=UnsupportedArchitectureError(runtime="python2.7", architecture="arm64")
         )
 
         resolver_mock = Mock()
@@ -349,7 +349,7 @@ class TestBaseWorkflow_run(TestCase):
         with self.assertRaises(WorkflowFailedError) as ex:
             self.work.run()
 
-        self.assertIn("Architecture arm64 is not supported for runtime python3.7", str(ex.exception))
+        self.assertIn("Architecture arm64 is not supported for runtime python2.7", str(ex.exception))
 
 
 class TestBaseWorkflow_repr(TestCase):

@@ -27,7 +27,7 @@ class TestRubyWorkflow(TestCase):
         self.dependencies_dir = tempfile.mkdtemp()
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
         self.builder = LambdaBuilder(language="ruby", dependency_manager="bundler", application_framework=None)
-        self.runtime = "ruby2.7"
+        self.runtime = "ruby2.5"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)

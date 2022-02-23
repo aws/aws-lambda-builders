@@ -90,6 +90,9 @@ class FakePopenOSUtils(OSUtils):
 
 
 class TestGetLambdaAbi(object):
+    def test_get_lambda_abi_python27(self):
+        assert "cp27mu" == get_lambda_abi("python2.7")
+
     def test_get_lambda_abi_python36(self):
         assert "cp36m" == get_lambda_abi("python3.6")
 
