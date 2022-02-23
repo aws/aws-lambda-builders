@@ -51,7 +51,6 @@ for:
       - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
       - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
       - "%PYTHON%\\python.exe -m pip install -e ."
-      - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
       - "gem --version"
       - "gem install bundler -v 1.17.3"
       - "bundler --version"
@@ -76,6 +75,9 @@ for:
       # setup make
       - "choco install make"
 
+      # install dotnet6
+      - ps: "&powershell -NoProfile -ExecutionPolicy unrestricted -Command \"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://dot.net/v1/dotnet-install.ps1'))) -Version 6.0.200 -InstallDir 'C:\\Program Files\\dotnet\\'\""
+
       # Echo final Path
       - "echo %PATH%"
 
@@ -91,7 +93,6 @@ for:
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-      - sh: "rvm use 2.5"
       - sh: "nvm install ${nodejs_version}"
       - sh: "npm install npm@7.24.2 -g"
       - sh: "npm -v"

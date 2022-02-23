@@ -46,7 +46,6 @@ class TestPythonRuntimeValidator(TestCase):
 
     @parameterized.expand(
         [
-            ("python2.7", "arm64"),
             ("python3.6", "arm64"),
             ("python3.7", "arm64"),
         ]
