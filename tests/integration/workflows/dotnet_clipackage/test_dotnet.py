@@ -31,7 +31,7 @@ class TestDotnetBase(TestCase):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
-    def verify_architecture(self, deps_file_name, expected_architecture):
+    def verify_architecture(self, deps_file_name, expected_architecture, version=None):
         deps_file = pathlib.Path(self.artifacts_dir, deps_file_name)
 
         if not deps_file.exists():
@@ -39,7 +39,7 @@ class TestDotnetBase(TestCase):
 
         with open(str(deps_file)) as f:
             deps_json = json.loads(f.read())
-        version = self.runtime[-3:]
+        version = version or self.runtime[-3:]
         target_name = ".NETCoreApp,Version=v{}/{}".format(version, expected_architecture)
         target = deps_json.get("runtimeTarget").get("name")
 
@@ -118,3 +118,77 @@ class TestDotnet31(TestDotnetBase):
 
         self.assertEqual(expected_files, output_files)
         self.verify_architecture("WithDefaultsFile.deps.json", "linux-arm64")
+
+
+class TestDotnet6(TestDotnetBase):
+    """
+    Tests for dotnet 6
+    """
+
+    def setUp(self):
+        super(TestDotnet6, self).setUp()
+        self.runtime = "dotnet6"
+
+    def test_with_defaults_file(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "WithDefaultsFile6")
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime)
+
+        expected_files = {
+            "Amazon.Lambda.Core.dll",
+            "Amazon.Lambda.Serialization.Json.dll",
+            "Newtonsoft.Json.dll",
+            "WithDefaultsFile.deps.json",
+            "WithDefaultsFile.dll",
+            "WithDefaultsFile.pdb",
+            "WithDefaultsFile.runtimeconfig.json",
+        }
+
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+        self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version="6.0")
+
+    def test_with_defaults_file_x86(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "WithDefaultsFile6")
+
+        self.builder.build(
+            source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime, architecture=X86_64
+        )
+
+        expected_files = {
+            "Amazon.Lambda.Core.dll",
+            "Amazon.Lambda.Serialization.Json.dll",
+            "Newtonsoft.Json.dll",
+            "WithDefaultsFile.deps.json",
+            "WithDefaultsFile.dll",
+            "WithDefaultsFile.pdb",
+            "WithDefaultsFile.runtimeconfig.json",
+        }
+
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+        self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version="6.0")
+
+    def test_with_defaults_file_arm64(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "WithDefaultsFile6")
+
+        self.builder.build(
+            source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime, architecture=ARM64
+        )
+
+        expected_files = {
+            "Amazon.Lambda.Core.dll",
+            "Amazon.Lambda.Serialization.Json.dll",
+            "Newtonsoft.Json.dll",
+            "WithDefaultsFile.deps.json",
+            "WithDefaultsFile.dll",
+            "WithDefaultsFile.pdb",
+            "WithDefaultsFile.runtimeconfig.json",
+        }
+
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+        self.verify_architecture("WithDefaultsFile.deps.json", "linux-arm64", version="6.0")
