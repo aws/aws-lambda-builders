@@ -1,17 +1,23 @@
+import tempfile
+from pathlib import Path
 from unittest import TestCase
+from unittest.mock import Mock
+
 from mock import patch
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction, EsbuildCheckVersionAction
 
 
 class TestEsbuildBundleAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
-    def setUp(self, OSUtilMock, SubprocessEsbuildMock):
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.node.SubprocessNodejs")
+    def setUp(self, OSUtilMock, SubprocessEsbuildMock, SubprocessNodejsMock):
         self.osutils = OSUtilMock.return_value
         self.subprocess_esbuild = SubprocessEsbuildMock.return_value
+        self.subprocess_nodejs = SubprocessNodejsMock.return_value
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
         self.osutils.file_exists.side_effect = [True, True]
 
@@ -173,6 +179,43 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
+    def test_runs_node_subprocess_if_deps_skipped(self):
+        action = EsbuildBundleAction(
+            tempfile.mkdtemp(),
+            "artifacts",
+            {"entry_points": ["app.ts"]},
+            self.osutils,
+            self.subprocess_esbuild,
+            self.subprocess_nodejs,
+            True,
+        )
+        action.execute()
+        self.subprocess_nodejs.run.assert_called()
+
+    def test_reads_nodejs_bundle_template_file(self):
+        template = EsbuildBundleAction._get_node_esbuild_template(["app.ts"], "es2020", "outdir", False, True)
+        expected_template = """let skipBundleNodeModules = {
+  name: 'make-all-packages-external',
+  setup(build) {
+    let filter = /^[^.\/]|^\.[^.\/]|^\.\.[^\/]/ // Must not start with "/" or "./" or "../"
+    build.onResolve({ filter }, args => ({ path: args.path, external: true }))
+  },
+}
+
+require('esbuild').build({
+  entryPoints: ['app.ts'],
+  bundle: true,
+  platform: 'node',
+  format: 'cjs',
+  target: 'es2020',
+  sourcemap: true,
+  outdir: 'outdir',
+  minify: false,
+  plugins: [skipBundleNodeModules],
+}).catch(() => process.exit(1))
+"""
+        self.assertEqual(template, expected_template)
+
 
 class TestImplicitFileTypeResolution(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
@@ -211,3 +254,39 @@ class TestImplicitFileTypeResolution(TestCase):
         with self.assertRaises(ActionFailedError) as context:
             self.action._get_explicit_file_type(entry_point, "invalid")
         self.assertEqual(str(context.exception), "entry point invalid does not exist")
+
+
+class TestEsbuildVersionCheckerAction(TestCase):
+    @parameterized.expand(["0.14.0", "0.0.0", "0.14.12"])
+    def test_outdated_esbuild_versions(self, version):
+        subprocess_esbuild = Mock()
+        subprocess_esbuild.run.return_value = version
+        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
+        with self.assertRaises(ActionFailedError) as content:
+            action.execute()
+        self.assertEqual(
+            str(content.exception),
+            f"Unsupported esbuild version. To use a dependency layer, the esbuild version "
+            f"must be at least 0.14.13. Version found: {version}",
+        )
+
+    @parameterized.expand(["a.0.0", "a.b.c"])
+    def test_invalid_esbuild_versions(self, version):
+        subprocess_esbuild = Mock()
+        subprocess_esbuild.run.return_value = version
+        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
+        with self.assertRaises(ActionFailedError) as content:
+            action.execute()
+        self.assertEqual(
+            str(content.exception), "Unable to parse esbuild version: invalid literal for int() with base 10: 'a'"
+        )
+
+    @parameterized.expand(["0.14.13", "1.0.0", "10.0.10"])
+    def test_valid_esbuild_versions(self, version):
+        subprocess_esbuild = Mock()
+        subprocess_esbuild.run.return_value = version
+        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
+        try:
+            action.execute()
+        except ActionFailedError:
+            self.fail("Encountered an unexpected exception.")
