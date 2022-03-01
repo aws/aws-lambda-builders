@@ -1,7 +1,8 @@
 [[constraint]]
-  name = "not-really-a-git-repo.com/pkg/log"
-  version = "1.0.0"
+  name = "github.com/aws/aws-sdk-go-v2"
+  version = "1.12.99"
 
 [prune]
   go-tests = true
   unused-packages = true
+

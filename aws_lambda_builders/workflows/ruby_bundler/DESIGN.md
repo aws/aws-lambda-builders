@@ -64,7 +64,7 @@ bundle install --deployment
 
 ### sam build --use-container
 
-This command would use some sort of container, such as `lambci/lambda:build-ruby2.5`.
+This command would use some sort of container, such as `public.ecr.aws/sam/build-ruby2.7`.
 
 ```shell
 # exit with error if vendor/bundle and/or .bundle directory exists and is non-empty
