@@ -1,5 +1,5 @@
 """
-Wrapper around calling esbuild through a subprocess.
+Wrapper around calling nodejs through a subprocess.
 """
 
 import logging
@@ -9,20 +9,20 @@ from aws_lambda_builders.exceptions import LambdaBuilderError
 LOG = logging.getLogger(__name__)
 
 
-class EsbuildExecutionError(LambdaBuilderError):
+class NodejsExecutionError(LambdaBuilderError):
 
     """
-    Exception raised in case esbuild execution fails.
-    It will pass on the standard error output from the esbuild console.
+    Exception raised in case nodejs execution fails.
+    It will pass on the standard error output from the Node.js console.
     """
 
-    MESSAGE = "Esbuild Failed: {message}"
+    MESSAGE = "Nodejs Failed: {message}"
 
 
-class SubprocessEsbuild(object):
+class SubprocessNodejs(object):
 
     """
-    Wrapper around the Esbuild command line utility, making it
+    Wrapper around the nodejs command line utility, making it
     easy to consume execution results.
     """
 
@@ -32,8 +32,8 @@ class SubprocessEsbuild(object):
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type executable_search_paths: list
-        :param executable_search_paths: List of paths to the NPM package binary utilities. This will
-            be used to find embedded esbuild at runtime if present in the package
+        :param executable_search_paths: List of paths to the node package binary utilities. This will
+            be used to find embedded Nodejs at runtime if present in the package
 
         :type which: aws_lambda_builders.utils.which
         :param which: Function to get paths which conform to the given mode on the PATH
@@ -43,25 +43,25 @@ class SubprocessEsbuild(object):
         self.executable_search_paths = executable_search_paths
         self.which = which
 
-    def esbuild_binary(self):
+    def nodejs_binary(self):
         """
-        Finds the esbuild binary at runtime.
+        Finds the Nodejs binary at runtime.
 
         The utility may be present as a package dependency of the Lambda project,
         or in the global path. If there is one in the Lambda project, it should
         be preferred over a global utility. The check has to be executed
-        at runtime, since NPM dependencies will be installed by the workflow
+        at runtime, since nodejs dependencies will be installed by the workflow
         using one of the previous actions.
         """
 
-        LOG.debug("checking for esbuild in: %s", self.executable_search_paths)
-        binaries = self.which("esbuild", executable_search_paths=self.executable_search_paths)
-        LOG.debug("potential esbuild binaries: %s", binaries)
+        LOG.debug("checking for nodejs in: %s", self.executable_search_paths)
+        binaries = self.which("node", executable_search_paths=self.executable_search_paths)
+        LOG.debug("potential nodejs binaries: %s", binaries)
 
         if binaries:
             return binaries[0]
         else:
-            raise EsbuildExecutionError(message="cannot find esbuild")
+            raise NodejsExecutionError(message="cannot find nodejs")
 
     def run(self, args, cwd=None):
 
@@ -69,7 +69,7 @@ class SubprocessEsbuild(object):
         Runs the action.
 
         :type args: list
-        :param args: Command line arguments to pass to Esbuild
+        :param args: Command line arguments to pass to Nodejs
 
         :type cwd: str
         :param cwd: Directory where to execute the command (defaults to current dir)
@@ -77,7 +77,7 @@ class SubprocessEsbuild(object):
         :rtype: str
         :return: text of the standard output from the command
 
-        :raises aws_lambda_builders.workflows.nodejs_npm.npm.EsbuildExecutionError:
+        :raises aws_lambda_builders.workflows.nodejs_npm.npm.NodejsExecutionError:
             when the command executes with a non-zero return code. The exception will
             contain the text of the standard error output from the command.
 
@@ -90,15 +90,15 @@ class SubprocessEsbuild(object):
         if not args:
             raise ValueError("requires at least one arg")
 
-        invoke_esbuild = [self.esbuild_binary()] + args
+        invoke_nodejs = [self.nodejs_binary()] + args
 
-        LOG.debug("executing Esbuild: %s", invoke_esbuild)
+        LOG.debug("executing Nodejs: %s", invoke_nodejs)
 
-        p = self.osutils.popen(invoke_esbuild, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd)
+        p = self.osutils.popen(invoke_nodejs, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd)
 
         out, err = p.communicate()
 
         if p.returncode != 0:
-            raise EsbuildExecutionError(message=err.decode("utf8").strip())
+            raise NodejsExecutionError(message=err.decode("utf8").strip())
 
         return out.decode("utf8").strip()

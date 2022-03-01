@@ -47,11 +47,10 @@ class TestPythonPipWorkflow(TestCase):
             language=self.builder.capability.language, major=sys.version_info.major, minor=sys.version_info.minor
         )
         self.runtime_mismatch = {
-            "python3.6": "python2.7",
-            "python3.7": "python2.7",
-            "python2.7": "python3.8",
-            "python3.8": "python2.7",
-            "python3.9": "python2.7",
+            "python3.6": "python3.7",
+            "python3.7": "python3.8",
+            "python3.8": "python3.9",
+            "python3.9": "python3.7",
         }
 
     def tearDown(self):
@@ -74,18 +73,12 @@ class TestPythonPipWorkflow(TestCase):
             )
         )
 
-    # Temporarily skipping this test in Windows
-    # Fails and we are not sure why: pip version/multiple Python versions in path/os/pypa issue?
-    # TODO: Revisit when we deprecate Python2
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_build_python_project(self):
         self.builder.build(
             self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime=self.runtime
         )
 
-        if self.runtime == "python2.7":
-            expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
-        elif self.runtime == "python3.6":
+        if self.runtime == "python3.6":
             self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
         else:
@@ -132,13 +125,9 @@ class TestPythonPipWorkflow(TestCase):
 
         self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
 
-    # Temporarily skipping this test in Windows
-    # Fails and we are not sure why: pip version/multiple Python versions in path/os/pypa issue?
-    # TODO: Revisit when we deprecate Python2
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_mismatch_runtime_python_project(self):
-        # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python2.7
-        # is still accessible within a python 3 virtualenv.
+        # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python3.7
+        # is still accessible within a python 3.8 virtualenv.
         try:
             self.builder.build(
                 self.source_dir,
@@ -185,11 +174,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid, runtime=self.runtime
             )
 
-        # In Python2 a 'u' is now added to the exception string. To account for this, we see if either one is in the
-        # output
-        message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(
-            ctx.exception
-        ) or "Invalid requirement: u'boto3=1.19.99'" in str(ctx.exception)
+        message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(ctx.exception)
         self.assertTrue(message_in_exception)
 
     def test_must_log_warning_if_requirements_not_found(self):
