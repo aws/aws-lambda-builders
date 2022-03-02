@@ -87,9 +87,9 @@ def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, build
 
     npm_ci_option = False
     if build_options and isinstance(build_options, dict):
-        npm_ci_option = build_options.get("use_npm_ci")
+        npm_ci_option = build_options.get("use_npm_ci", False)
 
     if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
         return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
-    else:
-        return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm, is_production=False)
+
+    return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm, is_production=False)
