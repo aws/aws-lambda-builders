@@ -23,9 +23,8 @@ from .node import SubprocessNodejs
 from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm import NodejsNpmWorkflow
-from ..nodejs_npm.actions import NodejsNpmCIAction, NodejsNpmInstallAction
 from ..nodejs_npm.npm import SubprocessNpm
-from ..nodejs_npm.utils import OSUtils, get_install_action
+from ..nodejs_npm.utils import OSUtils
 from ...path_resolver import PathResolver
 
 LOG = logging.getLogger(__name__)
@@ -124,7 +123,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         ]
         esbuild_with_deps = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
 
-        install_action = get_install_action(source_dir, scratch_dir, subprocess_npm, osutils, self.options)
+        install_action = NodejsNpmWorkflow.get_install_action(
+            source_dir, scratch_dir, subprocess_npm, osutils, self.options, is_production=False
+        )
 
         if self.download_dependencies and not self.dependencies_dir:
             return actions + [install_action, esbuild_with_deps]

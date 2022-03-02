@@ -9,8 +9,6 @@ import subprocess
 import shutil
 import json
 
-from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmCIAction, NodejsNpmInstallAction
-
 
 class OSUtils(object):
 
@@ -55,38 +53,3 @@ class OSUtils(object):
     def parse_json(self, path):
         with open(path) as json_file:
             return json.load(json_file)
-
-
-def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, build_options):
-    """
-    Get the install action used to install dependencies at artifacts_dir
-
-    :type source_dir: str
-    :param source_dir: an existing (readable) directory containing source files
-
-    :type artifacts_dir: str
-    :param artifacts_dir: Dependencies will be installed in this directory.
-
-    :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-    :param osutils: An instance of OS Utilities for file manipulation
-
-    :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
-    :param subprocess_npm: An instance of the NPM process wrapper
-
-    :type build_options: Dict
-    :param build_options: Object containing build options configurations
-
-    :rtype: BaseAction
-    :return: Install action to use
-    """
-    lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
-    shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
-
-    npm_ci_option = False
-    if build_options and isinstance(build_options, dict):
-        npm_ci_option = build_options.get("use_npm_ci", False)
-
-    if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
-        return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
-
-    return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm, is_production=False)
