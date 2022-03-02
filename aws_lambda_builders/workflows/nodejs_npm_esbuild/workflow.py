@@ -22,9 +22,10 @@ from .actions import (
 from .node import SubprocessNodejs
 from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
+from ..nodejs_npm import NodejsNpmWorkflow
 from ..nodejs_npm.actions import NodejsNpmCIAction, NodejsNpmInstallAction
 from ..nodejs_npm.npm import SubprocessNpm
-from ..nodejs_npm.utils import OSUtils
+from ..nodejs_npm.utils import OSUtils, get_install_action
 from ...path_resolver import PathResolver
 
 LOG = logging.getLogger(__name__)
@@ -101,9 +102,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :rtype: list
         :return: List of build actions to execute
         """
-        lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
-        shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
-
         actions: List[BaseAction] = [
             CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES + tuple(["node_modules"]))
         ]
@@ -126,10 +124,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         ]
         esbuild_with_deps = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
 
-        if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
-            install_action = NodejsNpmCIAction(scratch_dir, subprocess_npm=subprocess_npm)
-        else:
-            install_action = NodejsNpmInstallAction(scratch_dir, subprocess_npm=subprocess_npm, is_production=False)
+        install_action = get_install_action(source_dir, scratch_dir, subprocess_npm, osutils, self.options)
 
         if self.download_dependencies and not self.dependencies_dir:
             return actions + [install_action, esbuild_with_deps]

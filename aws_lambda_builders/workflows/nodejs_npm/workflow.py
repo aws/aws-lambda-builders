@@ -19,8 +19,9 @@ from .actions import (
     NodejsNpmInstallAction,
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
+    NodejsNpmCIAction,
 )
-from .utils import OSUtils
+from .utils import OSUtils, get_install_action
 from .npm import SubprocessNpm
 
 LOG = logging.getLogger(__name__)
@@ -102,7 +103,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         if self.download_dependencies:
             # installed the dependencies into artifact folder
-            install_action = NodejsNpmWorkflow.get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils)
+            install_action = get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, self.options)
             actions.append(install_action)
 
             # if dependencies folder exists, copy or move dependencies from artifact folder to dependencies folder
@@ -140,34 +141,3 @@ class NodejsNpmWorkflow(BaseWorkflow):
         specialized path resolver that just returns the list of executable for the runtime on the path.
         """
         return [PathResolver(runtime=self.runtime, binary="npm")]
-
-    @staticmethod
-    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, is_production=True):
-        """
-        Get the install action used to install dependencies at artifacts_dir
-
-        :type source_dir: str
-        :param source_dir: an existing (readable) directory containing source files
-
-        :type artifacts_dir: str
-        :param artifacts_dir: Dependencies will be installed in this directory.
-
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
-
-        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
-        :param subprocess_npm: An instance of the NPM process wrapper
-
-        :type is_production: bool
-        :param is_production: NPM installation mode is production (eg --production=false to force dev dependencies)
-
-        :rtype: BaseAction
-        :return: Install action to use
-        """
-        lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
-        shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
-
-        if osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path):
-            return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
-        else:
-            return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm, is_production=is_production)

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from mock import patch, call
 
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, CopyDependenciesAction, MoveDependenciesAction
 from aws_lambda_builders.architecture import ARM64
@@ -10,6 +10,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
     NodejsNpmLockFileCleanUpAction,
+    NodejsNpmCIAction,
 )
 
 
@@ -185,3 +186,49 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.assertEqual(workflow.architecture, "x86_64")
         self.assertEqual(workflow_with_arm.architecture, "arm64")
+
+    def test_workflow_uses_npm_ci_if_shrinkwrap_exists_and_npm_ci_enabled(self):
+
+        self.osutils.file_exists.side_effect = [True, False, True]
+
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            options={"use_npm_ci": True},
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcAndLockfileCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
+        self.osutils.file_exists.assert_has_calls(
+            [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
+        )
+
+    def test_workflow_uses_npm_ci_if_lockfile_exists_and_npm_ci_enabled(self):
+
+        self.osutils.file_exists.side_effect = [True, True]
+
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            options={"use_npm_ci": True},
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcAndLockfileCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
+        self.osutils.file_exists.assert_has_calls([call("source/package-lock.json")])
