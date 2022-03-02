@@ -76,9 +76,6 @@ def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, build
     :type build_options: Dict
     :param build_options: Object containing build options configurations
 
-    :type is_production: bool
-    :param is_production: NPM installation mode is production (eg --production=false to force dev dependencies)
-
     :rtype: BaseAction
     :return: Install action to use
     """
