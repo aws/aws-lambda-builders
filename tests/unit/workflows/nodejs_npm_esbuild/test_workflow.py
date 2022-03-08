@@ -38,7 +38,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
     def test_workflow_sets_up_npm_actions_with_bundler_if_manifest_requests_it(self):
 
-        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
         self.osutils.file_exists.side_effect = [True, False, False]
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -61,7 +60,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
     def test_sets_up_esbuild_search_path_from_npm_bin(self):
 
         self.popen.out = b"project/bin"
-        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
 
         workflow = NodejsNpmEsbuildWorkflow(
             "source",
@@ -81,7 +79,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
     def test_sets_up_esbuild_search_path_with_workflow_executable_search_paths_after_npm_bin(self):
 
         self.popen.out = b"project/bin"
-        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
 
         workflow = NodejsNpmEsbuildWorkflow(
             "source",
@@ -100,7 +97,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
     def test_workflow_uses_npm_ci_if_lockfile_exists(self):
 
-        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
         self.osutils.file_exists.side_effect = [True, True]
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -110,6 +106,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "manifest",
             osutils=self.osutils,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            options={"use_npm_ci": True},
         )
 
         self.assertEqual(len(workflow.actions), 3)
@@ -120,7 +117,28 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
     def test_workflow_uses_npm_ci_if_shrinkwrap_exists(self):
 
-        self.osutils.parse_json.side_effect = [{"aws_sam": {"bundler": "esbuild"}}]
+        self.osutils.file_exists.side_effect = [True, False, True]
+
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            options={"use_npm_ci": True},
+        )
+
+        self.assertEqual(len(workflow.actions), 3)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.osutils.file_exists.assert_has_calls(
+            [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
+        )
+
+    def test_workflow_doesnt_use_npm_ci_no_options_config(self):
+
         self.osutils.file_exists.side_effect = [True, False, True]
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -134,7 +152,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 3)
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls(
             [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
@@ -181,7 +199,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 3)
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_without_download_dependencies_with_dependencies_dir_combine_deps(self):
@@ -243,7 +261,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEqual(len(workflow.actions), 5)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[2], CleanUpAction)
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
         self.assertIsInstance(workflow.actions[4], CopyDependenciesAction)
@@ -264,7 +282,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEqual(len(workflow.actions), 6)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[2], CleanUpAction)
         self.assertIsInstance(workflow.actions[3], EsbuildCheckVersionAction)
         self.assertIsInstance(workflow.actions[4], EsbuildBundleAction)
