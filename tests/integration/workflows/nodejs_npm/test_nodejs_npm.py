@@ -6,6 +6,8 @@ import tempfile
 from unittest import TestCase
 
 import mock
+from parameterized import parameterized
+
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
@@ -119,6 +121,31 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_modules = {"fake-http-request"}
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
+
+    @parameterized.expand(["package-lock", "shrinkwrap", "package-lock-and-shrinkwrap"])
+    def test_builds_project_with_lockfile(self, dir_name):
+        expected_files_common = {"package.json", "included.js", "node_modules"}
+        expected_files_by_dir_name = {
+            "package-lock": {"package-lock.json"},
+            "shrinkwrap": {"npm-shrinkwrap.json"},
+            "package-lock-and-shrinkwrap": {"package-lock.json", "npm-shrinkwrap.json"},
+        }
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, dir_name)
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+        )
+
+        expected_files = expected_files_common.union(expected_files_by_dir_name[dir_name])
+
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
 
     def test_fails_if_npm_cannot_resolve_dependencies(self):
 
