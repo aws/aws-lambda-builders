@@ -19,7 +19,6 @@ from .actions import (
     EsbuildBundleAction,
     EsbuildCheckVersionAction,
 )
-from .node import SubprocessNodejs
 from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm import NodejsNpmWorkflow
@@ -61,7 +60,11 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
         if not osutils.file_exists(manifest_path):
             LOG.warning("package.json file not found. Bundling source without dependencies.")
-            self.actions = [EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)]
+            self.actions = [
+                EsbuildBundleAction(
+                    source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
+                )
+            ]
             return
 
         if not is_experimental_esbuild_scope(self.experimental_flags):
@@ -105,8 +108,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES + tuple(["node_modules"]))
         ]
 
-        subprocess_node = SubprocessNodejs(osutils, self.executable_search_paths, which=which)
-
         # Bundle dependencies separately in a dependency layer. We need to check the esbuild
         # version here to ensure that it supports skipping dependency bundling
         esbuild_no_deps = [
@@ -117,11 +118,13 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 bundler_config,
                 osutils,
                 subprocess_esbuild,
-                subprocess_node,
+                self.manifest_path,
                 skip_deps=True,
             ),
         ]
-        esbuild_with_deps = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+        esbuild_with_deps = EsbuildBundleAction(
+            scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
+        )
 
         install_action = NodejsNpmWorkflow.get_install_action(
             source_dir, scratch_dir, subprocess_npm, osutils, self.options, is_production=False
