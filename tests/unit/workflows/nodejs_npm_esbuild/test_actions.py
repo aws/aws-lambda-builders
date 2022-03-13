@@ -70,6 +70,27 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
+    def test_adds_externals(self):
+        action = EsbuildBundleAction(
+            "source", "artifacts", {"entry_points": ["x.js"], "externals": ["fetch", "aws-sdk"]}, self.osutils, self.subprocess_esbuild
+        )
+        action.execute();
+        self.subprocess_esbuild.run.assert_called_with(
+            [
+                "x.js",
+                "--bundle",
+                "--platform=node",
+                "--format=cjs",
+                "--minify",
+                "--sourcemap",
+                "--external:fetch",
+                "--external:aws-sdk",
+                "--target=es2020",
+                "--outdir=artifacts",
+            ],
+            cwd="source",
+        )
+
     def test_checks_if_single_entrypoint_exists(self):
 
         action = EsbuildBundleAction(

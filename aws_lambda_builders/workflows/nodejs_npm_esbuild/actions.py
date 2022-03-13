@@ -54,6 +54,9 @@ class EsbuildBundleAction(BaseAction):
 
         :type skip_deps: bool
         :param skip_deps: if dependencies should be omitted from bundling
+
+        :type bundler_config: Dict[str,Any]
+        :param bundler_config: the bundler configuration
         """
         super(EsbuildBundleAction, self).__init__()
         self.scratch_dir = scratch_dir
@@ -94,15 +97,20 @@ class EsbuildBundleAction(BaseAction):
         minify = self.bundler_config.get("minify", True)
         sourcemap = self.bundler_config.get("sourcemap", True)
         target = self.bundler_config.get("target", "es2020")
+        externals = self.bundler_config.get("externals", [])
         if minify:
             args.append("--minify")
         if sourcemap:
             args.append("--sourcemap")
+        if len(externals) > 0:
+            args.extend(map(lambda x: f'--external:{x}', externals))
+
         args.append("--target={}".format(target))
         args.append("--outdir={}".format(self.artifacts_dir))
 
         if self.skip_deps:
             LOG.info("Running custom esbuild using Node.js")
+            # Don't pass externals because the esbuild.js template makes everything external
             script = EsbuildBundleAction._get_node_esbuild_template(
                 explicit_entry_points, target, self.artifacts_dir, minify, sourcemap
             )
