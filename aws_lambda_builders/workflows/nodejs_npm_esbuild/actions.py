@@ -74,24 +74,7 @@ class EsbuildBundleAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
         """
 
-        if self.ENTRY_POINTS not in self.bundler_config:
-            raise ActionFailedError(f"{self.ENTRY_POINTS} not set ({self.bundler_config})")
-
-        entry_points = self.bundler_config[self.ENTRY_POINTS]
-
-        if not isinstance(entry_points, list):
-            raise ActionFailedError(f"{self.ENTRY_POINTS} must be a list ({self.bundler_config})")
-
-        if not entry_points:
-            raise ActionFailedError(f"{self.ENTRY_POINTS} must not be empty ({self.bundler_config})")
-
-        entry_paths = [self.osutils.joinpath(self.scratch_dir, entry_point) for entry_point in entry_points]
-
-        LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
-
-        explicit_entry_points = []
-        for entry_path, entry_point in zip(entry_paths, entry_points):
-            explicit_entry_points.append(self._get_explicit_file_type(entry_point, entry_path))
+        explicit_entry_points = self._construct_esbuild_entry_points()
 
         args = explicit_entry_points + ["--bundle", "--platform=node", "--format=cjs"]
         minify = self.bundler_config.get("minify", True)
@@ -139,6 +122,30 @@ class EsbuildBundleAction(BaseAction):
                 self.subprocess_nodejs.run([tmp.name], cwd=self.scratch_dir)
             except EsbuildExecutionError as ex:
                 raise ActionFailedError(str(ex))
+
+    def _construct_esbuild_entry_points(self):
+        """
+        Construct the list of explicit entry points
+        """
+        if self.ENTRY_POINTS not in self.bundler_config:
+            raise ActionFailedError(f"{self.ENTRY_POINTS} not set ({self.bundler_config})")
+
+        entry_points = self.bundler_config[self.ENTRY_POINTS]
+
+        if not isinstance(entry_points, list):
+            raise ActionFailedError(f"{self.ENTRY_POINTS} must be a list ({self.bundler_config})")
+
+        if not entry_points:
+            raise ActionFailedError(f"{self.ENTRY_POINTS} must not be empty ({self.bundler_config})")
+
+        entry_paths = [self.osutils.joinpath(self.scratch_dir, entry_point) for entry_point in entry_points]
+
+        LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
+
+        explicit_entry_points = []
+        for entry_path, entry_point in zip(entry_paths, entry_points):
+            explicit_entry_points.append(self._get_explicit_file_type(entry_point, entry_path))
+        return explicit_entry_points
 
     @staticmethod
     def _get_node_esbuild_template(entry_points, target, out_dir, minify, sourcemap):
