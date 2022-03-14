@@ -3,7 +3,7 @@ Go Dep Workflow
 """
 
 import logging
-import os
+from warnings import warn
 
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
@@ -27,7 +27,7 @@ class GoDepWorkflow(BaseWorkflow):
     EXCLUDED_FILES = (".aws-sam", ".git")
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
-
+        warn(f"{self.__class__.__name__} will be remove on April 11, 2022.", DeprecationWarning, stacklevel=2)
         super(GoDepWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
