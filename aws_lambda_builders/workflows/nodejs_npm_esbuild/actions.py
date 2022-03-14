@@ -86,7 +86,7 @@ class EsbuildBundleAction(BaseAction):
         if sourcemap:
             args.append("--sourcemap")
         if len(externals) > 0:
-            args.extend(map(lambda x: f'--external:{x}', externals))
+            args.extend(map(lambda x: f"--external:{x}", externals))
 
         args.append("--target={}".format(target))
         args.append("--outdir={}".format(self.artifacts_dir))

@@ -72,9 +72,13 @@ class TestEsbuildBundleAction(TestCase):
 
     def test_adds_externals(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js"], "externals": ["fetch", "aws-sdk"]}, self.osutils, self.subprocess_esbuild
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"], "externals": ["fetch", "aws-sdk"]},
+            self.osutils,
+            self.subprocess_esbuild,
         )
-        action.execute();
+        action.execute()
         self.subprocess_esbuild.run.assert_called_with(
             [
                 "x.js",
