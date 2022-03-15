@@ -95,6 +95,30 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
+    def test_adds_loaders(self):
+        action = EsbuildBundleAction(
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"], "loaders": {".proto": "text"}},
+            self.osutils,
+            self.subprocess_esbuild,
+        )
+        action.execute()
+        self.subprocess_esbuild.run.assert_called_with(
+            [
+                "x.js",
+                "--bundle",
+                "--platform=node",
+                "--format=cjs",
+                "--minify",
+                "--sourcemap",
+                "--loader:.proto=text",
+                "--target=es2020",
+                "--outdir=artifacts",
+            ],
+            cwd="source",
+        )
+
     def test_checks_if_single_entrypoint_exists(self):
 
         action = EsbuildBundleAction(

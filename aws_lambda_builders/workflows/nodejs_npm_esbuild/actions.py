@@ -81,12 +81,15 @@ class EsbuildBundleAction(BaseAction):
         sourcemap = self.bundler_config.get("sourcemap", True)
         target = self.bundler_config.get("target", "es2020")
         externals = self.bundler_config.get("externals", [])
+        loaders = self.bundler_config.get("loaders", {})
         if minify:
             args.append("--minify")
         if sourcemap:
             args.append("--sourcemap")
         if len(externals) > 0:
             args.extend(map(lambda x: f"--external:{x}", externals))
+        for ext, loader in loaders.items():
+            args.append(f"--loader:{ext}={loader}")
 
         args.append("--target={}".format(target))
         args.append("--outdir={}".format(self.artifacts_dir))
