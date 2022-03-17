@@ -3,8 +3,11 @@ from mock import patch
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild, EsbuildExecutionError, \
-    EsbuildCommandBuilder
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import (
+    SubprocessEsbuild,
+    EsbuildExecutionError,
+    EsbuildCommandBuilder,
+)
 
 
 class FakePopen:

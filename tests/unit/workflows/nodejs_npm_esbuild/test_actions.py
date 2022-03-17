@@ -200,7 +200,7 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
-                 "--outdir=artifacts",
+                "--outdir=artifacts",
                 "--minify",
                 "--sourcemap",
                 "--target=node14",
