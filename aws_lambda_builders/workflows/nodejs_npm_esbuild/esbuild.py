@@ -10,26 +10,8 @@ from aws_lambda_builders.workflows.nodejs_npm_esbuild.exceptions import EsbuildC
 
 LOG = logging.getLogger(__name__)
 
-# The esbuild API flags are broken up into three forms (https://esbuild.github.io/api/):
-# Boolean types (--minify)
-SUPPORTED_ESBUILD_APIS_BOOLEAN = [
-    "minify",
-    "sourcemap",
-]
-
-# single value types (--target=es2020)
-SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
-    "target",
-]
-
-# Multi-value types (--external:axios --external:aws-sdk)
-SUPPORTED_ESBUILD_APIS_MULTI_VALUE = [
-    "external",
-]
-
 
 class SubprocessEsbuild(object):
-
     """
     Wrapper around the Esbuild command line utility, making it
     easy to consume execution results.
@@ -113,39 +95,50 @@ class SubprocessEsbuild(object):
         return out.decode("utf8").strip()
 
 
-class EsbuildCommandBuilder:
+# The esbuild API flags are broken up into three forms (https://esbuild.github.io/api/):
+# Boolean types (--minify)
+SUPPORTED_ESBUILD_APIS_BOOLEAN = [
+    "minify",
+    "sourcemap",
+]
 
+# single value types (--target=es2020)
+SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
+    "target",
+]
+
+# Multi-value types (--external:axios --external:aws-sdk)
+SUPPORTED_ESBUILD_APIS_MULTI_VALUE = [
+    "external",
+]
+
+
+class EsbuildCommandBuilder:
     ENTRY_POINTS = "entry_points"
 
-    def __init__(self, scratch_dir, artifacts_dir, bundler_config, osutils, manifest, use_dependency_layer=False):
+    def __init__(self, scratch_dir, artifacts_dir, bundler_config, osutils, manifest):
         self.scratch_dir = scratch_dir
         self.artifacts_dir = artifacts_dir
         self.bundler_config = bundler_config
-        self.manifest = manifest
         self.osutils = osutils
-        self.use_dependency_layer = use_dependency_layer
-        self.explicit_entry_points = []
+        self.manifest = manifest
+        self._command = []
 
-    def get_esbuild_build_args(self):
-        args = self.explicit_entry_points + ["--bundle", "--platform=node", "--format=cjs"]
-        args.append("--outdir={}".format(self.artifacts_dir))
-        args += self._set_default_values()
+    def get_command(self):
+        return self._command
 
-        if self.use_dependency_layer or "./node_modules/*" in self.bundler_config.get("external", []):
-            if "external" in self.bundler_config:
-                # Already marking everything as external
-                self.bundler_config.pop("external")
-            args += self._mark_all_external()
+    def build_esbuild_args_from_config(self):
+        args = []
 
-        args += self._get_boolean_args()
-        args += self._get_single_value_args()
-        args += self._get_multi_value_args()
+        args.extend(self._get_boolean_args())
+        args.extend(self._get_single_value_args())
+        args.extend(self._get_multi_value_args())
 
-        LOG.debug("Running: esbuild with args {}".format(str(args)))
+        LOG.debug("Found the following args in the config: %s", str(args))
 
-        return args
+        self._command.extend(args)
 
-    def set_and_validate_entry_points(self):
+    def build_entry_points(self):
         if self.ENTRY_POINTS not in self.bundler_config:
             raise EsbuildCommandError(f"{self.ENTRY_POINTS} not set ({self.bundler_config})")
 
@@ -162,10 +155,10 @@ class EsbuildCommandBuilder:
         LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
 
         for entry_path, entry_point in zip(entry_paths, entry_points):
-            self.explicit_entry_points.append(self._get_explicit_file_type(entry_point, entry_path))
+            self._command.append(self._get_explicit_file_type(entry_point, entry_path))
 
-    def _set_default_values(self):
-        args = []
+    def build_default_values(self):
+        args = ["--bundle", "--platform=node", "--format=cjs", "--outdir={}".format(self.artifacts_dir)]
 
         if "target" not in self.bundler_config:
             args.append("--target=es2020")
@@ -176,7 +169,15 @@ class EsbuildCommandBuilder:
         if "sourcemap" not in self.bundler_config:
             args.append("--sourcemap")
 
-        return args
+        LOG.debug("Using the following default args: %s", str(args))
+
+        self._command.extend(args)
+
+    def build_with_no_dependencies(self):
+        package = self.osutils.parse_json(self.manifest)
+        dependencies = package.get("dependencies", {}).keys()
+        args = ["--external:{}".format(dep) for dep in dependencies]
+        self._command.extend(args)
 
     def _get_boolean_args(self):
         args = []
@@ -202,14 +203,6 @@ class EsbuildCommandBuilder:
                     raise EsbuildCommandError(f"Invalid type for property {param}, must be a dict.")
                 for param_item in vals:
                     args.append(f"--{param}:{param_item}")
-        return args
-
-    def _mark_all_external(self):
-        package = self.osutils.parse_json(self.manifest)
-        deps = package.get("dependencies", {}).keys()
-        args = []
-        for dep in deps:
-            args.append("--external:{}".format(dep))
         return args
 
     def _get_explicit_file_type(self, entry_point, entry_path):

@@ -45,9 +45,6 @@ class EsbuildBundleAction(BaseAction):
         :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
         :param subprocess_esbuild: An instance of the Esbuild process wrapper
 
-        :type subprocess_nodejs: aws_lambda_builders.workflows.nodejs_npm_esbuild.node.SubprocessNodejs
-        :param subprocess_nodejs: An instance of the nodejs process wrapper
-
         :type skip_deps: bool
         :param skip_deps: if dependencies should be omitted from bundling
         """
@@ -67,10 +64,20 @@ class EsbuildBundleAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
         """
         esbuild_command_builder = EsbuildCommandBuilder(
-            self.scratch_dir, self.artifacts_dir, self.bundler_config, self.osutils, self.manifest, self.skip_deps
+            self.scratch_dir, self.artifacts_dir, self.bundler_config, self.osutils, self.manifest
         )
-        esbuild_command_builder.set_and_validate_entry_points()
-        args = esbuild_command_builder.get_esbuild_build_args()
+        esbuild_command_builder.build_entry_points()
+        esbuild_command_builder.build_default_values()
+
+        # Handle the event of marking all dependencies as external
+        if self.skip_deps or "./node_modules/*" in self.bundler_config.get("external", []):
+            if "external" in self.bundler_config:
+                # Already marking everything as external
+                self.bundler_config.pop("external")
+            esbuild_command_builder.build_with_no_dependencies()
+
+        esbuild_command_builder.build_esbuild_args_from_config()
+        args = esbuild_command_builder.get_command()
 
         try:
             self.subprocess_esbuild.run(args, cwd=self.scratch_dir)
