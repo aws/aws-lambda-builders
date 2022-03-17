@@ -20,6 +20,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def setUp(self):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
+        self.dependencies_dir = tempfile.mkdtemp()
 
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
 
@@ -46,12 +47,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def test_builds_javascript_project_with_dependencies(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
+        options = {"entry_points": ["included.js"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -62,12 +66,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def test_builds_javascript_project_with_multiple_entrypoints(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-multiple-entrypoints")
 
+        options = {"entry_points": ["included.js", "included2.js"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -78,12 +85,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def test_builds_typescript_projects(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-typescript")
 
+        options = {"entry_points": ["included.ts"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -101,12 +111,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         binpath = npm.run(["bin"], cwd=esbuild_dir)
 
+        options = {"entry_points": ["included.js"]}
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=self.runtime,
+            options=options,
             executable_search_paths=[binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
@@ -115,11 +128,10 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_fails_if_package_json_is_broken(self):
+    def test_no_options_passed_to_esbuild(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-package")
-
-        with self.assertRaises(WorkflowFailedError) as ctx:
+        with self.assertRaises(WorkflowFailedError) as context:
             self.builder.build(
                 source_dir,
                 self.artifacts_dir,
@@ -129,4 +141,149 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
-        self.assertIn("NodejsNpmEsbuildBuilder:ParseManifest", str(ctx.exception))
+        self.assertEqual(str(context.exception), "NodejsNpmEsbuildBuilder:EsbuildBundle - entry_points not set ({})")
+
+    def test_bundle_with_implicit_file_types(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "implicit-file-types")
+
+        options = {"entry_points": ["included", "implicit"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js.map", "implicit.js.map", "implicit.js", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    def test_bundles_project_without_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-package-esbuild")
+        options = {"entry_points": ["included"]}
+
+        osutils = OSUtils()
+        npm = SubprocessNpm(osutils)
+        esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+        npm.run(["ci"], cwd=esbuild_dir)
+        binpath = npm.run(["bin"], cwd=esbuild_dir)
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            executable_search_paths=[binpath],
+        )
+
+        expected_files = {"included.js.map", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
+        options = {"entry_points": ["included.js"]}
+
+        osutils = OSUtils()
+        npm = SubprocessNpm(osutils)
+        esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+        npm.run(["ci"], cwd=esbuild_dir)
+        binpath = npm.run(["bin"], cwd=esbuild_dir)
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            options=options,
+            runtime=self.runtime,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=False,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            executable_search_paths=[binpath],
+        )
+
+        expected_files = {"included.js.map", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    def test_builds_project_with_remote_dependencies_with_download_dependencies_and_dependencies_dir(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=True,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js.map", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        expected_modules = "minimal-request-promise"
+        output_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertIn(expected_modules, output_modules)
+
+        expected_dependencies_files = {"node_modules"}
+        output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
+        self.assertNotIn(expected_dependencies_files, output_dependencies_files)
+
+    def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
+
+        with self.assertRaises(EsbuildExecutionError) as context:
+            self.builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "package.json"),
+                runtime=self.runtime,
+                dependencies_dir=None,
+                download_dependencies=False,
+                experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            )
+
+        self.assertEqual(str(context.exception), "Esbuild Failed: Lambda Builders encountered and invalid workflow")
+
+    def test_builds_project_without_combine_dependencies(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=True,
+            combine_dependencies=False,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js.map", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        expected_modules = "minimal-request-promise"
+        output_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertIn(expected_modules, output_modules)
+
+        expected_dependencies_files = {"node_modules"}
+        output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
+        self.assertNotIn(expected_dependencies_files, output_dependencies_files)

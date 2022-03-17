@@ -13,6 +13,8 @@ import logging
 
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
+NOT_ARM = platform.processor() != "aarch64"
+ARM_RUNTIMES = {"python3.8", "python3.9"}
 
 
 class TestPythonPipWorkflow(TestCase):
@@ -30,12 +32,14 @@ class TestPythonPipWorkflow(TestCase):
 
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
+        self.manifest_path_sdist = os.path.join(self.TEST_DATA_FOLDER, "requirements-wrapt.txt")
 
         self.test_data_files = {
             "__init__.py",
             "main.py",
             "requirements-invalid.txt",
             "requirements-numpy.txt",
+            "requirements-wrapt.txt",
             "local-dependencies",
         }
 
@@ -44,11 +48,10 @@ class TestPythonPipWorkflow(TestCase):
             language=self.builder.capability.language, major=sys.version_info.major, minor=sys.version_info.minor
         )
         self.runtime_mismatch = {
-            "python3.6": "python2.7",
-            "python3.7": "python2.7",
-            "python2.7": "python3.8",
-            "python3.8": "python2.7",
-            "python3.9": "python2.7",
+            "python3.6": "python3.7",
+            "python3.7": "python3.8",
+            "python3.8": "python3.9",
+            "python3.9": "python3.7",
         }
 
     def tearDown(self):
@@ -71,18 +74,12 @@ class TestPythonPipWorkflow(TestCase):
             )
         )
 
-    # Temporarily skipping this test in Windows
-    # Fails and we are not sure why: pip version/multiple Python versions in path/os/pypa issue?
-    # TODO: Revisit when we deprecate Python2
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_build_python_project(self):
         self.builder.build(
             self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime=self.runtime
         )
 
-        if self.runtime == "python2.7":
-            expected_files = self.test_data_files.union({"numpy", "numpy-1.15.4.data", "numpy-1.15.4.dist-info"})
-        elif self.runtime == "python3.6":
+        if self.runtime == "python3.6":
             self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
         else:
@@ -92,8 +89,27 @@ class TestPythonPipWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
+    @skipIf(NOT_ARM, "Skip if not running on ARM64")
+    def test_must_build_python_project_from_sdist_with_arm(self):
+        if self.runtime not in ARM_RUNTIMES:
+            self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
+
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_sdist,
+            runtime=self.runtime,
+            architecture="arm64",
+        )
+        expected_files = self.test_data_files.union({"wrapt", "wrapt-1.13.3.dist-info"})
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        self.check_architecture_in("wrapt-1.13.3.dist-info", ["linux_aarch64"])
+
     def test_must_build_python_project_with_arm_architecture(self):
-        if self.runtime != "python3.8":
+        if self.runtime not in ARM_RUNTIMES:
             self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
         ### Check the wheels
         self.builder.build(
@@ -110,13 +126,9 @@ class TestPythonPipWorkflow(TestCase):
 
         self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
 
-    # Temporarily skipping this test in Windows
-    # Fails and we are not sure why: pip version/multiple Python versions in path/os/pypa issue?
-    # TODO: Revisit when we deprecate Python2
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_mismatch_runtime_python_project(self):
-        # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python2.7
-        # is still accessible within a python 3 virtualenv.
+        # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python3.7
+        # is still accessible within a python 3.8 virtualenv.
         try:
             self.builder.build(
                 self.source_dir,
@@ -171,11 +183,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid, runtime=self.runtime
             )
 
-        # In Python2 a 'u' is now added to the exception string. To account for this, we see if either one is in the
-        # output
-        message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(
-            ctx.exception
-        ) or "Invalid requirement: u'boto3=1.19.99'" in str(ctx.exception)
+        message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(ctx.exception)
         self.assertTrue(message_in_exception)
 
     def test_must_log_warning_if_requirements_not_found(self):

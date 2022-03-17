@@ -81,7 +81,6 @@ class UnsupportedPythonVersion(PackagerError):
 
 def get_lambda_abi(runtime):
     supported = {
-        "python2.7": "cp27mu",
         "python3.6": "cp36m",
         "python3.7": "cp37m",
         "python3.8": "cp38",
@@ -100,7 +99,7 @@ class PythonPipDependencyBuilder(object):
 
         :type runtime: str
         :param runtime: Python version to build dependencies for. This can
-            either be python2.7, python3.6 or python3.7. These are currently the
+            either be python3.6, python3.7, python3.8 or python3.9. These are currently the
             only supported values.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -172,6 +171,7 @@ class DependencyBuilder(object):
 
     _COMPATIBLE_PLATFORM_ARM64 = {
         "any",
+        "linux_aarch64",
         "manylinux2014_aarch64",
     }
 
