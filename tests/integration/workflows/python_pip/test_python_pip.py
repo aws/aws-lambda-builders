@@ -5,6 +5,7 @@ import platform
 import tempfile
 from unittest import TestCase, skipIf
 import mock
+from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -14,6 +15,7 @@ logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
 NOT_ARM = platform.processor() != "aarch64"
 ARM_RUNTIMES = {"python3.8", "python3.9"}
+SUPPORTED_PYTHON_VERSIONS = set(["python3.6", "python3.7"] + list(ARM_RUNTIMES))
 
 
 class TestPythonPipWorkflow(TestCase):
@@ -73,12 +75,13 @@ class TestPythonPipWorkflow(TestCase):
             )
         )
 
-    def test_must_build_python_project(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_must_build_python_project(self, runtime):
         self.builder.build(
-            self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime=self.runtime
+            self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime=runtime
         )
 
-        if self.runtime == "python3.6":
+        if runtime == "python3.6":
             self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
         else:
@@ -89,16 +92,17 @@ class TestPythonPipWorkflow(TestCase):
         self.assertEqual(expected_files, output_files)
 
     @skipIf(NOT_ARM, "Skip if not running on ARM64")
-    def test_must_build_python_project_from_sdist_with_arm(self):
-        if self.runtime not in ARM_RUNTIMES:
-            self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_must_build_python_project_from_sdist_with_arm(self, runtime):
+        if runtime not in ARM_RUNTIMES:
+            self.skipTest("{} is not supported on ARM architecture".format(runtime))
 
         self.builder.build(
             self.source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             self.manifest_path_sdist,
-            runtime=self.runtime,
+            runtime=runtime,
             architecture="arm64",
         )
         expected_files = self.test_data_files.union({"wrapt", "wrapt-1.13.3.dist-info"})
@@ -107,16 +111,17 @@ class TestPythonPipWorkflow(TestCase):
 
         self.check_architecture_in("wrapt-1.13.3.dist-info", ["linux_aarch64"])
 
-    def test_must_build_python_project_with_arm_architecture(self):
-        if self.runtime not in ARM_RUNTIMES:
-            self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_must_build_python_project_with_arm_architecture(self, runtime):
+        if runtime not in ARM_RUNTIMES:
+            self.skipTest("{} is not supported on ARM architecture".format(runtime))
         ### Check the wheels
         self.builder.build(
             self.source_dir,
             self.artifacts_dir,
             self.scratch_dir,
             self.manifest_path_valid,
-            runtime=self.runtime,
+            runtime=runtime,
             architecture="arm64",
         )
         expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-1.20.3.dist-info"})
@@ -125,7 +130,8 @@ class TestPythonPipWorkflow(TestCase):
 
         self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
 
-    def test_mismatch_runtime_python_project(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_mismatch_runtime_python_project(self, runtime):
         # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python3.7
         # is still accessible within a python 3.8 virtualenv.
         try:
@@ -134,7 +140,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.artifacts_dir,
                 self.scratch_dir,
                 self.manifest_path_valid,
-                runtime=self.runtime_mismatch[self.runtime],
+                runtime=self.runtime_mismatch[runtime],
             )
         except WorkflowFailedError as ex:
             self.assertIn("Binary validation failed", str(ex))
@@ -167,24 +173,25 @@ class TestPythonPipWorkflow(TestCase):
         for f in expected_files:
             self.assertIn(f, output_files)
 
-    def test_must_fail_to_resolve_dependencies(self):
-
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_must_fail_to_resolve_dependencies(self, runtime):
         with self.assertRaises(WorkflowFailedError) as ctx:
             self.builder.build(
-                self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid, runtime=self.runtime
+                self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid, runtime=runtime
             )
 
         message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(ctx.exception)
         self.assertTrue(message_in_exception)
 
-    def test_must_log_warning_if_requirements_not_found(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_must_log_warning_if_requirements_not_found(self, runtime):
         with mock.patch.object(logger, "warning") as mock_warning:
             self.builder.build(
                 self.source_dir,
                 self.artifacts_dir,
                 self.scratch_dir,
                 os.path.join("non", "existent", "manifest"),
-                runtime=self.runtime,
+                runtime=runtime,
             )
         expected_files = self.test_data_files
         output_files = set(os.listdir(self.artifacts_dir))
@@ -194,7 +201,8 @@ class TestPythonPipWorkflow(TestCase):
         )
 
     @skipIf(IS_WINDOWS, "Skip in windows tests")
-    def test_without_download_dependencies_with_dependencies_dir(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_without_download_dependencies_with_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -207,7 +215,7 @@ class TestPythonPipWorkflow(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             manifest,
-            runtime=self.runtime,
+            runtime=runtime,
             download_dependencies=False,
             dependencies_dir=self.dependencies_dir,
         )
@@ -219,7 +227,8 @@ class TestPythonPipWorkflow(TestCase):
         self.assertEqual(output_files, expected_files)
 
     @skipIf(IS_WINDOWS, "Skip in windows tests")
-    def test_with_download_dependencies_and_dependencies_dir(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_with_download_dependencies_and_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -232,7 +241,7 @@ class TestPythonPipWorkflow(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             manifest,
-            runtime=self.runtime,
+            runtime=runtime,
             download_dependencies=True,
             dependencies_dir=self.dependencies_dir,
         )
@@ -262,7 +271,8 @@ class TestPythonPipWorkflow(TestCase):
             self.assertIn(f, dependencies_files)
 
     @skipIf(IS_WINDOWS, "Skip in windows tests")
-    def test_without_download_dependencies_without_dependencies_dir(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_without_download_dependencies_without_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -276,7 +286,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.artifacts_dir,
                 self.scratch_dir,
                 manifest,
-                runtime=self.runtime,
+                runtime=runtime,
                 download_dependencies=False,
                 dependencies_dir=None,
             )
@@ -293,7 +303,8 @@ class TestPythonPipWorkflow(TestCase):
         )
 
     @skipIf(IS_WINDOWS, "Skip in windows tests")
-    def test_without_combine_dependencies(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_without_combine_dependencies(self, runtime):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -306,7 +317,7 @@ class TestPythonPipWorkflow(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             manifest,
-            runtime=self.runtime,
+            runtime=runtime,
             download_dependencies=True,
             dependencies_dir=self.dependencies_dir,
             combine_dependencies=False,
