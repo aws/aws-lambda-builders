@@ -111,11 +111,8 @@ for:
       - sh: "go env -w GO111MODULE=auto"
       # add different python versions into PATH
       - sh: "PATH=$PATH:$HOME/venv3.6/bin:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin"
-      - sh: "echo $PATH"
-      - sh: "python3.6 --version"
-      - sh: "python3.7 --version"
-      - sh: "python3.8 --version"
-      - sh: "python3.9 --version"
+      - sh: "curl https://bootstrap.pypa.io/pip/3.6/get-pip.py -o get-pip-36.py"
+      - sh: "python3.6 get-pip-36.py --user"
 
     build_script:
       - 'python -c "import sys; print(sys.executable)"'
