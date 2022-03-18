@@ -111,6 +111,10 @@ for:
       - sh: "go env -w GO111MODULE=auto"
       # add different python versions into PATH
       - sh: "PATH=$PATH:/usr/bin/python3.6:/usr/bin/python3.7:/usr/bin/python3.8:/usr/bin/python3.9"
+      - sh: "python3.6 --version"
+      - sh: "python3.7 --version"
+      - sh: "python3.8 --version"
+      - sh: "python3.9 --version"
 
     build_script:
       - 'python -c "import sys; print(sys.executable)"'
