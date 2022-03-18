@@ -45,9 +45,6 @@ class TestPythonPipWorkflow(TestCase):
         }
 
         self.builder = LambdaBuilder(language="python", dependency_manager="pip", application_framework=None)
-        self.runtime = "{language}{major}.{minor}".format(
-            language=self.builder.capability.language, major=sys.version_info.major, minor=sys.version_info.minor
-        )
         self.runtime_mismatch = {
             "python3.6": "python3.7",
             "python3.7": "python3.8",
@@ -152,7 +149,8 @@ class TestPythonPipWorkflow(TestCase):
             )
 
     @skipIf(IS_WINDOWS, "Skip in windows tests")
-    def test_must_resolve_local_dependency(self):
+    @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
+    def test_must_resolve_local_dependency(self, runtime):
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -160,7 +158,7 @@ class TestPythonPipWorkflow(TestCase):
         # need to make sure the correct path is used in the requirements file locally and in CI
         with open(manifest, "w") as f:
             f.write(str(path_to_package))
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest, runtime=self.runtime)
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest, runtime=runtime)
         expected_files = {
             "local_package",
             "local_package-0.0.0.dist-info",
