@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 import platform
 import tempfile
 from unittest import TestCase, skipIf
@@ -88,10 +87,9 @@ class TestPythonPipWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @skipIf(NOT_ARM, "Skip if not running on ARM64")
     @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
     def test_must_build_python_project_from_sdist_with_arm(self, runtime):
-        if runtime not in ARM_RUNTIMES:
+        if NOT_ARM or runtime not in ARM_RUNTIMES:
             self.skipTest("{} is not supported on ARM architecture".format(runtime))
 
         self.builder.build(
