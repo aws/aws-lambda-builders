@@ -110,7 +110,8 @@ for:
       # This is required for the go dep integration tests
       - sh: "go env -w GO111MODULE=auto"
       # add different python versions into PATH
-      - sh: "PATH=$PATH:/usr/bin/python3.6:/usr/bin/python3.7:/usr/bin/python3.8:/usr/bin/python3.9"
+      - sh: "PATH=$PATH:$HOME/venv3.6/bin:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin"
+      - sh: "echo $PATH"
       - sh: "python3.6 --version"
       - sh: "python3.7 --version"
       - sh: "python3.8 --version"
