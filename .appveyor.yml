@@ -80,6 +80,7 @@ for:
 
       # Echo final Path
       - "set PATH=%PATH%;$HOME\\venv3.6\\bin;$HOME\\venv3.7\\bin;$HOME\\venv3.8\\bin;$HOME\\venv3.9\\bin"
+      - "dir $HOME\\venv3.6\\bin"
       - "python3.6 --version"
       - "python3.7 --version"
       - "python3.8 --version"
