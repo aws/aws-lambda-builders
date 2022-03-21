@@ -79,8 +79,8 @@ for:
       - ps: "&powershell -NoProfile -ExecutionPolicy unrestricted -Command \"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://dot.net/v1/dotnet-install.ps1'))) -Version 6.0.200 -InstallDir 'C:\\Program Files\\dotnet\\'\""
 
       # Echo final Path
-      - "set PATH=%PATH%;C:\\Python36\\bin;C:\\Python37\\bin;C:\\Python38\\bin;C:\\Python39\\bin"
-      - "dir C:\\Python36\\bin"
+      - "set PATH=%PATH%;C:\\Python36;C:\\Python37;C:\\Python38;C:\\Python39"
+      - "dir C:\\Python36"
       - "python3.6 --version"
       - "python3.7 --version"
       - "python3.8 --version"
