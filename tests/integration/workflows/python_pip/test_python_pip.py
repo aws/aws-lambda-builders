@@ -146,9 +146,10 @@ class TestPythonPipWorkflow(TestCase):
                 self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime="python2.8"
             )
 
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
     def test_must_resolve_local_dependency(self, runtime):
+        if IS_WINDOWS:
+            self.skipTest("Skip in windows tests")
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -222,9 +223,10 @@ class TestPythonPipWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(output_files, expected_files)
 
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
     def test_with_download_dependencies_and_dependencies_dir(self, runtime):
+        if IS_WINDOWS:
+            self.skipTest("Skip in windows tests")
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
@@ -298,9 +300,10 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts directory. "
         )
 
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     @parameterized.expand(SUPPORTED_PYTHON_VERSIONS)
     def test_without_combine_dependencies(self, runtime):
+        if IS_WINDOWS:
+            self.skipTest("Skip in windows tests")
         source_dir = os.path.join(self.source_dir, "local-dependencies")
         manifest = os.path.join(source_dir, "requirements.txt")
         path_to_package = os.path.join(self.source_dir, "local-dependencies")
