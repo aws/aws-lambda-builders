@@ -86,7 +86,7 @@ class EsbuildBundleAction(BaseAction):
             args.append("--minify")
         if sourcemap:
             args.append("--sourcemap")
-        if len(externals) > 0:
+        if externals:
             args.extend(map(lambda x: f"--external:{x}", externals))
         for ext, loader in loaders.items():
             args.append(f"--loader:{ext}={loader}")
