@@ -85,7 +85,7 @@ class EsbuildBundleAction(BaseAction):
             args.append("--minify")
         if sourcemap:
             args.append("--sourcemap")
-        if len(externals) > 0:
+        if externals:
             args.extend(map(lambda x: f"--external:{x}", externals))
 
         args.append("--target={}".format(target))
