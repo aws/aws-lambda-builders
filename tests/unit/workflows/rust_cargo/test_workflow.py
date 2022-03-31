@@ -19,8 +19,12 @@ class TestRustCargoWorkflow(TestCase):
     def test_workflow_configures_path_resolver_for_cargo(self):
         workflow = RustCargoWorkflow("source", "artifacts", "scratch_dir", "manifest", runtime="provided")
         resolvers = workflow.get_resolvers()
-        self.assertEqual(len(resolvers), 1)
+        self.assertEqual(len(resolvers), 2)
         resolver = resolvers[0]
         self.assertIsInstance(resolver, PathResolver)
         self.assertEqual(resolver.binary, "cargo")
+        self.assertEqual(resolver.runtime, "provided")
+        resolver = resolvers[1]
+        self.assertIsInstance(resolver, PathResolver)
+        self.assertEqual(resolver.binary, "cargo-lambda")
         self.assertEqual(resolver.runtime, "provided")

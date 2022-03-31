@@ -10,7 +10,7 @@ import json
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 
-CARGO_TARGET = "x86_64-unknown-linux-musl"
+DEFAULT_CARGO_TARGET = "x86_64-unknown-linux-gnu"
 
 
 class BuilderError(Exception):
@@ -37,26 +37,12 @@ class OSUtils(object):
             os.makedirs(path)
 
 
-def parse_handler(handler):
-    """
-    Parse package and binary from handler name
-
-    If the handler contains a period, assume `package.bin_name`
-    otherwise assume common case where bin_name is the same as the package
-    """
-    spec = handler.split(".", 1)
-    if len(spec) == 1:
-        return (spec[0], spec[0])
-    else:
-        return (spec[0], spec[1])
-
-
 class BuildAction(BaseAction):
     NAME = "CargoBuild"
-    DESCRIPTION = "Building the project using Cargo"
+    DESCRIPTION = "Building the project using Cargo Lambda"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, handler, binaries, platform, mode, osutils=OSUtils()):
+    def __init__(self, source_dir, handler, binaries, mode, target=DEFAULT_CARGO_TARGET, osutils=OSUtils()):
         """
         Build the a rust executable
 
@@ -66,19 +52,19 @@ class BuildAction(BaseAction):
 
         :type handler: str
         :param handler:
-            Handler name in `package.bin_name` or `bin_name` format
+            Handler name in `bin_name` format
 
         :type binaries: dict
         :param binaries:
             Resolved path dependencies
 
-        :type platform: string
-        :param platform:
-            Platform builder is being run on
-
         :type mode: str
         :param mode:
             Mode the build should produce
+
+        :type target: str
+        :param target:
+            Target architecture to build the binary
 
         :type osutils: object
         :param osutils:
@@ -88,90 +74,21 @@ class BuildAction(BaseAction):
         self.handler = handler
         self.mode = mode
         self.binaries = binaries
-        self.platform = platform
+        self.target = target
         self.osutils = osutils
 
-    def cargo_metadata(self):
-        p = self.osutils.popen(
-            ["cargo", "metadata", "--no-deps", "--format-version=1"],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            env=os.environ.copy(),
-            cwd=self.source_dir,
-        )
-        out, err = p.communicate()
-        if p.returncode != 0:
-            raise BuilderError(message=err.decode("utf8").strip())
-        return json.loads(out)
-
-    def build_command(self, package):
-        cmd = [self.binaries["cargo"].binary_path, "build", "-p", package, "--target", CARGO_TARGET]
-        if self.mode != BuildMode.DEBUG:
+    def build_command(self):
+        cmd = [self.binaries["cargo"].binary_path, "lambda", "build", "--bin", self.handler, "--target", self.target]
+        if self.mode == BuildMode.RELEASE:
             cmd.append("--release")
         return cmd
 
-    def resolve_binary(self, cargo_meta):
-        """
-        Interrogate cargo metadata to resolve a handler function
-
-        :type cargo_meta: dict
-        :param cargo_meta:
-            Build metadata emitted by cargo
-        """
-        (package, binary) = parse_handler(self.handler)
-        exists = any(
-            [
-                kind == "bin"
-                for pkg in cargo_meta["packages"]
-                if pkg["name"] == package
-                for target in pkg["targets"]
-                if target["name"] == binary
-                for kind in target["kind"]
-            ]
-        )
-        if not exists:
-            raise BuilderError(message="Cargo project does not contain a {handler} binary".format(handler=self.handler))
-
-        return (package, binary)
-
-    def build_env(self):
-        env = os.environ.copy()
-        if self.platform.lower() == "darwin":
-            # on osx we assume a musl cross compilation
-            # linker installed via `brew install filosottile/musl-cross/musl-cross`
-            # This requires the follow env vars when invoking cargo build
-            env.update(
-                {
-                    "RUSTFLAGS": "{rust_flags} -Clinker=x86_64-linux-musl-gcc".format(
-                        rust_flags=env.get("RUSTFLAGS", "")
-                    ),
-                    "TARGET_CC": "x86_64-linux-musl-gcc",
-                    "CC_x86_64_unknown_linux_musl": "x86_64-linux-musl-gcc",
-                }
-            )
-        if self.platform.lower() == "windows":
-            # on windows we assume a musl cross compilation
-            # linker is available via rusts embedded llvm linker "rust-lld"
-            # but cc is used as the default
-            # source: https://github.com/KodrAus/rust-cross-compile
-            # This requires the follow env vars when invoking cargo build
-            env.update(
-                {
-                    "RUSTFLAGS": "{rust_flags} -Clinker=rust-lld".format(rust_flags=env.get("RUSTFLAGS", "")),
-                    "TARGET_CC": "rust-lld",
-                    "CC_x86_64_unknown_linux_musl": "rust-lld",
-                }
-            )
-        return env
-
     def execute(self):
         try:
-            (package, _) = self.resolve_binary(self.cargo_metadata())
             p = self.osutils.popen(
-                self.build_command(package),
+                self.build_command(),
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                env=self.build_env(),
                 cwd=self.source_dir,
             )
             out, err = p.communicate()
@@ -223,10 +140,8 @@ class CopyAndRenameAction(BaseAction):
         self.osutils = osutils
 
     def binary_path(self):
-        (_, binary) = parse_handler(self.handler)
-        profile = "debug" if self.mode == BuildMode.DEBUG else "release"
-        target = os.path.join(self.source_dir, "target", CARGO_TARGET)
-        return os.path.join(target, profile, binary)
+        target = os.path.join(self.source_dir, "target", "lambda", self.handler)
+        return os.path.join(target, "bootstrap")
 
     def execute(self):
         self.osutils.makedirs(self.artifacts_dir)
