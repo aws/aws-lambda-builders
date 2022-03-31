@@ -78,7 +78,7 @@ class TestBuildAction(TestCase):
         )
         with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
-        self.assertEquals(err_assert.exception.args[0], "Builder Failed: build failed")
+        self.assertEqual(err_assert.exception.args[0], "Builder Failed: build failed")
 
 
 class TestCopyAndRenameAction(TestCase):

@@ -57,7 +57,7 @@ class TestRustCargo(TestCase):
         expected_files = {"bootstrap"}
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_hello_project_for_arm64(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
@@ -74,7 +74,7 @@ class TestRustCargo(TestCase):
         expected_files = {"bootstrap"}
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
 
     def test_builds_workspaces_project(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
@@ -91,4 +91,4 @@ class TestRustCargo(TestCase):
         expected_files = {"bootstrap"}
         output_files = set(os.listdir(self.artifacts_dir))
 
-        self.assertEquals(expected_files, output_files)
+        self.assertEqual(expected_files, output_files)
