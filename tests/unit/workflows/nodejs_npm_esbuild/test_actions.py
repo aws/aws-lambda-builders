@@ -74,7 +74,7 @@ class TestEsbuildBundleAction(TestCase):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
-            {"entry_points": ["x.js"], "externals": ["fetch", "aws-sdk"]},
+            {"entry_points": ["x.js"], "external": ["fetch", "aws-sdk"]},
             self.osutils,
             self.subprocess_esbuild,
         )
@@ -99,7 +99,7 @@ class TestEsbuildBundleAction(TestCase):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
-            {"entry_points": ["x.js"], "loaders": {".proto": "text"}},
+            {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"]},
             self.osutils,
             self.subprocess_esbuild,
         )
@@ -113,6 +113,7 @@ class TestEsbuildBundleAction(TestCase):
                 "--minify",
                 "--sourcemap",
                 "--loader:.proto=text",
+                "--loader:.json=js",
                 "--target=es2020",
                 "--outdir=artifacts",
             ],
