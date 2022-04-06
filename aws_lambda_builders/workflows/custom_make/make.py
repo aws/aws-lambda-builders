@@ -84,6 +84,8 @@ class SubProcessMake(object):
 
         out, err = p.communicate()
 
+        LOG.info(out.decode("utf8").strip())
+
         if p.returncode != 0:
             raise MakeExecutionError(message=err.decode("utf8").strip())
 
