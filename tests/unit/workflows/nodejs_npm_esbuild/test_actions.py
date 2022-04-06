@@ -70,7 +70,7 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
-    def test_adds_externals(self):
+    def test_packages_with_externals(self):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
@@ -95,7 +95,7 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
-    def test_adds_loaders(self):
+    def test_packages_with_custom_loaders(self):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
