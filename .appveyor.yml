@@ -78,6 +78,7 @@ for:
       - ps: Invoke-WebRequest -Uri https://ziglang.org/download/$env:ZIGLANG_VERSION/zig-windows-x86_64-$env:ZIGLANG_VERSION.zip -OutFile C:\Users\appveyor\ziglang.zip
       - ps: Expand-Archive -DestinationPath C:\Users\appveyor\ C:\Users\appveyor\ziglang.zip
       - set PATH=%PATH%;C:\Users\appveyor\zig-windows-x86_64-%ZIGLANG_VERSION%
+      - "zig version"
 
       # install Rust
       - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
