@@ -54,6 +54,9 @@ class EsbuildBundleAction(BaseAction):
 
         :type skip_deps: bool
         :param skip_deps: if dependencies should be omitted from bundling
+
+        :type bundler_config: Dict[str,Any]
+        :param bundler_config: the bundler configuration
         """
         super(EsbuildBundleAction, self).__init__()
         self.scratch_dir = scratch_dir
@@ -71,38 +74,29 @@ class EsbuildBundleAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
         """
 
-        if self.ENTRY_POINTS not in self.bundler_config:
-            raise ActionFailedError(f"{self.ENTRY_POINTS} not set ({self.bundler_config})")
-
-        entry_points = self.bundler_config[self.ENTRY_POINTS]
-
-        if not isinstance(entry_points, list):
-            raise ActionFailedError(f"{self.ENTRY_POINTS} must be a list ({self.bundler_config})")
-
-        if not entry_points:
-            raise ActionFailedError(f"{self.ENTRY_POINTS} must not be empty ({self.bundler_config})")
-
-        entry_paths = [self.osutils.joinpath(self.scratch_dir, entry_point) for entry_point in entry_points]
-
-        LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
-
-        explicit_entry_points = []
-        for entry_path, entry_point in zip(entry_paths, entry_points):
-            explicit_entry_points.append(self._get_explicit_file_type(entry_point, entry_path))
+        explicit_entry_points = self._construct_esbuild_entry_points()
 
         args = explicit_entry_points + ["--bundle", "--platform=node", "--format=cjs"]
         minify = self.bundler_config.get("minify", True)
         sourcemap = self.bundler_config.get("sourcemap", True)
         target = self.bundler_config.get("target", "es2020")
+        external = self.bundler_config.get("external", [])
+        loader = self.bundler_config.get("loader", [])
         if minify:
             args.append("--minify")
         if sourcemap:
             args.append("--sourcemap")
+        if external:
+            args.extend(map(lambda x: f"--external:{x}", external))
+        if loader:
+            args.extend(map(lambda x: f"--loader:{x}", loader))
+
         args.append("--target={}".format(target))
         args.append("--outdir={}".format(self.artifacts_dir))
 
         if self.skip_deps:
             LOG.info("Running custom esbuild using Node.js")
+            # Don't pass externals because the esbuild.js template makes everything external
             script = EsbuildBundleAction._get_node_esbuild_template(
                 explicit_entry_points, target, self.artifacts_dir, minify, sourcemap
             )
@@ -131,6 +125,30 @@ class EsbuildBundleAction(BaseAction):
                 self.subprocess_nodejs.run([tmp.name], cwd=self.scratch_dir)
             except EsbuildExecutionError as ex:
                 raise ActionFailedError(str(ex))
+
+    def _construct_esbuild_entry_points(self):
+        """
+        Construct the list of explicit entry points
+        """
+        if self.ENTRY_POINTS not in self.bundler_config:
+            raise ActionFailedError(f"{self.ENTRY_POINTS} not set ({self.bundler_config})")
+
+        entry_points = self.bundler_config[self.ENTRY_POINTS]
+
+        if not isinstance(entry_points, list):
+            raise ActionFailedError(f"{self.ENTRY_POINTS} must be a list ({self.bundler_config})")
+
+        if not entry_points:
+            raise ActionFailedError(f"{self.ENTRY_POINTS} must not be empty ({self.bundler_config})")
+
+        entry_paths = [self.osutils.joinpath(self.scratch_dir, entry_point) for entry_point in entry_points]
+
+        LOG.debug("NODEJS building %s using esbuild to %s", entry_paths, self.artifacts_dir)
+
+        explicit_entry_points = []
+        for entry_path, entry_point in zip(entry_paths, entry_points):
+            explicit_entry_points.append(self._get_explicit_file_type(entry_point, entry_path))
+        return explicit_entry_points
 
     @staticmethod
     def _get_node_esbuild_template(entry_points, target, out_dir, minify, sourcemap):
