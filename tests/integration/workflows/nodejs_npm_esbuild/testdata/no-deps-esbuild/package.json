@@ -4,5 +4,8 @@
   "description": "",
   "keywords": [],
   "author": "",
-  "license": "APACHE2.0"
+  "license": "APACHE2.0",
+  "devDependencies": {
+    "esbuild": "^0.14.36"
+  }
 }
