@@ -79,6 +79,7 @@ for:
       - ps: Expand-Archive -DestinationPath C:\Users\appveyor\ C:\Users\appveyor\ziglang.zip
       - set PATH=%PATH%;C:\Users\appveyor\zig-windows-x86_64-%ZIGLANG_VERSION%
       - "zig version"
+      - "clang --version"
 
       # install Rust
       - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
@@ -121,8 +122,9 @@ for:
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
       # install Zig to cross compile Rust functions
-      - sh: "pip install ziglang"
-      - sh: "python -m ziglang version"
+      - sh: "wget https://ziglang.org/download/$ZIG_VERSION/zig-linux-x86_64-$ZIG_VERSION.tar.xz -P /tmp"
+      - sh: "sudo tar -C /opt -xf /tmp/zig-linux-x86_64-$ZIG_VERSION.tar.xz"
+      - sh: "PATH=/opt/zig-linux-x86_64-$ZIG_VERSION:$PATH"
 
       # Install rust
       - sh: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal"
