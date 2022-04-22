@@ -97,8 +97,8 @@ for:
       - "echo %PATH%"
 
     test_script:
-      - ps: "$env:PYTHON\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
-      - ps: "$env:PYTHON\\python.exe -m pytest tests/integration"
+      - ps: "& \"$env:PYTHON\\python.exe\" -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
+      - ps: "& \"$env:PYTHON\\python.exe\" -m pytest tests/integration"
 
   - matrix:
       only:
