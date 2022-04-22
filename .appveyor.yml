@@ -8,7 +8,7 @@ environment:
   GRADLE_OPTS: -Dorg.gradle.daemon=false
   nodejs_version: "14.17.6"
   CARGO_LAMBDA_VERSION: "v0.6.1"
-  ZIGLANG_VERSION: "0.9.1"
+  ZIG_VERSION: "0.9.1"
 
   matrix:
     - PYTHON: "C:\\Python36-x64"
@@ -75,9 +75,9 @@ for:
       - ps: "&powershell -NoProfile -ExecutionPolicy unrestricted -Command \"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://dot.net/v1/dotnet-install.ps1'))) -Version 6.0.200 -InstallDir 'C:\\Program Files\\dotnet\\'\""
 
       # install Zig to cross compile Rust functions
-      - ps: Invoke-WebRequest -Uri https://ziglang.org/download/$env:ZIGLANG_VERSION/zig-windows-x86_64-$env:ZIGLANG_VERSION.zip -OutFile C:\Users\appveyor\ziglang.zip
+      - ps: Invoke-WebRequest -Uri https://ziglang.org/download/$env:ZIG_VERSION/zig-windows-x86_64-$env:ZIG_VERSION.zip -OutFile C:\Users\appveyor\ziglang.zip
       - ps: Expand-Archive -DestinationPath C:\Users\appveyor\ C:\Users\appveyor\ziglang.zip
-      - set PATH=%PATH%;C:\Users\appveyor\zig-windows-x86_64-%ZIGLANG_VERSION%
+      - set PATH=%PATH%;C:\Users\appveyor\zig-windows-x86_64-%ZIG_VERSION%
       - "zig version"
       - "clang --version"
 
