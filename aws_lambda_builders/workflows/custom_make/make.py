@@ -84,6 +84,11 @@ class SubProcessMake(object):
 
         out, err = p.communicate()
 
+        # Typically this type of information is logged to DEBUG, however, since the Make builder
+        # can be different per customer's use case, it is helpful to always log the output so
+        # developers can diagnose any issues.
+        LOG.info(out.decode("utf8").strip())
+
         if p.returncode != 0:
             raise MakeExecutionError(message=err.decode("utf8").strip())
 
