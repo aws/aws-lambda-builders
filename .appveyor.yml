@@ -59,13 +59,8 @@ for:
       # setup go
       - rmdir c:\go /s /q
       - "choco install golang --version 1.15.7"
-      - "choco install dep"
       - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
       - "go version"
-      # set set GO111MODULE to auto to enable module-aware mode only when a go.mod file is present in the current directory or any parent directory
-      # https://blog.golang.org/go116-module-changes#TOC_2.
-      # This is required for the go dep integration tests
-      - "go env -w GO111MODULE=auto"
       - "go env"
 
       # setup Gradle
@@ -100,14 +95,9 @@ for:
 
       # Install latest gradle
       - sh: "sudo apt-get -y remove gradle"
-      - sh: "sudo apt-get install go-dep"
       - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
-      # set set GO111MODULE to auto to enable module-aware mode only when a go.mod file is present in the current directory or any parent directory
-      # https://blog.golang.org/go116-module-changes#TOC_2.
-      # This is required for the go dep integration tests
-      - sh: "go env -w GO111MODULE=auto"
 
     build_script:
       - 'python -c "import sys; print(sys.executable)"'
