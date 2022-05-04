@@ -15,7 +15,7 @@ class FakePopen:
 
 
 class TestSubprocessMake(TestCase):
-    @patch("aws_lambda_builders.workflows.custom_make.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
         self.osutils.pipe = "PIPE"

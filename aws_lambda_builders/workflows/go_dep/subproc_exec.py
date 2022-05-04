@@ -35,7 +35,7 @@ class SubprocessExec(object):
 
     def __init__(self, osutils, binary=None):
         """
-        :type osutils: aws_lambda_builders.workflows.go_dep.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type binary: str

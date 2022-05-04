@@ -28,7 +28,7 @@ class SubprocessEsbuild(object):
 
     def __init__(self, osutils, executable_search_paths, which):
         """
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type executable_search_paths: list

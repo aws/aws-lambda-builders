@@ -4,7 +4,7 @@ Java Maven Workflow
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
-from aws_lambda_builders.workflows.java.utils import OSUtils, is_experimental_maven_scope_and_layers_active
+from aws_lambda_builders.workflows.java.utils import is_experimental_maven_scope_and_layers_active
 
 from .actions import (
     JavaMavenBuildAction,
@@ -15,6 +15,7 @@ from .actions import (
 from .maven import SubprocessMaven
 from .maven_resolver import MavenResolver
 from .maven_validator import MavenValidator
+from ...os_utils import OSUtils
 
 
 class JavaMavenWorkflow(BaseWorkflow):

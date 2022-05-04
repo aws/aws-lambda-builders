@@ -1,8 +1,7 @@
 """
 Dotnet executable resolution
 """
-
-from .utils import OSUtils
+from aws_lambda_builders.os_utils import OSUtils
 
 
 class DotnetCliResolver(object):

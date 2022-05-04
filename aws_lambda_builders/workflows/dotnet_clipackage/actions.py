@@ -7,10 +7,10 @@ import os
 import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.os_utils import OSUtils
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.architecture import ARM64
-from .utils import OSUtils
-from .dotnetcli import DotnetCLIExecutionError
+from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIExecutionError
 
 LOG = logging.getLogger(__name__)
 

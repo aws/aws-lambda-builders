@@ -13,7 +13,7 @@ from aws_lambda_builders.workflows.java_gradle.actions import (
 
 
 class TestJavaGradleBuildAction(TestCase):
-    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     @patch("aws_lambda_builders.workflows.java_gradle.gradle.SubprocessGradle")
     def setUp(self, MockSubprocessGradle, MockOSUtils):
         self.subprocess_gradle = MockSubprocessGradle.return_value
@@ -65,7 +65,7 @@ class TestJavaGradleBuildAction(TestCase):
 
 
 class TestJavaGradleCopyArtifactsAction(TestCase):
-    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.os_utils.copy.side_effect = lambda src, dst: dst

@@ -2,11 +2,10 @@
 Wrapper around calls to dotent CLI through a subprocess.
 """
 
-import sys
 import logging
 import locale
 
-from .utils import OSUtils
+from aws_lambda_builders.os_utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 

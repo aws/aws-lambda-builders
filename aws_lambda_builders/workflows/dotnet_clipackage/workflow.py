@@ -1,12 +1,12 @@
 """
 .NET Core CLI Package Workflow
 """
+from aws_lambda_builders.os_utils import OSUtils
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 
-from .actions import GlobalToolInstallAction, RunPackageAction
-from .dotnetcli import SubprocessDotnetCLI
-from .dotnetcli_resolver import DotnetCliResolver
-from .utils import OSUtils
+from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
+from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import SubprocessDotnetCLI
+from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli_resolver import DotnetCliResolver
 
 
 class DotnetCliPackageWorkflow(BaseWorkflow):

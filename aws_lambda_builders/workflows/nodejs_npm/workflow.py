@@ -13,15 +13,15 @@ from aws_lambda_builders.actions import (
     MoveDependenciesAction,
 )
 
-from .actions import (
+from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
     NodejsNpmLockFileCleanUpAction,
     NodejsNpmInstallAction,
     NodejsNpmrcCopyAction,
     NodejsNpmrcCleanUpAction,
 )
-from .utils import OSUtils
-from .npm import SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+from aws_lambda_builders.os_utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         :type manifest_path: str
         :param manifest_path: path to package.json of an NPM project with the source to pack
 
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm

@@ -5,20 +5,20 @@ from unittest import TestCase
 from mock import patch, ANY
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.custom_make.utils import OSUtils
+from aws_lambda_builders.os_utils import OSUtils
 from aws_lambda_builders.workflows.custom_make.actions import CustomMakeAction
 from aws_lambda_builders.workflows.custom_make.make import MakeExecutionError
 
 
 class TestProvidedMakeAction(TestCase):
     def setUp(self):
-        self.original_env = OSUtils().environ()
+        self.original_env = OSUtils().environ
         os.environ = {}
 
     def tearDown(self):
         os.environ = self.original_env
 
-    @patch("aws_lambda_builders.workflows.custom_make.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     @patch("aws_lambda_builders.workflows.custom_make.make.SubProcessMake")
     def test_call_makefile_target(self, OSUtilMock, SubprocessMakeMock):
         osutils = OSUtilMock.return_value
@@ -43,7 +43,7 @@ class TestProvidedMakeAction(TestCase):
             ["--makefile", "manifest", "build-logical_id"], cwd="scratch_dir", env=ANY
         )
 
-    @patch("aws_lambda_builders.workflows.custom_make.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     @patch("aws_lambda_builders.workflows.custom_make.make.SubProcessMake")
     def test_makefile_target_fails(self, OSUtilMock, SubprocessMakeMock):
         osutils = OSUtilMock.return_value

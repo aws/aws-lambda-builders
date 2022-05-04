@@ -43,7 +43,7 @@ class EsbuildBundleAction(BaseAction):
         :param artifacts_dir: an existing (writable) directory where to store the output.
             Note that the actual result will be in the 'package' subdirectory here.
 
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild

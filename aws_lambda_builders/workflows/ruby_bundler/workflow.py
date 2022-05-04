@@ -6,7 +6,7 @@ import logging
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
-from .utils import OSUtils
+from .utils import RubyOSUtils
 from .bundler import SubprocessBundler
 
 LOG = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class RubyBundlerWorkflow(BaseWorkflow):
         )
 
         if osutils is None:
-            osutils = OSUtils()
+            osutils = RubyOSUtils()
 
         self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
 

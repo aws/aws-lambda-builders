@@ -64,7 +64,7 @@ class TestGlobalToolInstallAction(TestCase):
 
 class TestRunPackageAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
-    @patch("aws_lambda_builders.workflows.dotnet_clipackage.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, MockSubprocessDotnetCLI, MockOSUtils):
         self.subprocess_dotnet = MockSubprocessDotnetCLI.return_value
         self.os_utils = MockOSUtils.return_value

@@ -6,12 +6,17 @@ import os
 from aws_lambda_builders.actions import CleanUpAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
-from aws_lambda_builders.workflows.java.utils import OSUtils, is_experimental_maven_scope_and_layers_active
+from aws_lambda_builders.workflows.java.utils import is_experimental_maven_scope_and_layers_active
 
-from .actions import JavaGradleBuildAction, JavaGradleCopyArtifactsAction, JavaGradleCopyLayerArtifactsAction
-from .gradle import SubprocessGradle
-from .gradle_resolver import GradleResolver
-from .gradle_validator import GradleValidator
+from aws_lambda_builders.workflows.java_gradle.actions import (
+    JavaGradleBuildAction,
+    JavaGradleCopyArtifactsAction,
+    JavaGradleCopyLayerArtifactsAction,
+)
+from aws_lambda_builders.workflows.java_gradle.gradle import SubprocessGradle
+from aws_lambda_builders.workflows.java_gradle.gradle_resolver import GradleResolver
+from aws_lambda_builders.workflows.java_gradle.gradle_validator import GradleValidator
+from aws_lambda_builders.os_utils import OSUtils
 
 
 class JavaGradleWorkflow(BaseWorkflow):

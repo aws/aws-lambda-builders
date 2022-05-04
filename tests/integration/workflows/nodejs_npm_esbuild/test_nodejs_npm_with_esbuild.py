@@ -4,8 +4,8 @@ import tempfile
 from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.os_utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
-from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildExecutionError
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_ESBUILD
 

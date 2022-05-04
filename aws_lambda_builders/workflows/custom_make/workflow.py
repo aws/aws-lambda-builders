@@ -5,10 +5,10 @@ from aws_lambda_builders.workflows.custom_make.validator import CustomMakeRuntim
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.path_resolver import PathResolver
-from .actions import CustomMakeAction
-from .utils import OSUtils
-from .make import SubProcessMake
-from ...exceptions import WorkflowFailedError
+from aws_lambda_builders.workflows.custom_make.actions import CustomMakeAction
+from aws_lambda_builders.workflows.custom_make.make import SubProcessMake
+from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.os_utils import OSUtils
 
 
 class CustomMakeWorkflow(BaseWorkflow):

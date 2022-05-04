@@ -17,7 +17,7 @@ class FakePopen:
 
 
 class TestGoBuilder(TestCase):
-    @patch("aws_lambda_builders.workflows.go_modules.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
         self.osutils.pipe = "PIPE"

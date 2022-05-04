@@ -30,7 +30,7 @@ class TestNodejsNpmWorkflow(TestCase):
     this is just a quick wiring test to provide fast feedback if things are badly broken
     """
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, OSUtilMock):
         self.osutils = OSUtilMock.return_value
         self.osutils.pipe = "PIPE"

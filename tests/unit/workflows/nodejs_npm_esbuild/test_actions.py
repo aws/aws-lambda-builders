@@ -11,7 +11,7 @@ from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBund
 
 
 class TestEsbuildBundleAction(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.node.SubprocessNodejs")
     def setUp(self, OSUtilMock, SubprocessEsbuildMock, SubprocessNodejsMock):
@@ -218,7 +218,7 @@ require('esbuild').build({
 
 
 class TestImplicitFileTypeResolution(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
     def setUp(self, OSUtilMock, SubprocessEsbuildMock):
         self.osutils = OSUtilMock.return_value

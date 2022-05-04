@@ -3,13 +3,11 @@ Go Dep Workflow
 """
 
 import logging
-import os
 
-from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from .actions import DepEnsureAction, GoBuildAction
-from .utils import OSUtils
-from .subproc_exec import SubprocessExec
+from aws_lambda_builders.workflows.go_dep.actions import DepEnsureAction, GoBuildAction
+from aws_lambda_builders.workflows.go_dep.subproc_exec import SubprocessExec
+from aws_lambda_builders.os_utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 

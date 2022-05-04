@@ -33,7 +33,7 @@ class CustomMakeAction(BaseAction):
         :type manifest_path: str
         :param manifest_path: path to Makefile of an Make project with the source in same folder.
 
-        :type osutils: aws_lambda_builders.workflows.custom_make.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type subprocess_make aws_lambda_builders.workflows.custom_make.make.SubprocessMake

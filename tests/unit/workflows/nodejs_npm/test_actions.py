@@ -14,7 +14,7 @@ from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
 
 class TestNodejsNpmPackAction(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
     def test_tars_and_unpacks_npm_project(self, OSUtilMock, SubprocessNpmMock):
         osutils = OSUtilMock.return_value
@@ -35,7 +35,7 @@ class TestNodejsNpmPackAction(TestCase):
         subprocess_npm.run.assert_called_with(["pack", "-q", "file:/abs:/dir:manifest"], cwd="scratch_dir")
         osutils.extract_tarfile.assert_called_with("scratch_dir/package.tar", "artifacts")
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
     def test_raises_action_failed_when_npm_fails(self, OSUtilMock, SubprocessNpmMock):
         osutils = OSUtilMock.return_value
@@ -121,7 +121,7 @@ class TestNodejsNpmCIAction(TestCase):
 
 
 class TestNodejsNpmrcCopyAction(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_copies_npmrc_into_a_project(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
@@ -133,7 +133,7 @@ class TestNodejsNpmrcCopyAction(TestCase):
         osutils.file_exists.assert_called_with("source/.npmrc")
         osutils.copy_file.assert_called_with("source/.npmrc", "artifacts")
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_skips_copying_npmrc_into_a_project_if_npmrc_doesnt_exist(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
@@ -145,7 +145,7 @@ class TestNodejsNpmrcCopyAction(TestCase):
         osutils.file_exists.assert_called_with("source/.npmrc")
         osutils.copy_file.assert_not_called()
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_raises_action_failed_when_copying_fails(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
@@ -159,7 +159,7 @@ class TestNodejsNpmrcCopyAction(TestCase):
 
 
 class TestNodejsNpmrcCleanUpAction(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_removes_npmrc_if_npmrc_exists(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
@@ -170,7 +170,7 @@ class TestNodejsNpmrcCleanUpAction(TestCase):
 
         osutils.remove_file.assert_called_with("artifacts/.npmrc")
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_skips_npmrc_removal_if_npmrc_doesnt_exist(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
@@ -181,7 +181,7 @@ class TestNodejsNpmrcCleanUpAction(TestCase):
 
         osutils.remove_file.assert_not_called()
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_raises_action_failed_when_removing_fails(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
@@ -195,7 +195,7 @@ class TestNodejsNpmrcCleanUpAction(TestCase):
 
 
 class TestNodejsNpmLockFileCleanUpAction(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_removes_dot_package_lock_if_exists(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
@@ -206,7 +206,7 @@ class TestNodejsNpmLockFileCleanUpAction(TestCase):
 
         osutils.remove_file.assert_called_with("artifacts/node_modules/.package-lock.json")
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_skips_lockfile_removal_if_it_doesnt_exist(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)
@@ -217,7 +217,7 @@ class TestNodejsNpmLockFileCleanUpAction(TestCase):
 
         osutils.remove_file.assert_not_called()
 
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def test_raises_action_failed_when_removing_fails(self, OSUtilMock):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b, c: "{}/{}/{}".format(a, b, c)

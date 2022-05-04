@@ -21,7 +21,7 @@ class FakePopen(object):
 
 
 class TestGradleBinaryValidator(TestCase):
-    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.mock_os_utils = MockOSUtils.return_value
         self.mock_log = Mock()

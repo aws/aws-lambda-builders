@@ -29,7 +29,7 @@ class SubProcessMake(object):
 
     def __init__(self, osutils, make_exe=None):
         """
-        :type osutils: aws_lambda_builders.workflows.custom_make.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type make_exe: str

@@ -15,17 +15,14 @@ from aws_lambda_builders.actions import (
     BaseAction,
 )
 from aws_lambda_builders.utils import which
-from .actions import (
-    EsbuildBundleAction,
-    EsbuildCheckVersionAction,
-)
-from .node import SubprocessNodejs
-from .utils import is_experimental_esbuild_scope
-from .esbuild import SubprocessEsbuild, EsbuildExecutionError
-from ..nodejs_npm.actions import NodejsNpmCIAction, NodejsNpmInstallAction
-from ..nodejs_npm.npm import SubprocessNpm
-from ..nodejs_npm.utils import OSUtils
-from ...path_resolver import PathResolver
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction, EsbuildCheckVersionAction
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.node import SubprocessNodejs
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import is_experimental_esbuild_scope
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild, EsbuildExecutionError
+from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmCIAction, NodejsNpmInstallAction
+from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+from aws_lambda_builders.os_utils import OSUtils
+from aws_lambda_builders.path_resolver import PathResolver
 
 LOG = logging.getLogger(__name__)
 
@@ -89,7 +86,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :type bundler_config: dict
         :param bundler_config: configurations for the bundler action
 
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm

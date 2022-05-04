@@ -32,7 +32,7 @@ class NodejsNpmPackAction(BaseAction):
         :type manifest_path: str
         :param manifest_path: path to package.json of an NPM project with the source to pack
 
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
 
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
@@ -180,7 +180,7 @@ class NodejsNpmrcCopyAction(BaseAction):
         :type source_dir: str
         :param source_dir: directory containing project source files.
 
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
         """
 
@@ -222,7 +222,7 @@ class NodejsNpmrcCleanUpAction(BaseAction):
         :param artifacts_dir: an existing (writable) directory with project source files.
             Dependencies will be installed in this directory.
 
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
         """
 
@@ -263,7 +263,7 @@ class NodejsNpmLockFileCleanUpAction(BaseAction):
         :param artifacts_dir: an existing (writable) directory with project source files.
             Dependencies will be installed in this directory.
 
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+        :type osutils: aws_lambda_builders.os_utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
         """
 

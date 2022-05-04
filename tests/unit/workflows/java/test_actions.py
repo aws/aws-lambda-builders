@@ -7,7 +7,7 @@ from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesActio
 
 
 class TestJavaCopyDependenciesAction(TestCase):
-    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.os_utils.copy.side_effect = lambda src, dst: dst
@@ -34,7 +34,7 @@ class TestJavaCopyDependenciesAction(TestCase):
 
 
 class TestJavaMoveDependenciesAction(TestCase):
-    @patch("aws_lambda_builders.workflows.java.utils.OSUtils")
+    @patch("aws_lambda_builders.os_utils.OSUtils")
     def setUp(self, MockOSUtils):
         self.os_utils = MockOSUtils.return_value
         self.artifacts_dir = "artifacts_dir"
