@@ -1,0 +1,28 @@
+{
+  "name": "shrinkwrap",
+  "version": "1.0.0",
+  "lockfileVersion": 2,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "shrinkwrap",
+      "version": "1.0.0",
+      "license": "APACHE2.0",
+      "dependencies": {
+        "minimal-request-promise": "*"
+      }
+    },
+    "node_modules/minimal-request-promise": {
+      "version": "1.5.0",
+      "resolved": "https://registry.npmjs.org/minimal-request-promise/-/minimal-request-promise-1.5.0.tgz",
+      "integrity": "sha1-YPXX9VtAJtGXB04uFVYm1MxcLrw="
+    }
+  },
+  "dependencies": {
+    "minimal-request-promise": {
+      "version": "1.5.0",
+      "resolved": "https://registry.npmjs.org/minimal-request-promise/-/minimal-request-promise-1.5.0.tgz",
+      "integrity": "sha1-YPXX9VtAJtGXB04uFVYm1MxcLrw="
+    }
+  }
+}
