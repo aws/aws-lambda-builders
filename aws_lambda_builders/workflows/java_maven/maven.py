@@ -16,14 +16,13 @@ class MavenExecutionError(Exception):
 
 
 class SubprocessMaven(object):
-    def __init__(self, maven_binary, os_utils=None, is_experimental_maven_scope_enabled=False):
+    def __init__(self, maven_binary, os_utils=None):
         if maven_binary is None:
             raise ValueError("Must provide Maven BinaryPath")
         self.maven_binary = maven_binary
         if os_utils is None:
             raise ValueError("Must provide OSUtils")
         self.os_utils = os_utils
-        self.is_experimental_maven_scope_enabled = is_experimental_maven_scope_enabled
 
     def build(self, scratch_dir):
         args = ["clean", "install"]
@@ -35,7 +34,7 @@ class SubprocessMaven(object):
             raise MavenExecutionError(message=stdout.decode("utf8").strip())
 
     def copy_dependency(self, scratch_dir):
-        include_scope = "runtime" if self.is_experimental_maven_scope_enabled else "compile"
+        include_scope = "runtime"
         LOG.debug("Running copy_dependency with scope: %s", include_scope)
         args = ["dependency:copy-dependencies", f"-DincludeScope={include_scope}", "-Dmdep.prependGroupId=true"]
         ret_code, stdout, _ = self._run(args, scratch_dir)
