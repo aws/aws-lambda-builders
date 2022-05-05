@@ -7,7 +7,7 @@ environment:
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
   nodejs_version: "14.17.6"
-  CARGO_LAMBDA_VERSION: "v0.6.1"
+  CARGO_LAMBDA_VERSION: "v0.7.3"
   ZIG_VERSION: "0.9.1"
 
   matrix:
