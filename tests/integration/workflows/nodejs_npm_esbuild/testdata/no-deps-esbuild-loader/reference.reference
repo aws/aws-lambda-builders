@@ -1,0 +1,11 @@
+{
+  "muses": [
+    { "name": "calliope", "description": "eloquence and heroic poetry" },
+    { "name": "erato", "description": "lyric or erotic poetry" },
+    { "name": "melpomene", "description": "tragedy" },
+    { "name": "polymnia", "description": "sacred poetry" },
+    { "name": "terpsichore", "description": "dance" },
+    { "name": "thalia", "description": "comedy" },
+    { "name": "urania", "description": "astronomy and astrology" }
+  ]
+}
