@@ -302,7 +302,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    def test_builds_javascript_project_with_external(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_javascript_project_with_external(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-externals")
 
         options = {"entry_points": ["included.js"], "external": ["minimal-request-promise"]}
@@ -312,7 +313,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
@@ -325,6 +326,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             # Check that the module has been require() instead of bundled
             self.assertIn('require("minimal-request-promise")', js_file)
 
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
     def test_builds_javascript_project_with_loader(self):
         osutils = OSUtils()
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild-loader")
@@ -336,7 +338,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
