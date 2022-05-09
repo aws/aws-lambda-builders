@@ -327,7 +327,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.assertIn('require("minimal-request-promise")', js_file)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
-    def test_builds_javascript_project_with_loader(self):
+    def test_builds_javascript_project_with_loader(self, runtime):
         osutils = OSUtils()
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild-loader")
 
