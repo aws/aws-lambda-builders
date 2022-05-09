@@ -301,3 +301,66 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_dependencies_files = {"node_modules"}
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
+
+    def test_builds_javascript_project_with_external(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-externals")
+
+        options = {"entry_points": ["included.js"], "external": ["minimal-request-promise"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+        with open(str(os.path.join(self.artifacts_dir, "included.js"))) as f:
+            js_file = f.read()
+            # Check that the module has been require() instead of bundled
+            self.assertIn('require("minimal-request-promise")', js_file)
+
+    def test_builds_javascript_project_with_loader(self):
+        osutils = OSUtils()
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild-loader")
+
+        options = {"entry_points": ["included.js"], "loader": [".reference=json"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=self.runtime,
+            options=options,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        included_js_path = os.path.join(self.artifacts_dir, "included.js")
+
+        # check that the .reference file is correctly bundled as code by running the result
+        self.assertEqual(
+            osutils.check_output(included_js_path),
+            str.encode(
+                "===\n"
+                "The Muses\n"
+                "===\n"
+                "\n"
+                "\tcalliope: eloquence and heroic poetry\n"
+                "\terato: lyric or erotic poetry\n"
+                "\tmelpomene: tragedy\n"
+                "\tpolymnia: sacred poetry\n"
+                "\tterpsichore: dance\n"
+                "\tthalia: comedy\n"
+                "\turania: astronomy and astrology"
+            ),
+        )
