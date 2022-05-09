@@ -8,6 +8,7 @@ from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildExecutionError
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_ESBUILD
+from parameterized import parameterized
 
 
 class TestNodejsNpmWorkflowWithEsbuild(TestCase):
@@ -25,13 +26,13 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
 
         self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm-esbuild", application_framework=None)
-        self.runtime = "nodejs14.x"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
-    def test_doesnt_build_without_feature_flag(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_doesnt_build_without_feature_flag(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
         with self.assertRaises(EsbuildExecutionError) as context:
@@ -40,11 +41,12 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 self.artifacts_dir,
                 self.scratch_dir,
                 os.path.join(source_dir, "package.json"),
-                runtime=self.runtime,
+                runtime=runtime,
             )
         self.assertEqual(str(context.exception), "Esbuild Failed: Feature flag must be enabled to use this workflow")
 
-    def test_builds_javascript_project_with_dependencies(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_javascript_project_with_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
         options = {"entry_points": ["included.js"]}
@@ -54,7 +56,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
@@ -63,7 +65,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_builds_javascript_project_with_multiple_entrypoints(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_javascript_project_with_multiple_entrypoints(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-multiple-entrypoints")
 
         options = {"entry_points": ["included.js", "included2.js"]}
@@ -73,7 +76,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
@@ -82,7 +85,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_builds_typescript_projects(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_typescript_projects(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-typescript")
 
         options = {"entry_points": ["included.ts"]}
@@ -92,7 +96,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
@@ -101,7 +105,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_builds_with_external_esbuild(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_with_external_esbuild(self, runtime):
         osutils = OSUtils()
         npm = SubprocessNpm(osutils)
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
@@ -118,7 +123,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             executable_search_paths=[binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
@@ -128,7 +133,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_no_options_passed_to_esbuild(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_no_options_passed_to_esbuild(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
         with self.assertRaises(WorkflowFailedError) as context:
@@ -137,13 +143,14 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 self.artifacts_dir,
                 self.scratch_dir,
                 os.path.join(source_dir, "package.json"),
-                runtime=self.runtime,
+                runtime=runtime,
                 experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
         self.assertEqual(str(context.exception), "NodejsNpmEsbuildBuilder:EsbuildBundle - entry_points not set ({})")
 
-    def test_bundle_with_implicit_file_types(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_bundle_with_implicit_file_types(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "implicit-file-types")
 
         options = {"entry_points": ["included", "implicit"]}
@@ -153,7 +160,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
@@ -162,7 +169,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_bundles_project_without_dependencies(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_bundles_project_without_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-package-esbuild")
         options = {"entry_points": ["included"]}
 
@@ -177,7 +185,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             executable_search_paths=[binpath],
@@ -187,7 +195,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
 
@@ -203,7 +212,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             options=options,
-            runtime=self.runtime,
+            runtime=runtime,
             dependencies_dir=self.dependencies_dir,
             download_dependencies=False,
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
@@ -214,7 +223,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_builds_project_with_remote_dependencies_with_download_dependencies_and_dependencies_dir(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_project_with_remote_dependencies_with_download_dependencies_and_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
 
@@ -223,7 +233,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             dependencies_dir=self.dependencies_dir,
             download_dependencies=True,
@@ -242,7 +252,10 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(
+        self, runtime
+    ):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
 
         with self.assertRaises(EsbuildExecutionError) as context:
@@ -251,7 +264,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 self.artifacts_dir,
                 self.scratch_dir,
                 os.path.join(source_dir, "package.json"),
-                runtime=self.runtime,
+                runtime=runtime,
                 dependencies_dir=None,
                 download_dependencies=False,
                 experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
@@ -259,7 +272,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.assertEqual(str(context.exception), "Esbuild Failed: Lambda Builders encountered and invalid workflow")
 
-    def test_builds_project_without_combine_dependencies(self):
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_builds_project_without_combine_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
 
@@ -268,7 +282,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime=self.runtime,
+            runtime=runtime,
             options=options,
             dependencies_dir=self.dependencies_dir,
             download_dependencies=True,
