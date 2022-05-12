@@ -1,11 +1,14 @@
 {
-  "name": "nodeps-esbuild",
+  "name": "with-deps-esbuild",
   "version": "1.0.0",
   "description": "",
   "keywords": [],
   "author": "",
   "license": "APACHE2.0",
+  "dependencies": {
+    "minimal-request-promise": "^1.5.0"
+  },
   "devDependencies": {
-    "esbuild": "^0.14.36"
+    "esbuild": "^0.11.23"
   }
 }
