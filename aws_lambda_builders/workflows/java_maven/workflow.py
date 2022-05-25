@@ -4,7 +4,7 @@ Java Maven Workflow
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
-from aws_lambda_builders.workflows.java.utils import OSUtils, is_experimental_maven_scope_and_layers_active
+from aws_lambda_builders.workflows.java.utils import OSUtils
 
 from .actions import (
     JavaMavenBuildAction,
@@ -34,17 +34,13 @@ class JavaMavenWorkflow(BaseWorkflow):
         self.os_utils = OSUtils()
         # Assuming root_dir is the same as source_dir for now
         root_dir = source_dir
-        is_experimental_maven_scope_and_layers_enabled = is_experimental_maven_scope_and_layers_active(
-            self.experimental_flags
-        )
         subprocess_maven = SubprocessMaven(
             maven_binary=self.binaries["mvn"],
             os_utils=self.os_utils,
-            is_experimental_maven_scope_enabled=is_experimental_maven_scope_and_layers_enabled,
         )
 
         copy_artifacts_action = JavaMavenCopyArtifactsAction(scratch_dir, artifacts_dir, self.os_utils)
-        if self.is_building_layer and is_experimental_maven_scope_and_layers_enabled:
+        if self.is_building_layer:
             copy_artifacts_action = JavaMavenCopyLayerArtifactsAction(scratch_dir, artifacts_dir, self.os_utils)
 
         self.actions = [
