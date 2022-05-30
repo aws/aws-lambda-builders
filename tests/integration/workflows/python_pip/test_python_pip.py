@@ -1,6 +1,5 @@
 import os
 import shutil
-import six
 import sys
 import platform
 import tempfile
@@ -146,7 +145,7 @@ class TestPythonPipWorkflow(TestCase):
                 "Binary validation failed" not in ex_s
                 and "pip executable not found in your python environment" not in ex_s
             ):
-                six.raise_from(AssertionError("Unexpected exception"), ex)
+                raise AssertionError("Unexpected exception") from ex
 
     def test_runtime_validate_python_project_fail_open_unsupported_runtime(self):
         with self.assertRaises(WorkflowFailedError):
