@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 from mock import patch, ANY, Mock
 
@@ -138,8 +139,8 @@ class TestDependencyManager(TestCase):
         dependency_manager._dependencies = ["dep1", "dep2", "dep3"]
         idx = 0
         for source, dest in dependency_manager.yield_source_dest():
-            self.assertEqual(source, f"artifacts/{dependency_manager._dependencies[idx]}")
-            self.assertEqual(dest, f"dest/{dependency_manager._dependencies[idx]}")
+            self.assertEqual(Path(source), Path(f"artifacts/{dependency_manager._dependencies[idx]}"))
+            self.assertEqual(Path(dest), Path(f"dest/{dependency_manager._dependencies[idx]}"))
             idx += 1
 
     @patch("aws_lambda_builders.actions.os.listdir")
