@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, ANY
+from mock import patch, ANY, Mock
 
 from aws_lambda_builders.actions import (
     BaseAction,
@@ -8,6 +8,7 @@ from aws_lambda_builders.actions import (
     CopyDependenciesAction,
     MoveDependenciesAction,
     CleanUpAction,
+    DependencyManager,
 )
 
 
@@ -128,3 +129,31 @@ class TestCleanUpAction_execute(TestCase):
         listdir_mock.assert_any_call(target_dir)
         rmtree_mock.assert_any_call("dir")
         rm_mock.assert_any_call("file")
+
+
+class TestDependencyManager(TestCase):
+    @patch("aws_lambda_builders.actions.DependencyManager._set_dependencies")
+    def test_yields_source_and_destination_directories(self, set_deps):
+        dependency_manager = DependencyManager("source", "artifacts", "dest")
+        dependency_manager._dependencies = ["dep1", "dep2", "dep3"]
+        idx = 0
+        for source, dest in dependency_manager.yield_source_dest():
+            self.assertEqual(source, f"artifacts/{dependency_manager._dependencies[idx]}")
+            self.assertEqual(dest, f"dest/{dependency_manager._dependencies[idx]}")
+            idx += 1
+
+    @patch("aws_lambda_builders.actions.os.listdir")
+    @patch("aws_lambda_builders.actions.DependencyManager._get_source_files_exclude_deps")
+    def test_set_dependencies(self, get_files, artifact_list_dir):
+        artifact_list_dir.return_value = ["file1, file2", "dep1", "dep2"]
+        get_files.return_value = {"file1, file2"}
+        dependency_manager = DependencyManager("source", "artifacts", "dest")
+        self.assertEqual(dependency_manager._dependencies, {"dep1", "dep2"})
+
+    @patch("aws_lambda_builders.actions.os.listdir")
+    @patch("aws_lambda_builders.actions.DependencyManager._set_dependencies")
+    def test_get_source_files_exclude_deps(self, set_deps, source_list_dir):
+        source_list_dir.return_value = ["app.js", "package.js", "libs", "node_modules"]
+        dependency_manager = DependencyManager("source", "artifacts", "dest")
+        source_files = dependency_manager._get_source_files_exclude_deps()
+        self.assertEqual(source_files, {"app.js", "package.js", "libs"})
