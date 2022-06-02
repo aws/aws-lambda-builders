@@ -5,9 +5,6 @@ Definition of actions used in the workflow
 import logging
 import os
 import shutil
-from typing import Set
-
-import six
 
 from aws_lambda_builders.utils import copytree
 
@@ -60,7 +57,7 @@ class _ActionMetaClass(type):
 
         # Validate class variables
         # All classes must provide a name
-        if not isinstance(cls.NAME, six.string_types):
+        if not isinstance(cls.NAME, str):
             raise ValueError("Action must provide a valid name")
 
         if not Purpose.has_value(cls.PURPOSE):
@@ -69,7 +66,7 @@ class _ActionMetaClass(type):
         return cls
 
 
-class BaseAction(six.with_metaclass(_ActionMetaClass, object)):
+class BaseAction(object, metaclass=_ActionMetaClass):
     """
     Base class for all actions. It does not provide any implementation.
     """
