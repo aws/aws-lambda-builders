@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest import TestCase
 from mock import patch, ANY, Mock
+from parameterized import parameterized
 
 from aws_lambda_builders.actions import (
     BaseAction,
@@ -133,29 +134,37 @@ class TestCleanUpAction_execute(TestCase):
 
 
 class TestDependencyManager(TestCase):
-    @patch("aws_lambda_builders.actions.DependencyManager._set_dependencies")
-    def test_yields_source_and_destination_directories(self, set_deps):
-        dependency_manager = DependencyManager("source", "artifacts", "dest")
-        dependency_manager._dependencies = ["dep1", "dep2", "dep3"]
-        idx = 0
-        for source, dest in dependency_manager.yield_source_dest():
-            self.assertEqual(Path(source), Path(f"artifacts/{dependency_manager._dependencies[idx]}"))
-            self.assertEqual(Path(dest), Path(f"dest/{dependency_manager._dependencies[idx]}"))
-            idx += 1
-
+    @parameterized.expand(
+        [
+            (
+                ["app.js", "package.js", "libs", "node_modules"],
+                ["app.js", "package.js", "libs", "node_modules"],
+                [("artifacts/node_modules", "dest/node_modules")],
+                None,
+            ),
+            (
+                ["file1, file2", "dep1", "dep2"],
+                ["file1, file2", "dep1", "dep2"],
+                [("artifacts/dep1", "dest/dep1"), ("artifacts/dep2", "dest/dep2")],
+                ["dep1", "dep2"],
+            ),
+            (
+                ["file1, file2"],
+                ["file1, file2", "dep1", "dep2"],
+                [("artifacts/dep1", "dest/dep1"), ("artifacts/dep2", "dest/dep2")],
+                ["dep1", "dep2"],
+            ),
+        ]
+    )
     @patch("aws_lambda_builders.actions.os.listdir")
-    @patch("aws_lambda_builders.actions.DependencyManager._get_source_files_exclude_deps")
-    def test_set_dependencies(self, get_files, artifact_list_dir):
-        artifact_list_dir.return_value = ["file1, file2", "dep1", "dep2"]
-        get_files.return_value = {"file1, file2"}
+    def test_excludes_dependencies_from_source(
+        self, source_files, artifact_files, expected, mock_dependencies, patched_list_dir
+    ):
         dependency_manager = DependencyManager("source", "artifacts", "dest")
-        dependency_manager._set_dependencies()
-        self.assertEqual(dependency_manager._dependencies, {"dep1", "dep2"})
-
-    @patch("aws_lambda_builders.actions.os.listdir")
-    @patch("aws_lambda_builders.actions.DependencyManager._set_dependencies")
-    def test_get_source_files_exclude_deps(self, set_deps, source_list_dir):
-        source_list_dir.return_value = ["app.js", "package.js", "libs", "node_modules"]
-        dependency_manager = DependencyManager("source", "artifacts", "dest")
-        source_files = dependency_manager._get_source_files_exclude_deps()
-        self.assertEqual(source_files, {"app.js", "package.js", "libs"})
+        dependency_manager.IGNORE_LIST = (
+            dependency_manager.IGNORE_LIST if mock_dependencies is None else mock_dependencies
+        )
+        patched_list_dir.side_effect = [source_files, artifact_files]
+        source_destinations = list(dependency_manager.yield_source_dest())
+        for expected_source_dest in expected:
+            self.assertIn(expected_source_dest, source_destinations)
