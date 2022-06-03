@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List, Tuple
 from unittest import TestCase
 from mock import patch, ANY, Mock
 from parameterized import parameterized
@@ -165,6 +166,13 @@ class TestDependencyManager(TestCase):
             dependency_manager.IGNORE_LIST if mock_dependencies is None else mock_dependencies
         )
         patched_list_dir.side_effect = [source_files, artifact_files]
-        source_destinations = list(dependency_manager.yield_source_dest())
-        for expected_source_dest in expected:
+        source_destinations = TestDependencyManager._convert_strings_to_paths(
+            list(dependency_manager.yield_source_dest())
+        )
+        expected_paths = TestDependencyManager._convert_strings_to_paths(expected)
+        for expected_source_dest in expected_paths:
             self.assertIn(expected_source_dest, source_destinations)
+
+    @staticmethod
+    def _convert_strings_to_paths(source_dest_list):
+        return map(lambda item: (Path(item[0]), Path(item[1])), source_dest_list)
