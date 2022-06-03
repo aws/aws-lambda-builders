@@ -5,6 +5,7 @@ Definition of actions used in the workflow
 import logging
 import os
 import shutil
+from typing import Set, Iterator, Tuple
 
 from aws_lambda_builders.utils import copytree
 
@@ -198,24 +199,24 @@ class DependencyManager:
     # This allows for the installation of dependencies in the source directory
     IGNORE_LIST = ["node_modules"]
 
-    def __init__(self, source_dir, artifact_dir, destination_dir):
-        self.source_dir = source_dir
-        self.artifact_dir = artifact_dir
-        self.dest_dir = destination_dir
-        self._dependencies = set()
+    def __init__(self, source_dir, artifact_dir, destination_dir) -> None:
+        self._source_dir: str = source_dir
+        self._artifact_dir: str = artifact_dir
+        self._dest_dir: str = destination_dir
+        self._dependencies: Set[str] = set()
+
+    def yield_source_dest(self) -> Iterator[Tuple[str, str]]:
         self._set_dependencies()
-
-    def yield_source_dest(self):
         for dep in self._dependencies:
-            yield os.path.join(self.artifact_dir, dep), os.path.join(self.dest_dir, dep)
+            yield os.path.join(self._artifact_dir, dep), os.path.join(self._dest_dir, dep)
 
-    def _set_dependencies(self):
+    def _set_dependencies(self) -> None:
         source = self._get_source_files_exclude_deps()
-        artifact = set(os.listdir(self.artifact_dir))
+        artifact = set(os.listdir(self._artifact_dir))
         self._dependencies = artifact - source
 
-    def _get_source_files_exclude_deps(self):
-        source_files = set(os.listdir(self.source_dir))
+    def _get_source_files_exclude_deps(self) -> Set[str]:
+        source_files = set(os.listdir(self._source_dir))
         for item in self.IGNORE_LIST:
             if item in source_files:
                 source_files.remove(item)

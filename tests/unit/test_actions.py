@@ -149,6 +149,7 @@ class TestDependencyManager(TestCase):
         artifact_list_dir.return_value = ["file1, file2", "dep1", "dep2"]
         get_files.return_value = {"file1, file2"}
         dependency_manager = DependencyManager("source", "artifacts", "dest")
+        dependency_manager._set_dependencies()
         self.assertEqual(dependency_manager._dependencies, {"dep1", "dep2"})
 
     @patch("aws_lambda_builders.actions.os.listdir")
