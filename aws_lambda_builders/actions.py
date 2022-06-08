@@ -5,6 +5,7 @@ Definition of actions used in the workflow
 import logging
 import os
 import shutil
+from typing import Set, Iterator, Tuple
 
 from aws_lambda_builders.utils import copytree
 
@@ -124,14 +125,9 @@ class CopyDependenciesAction(BaseAction):
         self.dest_dir = destination_dir
 
     def execute(self):
-        source = set(os.listdir(self.source_dir))
-        artifact = set(os.listdir(self.artifact_dir))
-        dependencies = artifact - source
+        deps_manager = DependencyManager(self.source_dir, self.artifact_dir, self.dest_dir)
 
-        for name in dependencies:
-            dependencies_source = os.path.join(self.artifact_dir, name)
-            new_destination = os.path.join(self.dest_dir, name)
-
+        for dependencies_source, new_destination in deps_manager.yield_source_dest():
             if os.path.isdir(dependencies_source):
                 copytree(dependencies_source, new_destination)
             else:
@@ -153,14 +149,9 @@ class MoveDependenciesAction(BaseAction):
         self.dest_dir = destination_dir
 
     def execute(self):
-        source = set(os.listdir(self.source_dir))
-        artifact = set(os.listdir(self.artifact_dir))
-        dependencies = artifact - source
+        deps_manager = DependencyManager(self.source_dir, self.artifact_dir, self.dest_dir)
 
-        for name in dependencies:
-            dependencies_source = os.path.join(self.artifact_dir, name)
-            new_destination = os.path.join(self.dest_dir, name)
-
+        for dependencies_source, new_destination in deps_manager.yield_source_dest():
             # shutil.move can't create subfolders if this is the first file in that folder
             if os.path.isfile(dependencies_source):
                 os.makedirs(os.path.dirname(new_destination), exist_ok=True)
@@ -197,3 +188,36 @@ class CleanUpAction(BaseAction):
                 shutil.rmtree(target_path)
             else:
                 os.remove(target_path)
+
+
+class DependencyManager:
+    """
+    Class for handling the management of dependencies between directories
+    """
+
+    # Ignore these files when comparing against which dependencies to move
+    # This allows for the installation of dependencies in the source directory
+    IGNORE_LIST = ["node_modules"]
+
+    def __init__(self, source_dir, artifact_dir, destination_dir) -> None:
+        self._source_dir: str = source_dir
+        self._artifact_dir: str = artifact_dir
+        self._dest_dir: str = destination_dir
+        self._dependencies: Set[str] = set()
+
+    def yield_source_dest(self) -> Iterator[Tuple[str, str]]:
+        self._set_dependencies()
+        for dep in self._dependencies:
+            yield os.path.join(self._artifact_dir, dep), os.path.join(self._dest_dir, dep)
+
+    def _set_dependencies(self) -> None:
+        source = self._get_source_files_exclude_deps()
+        artifact = set(os.listdir(self._artifact_dir))
+        self._dependencies = artifact - source
+
+    def _get_source_files_exclude_deps(self) -> Set[str]:
+        source_files = set(os.listdir(self._source_dir))
+        for item in self.IGNORE_LIST:
+            if item in source_files:
+                source_files.remove(item)
+        return source_files
