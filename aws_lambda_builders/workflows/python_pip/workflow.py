@@ -4,7 +4,7 @@ Python PIP Workflow
 import logging
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
+from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceDirectoryAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
@@ -106,7 +106,7 @@ class PythonPipWorkflow(BaseWorkflow):
         # folder
         if self.dependencies_dir and self.combine_dependencies:
             # when copying downloaded dependencies back to artifacts folder, don't exclude anything
-            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+            self.actions.append(LinkSourceDirectoryAction(self.dependencies_dir, artifacts_dir))
 
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 

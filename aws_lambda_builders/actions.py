@@ -5,6 +5,7 @@ Definition of actions used in the workflow
 import logging
 import os
 import shutil
+from pathlib import Path
 
 from aws_lambda_builders.utils import copytree
 
@@ -30,8 +31,14 @@ class Purpose(object):
     # Action is copying source code
     COPY_SOURCE = "COPY_SOURCE"
 
+    # Action is linking source code
+    LINK_SOURCE = "LINK_SOURCE"
+
     # Action is copying dependencies
     COPY_DEPENDENCIES = "COPY_DEPENDENCIES"
+
+    # Action is copying dependencies
+    LINK_DEPENDENCIES = "LINK_DEPENDENCIES"
 
     # Action is moving dependencies
     MOVE_DEPENDENCIES = "MOVE_DEPENDENCIES"
@@ -110,6 +117,34 @@ class CopySourceAction(BaseAction):
         copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
 
 
+class LinkSourceDirectoryAction(BaseAction):
+
+    NAME = "LinkSource"
+
+    DESCRIPTION = "Linking source code to the target folder"
+
+    PURPOSE = Purpose.LINK_SOURCE
+
+    def __init__(self, source_dir, dest_dir):
+        self._source_dir = source_dir
+        self._dest_dir = dest_dir
+
+    def execute(self):
+        source_files = set(os.listdir(self._source_dir))
+
+        for source_file in source_files:
+            source_path = Path(self._source_dir, source_file)
+            destination_path = Path(self._dest_dir, source_file)
+            if destination_path.exists():
+                os.remove(destination_path)
+            else:
+                os.makedirs(destination_path.parent, exist_ok=True)
+            if os.path.isdir(source_file):
+                os.symlink(source_path.absolute(), destination_path.absolute(), target_is_directory=True)
+            else:
+                os.symlink(source_path.absolute(), destination_path.absolute())
+
+
 class CopyDependenciesAction(BaseAction):
 
     NAME = "CopyDependencies"
@@ -137,6 +172,33 @@ class CopyDependenciesAction(BaseAction):
             else:
                 os.makedirs(os.path.dirname(new_destination), exist_ok=True)
                 shutil.copy2(dependencies_source, new_destination)
+
+
+class LinkDependenciesAction(BaseAction):
+    NAME = "LinkDependencies"
+
+    DESCRIPTION = "Linking dependencies while skipping source file"
+
+    PURPOSE = Purpose.LINK_DEPENDENCIES
+
+    def __init__(self, source_dir, artifact_dir, destination_dir):
+        self.source_dir = source_dir
+        self.artifact_dir = artifact_dir
+        self.dest_dir = destination_dir
+
+    def execute(self):
+        source = set(os.listdir(self.source_dir))
+        artifact = set(os.listdir(self.artifact_dir))
+        dependencies = artifact - source
+
+        for name in dependencies:
+            dependencies_source = Path(self.artifact_dir, name)
+            new_destination = Path(self.dest_dir, name)
+
+            if os.path.isdir(dependencies_source):
+                os.symlink(dependencies_source.absolute(), new_destination.absolute(), target_is_directory=True)
+            else:
+                os.symlink(dependencies_source.absolute(), new_destination.absolute(), target_is_directory=True)
 
 
 class MoveDependenciesAction(BaseAction):

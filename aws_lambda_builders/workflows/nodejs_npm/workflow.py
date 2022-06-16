@@ -10,7 +10,7 @@ from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
     CopyDependenciesAction,
-    MoveDependenciesAction,
+    MoveDependenciesAction, LinkSourceDirectoryAction,
 )
 
 from .actions import (
@@ -123,7 +123,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
             # dependencies folder to artifact folder
             if self.dependencies_dir and self.combine_dependencies:
-                actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+                actions.append(LinkSourceDirectoryAction(self.dependencies_dir, artifacts_dir))
             else:
                 LOG.info(
                     "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
