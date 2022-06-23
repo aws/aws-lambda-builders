@@ -166,9 +166,9 @@ class TestDependencyManager(TestCase):
             dependency_manager.IGNORE_LIST if mock_dependencies is None else mock_dependencies
         )
         patched_list_dir.side_effect = [source_files, artifact_files]
-        source_destinations = list(TestDependencyManager._convert_strings_to_paths(
-            list(dependency_manager.yield_source_dest())
-        ))
+        source_destinations = list(
+            TestDependencyManager._convert_strings_to_paths(list(dependency_manager.yield_source_dest()))
+        )
         expected_paths = TestDependencyManager._convert_strings_to_paths(expected)
         for expected_source_dest in expected_paths:
             self.assertIn(expected_source_dest, source_destinations)
