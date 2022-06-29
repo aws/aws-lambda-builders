@@ -53,3 +53,6 @@ class OSUtils(object):
     def parse_json(self, path):
         with open(path) as json_file:
             return json.load(json_file)
+
+    def check_output(self, path):
+        return subprocess.check_output(["node", path])

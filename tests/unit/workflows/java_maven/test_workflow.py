@@ -2,7 +2,6 @@ from unittest import TestCase
 from mock import patch, ANY
 
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
-from aws_lambda_builders.workflows.java.utils import EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG
 from aws_lambda_builders.workflows.java_maven.workflow import JavaMavenWorkflow
 from aws_lambda_builders.workflows.java_maven.actions import (
     JavaMavenBuildAction,
@@ -114,11 +113,11 @@ class TestJavaMavenWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             is_building_layer=True,
-            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG],
         )
 
         patched_maven_process.assert_called_with(
-            maven_binary=ANY, os_utils=ANY, is_experimental_maven_scope_enabled=True
+            maven_binary=ANY,
+            os_utils=ANY,
         )
 
         self.assertEqual(len(workflow.actions), 4)

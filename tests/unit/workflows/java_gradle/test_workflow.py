@@ -5,7 +5,6 @@ import os
 
 from aws_lambda_builders.actions import CleanUpAction
 from aws_lambda_builders.workflows.java.actions import JavaMoveDependenciesAction, JavaCopyDependenciesAction
-from aws_lambda_builders.workflows.java.utils import EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG
 from aws_lambda_builders.workflows.java_gradle.workflow import JavaGradleWorkflow
 from aws_lambda_builders.workflows.java_gradle.actions import (
     JavaGradleBuildAction,
@@ -98,14 +97,13 @@ class TestJavaGradleWorkflow(TestCase):
         self.assertEqual(workflow.architecture, "x86_64")
         self.assertEqual(workflow_with_arm.architecture, "arm64")
 
-    def test_workflow_sets_up_gradle_actions_for_layers_experimental(self):
+    def test_workflow_sets_up_gradle_actions_for_layers(self):
         workflow = JavaGradleWorkflow(
             "source",
             "artifacts",
             "scratch_dir",
             "manifest",
             is_building_layer=True,
-            experimental_flags=[EXPERIMENTAL_MAVEN_SCOPE_AND_LAYER_FLAG],
         )
 
         self.assertEqual(len(workflow.actions), 2)
