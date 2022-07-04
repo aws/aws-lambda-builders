@@ -1,7 +1,13 @@
 from unittest import TestCase
 from mock import patch
+from parameterized import parameterized
 
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild, EsbuildExecutionError
+from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import (
+    SubprocessEsbuild,
+    EsbuildExecutionError,
+    EsbuildCommandBuilder,
+)
 
 
 class FakePopen:
@@ -77,3 +83,42 @@ class TestSubprocessEsbuild(TestCase):
             self.under_test.run([])
 
         self.assertEqual(raised.exception.args[0], "requires at least one arg")
+
+
+class TestImplicitFileTypeResolution(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
+    def setUp(self, OSUtilMock, SubprocessEsbuildMock):
+        self.osutils = OSUtilMock.return_value
+        self.subprocess_esbuild = SubprocessEsbuildMock.return_value
+        self.esbuild_command_builder = EsbuildCommandBuilder(
+            "source",
+            "artifacts",
+            {},
+            self.osutils,
+            "package.json",
+        )
+
+    @parameterized.expand(
+        [
+            ([True], "file.ts", "file.ts"),
+            ([False, True], "file", "file.js"),
+            ([True], "file", "file.ts"),
+        ]
+    )
+    def test_implicit_and_explicit_file_types(self, file_exists, entry_point, expected):
+        self.osutils.file_exists.side_effect = file_exists
+        explicit_entry_point = self.esbuild_command_builder._get_explicit_file_type(entry_point, "")
+        self.assertEqual(expected, explicit_entry_point)
+
+    @parameterized.expand(
+        [
+            ([False], "file.ts"),
+            ([False, False], "file"),
+        ]
+    )
+    def test_throws_exception_entry_point_not_found(self, file_exists, entry_point):
+        self.osutils.file_exists.side_effect = file_exists
+        with self.assertRaises(ActionFailedError) as context:
+            self.esbuild_command_builder._get_explicit_file_type(entry_point, "invalid")
+        self.assertEqual(str(context.exception), "entry point invalid does not exist")

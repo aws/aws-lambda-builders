@@ -1,5 +1,3 @@
-import tempfile
-from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock
 
@@ -13,16 +11,16 @@ from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBund
 class TestEsbuildBundleAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
-    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.node.SubprocessNodejs")
-    def setUp(self, OSUtilMock, SubprocessEsbuildMock, SubprocessNodejsMock):
+    def setUp(self, OSUtilMock, SubprocessEsbuildMock):
         self.osutils = OSUtilMock.return_value
         self.subprocess_esbuild = SubprocessEsbuildMock.return_value
-        self.subprocess_nodejs = SubprocessNodejsMock.return_value
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
         self.osutils.file_exists.side_effect = [True, True]
 
     def test_raises_error_if_entrypoints_not_specified(self):
-        action = EsbuildBundleAction("source", "artifacts", {"config": "param"}, self.osutils, self.subprocess_esbuild)
+        action = EsbuildBundleAction(
+            "source", "artifacts", {"config": "param"}, self.osutils, self.subprocess_esbuild, "package.json"
+        )
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
 
@@ -30,7 +28,12 @@ class TestEsbuildBundleAction(TestCase):
 
     def test_raises_error_if_entrypoints_not_a_list(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"config": "param", "entry_points": "abc"}, self.osutils, self.subprocess_esbuild
+            "source",
+            "artifacts",
+            {"config": "param", "entry_points": "abc"},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
         )
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
@@ -41,7 +44,12 @@ class TestEsbuildBundleAction(TestCase):
 
     def test_raises_error_if_entrypoints_empty_list(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"config": "param", "entry_points": []}, self.osutils, self.subprocess_esbuild
+            "source",
+            "artifacts",
+            {"config": "param", "entry_points": []},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
         )
         with self.assertRaises(ActionFailedError) as raised:
             action.execute()
@@ -52,7 +60,7 @@ class TestEsbuildBundleAction(TestCase):
 
     def test_packages_javascript_with_minification_and_sourcemap(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild
+            "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild, "package.json"
         )
         action.execute()
 
@@ -62,10 +70,10 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
+                "--outdir=artifacts",
+                "--target=es2020",
                 "--minify",
                 "--sourcemap",
-                "--target=es2020",
-                "--outdir=artifacts",
             ],
             cwd="source",
         )
@@ -123,7 +131,7 @@ class TestEsbuildBundleAction(TestCase):
     def test_checks_if_single_entrypoint_exists(self):
 
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild
+            "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild, "package.json"
         )
         self.osutils.file_exists.side_effect = [False]
 
@@ -138,7 +146,12 @@ class TestEsbuildBundleAction(TestCase):
 
         self.osutils.file_exists.side_effect = [True, False]
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js", "y.js"]}, self.osutils, self.subprocess_esbuild
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js", "y.js"]},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
         )
 
         with self.assertRaises(ActionFailedError) as raised:
@@ -152,7 +165,12 @@ class TestEsbuildBundleAction(TestCase):
 
     def test_excludes_sourcemap_if_requested(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js"], "sourcemap": False}, self.osutils, self.subprocess_esbuild
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"], "sourcemap": False},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
         )
         action.execute()
         self.subprocess_esbuild.run.assert_called_with(
@@ -161,16 +179,21 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
-                "--minify",
-                "--target=es2020",
                 "--outdir=artifacts",
+                "--target=es2020",
+                "--minify",
             ],
             cwd="source",
         )
 
     def test_does_not_minify_if_requested(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js"], "minify": False}, self.osutils, self.subprocess_esbuild
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"], "minify": False},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
         )
         action.execute()
         self.subprocess_esbuild.run.assert_called_with(
@@ -179,16 +202,21 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
-                "--sourcemap",
-                "--target=es2020",
                 "--outdir=artifacts",
+                "--target=es2020",
+                "--sourcemap",
             ],
             cwd="source",
         )
 
     def test_uses_specified_target(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js"], "target": "node14"}, self.osutils, self.subprocess_esbuild
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"], "target": "node14"},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
         )
         action.execute()
         self.subprocess_esbuild.run.assert_called_with(
@@ -197,10 +225,10 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
+                "--outdir=artifacts",
                 "--minify",
                 "--sourcemap",
                 "--target=node14",
-                "--outdir=artifacts",
             ],
             cwd="source",
         )
@@ -212,6 +240,7 @@ class TestEsbuildBundleAction(TestCase):
             {"entry_points": ["x.js", "y.js"], "target": "node14"},
             self.osutils,
             self.subprocess_esbuild,
+            "package.json",
         )
         action.execute()
         self.subprocess_esbuild.run.assert_called_with(
@@ -221,89 +250,13 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
+                "--outdir=artifacts",
                 "--minify",
                 "--sourcemap",
                 "--target=node14",
-                "--outdir=artifacts",
             ],
             cwd="source",
         )
-
-    def test_runs_node_subprocess_if_deps_skipped(self):
-        action = EsbuildBundleAction(
-            tempfile.mkdtemp(),
-            "artifacts",
-            {"entry_points": ["app.ts"]},
-            self.osutils,
-            self.subprocess_esbuild,
-            self.subprocess_nodejs,
-            True,
-        )
-        action.execute()
-        self.subprocess_nodejs.run.assert_called()
-
-    def test_reads_nodejs_bundle_template_file(self):
-        template = EsbuildBundleAction._get_node_esbuild_template(["app.ts"], "es2020", "outdir", False, True)
-        expected_template = """let skipBundleNodeModules = {
-  name: 'make-all-packages-external',
-  setup(build) {
-    let filter = /^[^.\/]|^\.[^.\/]|^\.\.[^\/]/ // Must not start with "/" or "./" or "../"
-    build.onResolve({ filter }, args => ({ path: args.path, external: true }))
-  },
-}
-
-require('esbuild').build({
-  entryPoints: ['app.ts'],
-  bundle: true,
-  platform: 'node',
-  format: 'cjs',
-  target: 'es2020',
-  sourcemap: true,
-  outdir: 'outdir',
-  minify: false,
-  plugins: [skipBundleNodeModules],
-}).catch(() => process.exit(1))
-"""
-        self.assertEqual(template, expected_template)
-
-
-class TestImplicitFileTypeResolution(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
-    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
-    def setUp(self, OSUtilMock, SubprocessEsbuildMock):
-        self.osutils = OSUtilMock.return_value
-        self.subprocess_esbuild = SubprocessEsbuildMock.return_value
-        self.action = EsbuildBundleAction(
-            "source",
-            "artifacts",
-            {},
-            self.osutils,
-            self.subprocess_esbuild,
-        )
-
-    @parameterized.expand(
-        [
-            ([True], "file.ts", "file.ts"),
-            ([False, True], "file", "file.js"),
-            ([True], "file", "file.ts"),
-        ]
-    )
-    def test_implicit_and_explicit_file_types(self, file_exists, entry_point, expected):
-        self.osutils.file_exists.side_effect = file_exists
-        explicit_entry_point = self.action._get_explicit_file_type(entry_point, "")
-        self.assertEqual(expected, explicit_entry_point)
-
-    @parameterized.expand(
-        [
-            ([False], "file.ts"),
-            ([False, False], "file"),
-        ]
-    )
-    def test_throws_exception_entry_point_not_found(self, file_exists, entry_point):
-        self.osutils.file_exists.side_effect = file_exists
-        with self.assertRaises(ActionFailedError) as context:
-            self.action._get_explicit_file_type(entry_point, "invalid")
-        self.assertEqual(str(context.exception), "entry point invalid does not exist")
 
 
 class TestEsbuildVersionCheckerAction(TestCase):
