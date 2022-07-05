@@ -2,12 +2,16 @@
 Actions specific to the esbuild bundler
 """
 import logging
+from typing import Any, Dict
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildCommandBuilder
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildCommandBuilder, SubprocessEsbuild
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.exceptions import EsbuildExecutionError
 
 LOG = logging.getLogger(__name__)
+
+EXTERNAL_KEY = "external"
 
 
 class EsbuildBundleAction(BaseAction):
@@ -23,12 +27,12 @@ class EsbuildBundleAction(BaseAction):
 
     def __init__(
         self,
-        scratch_dir,
-        artifacts_dir,
-        bundler_config,
-        osutils,
-        subprocess_esbuild,
-        manifest,
+        scratch_dir: str,
+        artifacts_dir: str,
+        bundler_config: Dict[str, Any],
+        osutils: OSUtils,
+        subprocess_esbuild: SubprocessEsbuild,
+        manifest: str,
         skip_deps=False,
     ):
         """
@@ -51,59 +55,52 @@ class EsbuildBundleAction(BaseAction):
         :type bundler_config: Dict[str,Any]
         :param bundler_config: the bundler configuration
 
-        :type manifest: Dict[str,Any]
-        :param manifest: package.json file contents to read
+        :type manifest: str
+        :param manifest: path to package.json file contents to read
         """
         super(EsbuildBundleAction, self).__init__()
-        self.scratch_dir = scratch_dir
-        self.artifacts_dir = artifacts_dir
-        self.bundler_config = bundler_config
-        self.osutils = osutils
-        self.subprocess_esbuild = subprocess_esbuild
-        self.skip_deps = skip_deps
-        self.manifest = manifest
+        self._scratch_dir = scratch_dir
+        self._artifacts_dir = artifacts_dir
+        self._bundler_config = bundler_config
+        self._osutils = osutils
+        self._subprocess_esbuild = subprocess_esbuild
+        self._skip_deps = skip_deps
+        self._manifest = manifest
 
-    def execute(self):
+    def execute(self) -> None:
         """
         Runs the action.
 
         :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
         """
+        esbuild_command = EsbuildCommandBuilder(
+            self._scratch_dir, self._artifacts_dir, self._bundler_config, self._osutils, self._manifest
+        )
 
-        if self._should_bundle_dependencies_externally():
-            if "external" in self.bundler_config:
+        if self._should_bundle_deps_externally():
+            esbuild_command.build_with_no_dependencies()
+            if EXTERNAL_KEY in self._bundler_config:
                 # Already marking everything as external,
                 # shouldn't attempt to do it again when building args from config
-                self.bundler_config.pop("external")
-                self.skip_deps = True
+                self._bundler_config.pop(EXTERNAL_KEY)
 
-        args = self._get_command_args()
+        args = (
+            esbuild_command.build_entry_points().build_default_values().build_esbuild_args_from_config().get_command()
+        )
 
         try:
-            self.subprocess_esbuild.run(args, cwd=self.scratch_dir)
+            self._subprocess_esbuild.run(args, cwd=self._scratch_dir)
         except EsbuildExecutionError as ex:
             raise ActionFailedError(str(ex))
 
-    def _should_bundle_dependencies_externally(self):
+    def _should_bundle_deps_externally(self) -> bool:
         """
         Checks if all dependencies should be marked as external and not bundled with source code
 
         :rtype: boolean
         :return: True if all dependencies should be marked as external
         """
-        return self.skip_deps or "./node_modules/*" in self.bundler_config.get("external", [])
-
-    def _get_command_args(self):
-        """
-
-        """
-        esbuild_command = EsbuildCommandBuilder(
-            self.scratch_dir, self.artifacts_dir, self.bundler_config, self.osutils, self.manifest
-        )
-        esbuild_command.build_entry_points().build_default_values().build_esbuild_args_from_config()
-        if self._should_bundle_dependencies_externally():
-            esbuild_command.build_with_no_dependencies()
-        return esbuild_command.get_command()
+        return self._skip_deps or "./node_modules/*" in self._bundler_config.get(EXTERNAL_KEY, [])
 
 
 class EsbuildCheckVersionAction(BaseAction):

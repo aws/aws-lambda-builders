@@ -85,6 +85,7 @@ class TestEsbuildBundleAction(TestCase):
             {"entry_points": ["x.js"], "external": ["fetch", "aws-sdk"]},
             self.osutils,
             self.subprocess_esbuild,
+            "",
         )
         action.execute()
         self.subprocess_esbuild.run.assert_called_with(
@@ -93,12 +94,12 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
+                "--outdir=artifacts",
+                "--target=es2020",
                 "--minify",
                 "--sourcemap",
                 "--external:fetch",
                 "--external:aws-sdk",
-                "--target=es2020",
-                "--outdir=artifacts",
             ],
             cwd="source",
         )
@@ -110,6 +111,7 @@ class TestEsbuildBundleAction(TestCase):
             {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"]},
             self.osutils,
             self.subprocess_esbuild,
+            "",
         )
         action.execute()
         self.subprocess_esbuild.run.assert_called_with(
@@ -118,12 +120,12 @@ class TestEsbuildBundleAction(TestCase):
                 "--bundle",
                 "--platform=node",
                 "--format=cjs",
+                "--outdir=artifacts",
+                "--target=es2020",
                 "--minify",
                 "--sourcemap",
                 "--loader:.proto=text",
                 "--loader:.json=js",
-                "--target=es2020",
-                "--outdir=artifacts",
             ],
             cwd="source",
         )

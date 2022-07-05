@@ -4,8 +4,10 @@ Wrapper around calling esbuild through a subprocess.
 from pathlib import Path
 
 import logging
+from typing import Dict, Any, List
 
 from aws_lambda_builders.actions import ActionFailedError
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.exceptions import EsbuildCommandError, EsbuildExecutionError
 
 LOG = logging.getLogger(__name__)
@@ -110,13 +112,16 @@ SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
 # Multi-value types (--external:axios --external:aws-sdk)
 SUPPORTED_ESBUILD_APIS_MULTI_VALUE = [
     "external",
+    "loader",
 ]
 
 
 class EsbuildCommandBuilder:
     ENTRY_POINTS = "entry_points"
 
-    def __init__(self, scratch_dir, artifacts_dir, bundler_config, osutils, manifest):
+    def __init__(
+        self, scratch_dir: str, artifacts_dir: str, bundler_config: Dict[Any, Any], osutils: OSUtils, manifest: str
+    ):
         self._scratch_dir = scratch_dir
         self._artifacts_dir = artifacts_dir
         self._bundler_config = bundler_config
@@ -124,10 +129,22 @@ class EsbuildCommandBuilder:
         self._manifest = manifest
         self._command = []
 
-    def get_command(self):
+    def get_command(self) -> List[str]:
+        """
+        Get all of the commands flags created by the command builder
+
+        :rtype: List[str]
+        :return: List of esbuild commands to be executed
+        """
         return self._command
 
-    def build_esbuild_args_from_config(self):
+    def build_esbuild_args_from_config(self) -> "EsbuildCommandBuilder":
+        """
+        Build arguments configured in the command config (e.g. template.yaml)
+
+        :rtype: EsbuildCommandBuilder
+        :return: An instance of the command builder
+        """
         args = []
 
         args.extend(self._get_boolean_args())
@@ -139,7 +156,13 @@ class EsbuildCommandBuilder:
         self._command.extend(args)
         return self
 
-    def build_entry_points(self):
+    def build_entry_points(self) -> "EsbuildCommandBuilder":
+        """
+        Build the entry points to the command
+
+        :rtype: EsbuildCommandBuilder
+        :return: An instance of the command builder
+        """
         if self.ENTRY_POINTS not in self._bundler_config:
             raise EsbuildCommandError(f"{self.ENTRY_POINTS} not set ({self._bundler_config})")
 
@@ -160,7 +183,13 @@ class EsbuildCommandBuilder:
 
         return self
 
-    def build_default_values(self):
+    def build_default_values(self) -> "EsbuildCommandBuilder":
+        """
+        Build the default values that each call to esbuild should contain
+
+        :rtype: EsbuildCommandBuilder
+        :return: An instance of the command builder
+        """
         args = ["--bundle", "--platform=node", "--format=cjs", "--outdir={}".format(self._artifacts_dir)]
 
         if "target" not in self._bundler_config:
@@ -177,21 +206,40 @@ class EsbuildCommandBuilder:
         self._command.extend(args)
         return self
 
-    def build_with_no_dependencies(self):
+    def build_with_no_dependencies(self) -> "EsbuildCommandBuilder":
+        """
+        Set all dependencies located in the package.json to
+        external so as to not bundle them with the source code
+
+        :rtype: EsbuildCommandBuilder
+        :return: An instance of the command builder
+        """
         package = self._osutils.parse_json(self._manifest)
         dependencies = package.get("dependencies", {}).keys()
         args = ["--external:{}".format(dep) for dep in dependencies]
         self._command.extend(args)
         return self
 
-    def _get_boolean_args(self):
+    def _get_boolean_args(self) -> List[str]:
+        """
+        Get a list of all the boolean value flag types (e.g. --minify)
+
+        :rtype: List[str]
+        :return: Arguments to be appended to the command list
+        """
         args = []
         for param in SUPPORTED_ESBUILD_APIS_BOOLEAN:
             if param in self._bundler_config and self._bundler_config[param] is True:
                 args.append(f"--{param}")
         return args
 
-    def _get_single_value_args(self):
+    def _get_single_value_args(self) -> List[str]:
+        """
+        Get a list of all the single value flag types (e.g. --target=es2020)
+
+        :rtype: List[str]
+        :return: Arguments to be appended to the command list
+        """
         args = []
         for param in SUPPORTED_ESBUILD_APIS_SINGLE_VALUE:
             if param in self._bundler_config:
@@ -199,7 +247,13 @@ class EsbuildCommandBuilder:
                 args.append(f"--{param}={val}")
         return args
 
-    def _get_multi_value_args(self):
+    def _get_multi_value_args(self) -> List[str]:
+        """
+        Get a list of all the multi-value flag types (e.g. --external:aws-sdk)
+
+        :rtype: List[str]
+        :return: Arguments to be appended to the command list
+        """
         args = []
         for param in SUPPORTED_ESBUILD_APIS_MULTI_VALUE:
             if param in self._bundler_config:
