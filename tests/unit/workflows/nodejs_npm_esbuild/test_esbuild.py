@@ -122,3 +122,122 @@ class TestImplicitFileTypeResolution(TestCase):
         with self.assertRaises(ActionFailedError) as context:
             self.esbuild_command_builder._get_explicit_file_type(entry_point, "invalid")
         self.assertEqual(str(context.exception), "entry point invalid does not exist")
+
+
+class TestEsbuildCommandBuilder(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_builds_entry_points(self, osutils_mock):
+        bundler_config = {"entry_points": ["x.js", "y.ts"]}
+        args = (
+            EsbuildCommandBuilder("scratch", "artifacts", bundler_config, osutils_mock, "")
+            .build_entry_points()
+            .get_command()
+        )
+        self.assertEqual(args, ["x.js", "y.ts"])
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_builds_default_values(self, osutils_mock):
+        bundler_config = {}
+        args = (
+            EsbuildCommandBuilder("scratch", "artifacts", bundler_config, osutils_mock, "")
+            .build_default_values()
+            .get_command()
+        )
+        self.assertEqual(
+            args,
+            [
+                "--bundle",
+                "--platform=node",
+                "--format=cjs",
+                "--outdir=artifacts",
+                "--target=es2020",
+                "--minify",
+                "--sourcemap",
+            ],
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_combined_builder_exclude_all_dependencies(self, osutils_mock):
+        bundler_config = {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"]}
+        osutils_mock.parse_json.return_value = {
+            "dependencies": {"@faker-js/faker": "7.1.0", "uuidv4": "^6.2.12", "axios": "0.0.0"}
+        }
+        args = (
+            EsbuildCommandBuilder("scratch", "artifacts", bundler_config, osutils_mock, "")
+            .build_entry_points()
+            .build_default_values()
+            .build_esbuild_args_from_config()
+            .build_with_no_dependencies()
+            .get_command()
+        )
+        self.assertEqual(
+            args,
+            [
+                "x.js",
+                "--bundle",
+                "--platform=node",
+                "--format=cjs",
+                "--outdir=artifacts",
+                "--target=es2020",
+                "--minify",
+                "--sourcemap",
+                "--loader:.proto=text",
+                "--loader:.json=js",
+                "--external:@faker-js/faker",
+                "--external:uuidv4",
+                "--external:axios",
+            ],
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_builds_args_from_config(self, osutils_mock):
+        bundler_config = {
+            "minify": True,
+            "sourcemap": False,
+            "target": "node14",
+            "loader": [".proto=text", ".json=js"],
+            "external": ["aws-sdk", "axios"],
+        }
+
+        args = (
+            EsbuildCommandBuilder("scratch", "artifacts", bundler_config, osutils_mock, "")
+            .build_esbuild_args_from_config()
+            .get_command()
+        )
+        self.assertEqual(
+            args,
+            [
+                "--minify",
+                "--target=node14",
+                "--external:aws-sdk",
+                "--external:axios",
+                "--loader:.proto=text",
+                "--loader:.json=js",
+            ],
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_combined_builder_with_dependencies(self, osutils_mock):
+        bundler_config = {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"]}
+        args = (
+            EsbuildCommandBuilder("scratch", "artifacts", bundler_config, osutils_mock, "")
+            .build_entry_points()
+            .build_default_values()
+            .build_esbuild_args_from_config()
+            .get_command()
+        )
+        self.assertEqual(
+            args,
+            [
+                "x.js",
+                "--bundle",
+                "--platform=node",
+                "--format=cjs",
+                "--outdir=artifacts",
+                "--target=es2020",
+                "--minify",
+                "--sourcemap",
+                "--loader:.proto=text",
+                "--loader:.json=js",
+            ],
+        )

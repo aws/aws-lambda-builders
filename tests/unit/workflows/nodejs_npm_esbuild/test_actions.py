@@ -260,6 +260,39 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_includes_building_with_external_dependencies(self, osutils_mock):
+        osutils_mock.parse_json.return_value = {
+            "dependencies": {"@faker-js/faker": "7.1.0", "uuidv4": "^6.2.12", "axios": "0.0.0"}
+        }
+        action = EsbuildBundleAction(
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js", "y.js"], "target": "node14", "external": "./node_modules/*"},
+            osutils_mock,
+            self.subprocess_esbuild,
+            "package.json",
+        )
+        action.execute()
+        self.assertNotIn("external", action._bundler_config)
+        self.subprocess_esbuild.run.assert_called_with(
+            [
+                "--external:@faker-js/faker",
+                "--external:uuidv4",
+                "--external:axios",
+                "x.js",
+                "y.js",
+                "--bundle",
+                "--platform=node",
+                "--format=cjs",
+                "--outdir=artifacts",
+                "--minify",
+                "--sourcemap",
+                "--target=node14",
+            ],
+            cwd="source",
+        )
+
 
 class TestEsbuildVersionCheckerAction(TestCase):
     @parameterized.expand(["0.14.0", "0.0.0", "0.14.12"])
