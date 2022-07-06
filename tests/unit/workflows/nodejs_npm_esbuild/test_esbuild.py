@@ -148,9 +148,9 @@ class TestEsbuildCommandBuilder(TestCase):
             [
                 "--bundle",
                 "--platform=node",
-                "--format=cjs",
                 "--outdir=artifacts",
                 "--target=es2020",
+                "--format=cjs",
                 "--minify",
                 "--sourcemap",
             ],
@@ -176,9 +176,9 @@ class TestEsbuildCommandBuilder(TestCase):
                 "x.js",
                 "--bundle",
                 "--platform=node",
-                "--format=cjs",
                 "--outdir=artifacts",
                 "--target=es2020",
+                "--format=cjs",
                 "--minify",
                 "--sourcemap",
                 "--loader:.proto=text",
@@ -194,6 +194,7 @@ class TestEsbuildCommandBuilder(TestCase):
         bundler_config = {
             "minify": True,
             "sourcemap": False,
+            "format": "esm",
             "target": "node14",
             "loader": [".proto=text", ".json=js"],
             "external": ["aws-sdk", "axios"],
@@ -209,6 +210,7 @@ class TestEsbuildCommandBuilder(TestCase):
             [
                 "--minify",
                 "--target=node14",
+                "--format=esm",
                 "--external:aws-sdk",
                 "--external:axios",
                 "--loader:.proto=text",
@@ -218,7 +220,7 @@ class TestEsbuildCommandBuilder(TestCase):
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     def test_combined_builder_with_dependencies(self, osutils_mock):
-        bundler_config = {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"]}
+        bundler_config = {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"], "format": "esm"}
         args = (
             EsbuildCommandBuilder("scratch", "artifacts", bundler_config, osutils_mock, "")
             .build_entry_points()
@@ -232,11 +234,11 @@ class TestEsbuildCommandBuilder(TestCase):
                 "x.js",
                 "--bundle",
                 "--platform=node",
-                "--format=cjs",
                 "--outdir=artifacts",
                 "--target=es2020",
                 "--minify",
                 "--sourcemap",
+                "--format=esm",
                 "--loader:.proto=text",
                 "--loader:.json=js",
             ],

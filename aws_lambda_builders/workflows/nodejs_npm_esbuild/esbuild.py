@@ -107,6 +107,7 @@ SUPPORTED_ESBUILD_APIS_BOOLEAN = [
 # single value types (--target=es2020)
 SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
     "target",
+    "format",
 ]
 
 # Multi-value types (--external:axios --external:aws-sdk)
@@ -127,7 +128,7 @@ class EsbuildCommandBuilder:
         self._bundler_config = bundler_config
         self._osutils = osutils
         self._manifest = manifest
-        self._command = []
+        self._command: List[str] = []
 
     def get_command(self) -> List[str]:
         """
@@ -190,10 +191,13 @@ class EsbuildCommandBuilder:
         :rtype: EsbuildCommandBuilder
         :return: An instance of the command builder
         """
-        args = ["--bundle", "--platform=node", "--format=cjs", "--outdir={}".format(self._artifacts_dir)]
+        args = ["--bundle", "--platform=node", "--outdir={}".format(self._artifacts_dir)]
 
         if "target" not in self._bundler_config:
             args.append("--target=es2020")
+
+        if "format" not in self._bundler_config:
+            args.append("--format=cjs")
 
         if "minify" not in self._bundler_config:
             args.append("--minify")
@@ -243,8 +247,8 @@ class EsbuildCommandBuilder:
         args = []
         for param in SUPPORTED_ESBUILD_APIS_SINGLE_VALUE:
             if param in self._bundler_config:
-                val = self._bundler_config.get(param)
-                args.append(f"--{param}={val}")
+                value = self._bundler_config.get(param)
+                args.append(f"--{param}={value}")
         return args
 
     def _get_multi_value_args(self) -> List[str]:
@@ -257,10 +261,10 @@ class EsbuildCommandBuilder:
         args = []
         for param in SUPPORTED_ESBUILD_APIS_MULTI_VALUE:
             if param in self._bundler_config:
-                vals = self._bundler_config.get(param)
-                if not isinstance(vals, list):
+                values = self._bundler_config.get(param)
+                if not isinstance(values, list):
                     raise EsbuildCommandError(f"Invalid type for property {param}, must be a dict.")
-                for param_item in vals:
+                for param_item in values:
                     args.append(f"--{param}:{param_item}")
         return args
 
