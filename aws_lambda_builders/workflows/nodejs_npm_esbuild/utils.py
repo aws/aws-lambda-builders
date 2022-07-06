@@ -1,8 +1,6 @@
 """
 esbuild specific utilities and feature flag
 """
-import json
-from typing import Dict, Any
 
 EXPERIMENTAL_FLAG_ESBUILD = "experimentalEsbuild"
 
