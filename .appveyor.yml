@@ -84,7 +84,7 @@ for:
       # install Rust
       - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
       - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
-      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.x86_64-pc-windows-msvc.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
       - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
       - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
       - set RUST_BACKTRACE=1
