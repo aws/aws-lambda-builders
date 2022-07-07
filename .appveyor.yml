@@ -1,13 +1,13 @@
 version: 1.0.{build}
 image:
-  - Visual Studio 2019
+  - Visual Studio 2022
   - Ubuntu
 
 environment:
   GOVERSION: 1.11
   GRADLE_OPTS: -Dorg.gradle.daemon=false
   nodejs_version: "14.17.6"
-  CARGO_LAMBDA_VERSION: "v0.7.3"
+  CARGO_LAMBDA_VERSION: "v0.8.3"
   ZIG_VERSION: "0.9.1"
 
   matrix:
@@ -74,9 +74,6 @@ for:
       # install dotnet6
       - ps: "&powershell -NoProfile -ExecutionPolicy unrestricted -Command \"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://dot.net/v1/dotnet-install.ps1'))) -Version 6.0.200 -InstallDir 'C:\\Program Files\\dotnet\\'\""
 
-      # print CMAKE configuration
-      - cmake -E environment
-
       # install Zig to cross compile Rust functions
       - ps: Invoke-WebRequest -Uri https://ziglang.org/download/$env:ZIG_VERSION/zig-windows-x86_64-$env:ZIG_VERSION.zip -OutFile C:\Users\appveyor\ziglang.zip
       - ps: Expand-Archive -DestinationPath C:\Users\appveyor\ C:\Users\appveyor\ziglang.zip
@@ -101,8 +98,8 @@ for:
       - "echo %PATH%"
 
     test_script:
-      - ps: "& \"$env:PYTHON\\python.exe\" -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
-      - ps: "& \"$env:PYTHON\\python.exe\" -m pytest tests/integration"
+      - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
+      - "%PYTHON\\python.exe -m pytest tests/integration"
 
   - matrix:
       only:
