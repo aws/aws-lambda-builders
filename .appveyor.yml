@@ -99,7 +99,7 @@ for:
 
     test_script:
       - "%PYTHON%\\python.exe -m pytest --cov aws_lambda_builders --cov-report term-missing tests/unit tests/functional"
-      - "%PYTHON\\python.exe -m pytest tests/integration"
+      - "%PYTHON%\\python.exe -m pytest tests/integration"
 
   - matrix:
       only:
