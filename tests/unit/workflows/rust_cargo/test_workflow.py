@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflows.rust_cargo.workflow import RustCargoWorkflow
-from aws_lambda_builders.workflows.rust_cargo.actions import BuildAction, CopyAndRenameAction
+from aws_lambda_builders.workflows.rust_cargo.actions import RustBuildAction, RustCopyAndRenameAction
 
 
 class TestRustCargoWorkflow(TestCase):
@@ -13,8 +13,8 @@ class TestRustCargoWorkflow(TestCase):
     def test_workflow_sets_up_builder_actions(self):
         workflow = RustCargoWorkflow("source", "artifacts", "scratch_dir", "manifest", runtime="provided")
         self.assertEqual(len(workflow.actions), 2)
-        self.assertIsInstance(workflow.actions[0], BuildAction)
-        self.assertIsInstance(workflow.actions[1], CopyAndRenameAction)
+        self.assertIsInstance(workflow.actions[0], RustBuildAction)
+        self.assertIsInstance(workflow.actions[1], RustCopyAndRenameAction)
 
     def test_workflow_configures_path_resolver_for_cargo(self):
         workflow = RustCargoWorkflow("source", "artifacts", "scratch_dir", "manifest", runtime="provided")

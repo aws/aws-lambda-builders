@@ -40,7 +40,8 @@ class TestRustCargo(TestCase):
                 options={"artifact_executable_name": "fail"},
             )
             self.maxDiff = None
-        self.assertTrue(raised.exception.args[0].startswith("RustCargoBuilder:CargoBuild - Builder Failed"))
+        self.assertTrue(raised.exception.args[0].startswith(
+            "RustCargoBuilder:CargoLambdaBuild - Builder Failed"), raised.exception.args[0])
 
     def test_builds_hello_project(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
@@ -67,8 +68,9 @@ class TestRustCargo(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "Cargo.toml"),
+            architecture="arm64",
             runtime=self.runtime,
-            options={"artifact_executable_name": "hello", "target": "aarch64-unknown-linux-gnu"},
+            options={"artifact_executable_name": "hello"},
         )
 
         expected_files = {"bootstrap"}

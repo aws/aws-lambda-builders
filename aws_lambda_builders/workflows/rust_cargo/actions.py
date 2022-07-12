@@ -9,11 +9,10 @@ import json
 
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
+from aws_lambda_builders.architecture import X86_64, ARM64
 
-DEFAULT_CARGO_TARGET = "x86_64-unknown-linux-gnu"
 
-
-class BuilderError(Exception):
+class RustBuilderError(Exception):
     MESSAGE = "Builder Failed: {message}"
 
     def __init__(self, **kwargs):
@@ -37,22 +36,18 @@ class OSUtils(object):
             os.makedirs(path)
 
 
-class BuildAction(BaseAction):
-    NAME = "CargoBuild"
+class RustBuildAction(BaseAction):
+    NAME = "CargoLambdaBuild"
     DESCRIPTION = "Building the project using Cargo Lambda"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, handler, binaries, mode, target=DEFAULT_CARGO_TARGET, osutils=OSUtils()):
+    def __init__(self, source_dir, binaries, mode, architecture=X86_64, flags=None, osutils=OSUtils()):
         """
-        Build the a rust executable
+        Build the a Rust executable
 
         :type source_dir: str
         :param source_dir:
             Path to a folder containing the source code
-
-        :type handler: str
-        :param handler:
-            Handler name in `bin_name` format
 
         :type binaries: dict
         :param binaries:
@@ -62,51 +57,60 @@ class BuildAction(BaseAction):
         :param mode:
             Mode the build should produce
 
-        :type target: str
-        :param target:
-            Target architecture to build the binary
+        :type flags: list
+        :param flags:
+            Extra list of flags to pass to `cargo lambda build`
+
+        :type architecture: str, optional
+        :param architecture:
+            Target architecture to build the binary, either arm64 or x86_64
 
         :type osutils: object
         :param osutils:
             Optional, External IO utils
         """
-        self.source_dir = source_dir
-        self.handler = handler
-        self.mode = mode
-        self.binaries = binaries
-        self.target = target
-        self.osutils = osutils
+        self._source_dir = source_dir
+        self._mode = mode
+        self._binaries = binaries
+        self._flags = flags
+        self._architecture = architecture
+        self._osutils = osutils
 
     def build_command(self):
-        cmd = [self.binaries["cargo"].binary_path, "lambda", "build", "--bin", self.handler, "--target", self.target]
-        if self.mode == BuildMode.RELEASE:
+        cmd = [self._binaries["cargo"].binary_path, "lambda", "build"]
+        if self._mode == BuildMode.RELEASE:
             cmd.append("--release")
+        if self._architecture == ARM64:
+            cmd.append("--arm64")
+        if self._flags:
+            cmd.extend(self._flags)
+
         return cmd
 
     def execute(self):
         try:
-            p = self.osutils.popen(
+            p = self._osutils.popen(
                 self.build_command(),
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                cwd=self.source_dir,
+                cwd=self._source_dir,
             )
             out, err = p.communicate()
             if p.returncode != 0:
-                raise BuilderError(message=err.decode("utf8").strip())
+                raise RustBuilderError(message=err.decode("utf8").strip())
             return out.decode("utf8").strip()
         except Exception as ex:
             raise ActionFailedError(str(ex))
 
 
-class CopyAndRenameAction(BaseAction):
-    NAME = "CopyAndRename"
-    DESCRIPTION = "Copy executable renaming if needed"
+class RustCopyAndRenameAction(BaseAction):
+    NAME = "RustCopyAndRename"
+    DESCRIPTION = "Copy Rust executable, renaming if needed"
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self, source_dir, handler, artifacts_dir, platform, mode, osutils=OSUtils()):
+    def __init__(self, source_dir, handler, artifacts_dir, osutils=OSUtils()):
         """
-        Copy and rename rust executable
+        Copy and rename Rust executable
 
         :type source_dir: str
         :param source_dir:
@@ -120,29 +124,19 @@ class CopyAndRenameAction(BaseAction):
         :param binaries:
             Path to a folder containing the deployable artifacts
 
-        :type platform: string
-        :param platform:
-            Platform builder is being run on
-
-        :type mode: str
-        :param mode:
-            Mode the build should produce
-
         :type osutils: object
         :param osutils:
             Optional, External IO utils
         """
-        self.source_dir = source_dir
-        self.handler = handler
-        self.artifacts_dir = artifacts_dir
-        self.platform = platform
-        self.mode = mode
-        self.osutils = osutils
+        self._source_dir = source_dir
+        self._handler = handler
+        self._artifacts_dir = artifacts_dir
+        self._osutils = osutils
 
     def binary_path(self):
-        target = os.path.join(self.source_dir, "target", "lambda", self.handler)
+        target = os.path.join(self._source_dir, "target", "lambda", self._handler)
         return os.path.join(target, "bootstrap")
 
     def execute(self):
-        self.osutils.makedirs(self.artifacts_dir)
-        self.osutils.copyfile(self.binary_path(), os.path.join(self.artifacts_dir, "bootstrap"))
+        self._osutils.makedirs(self._artifacts_dir)
+        self._osutils.copyfile(self.binary_path(), os.path.join(self._artifacts_dir, "bootstrap"))

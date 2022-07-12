@@ -4,7 +4,7 @@ Rust Cargo Workflow
 import platform
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from .actions import BuildAction, CopyAndRenameAction, DEFAULT_CARGO_TARGET
+from .actions import RustBuildAction, RustCopyAndRenameAction
 
 
 class RustCargoWorkflow(BaseWorkflow):
@@ -24,10 +24,10 @@ class RustCargoWorkflow(BaseWorkflow):
         # select the binary to build
         options = kwargs.get("options") or {}
         handler = options.get("artifact_executable_name", None)
-        target = options.get("target", DEFAULT_CARGO_TARGET)
+        flags = options.get("cargo_lambda_flags") or []
         self.actions = [
-            BuildAction(source_dir, handler, self.binaries, mode, target),
-            CopyAndRenameAction(source_dir, handler, artifacts_dir, mode, target),
+            RustBuildAction(source_dir, self.binaries, mode, self.architecture, flags),
+            RustCopyAndRenameAction(source_dir, handler, artifacts_dir),
         ]
 
     def get_resolvers(self):
