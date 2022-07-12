@@ -8,6 +8,10 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
 
+def rm_target_lambda(base):
+    shutil.rmtree(os.path.join(base, "target", "lambda"), ignore_errors=True)
+
+
 class TestRustCargo(TestCase):
     """
     Verifies that rust workflow works by building a Lambda using cargo
@@ -47,7 +51,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
-        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
+        rm_target_lambda(source_dir)
 
         self.builder.build(
             source_dir,
@@ -64,7 +68,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project_with_artifact_name(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
-        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
+        rm_target_lambda(source_dir)
 
         self.builder.build(
             source_dir,
@@ -82,7 +86,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project_for_arm64(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
-        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
+        rm_target_lambda(source_dir)
 
         self.builder.build(
             source_dir,
@@ -101,7 +105,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_workspaces_project_with_bin_name(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
-        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
+        rm_target_lambda(source_dir)
 
         self.builder.build(
             source_dir,
@@ -119,7 +123,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_workspaces_project_with_package_option(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
-        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
+        rm_target_lambda(source_dir)
 
         self.builder.build(
             source_dir,
