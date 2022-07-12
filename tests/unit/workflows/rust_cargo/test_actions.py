@@ -47,7 +47,7 @@ class TestBuildAction(TestCase):
             ["path/to/cargo", "lambda", "build"],
         )
 
-    def test_debug_build_cargo_command_with_target(self):
+    def test_debug_build_cargo_command_with_architecture(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64")
         self.assertEqual(
@@ -55,13 +55,21 @@ class TestBuildAction(TestCase):
             ["path/to/cargo", "lambda", "build", "--arm64"],
         )
 
-    def test_debug_build_cargo_command_with_target(self):
+    def test_debug_build_cargo_command_with_flags(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         flags = ["--package", "package-in-workspace"]
         action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64", flags=flags)
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--arm64", "--package", "package-in-workspace"],
+        )
+
+    def test_debug_build_cargo_command_with_handler(self):
+        cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
+        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64", handler="foo")
+        self.assertEqual(
+            action.build_command(),
+            ["path/to/cargo", "lambda", "build", "--arm64", "--bin", "foo"],
         )
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")

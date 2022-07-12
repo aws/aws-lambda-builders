@@ -40,7 +40,7 @@ class RustBuildAction(BaseAction):
     DESCRIPTION = "Building the project using Cargo Lambda"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, binaries, mode, architecture=X86_64, flags=None, osutils=OSUtils()):
+    def __init__(self, source_dir, binaries, mode, architecture=X86_64, handler=None, flags=None, osutils=OSUtils()):
         """
         Build the a Rust executable
 
@@ -56,21 +56,26 @@ class RustBuildAction(BaseAction):
         :param mode:
             Mode the build should produce
 
-        :type flags: list
-        :param flags:
-            Extra list of flags to pass to `cargo lambda build`
-
         :type architecture: str, optional
         :param architecture:
             Target architecture to build the binary, either arm64 or x86_64
 
-        :type osutils: object
+        :type handler: str, optional
+        :param handler:
+            Handler name in `package.bin_name` or `bin_name` format
+
+        :type flags: list, optional
+        :param flags:
+            Extra list of flags to pass to `cargo lambda build`
+
+        :type osutils: object, optional
         :param osutils:
             Optional, External IO utils
         """
         self._source_dir = source_dir
         self._mode = mode
         self._binaries = binaries
+        self._handler = handler
         self._flags = flags
         self._architecture = architecture
         self._osutils = osutils
@@ -81,6 +86,8 @@ class RustBuildAction(BaseAction):
             cmd.append("--release")
         if self._architecture == ARM64:
             cmd.append("--arm64")
+        if self._handler:
+            cmd.extend(["--bin", self._handler])
         if self._flags:
             cmd.extend(self._flags)
 

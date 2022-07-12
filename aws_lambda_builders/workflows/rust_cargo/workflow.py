@@ -24,9 +24,9 @@ class RustCargoWorkflow(BaseWorkflow):
         # select the binary to build
         options = kwargs.get("options") or {}
         handler = options.get("artifact_executable_name", None)
-        flags = options.get("cargo_lambda_flags") or []
+        flags = options.get("cargo_lambda_flags", None)
         self.actions = [
-            RustBuildAction(source_dir, self.binaries, mode, self.architecture, flags),
+            RustBuildAction(source_dir, self.binaries, mode, self.architecture, handler, flags),
             RustCopyAndRenameAction(source_dir, artifacts_dir, handler),
         ]
 

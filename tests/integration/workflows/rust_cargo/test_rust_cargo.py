@@ -47,6 +47,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
+        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
 
         self.builder.build(
             source_dir,
@@ -63,6 +64,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project_with_artifact_name(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
+        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
 
         self.builder.build(
             source_dir,
@@ -80,6 +82,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project_for_arm64(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
+        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
 
         self.builder.build(
             source_dir,
@@ -96,8 +99,9 @@ class TestRustCargo(TestCase):
 
         self.assertEqual(expected_files, output_files)
 
-    def test_builds_workspaces_project(self):
+    def test_builds_workspaces_project_with_bin_name(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
+        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
 
         self.builder.build(
             source_dir,
@@ -105,7 +109,25 @@ class TestRustCargo(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "Cargo.toml"),
             runtime=self.runtime,
-            options={"artifact_executable_name": "foo", "cargo_lambda_flags": ["--bin", "foo"]},
+            options={"artifact_executable_name": "foo"},
+        )
+
+        expected_files = {"bootstrap"}
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+
+    def test_builds_workspaces_project_with_package_option(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
+        shutil.rmtree(os.path.join(source_dir, "target", "lambda"))
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Cargo.toml"),
+            runtime=self.runtime,
+            options={"cargo_lambda_flags": ["--package", "foo"]},
         )
 
         expected_files = {"bootstrap"}
