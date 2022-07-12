@@ -8,7 +8,7 @@ This package enables the creation of a Lambda deployment package for Rust projec
 
 This package uses [cargo-lambda](https://crates.io/crates/cargo-lambda) to do all the heavy lifting for cross compilation, target validation, and other executable optimizations.
 
-It supports X86-64 architectures with the target `x86_64-unknown-linux-gnu` by default. It also supports ARM architectures with the target option `aarch64-unknown-linux-gnu`. Those are the only two valid targets.
+It supports X86-64 architectures with the target `x86_64-unknown-linux-gnu` by default. It also supports ARM architectures with the target option `aarch64-unknown-linux-gnu`. Those are the only two valid targets. The target is automatically configured based on the `architecture` option in the `RustWorkflow`.
 
 The general algorithm for preparing a rust executable for use on AWS Lambda is as follows.
 
@@ -23,6 +23,6 @@ It then copies the executable to the target directory honoring the provided runt
 ## Notes
 
 Like the go builders, the workflow argument `options.artifact_executable_name`
-interface is used to provide a handler name that resolves to an executable. This
+interface can used to provide a handler name that resolves to an executable. This
 enables sam support for cargo workspaces allowing for one rust project to have multiple lambdas. Cargo workspaces have a notion of a `package` and `bin`. A `package` can have
 multiple bins but typically `packages` have a 1-to-1 relationship with a default `bin`: `main.rs`. The handler names must be uniques across a Rust project, regardless of how many packages and binaries that project includes.

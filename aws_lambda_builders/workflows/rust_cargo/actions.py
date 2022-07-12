@@ -5,7 +5,6 @@ Rust Cargo build actions
 import os
 import subprocess
 import shutil
-import json
 
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
@@ -108,7 +107,7 @@ class RustCopyAndRenameAction(BaseAction):
     DESCRIPTION = "Copy Rust executable, renaming if needed"
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self, source_dir, handler, artifacts_dir, osutils=OSUtils()):
+    def __init__(self, source_dir, artifacts_dir, handler=None, osutils=OSUtils()):
         """
         Copy and rename Rust executable
 
@@ -116,13 +115,13 @@ class RustCopyAndRenameAction(BaseAction):
         :param source_dir:
             Path to a folder containing the source code
 
-        :type handler: str
-        :param handler:
-            Handler name in `package.bin_name` or `bin_name` format
-
         :type artifacts_dir: str
         :param binaries:
             Path to a folder containing the deployable artifacts
+
+        :type handler: str, optional
+        :param handler:
+            Handler name in `package.bin_name` or `bin_name` format
 
         :type osutils: object
         :param osutils:
@@ -133,9 +132,21 @@ class RustCopyAndRenameAction(BaseAction):
         self._artifacts_dir = artifacts_dir
         self._osutils = osutils
 
+    def base_path(self):
+        return os.path.join(self._source_dir, "target", "lambda")
+
     def binary_path(self):
-        target = os.path.join(self._source_dir, "target", "lambda", self._handler)
-        return os.path.join(target, "bootstrap")
+        base = self.base_path()
+        if self._handler:
+            return os.path.join(base, self._handler, "bootstrap")
+
+        output = os.listdir(base)
+        if len(output) == 1:
+            return os.path.join(base, output[0], "bootstrap")
+
+        raise RustBuilderError(
+            message="unable to find function binary, use the option `artifact_executable_name` to specify the binary's name"
+        )
 
     def execute(self):
         self._osutils.makedirs(self._artifacts_dir)

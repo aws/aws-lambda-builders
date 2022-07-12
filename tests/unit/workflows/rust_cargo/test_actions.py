@@ -87,15 +87,15 @@ class TestBuildAction(TestCase):
 
 class TestCopyAndRenameAction(TestCase):
     def test_debug_copy_path(self):
-        action = RustCopyAndRenameAction("source_dir", "foo", "output_dir")
+        action = RustCopyAndRenameAction("source_dir", "output_dir", "foo")
         self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", "lambda", "foo", "bootstrap"))
 
     def test_release_copy_path(self):
-        action = RustCopyAndRenameAction("source_dir", "foo", "output_dir")
+        action = RustCopyAndRenameAction("source_dir", "output_dir", "foo")
         self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", "lambda", "foo", "bootstrap"))
 
     def test_nonlinux_copy_path(self):
-        action = RustCopyAndRenameAction("source_dir", "foo", "output_dir")
+        action = RustCopyAndRenameAction("source_dir", "output_dir", "foo")
         self.assertEqual(action.binary_path(), os.path.join("source_dir", "target", "lambda", "foo", "bootstrap"))
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")

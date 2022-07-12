@@ -27,7 +27,7 @@ class RustCargoWorkflow(BaseWorkflow):
         flags = options.get("cargo_lambda_flags") or []
         self.actions = [
             RustBuildAction(source_dir, self.binaries, mode, self.architecture, flags),
-            RustCopyAndRenameAction(source_dir, handler, artifacts_dir),
+            RustCopyAndRenameAction(source_dir, artifacts_dir, handler),
         ]
 
     def get_resolvers(self):
