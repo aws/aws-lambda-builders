@@ -70,9 +70,7 @@ class TestBuildAction(TestCase):
         popen = FakePopen()
         osutils.popen.side_effect = [popen]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils
-        )
+        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
         action.execute()
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
@@ -81,9 +79,7 @@ class TestBuildAction(TestCase):
         popen = FakePopen(retcode=1, err=b"build failed")
         osutils.popen.side_effect = [popen]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils
-        )
+        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
         with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
         self.assertEqual(err_assert.exception.args[0], "Builder Failed: build failed")
@@ -108,7 +104,5 @@ class TestCopyAndRenameAction(TestCase):
         osutils.copyfile.return_value = ""
         osutils.makedirs.return_value = ""
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCopyAndRenameAction(
-            "source_dir", "foo", "output_dir", osutils=osutils
-        )
+        action = RustCopyAndRenameAction("source_dir", "foo", "output_dir", osutils=osutils)
         action.execute()
