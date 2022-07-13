@@ -103,16 +103,21 @@ class RustBuildAction(BaseAction):
             if LOG.isEnabledFor(logging.DEBUG):
                 os.environ["RUST_LOG"] = "debug"
 
-            p = self._osutils.popen(
+            cargo_process = self._osutils.popen(
                 command,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 cwd=self._source_dir,
             )
-            out, err = p.communicate()
-            if p.returncode != 0:
-                raise RustBuilderError(message=err.decode("utf8").strip())
-            return out.decode("utf8").strip()
+            out, err = cargo_process.communicate()
+            output = out.decode("utf8").strip()
+            if cargo_process.returncode != 0:
+                error = err.decode("utf8").strip()
+                LOG.debug("cargo-lambda STDOUT:\n\n%s\n\n", output)
+                LOG.debug("cargo-lambda STDERR:\n\n%s\n\n", error)
+                raise RustBuilderError(message=error)
+
+            return output
         except Exception as ex:
             raise ActionFailedError(str(ex))
 
