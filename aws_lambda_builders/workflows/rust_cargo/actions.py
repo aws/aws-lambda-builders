@@ -2,6 +2,7 @@
 Rust Cargo build actions
 """
 
+import logging
 import os
 import subprocess
 import shutil
@@ -9,6 +10,8 @@ import shutil
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64, ARM64
+
+LOG = logging.getLogger(__name__)
 
 
 class RustBuilderError(Exception):
@@ -95,8 +98,13 @@ class RustBuildAction(BaseAction):
 
     def execute(self):
         try:
+            command = self.build_command()
+            LOG.debug("Executing cargo-lambda: %s", " ".join(command))
+            if LOG.isEnabledFor(logging.DEBUG):
+                os.environ["RUST_LOG"] = "debug"
+
             p = self._osutils.popen(
-                self.build_command(),
+                command,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 cwd=self._source_dir,
@@ -145,12 +153,17 @@ class RustCopyAndRenameAction(BaseAction):
     def binary_path(self):
         base = self.base_path()
         if self._handler:
-            return os.path.join(base, self._handler, "bootstrap")
+            binary_path = os.path.join(base, self._handler, "bootstrap")
+            LOG.debug("copying function binary from %s", binary_path)
+            return binary_path
 
         output = os.listdir(base)
         if len(output) == 1:
-            return os.path.join(base, output[0], "bootstrap")
+            binary_path = os.path.join(base, output[0], "bootstrap")
+            LOG.debug("copying function binary from %s", binary_path)
+            return binary_path
 
+        LOG.debug("unexpected list of binary directories: [%s]" ", ".join(output))
         raise RustBuilderError(
             message="unable to find function binary, use the option `artifact_executable_name` to specify the binary's name"
         )

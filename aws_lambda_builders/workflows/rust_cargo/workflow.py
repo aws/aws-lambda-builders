@@ -1,7 +1,6 @@
 """
 Rust Cargo Workflow
 """
-import platform
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from .actions import RustBuildAction, RustCopyAndRenameAction
