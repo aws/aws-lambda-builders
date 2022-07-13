@@ -170,4 +170,7 @@ class RustCopyAndRenameAction(BaseAction):
 
     def execute(self):
         self._osutils.makedirs(self._artifacts_dir)
-        self._osutils.copyfile(self.binary_path(), os.path.join(self._artifacts_dir, "bootstrap"))
+        binary_path = self.binary_path()
+        destination_path = os.path.join(self._artifacts_dir, "bootstrap")
+        LOG.debug("copying function binary from %s to %s", binary_path, destination_path)
+        self._osutils.copyfile(binary_path, destination_path)
