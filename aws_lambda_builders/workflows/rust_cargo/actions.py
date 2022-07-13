@@ -163,7 +163,7 @@ class RustCopyAndRenameAction(BaseAction):
             LOG.debug("copying function binary from %s", binary_path)
             return binary_path
 
-        LOG.debug("unexpected list of binary directories: [%s]" ", ".join(output))
+        LOG.debug("unexpected list of binary directories: [%s]", ", ".join(output))
         raise RustBuilderError(
             message="unable to find function binary, use the option `artifact_executable_name` to specify the binary's name"
         )
