@@ -9,6 +9,7 @@ from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeVali
 
 from .actions import PythonPipBuildAction
 from .utils import OSUtils
+from ..nodejs_npm_esbuild.utils import is_experimental_build_improvements_enabled
 
 LOG = logging.getLogger(__name__)
 
@@ -106,7 +107,10 @@ class PythonPipWorkflow(BaseWorkflow):
         # folder
         if self.dependencies_dir and self.combine_dependencies:
             # when copying downloaded dependencies back to artifacts folder, don't exclude anything
-            self.actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
+            if is_experimental_build_improvements_enabled(self.experimental_flags):
+                self.actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
+            else:
+                self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
 
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 

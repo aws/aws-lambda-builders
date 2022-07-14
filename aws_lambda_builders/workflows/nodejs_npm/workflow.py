@@ -23,6 +23,7 @@ from .actions import (
 )
 from .utils import OSUtils
 from .npm import SubprocessNpm
+from ..nodejs_npm_esbuild.utils import is_experimental_build_improvements_enabled
 
 LOG = logging.getLogger(__name__)
 
@@ -123,7 +124,10 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
             # dependencies folder to artifact folder
             if self.dependencies_dir and self.combine_dependencies:
-                actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
+                if is_experimental_build_improvements_enabled(self.experimental_flags):
+                    actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
+                else:
+                    actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
             else:
                 LOG.info(
                     "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
