@@ -101,7 +101,9 @@ class RustBuildAction(BaseAction):
             command = self.build_command()
             LOG.debug("Executing cargo-lambda: %s", " ".join(command))
             if LOG.isEnabledFor(logging.DEBUG):
-                os.environ["RUST_LOG"] = "debug"
+                if "RUST_LOG" not in os.environ:
+                    os.environ["RUST_LOG"] = "debug"
+                LOG.debug("RUST_LOG environment variable set to `%s`", os.environ.get("RUST_LOG"))
 
             cargo_process = self._osutils.popen(
                 command,
