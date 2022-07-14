@@ -118,7 +118,7 @@ class CopySourceAction(BaseAction):
         copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
 
 
-class LinkSourceDirectoryAction(BaseAction):
+class LinkSourceAction(BaseAction):
 
     NAME = "LinkSource"
 
