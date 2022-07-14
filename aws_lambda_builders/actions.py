@@ -237,10 +237,10 @@ class CleanUpAction(BaseAction):
 
     def execute(self):
         if not os.path.isdir(self.target_dir):
-            LOG.info("Clean up action: %s does not exist and will be skipped.", str(self.target_dir))
+            LOG.debug("Clean up action: %s does not exist and will be skipped.", str(self.target_dir))
             return
         targets = os.listdir(self.target_dir)
-        LOG.info("Clean up action: folder %s will be cleaned", str(self.target_dir))
+        LOG.debug("Clean up action: folder %s will be cleaned", str(self.target_dir))
 
         for name in targets:
             target_path = os.path.join(self.target_dir, name)
