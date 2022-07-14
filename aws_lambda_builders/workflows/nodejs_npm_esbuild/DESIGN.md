@@ -128,7 +128,7 @@ Users might want to tweak some of these runtime arguments for a specific project
 * `minify`: boolean, defaulting to `true`
 * `sourcemap`: boolean, defaulting to `false`
 
-Here is an example that deactivates minification and source maps, and supports JavaScript features compatible with Node.js version 10.
+Here is an example that deactivates minification, enables source maps, and supports JavaScript features compatible with Node.js version 10.
 
 ```json
 {
