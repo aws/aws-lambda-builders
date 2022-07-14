@@ -71,7 +71,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         )
 
         self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
-        esbuild = workflow.actions[2].subprocess_esbuild
+        esbuild = workflow.actions[2]._subprocess_esbuild
 
         self.assertIsInstance(esbuild, SubprocessEsbuild)
         self.assertEqual(esbuild.executable_search_paths, ["project/bin"])
@@ -91,7 +91,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         )
 
         self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
-        esbuild = workflow.actions[2].subprocess_esbuild
+        esbuild = workflow.actions[2]._subprocess_esbuild
         self.assertIsInstance(esbuild, SubprocessEsbuild)
         self.assertEqual(esbuild.executable_search_paths, ["project/bin", "other/bin"])
 
