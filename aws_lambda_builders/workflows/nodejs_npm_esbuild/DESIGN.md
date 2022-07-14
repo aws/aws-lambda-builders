@@ -117,17 +117,16 @@ testing flow before invoking `sam build`. For additional typescript caveats with
 
 #### Configuring the bundler
 
-The Lambda builder invokes `esbuild` with sensible defaults that will work for the majority of cases. Importantly, the following three parameters are set by default
+The Lambda builder invokes `esbuild` with sensible defaults that will work for the majority of cases. Importantly, the following parameters are set by default
 
 * `--minify`, as it [produces a smaller runtime package](https://esbuild.github.io/api/#minify)
-* `--sourcemap`, as it generates a [source map that allows for correct stack trace reporting](https://esbuild.github.io/api/#sourcemap) in case of errors (see the [Error reporting](#error-reporting) section above)
 * `--target es2020`, as it allows for javascript features present in Node 14
 
 Users might want to tweak some of these runtime arguments for a specific project, for example not including the source map to further reduce the package size, or restricting javascript features to an older version. The Lambda builder allows this with optional sub-properties of the `aws_sam` configuration property.
 
 * `target`: string, corresponding to a supported [esbuild target](https://esbuild.github.io/api/#target) property
 * `minify`: boolean, defaulting to `true`
-* `sourcemap`: boolean, defaulting to `true`
+* `sourcemap`: boolean, defaulting to `false`
 
 Here is an example that deactivates minification and source maps, and supports JavaScript features compatible with Node.js version 10.
 
@@ -136,5 +135,5 @@ Here is an example that deactivates minification and source maps, and supports J
     "entry_points": ["included.ts"],
     "target": "node10",
     "minify": false,
-    "sourcemap": false
+    "sourcemap": true
 }
