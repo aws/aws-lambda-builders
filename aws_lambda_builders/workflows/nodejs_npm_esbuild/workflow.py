@@ -12,14 +12,14 @@ from aws_lambda_builders.actions import (
     CleanUpAction,
     CopyDependenciesAction,
     MoveDependenciesAction,
-    BaseAction,
+    BaseAction, LinkSourceAction,
 )
 from aws_lambda_builders.utils import which
 from .actions import (
     EsbuildBundleAction,
     EsbuildCheckVersionAction,
 )
-from .utils import is_experimental_esbuild_scope
+from .utils import is_experimental_esbuild_scope, is_experimental_build_improvements_enabled
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm import NodejsNpmWorkflow
 from ..nodejs_npm.npm import SubprocessNpm
@@ -174,7 +174,11 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 actions += esbuild_no_deps + [MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
         else:
             if self.dependencies_dir:
-                actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
+                if is_experimental_build_improvements_enabled(self.experimental_flags):
+                    actions.append(LinkSourceAction(self.dependencies_dir, scratch_dir))
+                else:
+                    actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
+
                 if self.combine_dependencies:
                     # Auto dependency layer disabled, subsequent builds
                     actions += [esbuild_with_deps]
