@@ -4,11 +4,10 @@ Ruby Bundler Workflow
 import logging
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction, LinkSourceAction
+from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 from .utils import OSUtils
 from .bundler import SubprocessBundler
-from ..nodejs_npm_esbuild.utils import is_experimental_build_improvements_enabled
 
 LOG = logging.getLogger(__name__)
 
@@ -54,10 +53,7 @@ class RubyBundlerWorkflow(BaseWorkflow):
             # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
             # dependencies folder to artifact folder
             if self.dependencies_dir:
-                if is_experimental_build_improvements_enabled(self.experimental_flags):
-                    self.actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
-                else:
-                    self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+                self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
             else:
                 LOG.info(
                     "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
