@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Set, Iterator, Tuple
 
+from aws_lambda_builders import utils
 from aws_lambda_builders.utils import copytree
 
 LOG = logging.getLogger(__name__)
@@ -37,9 +38,6 @@ class Purpose(object):
 
     # Action is copying dependencies
     COPY_DEPENDENCIES = "COPY_DEPENDENCIES"
-
-    # Action is copying dependencies
-    LINK_DEPENDENCIES = "LINK_DEPENDENCIES"
 
     # Action is moving dependencies
     MOVE_DEPENDENCIES = "MOVE_DEPENDENCIES"
@@ -140,10 +138,7 @@ class LinkSourceAction(BaseAction):
                 os.remove(destination_path)
             else:
                 os.makedirs(destination_path.parent, exist_ok=True)
-            if os.path.isdir(source_file):
-                os.symlink(source_path.absolute(), destination_path.absolute(), target_is_directory=True)
-            else:
-                os.symlink(source_path.absolute(), destination_path.absolute())
+            utils.create_symlink_or_copy(str(source_path), str(destination_path))
 
 
 class CopyDependenciesAction(BaseAction):
@@ -168,33 +163,6 @@ class CopyDependenciesAction(BaseAction):
             else:
                 os.makedirs(os.path.dirname(new_destination), exist_ok=True)
                 shutil.copy2(dependencies_source, new_destination)
-
-
-class LinkDependenciesAction(BaseAction):
-    NAME = "LinkDependencies"
-
-    DESCRIPTION = "Linking dependencies while skipping source file"
-
-    PURPOSE = Purpose.LINK_DEPENDENCIES
-
-    def __init__(self, source_dir, artifact_dir, destination_dir):
-        self.source_dir = source_dir
-        self.artifact_dir = artifact_dir
-        self.dest_dir = destination_dir
-
-    def execute(self):
-        source = set(os.listdir(self.source_dir))
-        artifact = set(os.listdir(self.artifact_dir))
-        dependencies = artifact - source
-
-        for name in dependencies:
-            dependencies_source = Path(self.artifact_dir, name)
-            new_destination = Path(self.dest_dir, name)
-
-            if os.path.isdir(dependencies_source):
-                os.symlink(dependencies_source.absolute(), new_destination.absolute(), target_is_directory=True)
-            else:
-                os.symlink(dependencies_source.absolute(), new_destination.absolute(), target_is_directory=True)
 
 
 class MoveDependenciesAction(BaseAction):
