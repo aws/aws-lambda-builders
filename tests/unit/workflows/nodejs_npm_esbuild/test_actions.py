@@ -168,11 +168,11 @@ class TestEsbuildBundleAction(TestCase):
 
         self.assertEqual(raised.exception.args[0], "entry point source/y.js does not exist")
 
-    def test_includes_sourcemap_if_requested(self):
+    def test_excludes_sourcemap_if_requested(self):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
-            {"entry_points": ["x.js"], "sourcemap": True},
+            {"entry_points": ["x.js"], "sourcemap": False},
             self.osutils,
             self.subprocess_esbuild,
             "package.json",
@@ -187,7 +187,6 @@ class TestEsbuildBundleAction(TestCase):
                 "--target=es2020",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
             ],
             cwd="source",
         )
