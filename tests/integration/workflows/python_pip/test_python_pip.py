@@ -19,13 +19,7 @@ NOT_ARM = platform.processor() != "aarch64"
 ARM_RUNTIMES = {"python3.8", "python3.9"}
 
 
-@parameterized_class(
-    ("experimental_flags",),
-    [
-        ([]),
-        ([EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22])
-    ]
-)
+@parameterized_class(("experimental_flags",), [([]), ([EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22])])
 class TestPythonPipWorkflow(TestCase):
     """
     Verifies that `python_pip` workflow works by building a Lambda that requires Numpy

@@ -16,7 +16,7 @@ from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildActi
     [
         ([]),
         ([EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22]),
-    ]
+    ],
 )
 class TestPythonPipWorkflow(TestCase):
     experimental_flags = []

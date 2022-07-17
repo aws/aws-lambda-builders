@@ -1,8 +1,13 @@
 from unittest import TestCase
 from mock import patch, call
 
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, CopyDependenciesAction, MoveDependenciesAction, \
-    LinkSourceAction
+from aws_lambda_builders.actions import (
+    CopySourceAction,
+    CleanUpAction,
+    CopyDependenciesAction,
+    MoveDependenciesAction,
+    LinkSourceAction,
+)
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAction, NodejsNpmCIAction
 from aws_lambda_builders.workflows.nodejs_npm_esbuild import NodejsNpmEsbuildWorkflow
