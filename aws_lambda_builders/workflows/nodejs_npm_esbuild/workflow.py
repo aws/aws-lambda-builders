@@ -10,7 +10,6 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
-    CopyDependenciesAction,
     MoveDependenciesAction,
     BaseAction,
     LinkSourceAction,
@@ -20,7 +19,7 @@ from .actions import (
     EsbuildBundleAction,
     EsbuildCheckVersionAction,
 )
-from .utils import is_experimental_esbuild_scope, is_experimental_build_improvements_enabled
+from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm import NodejsNpmWorkflow
 from ..nodejs_npm.npm import SubprocessNpm
@@ -169,26 +168,17 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             actions += [install_action, CleanUpAction(self.dependencies_dir)]
             if self.combine_dependencies:
                 # Auto dependency layer disabled, first build
-                if is_experimental_build_improvements_enabled(self.experimental_flags):
-                    actions += [
-                        esbuild_with_deps,
-                        MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
-                        LinkSourceAction(self.dependencies_dir, scratch_dir),
-                    ]
-                else:
-                    actions += [
-                        esbuild_with_deps,
-                        CopyDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
-                    ]
+                actions += [
+                    esbuild_with_deps,
+                    MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
+                    LinkSourceAction(self.dependencies_dir, scratch_dir),
+                ]
             else:
                 # Auto dependency layer enabled, first build
                 actions += esbuild_no_deps + [MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
         else:
             if self.dependencies_dir:
-                if is_experimental_build_improvements_enabled(self.experimental_flags):
-                    actions.append(LinkSourceAction(self.dependencies_dir, scratch_dir))
-                else:
-                    actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
+                actions.append(LinkSourceAction(self.dependencies_dir, scratch_dir))
 
                 if self.combine_dependencies:
                     # Auto dependency layer disabled, subsequent builds
