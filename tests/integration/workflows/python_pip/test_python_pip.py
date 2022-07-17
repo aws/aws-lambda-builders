@@ -5,10 +5,13 @@ import platform
 import tempfile
 from unittest import TestCase, skipIf
 import mock
+from parameterized import parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 import logging
+
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22
 
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -16,12 +19,20 @@ NOT_ARM = platform.processor() != "aarch64"
 ARM_RUNTIMES = {"python3.8", "python3.9"}
 
 
+@parameterized_class(
+    ("experimental_flags",),
+    [
+        ([]),
+        ([EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22])
+    ]
+)
 class TestPythonPipWorkflow(TestCase):
     """
     Verifies that `python_pip` workflow works by building a Lambda that requires Numpy
     """
 
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
+    experimental_flags = []
 
     def setUp(self):
         self.source_dir = self.TEST_DATA_FOLDER
@@ -75,7 +86,12 @@ class TestPythonPipWorkflow(TestCase):
 
     def test_must_build_python_project(self):
         self.builder.build(
-            self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_valid, runtime=self.runtime
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_valid,
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
         )
 
         if self.runtime == "python3.6":
@@ -100,6 +116,7 @@ class TestPythonPipWorkflow(TestCase):
             self.manifest_path_sdist,
             runtime=self.runtime,
             architecture="arm64",
+            experimental_flags=self.experimental_flags,
         )
         expected_files = self.test_data_files.union({"wrapt", "wrapt-1.13.3.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
@@ -118,6 +135,7 @@ class TestPythonPipWorkflow(TestCase):
             self.manifest_path_valid,
             runtime=self.runtime,
             architecture="arm64",
+            experimental_flags=self.experimental_flags,
         )
         expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-1.20.3.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
@@ -135,6 +153,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.scratch_dir,
                 self.manifest_path_valid,
                 runtime=self.runtime_mismatch[self.runtime],
+                experimental_flags=self.experimental_flags,
             )
         except WorkflowFailedError as ex:
             # handle both e.g. missing /usr/bin/python2.7 and situation where
@@ -162,7 +181,14 @@ class TestPythonPipWorkflow(TestCase):
         # need to make sure the correct path is used in the requirements file locally and in CI
         with open(manifest, "w") as f:
             f.write(str(path_to_package))
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, manifest, runtime=self.runtime)
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest,
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
+        )
         expected_files = {
             "local_package",
             "local_package-0.0.0.dist-info",
@@ -179,7 +205,12 @@ class TestPythonPipWorkflow(TestCase):
 
         with self.assertRaises(WorkflowFailedError) as ctx:
             self.builder.build(
-                self.source_dir, self.artifacts_dir, self.scratch_dir, self.manifest_path_invalid, runtime=self.runtime
+                self.source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                self.manifest_path_invalid,
+                runtime=self.runtime,
+                experimental_flags=self.experimental_flags,
             )
 
         message_in_exception = "Invalid requirement: 'boto3=1.19.99'" in str(ctx.exception)
@@ -193,6 +224,7 @@ class TestPythonPipWorkflow(TestCase):
                 self.scratch_dir,
                 os.path.join("non", "existent", "manifest"),
                 runtime=self.runtime,
+                experimental_flags=self.experimental_flags,
             )
         expected_files = self.test_data_files
         output_files = set(os.listdir(self.artifacts_dir))
@@ -218,6 +250,7 @@ class TestPythonPipWorkflow(TestCase):
             runtime=self.runtime,
             download_dependencies=False,
             dependencies_dir=self.dependencies_dir,
+            experimental_flags=self.experimental_flags,
         )
 
         # if download_dependencies is False and dependencies is empty, the artifacts_dir should just copy files from
@@ -243,6 +276,7 @@ class TestPythonPipWorkflow(TestCase):
             runtime=self.runtime,
             download_dependencies=True,
             dependencies_dir=self.dependencies_dir,
+            experimental_flags=self.experimental_flags,
         )
 
         # build artifact should be same as usual
@@ -287,6 +321,7 @@ class TestPythonPipWorkflow(TestCase):
                 runtime=self.runtime,
                 download_dependencies=False,
                 dependencies_dir=None,
+                experimental_flags=self.experimental_flags,
             )
 
         # if download_dependencies is False and dependencies is None, the artifacts_dir should just copy files from
@@ -318,6 +353,7 @@ class TestPythonPipWorkflow(TestCase):
             download_dependencies=True,
             dependencies_dir=self.dependencies_dir,
             combine_dependencies=False,
+            experimental_flags=self.experimental_flags,
         )
 
         expected_files = os.listdir(source_dir)
