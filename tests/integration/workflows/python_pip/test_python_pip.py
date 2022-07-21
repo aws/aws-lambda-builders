@@ -11,7 +11,7 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 import logging
 
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22
+from aws_lambda_builders.workflows.python_pip.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -19,7 +19,7 @@ NOT_ARM = platform.processor() != "aarch64"
 ARM_RUNTIMES = {"python3.8", "python3.9"}
 
 
-@parameterized_class(("experimental_flags",), [([]), ([EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22])])
+@parameterized_class(("experimental_flags",), [([]), ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE])])
 class TestPythonPipWorkflow(TestCase):
     """
     Verifies that `python_pip` workflow works by building a Lambda that requires Numpy

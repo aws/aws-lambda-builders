@@ -8,8 +8,7 @@ from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSou
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
-from .utils import OSUtils
-from ..nodejs_npm_esbuild.utils import is_experimental_build_improvements_enabled
+from .utils import OSUtils, is_experimental_build_improvements_enabled
 
 LOG = logging.getLogger(__name__)
 

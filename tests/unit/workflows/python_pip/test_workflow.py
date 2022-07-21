@@ -5,8 +5,7 @@ from unittest import TestCase
 from parameterized import parameterized_class
 
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22
-from aws_lambda_builders.workflows.python_pip.utils import OSUtils
+from aws_lambda_builders.workflows.python_pip.utils import OSUtils, EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildAction, PythonPipWorkflow
 
@@ -15,7 +14,7 @@ from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildActi
     ("experimental_flags",),
     [
         ([]),
-        ([EXPERIMENTAL_FLAG_BUILD_IMPROVEMENTS_22]),
+        ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE]),
     ],
 )
 class TestPythonPipWorkflow(TestCase):
