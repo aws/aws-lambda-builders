@@ -202,9 +202,6 @@ class EsbuildCommandBuilder:
         if "minify" not in self._bundler_config:
             args.append("--minify")
 
-        if "sourcemap" not in self._bundler_config:
-            args.append("--sourcemap")
-
         LOG.debug("Using the following default args: %s", str(args))
 
         self._command.extend(args)

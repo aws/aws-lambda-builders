@@ -61,7 +61,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js", "included.js.map"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -81,7 +81,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js", "included.js.map", "included2.js", "included2.js.map"}
+        expected_files = {"included.js", "included2.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -101,7 +101,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js", "included.js.map"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -129,7 +129,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js", "included.js.map"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -165,7 +165,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js.map", "implicit.js.map", "implicit.js", "included.js"}
+        expected_files = {"implicit.js", "included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -191,7 +191,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             executable_search_paths=[binpath],
         )
 
-        expected_files = {"included.js.map", "included.js"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -219,7 +219,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             executable_search_paths=[binpath],
         )
 
-        expected_files = {"included.js.map", "included.js"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -240,7 +240,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js.map", "included.js"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -290,7 +290,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js.map", "included.js"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -318,7 +318,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js", "included.js.map"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
         with open(str(os.path.join(self.artifacts_dir, "included.js"))) as f:
@@ -343,7 +343,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        expected_files = {"included.js", "included.js.map"}
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -366,3 +366,23 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 "\turania: astronomy and astrology"
             ),
         )
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    def test_includes_sourcemap_if_requested(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+
+        options = {"entry_points": ["included.js"], "sourcemap": True}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)

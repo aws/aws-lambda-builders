@@ -152,7 +152,6 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--target=es2020",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
             ],
         )
 
@@ -180,7 +179,6 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--target=es2020",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
                 "--loader:.proto=text",
                 "--loader:.json=js",
                 "--external:@faker-js/faker",
@@ -237,7 +235,6 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--outdir=artifacts",
                 "--target=es2020",
                 "--minify",
-                "--sourcemap",
                 "--format=esm",
                 "--loader:.proto=text",
                 "--loader:.json=js",
