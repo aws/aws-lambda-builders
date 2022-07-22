@@ -60,7 +60,12 @@ class TestEsbuildBundleAction(TestCase):
 
     def test_packages_javascript_with_minification_and_sourcemap(self):
         action = EsbuildBundleAction(
-            "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild, "package.json"
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"], "sourcemap": True},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
         )
         action.execute()
 
@@ -97,7 +102,6 @@ class TestEsbuildBundleAction(TestCase):
                 "--target=es2020",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
                 "--external:fetch",
                 "--external:aws-sdk",
             ],
@@ -123,7 +127,6 @@ class TestEsbuildBundleAction(TestCase):
                 "--target=es2020",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
                 "--loader:.proto=text",
                 "--loader:.json=js",
             ],
@@ -206,7 +209,6 @@ class TestEsbuildBundleAction(TestCase):
                 "--outdir=artifacts",
                 "--target=es2020",
                 "--format=cjs",
-                "--sourcemap",
             ],
             cwd="source",
         )
@@ -229,7 +231,6 @@ class TestEsbuildBundleAction(TestCase):
                 "--outdir=artifacts",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
                 "--target=node14",
             ],
             cwd="source",
@@ -254,7 +255,6 @@ class TestEsbuildBundleAction(TestCase):
                 "--outdir=artifacts",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
                 "--target=node14",
             ],
             cwd="source",
@@ -287,7 +287,6 @@ class TestEsbuildBundleAction(TestCase):
                 "--outdir=artifacts",
                 "--format=cjs",
                 "--minify",
-                "--sourcemap",
                 "--target=node14",
             ],
             cwd="source",
