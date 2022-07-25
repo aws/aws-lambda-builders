@@ -1,7 +1,13 @@
 from unittest import TestCase
 from mock import patch, call
 
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, CopyDependenciesAction, MoveDependenciesAction
+from aws_lambda_builders.actions import (
+    CopySourceAction,
+    CleanUpAction,
+    CopyDependenciesAction,
+    MoveDependenciesAction,
+    LinkSourceAction,
+)
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAction, NodejsNpmCIAction
 from aws_lambda_builders.workflows.nodejs_npm_esbuild import NodejsNpmEsbuildWorkflow
@@ -219,7 +225,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 3)
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], LinkSourceAction)
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_without_download_dependencies_with_dependencies_dir_no_combine_deps(self):
@@ -239,7 +245,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 4)
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], LinkSourceAction)
         self.assertIsInstance(workflow.actions[2], EsbuildCheckVersionAction)
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
 
@@ -258,13 +264,14 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 5)
+        self.assertEqual(len(workflow.actions), 6)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[2], CleanUpAction)
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
-        self.assertIsInstance(workflow.actions[4], CopyDependenciesAction)
+        self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[5], LinkSourceAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir_no_combine_deps(self):
         workflow = NodejsNpmEsbuildWorkflow(

@@ -10,9 +10,9 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
-    CopyDependenciesAction,
     MoveDependenciesAction,
     BaseAction,
+    LinkSourceAction,
 )
 from aws_lambda_builders.utils import which
 from .actions import (
@@ -168,13 +168,18 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             actions += [install_action, CleanUpAction(self.dependencies_dir)]
             if self.combine_dependencies:
                 # Auto dependency layer disabled, first build
-                actions += [esbuild_with_deps, CopyDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
+                actions += [
+                    esbuild_with_deps,
+                    MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
+                    LinkSourceAction(self.dependencies_dir, scratch_dir),
+                ]
             else:
                 # Auto dependency layer enabled, first build
                 actions += esbuild_no_deps + [MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
         else:
             if self.dependencies_dir:
-                actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
+                actions.append(LinkSourceAction(self.dependencies_dir, scratch_dir))
+
                 if self.combine_dependencies:
                     # Auto dependency layer disabled, subsequent builds
                     actions += [esbuild_with_deps]

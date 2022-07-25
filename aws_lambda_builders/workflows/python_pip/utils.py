@@ -11,6 +11,9 @@ import shutil
 import tarfile
 import subprocess
 import sys
+from typing import Optional, List
+
+EXPERIMENTAL_FLAG_BUILD_PERFORMANCE = "experimentalBuildPerformance"
 
 
 class OSUtils(object):
@@ -106,3 +109,10 @@ class OSUtils(object):
     def basename(self, path):
         # type: (str) -> str
         return os.path.basename(path)
+
+
+def is_experimental_build_improvements_enabled(experimental_flags: Optional[List[str]]) -> bool:
+    """
+    A function which will determine if experimental build improvements is active
+    """
+    return bool(experimental_flags) and EXPERIMENTAL_FLAG_BUILD_PERFORMANCE in experimental_flags

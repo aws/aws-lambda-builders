@@ -5,8 +5,10 @@ Definition of actions used in the workflow
 import logging
 import os
 import shutil
+from pathlib import Path
 from typing import Set, Iterator, Tuple
 
+from aws_lambda_builders import utils
 from aws_lambda_builders.utils import copytree
 
 LOG = logging.getLogger(__name__)
@@ -30,6 +32,9 @@ class Purpose(object):
 
     # Action is copying source code
     COPY_SOURCE = "COPY_SOURCE"
+
+    # Action is linking source code
+    LINK_SOURCE = "LINK_SOURCE"
 
     # Action is copying dependencies
     COPY_DEPENDENCIES = "COPY_DEPENDENCIES"
@@ -111,6 +116,31 @@ class CopySourceAction(BaseAction):
         copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
 
 
+class LinkSourceAction(BaseAction):
+
+    NAME = "LinkSource"
+
+    DESCRIPTION = "Linking source code to the target folder"
+
+    PURPOSE = Purpose.LINK_SOURCE
+
+    def __init__(self, source_dir, dest_dir):
+        self._source_dir = source_dir
+        self._dest_dir = dest_dir
+
+    def execute(self):
+        source_files = set(os.listdir(self._source_dir))
+
+        for source_file in source_files:
+            source_path = Path(self._source_dir, source_file)
+            destination_path = Path(self._dest_dir, source_file)
+            if destination_path.exists():
+                os.remove(destination_path)
+            else:
+                os.makedirs(destination_path.parent, exist_ok=True)
+            utils.create_symlink_or_copy(str(source_path), str(destination_path))
+
+
 class CopyDependenciesAction(BaseAction):
 
     NAME = "CopyDependencies"
@@ -175,10 +205,10 @@ class CleanUpAction(BaseAction):
 
     def execute(self):
         if not os.path.isdir(self.target_dir):
-            LOG.info("Clean up action: %s does not exist and will be skipped.", str(self.target_dir))
+            LOG.debug("Clean up action: %s does not exist and will be skipped.", str(self.target_dir))
             return
         targets = os.listdir(self.target_dir)
-        LOG.info("Clean up action: folder %s will be cleaned", str(self.target_dir))
+        LOG.debug("Clean up action: folder %s will be cleaned", str(self.target_dir))
 
         for name in targets:
             target_path = os.path.join(self.target_dir, name)
