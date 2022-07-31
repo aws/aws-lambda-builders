@@ -2,9 +2,7 @@ from unittest import TestCase
 from mock import patch, call
 
 from aws_lambda_builders.actions import (
-    CopySourceAction,
     CleanUpAction,
-    CopyDependenciesAction,
     MoveDependenciesAction,
     LinkSourceAction,
 )
@@ -55,10 +53,9 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 3)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls(
             [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
         )
@@ -76,8 +73,8 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
-        esbuild = workflow.actions[2]._subprocess_esbuild
+        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="source")
+        esbuild = workflow.actions[1]._subprocess_esbuild
 
         self.assertIsInstance(esbuild, SubprocessEsbuild)
         self.assertEqual(esbuild.executable_search_paths, ["project/bin"])
@@ -96,8 +93,8 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
-        esbuild = workflow.actions[2]._subprocess_esbuild
+        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="source")
+        esbuild = workflow.actions[1]._subprocess_esbuild
         self.assertIsInstance(esbuild, SubprocessEsbuild)
         self.assertEqual(esbuild.executable_search_paths, ["project/bin", "other/bin"])
 
@@ -115,10 +112,9 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             options={"use_npm_ci": True},
         )
 
-        self.assertEqual(len(workflow.actions), 3)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls([call("source/package-lock.json")])
 
     def test_workflow_uses_npm_ci_if_shrinkwrap_exists(self):
@@ -135,10 +131,9 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             options={"use_npm_ci": True},
         )
 
-        self.assertEqual(len(workflow.actions), 3)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmCIAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmCIAction)
+        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls(
             [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
         )
@@ -156,10 +151,9 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 3)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
         self.osutils.file_exists.assert_has_calls(
             [call("source/package-lock.json"), call("source/npm-shrinkwrap.json")]
         )
@@ -203,10 +197,9 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 3)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_without_download_dependencies_with_dependencies_dir_combine_deps(self):
         self.osutils.file_exists.return_value = True
@@ -223,10 +216,9 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 3)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], LinkSourceAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], LinkSourceAction)
+        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_without_download_dependencies_with_dependencies_dir_no_combine_deps(self):
         self.osutils.file_exists.return_value = True
@@ -243,11 +235,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 4)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], LinkSourceAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildCheckVersionAction)
-        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
+        self.assertEqual(len(workflow.actions), 3)
+        self.assertIsInstance(workflow.actions[0], LinkSourceAction)
+        self.assertIsInstance(workflow.actions[1], EsbuildCheckVersionAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir(self):
 
@@ -264,14 +255,13 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 5)
 
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[2], CleanUpAction)
-        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
-        self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
-        self.assertIsInstance(workflow.actions[5], LinkSourceAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[1], CleanUpAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[3], MoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[4], LinkSourceAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir_no_combine_deps(self):
         workflow = NodejsNpmEsbuildWorkflow(
@@ -286,11 +276,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 5)
 
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
-        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[2], CleanUpAction)
-        self.assertIsInstance(workflow.actions[3], EsbuildCheckVersionAction)
-        self.assertIsInstance(workflow.actions[4], EsbuildBundleAction)
-        self.assertIsInstance(workflow.actions[5], MoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[1], CleanUpAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildCheckVersionAction)
+        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)

@@ -8,7 +8,6 @@ from typing import List
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import (
-    CopySourceAction,
     CleanUpAction,
     MoveDependenciesAction,
     BaseAction,
@@ -54,7 +53,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             osutils = OSUtils()
 
         subprocess_npm = SubprocessNpm(osutils)
-        subprocess_esbuild = self._get_esbuild_subprocess(subprocess_npm, scratch_dir, osutils)
+        subprocess_esbuild = self._get_esbuild_subprocess(subprocess_npm, source_dir, osutils)
 
         bundler_config = self.get_build_properties()
 
@@ -104,9 +103,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :rtype: list
         :return: List of build actions to execute
         """
-        actions: List[BaseAction] = [
-            CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES + tuple(["node_modules"]))
-        ]
+        actions: List[BaseAction] = []
 
         # Bundle dependencies separately in a dependency layer. We need to check the esbuild
         # version here to ensure that it supports skipping dependency bundling
@@ -123,11 +120,11 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             ),
         ]
         esbuild_with_deps = EsbuildBundleAction(
-            scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
+            source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
         )
 
         install_action = NodejsNpmWorkflow.get_install_action(
-            source_dir, scratch_dir, subprocess_npm, osutils, self.options, is_production=False
+            source_dir, source_dir, subprocess_npm, osutils, self.options, is_production=False
         )
 
         if self.download_dependencies and not self.dependencies_dir:
