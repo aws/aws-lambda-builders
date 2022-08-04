@@ -19,7 +19,7 @@ class MisMatchRuntimeError(LambdaBuilderError):
     MESSAGE = (
         "{language} executable found in your path does not "
         "match runtime. "
-        "\n Expected version: {required_runtime}, Found version: {runtime_path}. "
+        "\n Expected version: {required_runtime}, Found a different version at {runtime_path}. "
         "\n Possibly related: https://github.com/awslabs/aws-lambda-builders/issues/30"
     )
 
