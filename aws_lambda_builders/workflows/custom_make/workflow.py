@@ -34,21 +34,7 @@ class CustomMakeWorkflow(BaseWorkflow):
         # Find the logical id of the function to be built.
         options = kwargs.get("options") or {}
         build_logical_id = options.get("build_logical_id", None)
-        working_directory = options.get("working_directory")
-
-        if working_directory is None:
-            working_directory = scratch_dir
-        else:
-            if self.os_utils.isabspath(working_directory):
-                # Working directory should be relative to the source_dir, so when we copy the source_dir to scratch_dir
-                # the working directory value is still valid
-                working_directory = self.os_utils.relpath(working_directory, source_dir)
-
-            # join the working directory to the scratch_dir
-            working_directory = self.os_utils.normpath(self.os_utils.join_relpath(working_directory, scratch_dir))
-
-        if working_directory is None:
-            working_directory = scratch_dir
+        working_directory = options.get("working_directory", scratch_dir)
 
         if not build_logical_id:
             raise WorkflowFailedError(

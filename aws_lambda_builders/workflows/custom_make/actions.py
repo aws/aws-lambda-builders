@@ -52,7 +52,8 @@ class CustomMakeAction(BaseAction):
         :param build_logical_id: the lambda resource logical id that will be built by the custom action.
 
         :type working_directory: str
-        :param working_directory: path to the working directory where the Makefile will be executed.
+        :param working_directory: path to the working directory where the Makefile will be executed. Use the scratch_dir
+        as the working directory if the input working_directory is None
         """
         super(CustomMakeAction, self).__init__()
         self.artifacts_dir = artifacts_dir

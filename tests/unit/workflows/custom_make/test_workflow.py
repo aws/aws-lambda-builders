@@ -54,12 +54,7 @@ class TestProvidedMakeWorkflow(TestCase):
         )
         self.assertEqual(workflow.actions[1].working_directory, "scratch_dir")
 
-    @patch("aws_lambda_builders.workflows.custom_make.workflow.OSUtils")
-    def test_use_relative_path_working_directory(self, OSUtilMock):
-        OSUtilMock.return_value.isabspath.return_value = False
-        OSUtilMock.return_value.join_relpath.return_value = "scratch_dir/working/dir/path"
-        OSUtilMock.return_value.normpath.return_value = "scratch_dir/working/dir/path"
-
+    def test_use_working_directory(self):
         workflow = CustomMakeWorkflow(
             "source",
             "artifacts",
@@ -68,21 +63,4 @@ class TestProvidedMakeWorkflow(TestCase):
             options={"build_logical_id": "hello", "working_directory": "working/dir/path"},
         )
 
-        self.assertEqual(workflow.actions[1].working_directory, "scratch_dir/working/dir/path")
-
-    @patch("aws_lambda_builders.workflows.custom_make.workflow.OSUtils")
-    def test_use_abs_path_working_directory(self, OSUtilMock):
-        OSUtilMock.return_value.isabspath.return_value = True
-        OSUtilMock.return_value.relpath.return_value = "working/dir/path"
-        OSUtilMock.return_value.join_relpath.return_value = "scratch_dir/working/dir/path"
-        OSUtilMock.return_value.normpath.return_value = "scratch_dir/working/dir/path"
-
-        workflow = CustomMakeWorkflow(
-            "source",
-            "artifacts",
-            "scratch_dir",
-            "manifest",
-            options={"build_logical_id": "hello", "working_directory": "/source/working/dir/path"},
-        )
-
-        self.assertEqual(workflow.actions[1].working_directory, "scratch_dir/working/dir/path")
+        self.assertEqual(workflow.actions[1].working_directory, "working/dir/path")

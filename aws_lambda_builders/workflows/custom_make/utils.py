@@ -35,15 +35,6 @@ class OSUtils(object):
     def abspath(self, path):
         return os.path.abspath(path)
 
-    def isabspath(self, path):
-        return os.path.isabs(path)
-
-    def relpath(self, path, start):
-        return os.path.relpath(path, start)
-
-    def join_relpath(self, path, start):
-        return os.path.join(start, path)
-
     @property
     def pipe(self):
         return subprocess.PIPE
