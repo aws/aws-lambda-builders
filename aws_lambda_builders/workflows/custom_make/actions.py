@@ -22,7 +22,16 @@ class CustomMakeAction(BaseAction):
     DESCRIPTION = "Running build target on Makefile"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_make, build_logical_id):
+    def __init__(
+        self,
+        artifacts_dir,
+        scratch_dir,
+        manifest_path,
+        osutils,
+        subprocess_make,
+        build_logical_id,
+        working_directory=None,
+    ):
         """
         :type artifacts_dir: str
         :param artifacts_dir: directory where artifacts needs to be stored.
@@ -38,6 +47,12 @@ class CustomMakeAction(BaseAction):
 
         :type subprocess_make aws_lambda_builders.workflows.custom_make.make.SubprocessMake
         :param subprocess_make: An instance of the Make process wrapper
+
+        :type build_logical_id: str
+        :param build_logical_id: the lambda resource logical id that will be built by the custom action.
+
+        :type working_directory: str
+        :param working_directory: path to the working directory where the Makefile will be executed.
         """
         super(CustomMakeAction, self).__init__()
         self.artifacts_dir = artifacts_dir
@@ -46,6 +61,7 @@ class CustomMakeAction(BaseAction):
         self.osutils = osutils
         self.subprocess_make = subprocess_make
         self.build_logical_id = build_logical_id
+        self.working_directory = working_directory if working_directory else scratch_dir
 
     @property
     def artifact_dir_path(self):
@@ -91,7 +107,7 @@ class CustomMakeAction(BaseAction):
                     "build-{logical_id}".format(logical_id=self.build_logical_id),
                 ],
                 env=current_env,
-                cwd=self.scratch_dir,
+                cwd=self.working_directory,
             )
         except MakeExecutionError as ex:
             raise ActionFailedError(str(ex))
