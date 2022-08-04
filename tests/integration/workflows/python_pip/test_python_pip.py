@@ -1,4 +1,5 @@
 import os
+import pathlib
 import shutil
 import sys
 import platform
@@ -11,6 +12,7 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 import logging
 
+from aws_lambda_builders.utils import which
 from aws_lambda_builders.workflows.python_pip.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
@@ -47,7 +49,10 @@ class TestPythonPipWorkflow(TestCase):
             "local-dependencies",
         }
 
-        self.builder = LambdaBuilder(language="python", dependency_manager="pip", application_framework=None)
+        self.dependency_manager = "pip"
+        self.builder = LambdaBuilder(
+            language="python", dependency_manager=self.dependency_manager, application_framework=None
+        )
         self.runtime = "{language}{major}.{minor}".format(
             language=self.builder.capability.language, major=sys.version_info.major, minor=sys.version_info.minor
         )
@@ -97,6 +102,33 @@ class TestPythonPipWorkflow(TestCase):
 
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    def test_must_build_python_project_python3_binary(self):
+        python_paths = which("python")
+        executable_dir = pathlib.Path(tempfile.gettempdir())
+        new_python_path = executable_dir.joinpath("python3")
+        os.symlink(python_paths[0], new_python_path)
+        # Build with access to the newly symlinked python3 binary.
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_valid,
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
+            executable_search_paths=[executable_dir],
+        )
+
+        if self.runtime == "python3.6":
+            self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
+        else:
+            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
+
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+        os.unlink(new_python_path)
 
     @skipIf(NOT_ARM, "Skip if not running on ARM64")
     def test_must_build_python_project_from_sdist_with_arm(self):

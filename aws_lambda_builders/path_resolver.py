@@ -6,10 +6,14 @@ from aws_lambda_builders.utils import which
 
 
 class PathResolver(object):
-    def __init__(self, binary, runtime, executable_search_paths=None):
+    def __init__(self, binary, runtime, additional_binaries=None, executable_search_paths=None):
         self.binary = binary
         self.runtime = runtime
         self.executables = [self.runtime, self.binary]
+        self.additional_binaries = additional_binaries
+        if isinstance(additional_binaries, list):
+            self.executables = self.executables + self.additional_binaries
+
         self.executable_search_paths = executable_search_paths
 
     def _which(self):

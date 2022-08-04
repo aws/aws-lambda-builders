@@ -6,6 +6,7 @@ import logging
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
+from aws_lambda_builders.path_resolver import PathResolver
 
 from .actions import PythonPipBuildAction
 from .utils import OSUtils, is_experimental_build_improvements_enabled
@@ -64,6 +65,8 @@ class PythonPipWorkflow(BaseWorkflow):
         ".idea",
     )
 
+    PYTHON_VERSION_THREE = "3"
+
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
         super(PythonPipWorkflow, self).__init__(
@@ -112,6 +115,25 @@ class PythonPipWorkflow(BaseWorkflow):
                 self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
 
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+
+    def get_resolvers(self):
+        """
+        Specialized Python path resolver that looks for additional binaries in addition to the language specific binary.
+        """
+        return [
+            PathResolver(
+                runtime=self.runtime,
+                binary=self.CAPABILITY.language,
+                additional_binaries=self._get_additional_binaries(),
+                executable_search_paths=self.executable_search_paths,
+            )
+        ]
+
+    def _get_additional_binaries(self):
+        # python3 is an additional binary that has to be considered in addition to the original python binary, when
+        # the specified python runtime is 3.x
+        major, _ = self.runtime.replace(self.CAPABILITY.language, "").split(".")
+        return [f"{self.CAPABILITY.language}{major}"] if major == self.PYTHON_VERSION_THREE else None
 
     def get_validators(self):
         return [PythonRuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
