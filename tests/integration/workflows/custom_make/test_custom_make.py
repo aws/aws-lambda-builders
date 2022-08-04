@@ -57,7 +57,7 @@ class TestCustomMakeWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    def test_build_python_project_failed_through_makefile_without_working_directory(self):
+    def test_build_python_project_failed_through_makefile_no_python_source_in_default_working_directory(self):
         source_code = os.path.join(os.path.dirname(__file__), "testdata", "makefile-in-different-working-directory")
         manifest_path_valid = os.path.join(source_code, "Makefile")
         with self.assertRaises(WorkflowFailedError):
