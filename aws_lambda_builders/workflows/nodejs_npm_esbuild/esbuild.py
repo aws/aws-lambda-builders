@@ -54,7 +54,11 @@ class SubprocessEsbuild(object):
         if binaries:
             return binaries[0]
         else:
-            raise EsbuildExecutionError(message="cannot find esbuild")
+            raise EsbuildExecutionError(
+                message="Cannot find esbuild. esbuild must be installed on the host machine to use this feature. "
+                "It is recommended to be installed on the PATH, "
+                "but can also be included as a project dependency."
+            )
 
     def run(self, args, cwd=None):
 

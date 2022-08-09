@@ -1,10 +1,11 @@
 from unittest import TestCase
+from unittest.mock import ANY
+
 from mock import patch, call
 
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
-    CopyDependenciesAction,
     MoveDependenciesAction,
     LinkSourceAction,
 )
@@ -294,3 +295,23 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], EsbuildCheckVersionAction)
         self.assertIsInstance(workflow.actions[4], EsbuildBundleAction)
         self.assertIsInstance(workflow.actions[5], MoveDependenciesAction)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmWorkflow")
+    def test_workflow_uses_production_npm_version(self, get_workflow_mock):
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            dependencies_dir=None,
+            download_dependencies=True,
+            combine_dependencies=False,
+            osutils=self.osutils,
+            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+        )
+
+        self.assertEqual(len(workflow.actions), 3)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+
+        get_workflow_mock.get_install_action.assert_called_with("source", "scratch_dir", ANY, ANY, None)

@@ -2,6 +2,8 @@ import os
 import shutil
 import tempfile
 from unittest import TestCase
+from unittest.mock import patch
+
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
@@ -270,7 +272,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
-        self.assertEqual(str(context.exception), "Esbuild Failed: Lambda Builders encountered and invalid workflow")
+        self.assertEqual(str(context.exception), "Esbuild Failed: Lambda Builders encountered an invalid workflow")
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
     def test_builds_project_without_combine_dependencies(self, runtime):
