@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import patch
 
 from aws_lambda_builders.architecture import X86_64, ARM64
 from aws_lambda_builders.actions import CopySourceAction
@@ -46,3 +47,20 @@ class TestProvidedMakeWorkflow(TestCase):
 
         self.assertEqual(workflow.architecture, "x86_64")
         self.assertEqual(workflow_with_arm.architecture, "arm64")
+
+    def test_use_scratch_dir_as_working_directory(self):
+        workflow = CustomMakeWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", options={"build_logical_id": "hello"}
+        )
+        self.assertEqual(workflow.actions[1].working_directory, "scratch_dir")
+
+    def test_use_working_directory(self):
+        workflow = CustomMakeWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            options={"build_logical_id": "hello", "working_directory": "working/dir/path"},
+        )
+
+        self.assertEqual(workflow.actions[1].working_directory, "working/dir/path")

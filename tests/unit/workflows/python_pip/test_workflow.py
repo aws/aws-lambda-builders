@@ -5,6 +5,7 @@ from unittest import TestCase
 from parameterized import parameterized_class
 
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction
+from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils, EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildAction, PythonPipWorkflow
@@ -29,10 +30,13 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            runtime="python3.7",
+            runtime="python3.9",
             osutils=self.osutils_mock,
             experimental_flags=self.experimental_flags,
         )
+        self.python_major_version = "3"
+        self.python_minor_version = "9"
+        self.language = "python"
 
     def test_workflow_sets_up_actions(self):
         self.assertEqual(len(self.workflow.actions), 2)
@@ -46,7 +50,7 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            runtime="python3.7",
+            runtime="python3.9",
             osutils=self.osutils_mock,
             experimental_flags=self.experimental_flags,
         )
@@ -57,6 +61,18 @@ class TestPythonPipWorkflow(TestCase):
         for validator in self.workflow.get_validators():
             self.assertTrue(isinstance(validator, PythonRuntimeValidator))
 
+    def test_workflow_resolver(self):
+        for resolver in self.workflow.get_resolvers():
+            self.assertTrue(isinstance(resolver, PathResolver))
+            self.assertTrue(
+                resolver.executables,
+                [
+                    self.language,
+                    f"{self.language}{self.python_major_version}.{self.python_minor_version}",
+                    f"{self.language}{self.python_major_version}",
+                ],
+            )
+
     def test_workflow_sets_up_actions_without_download_dependencies_with_dependencies_dir(self):
         osutils_mock = Mock(spec=self.osutils)
         osutils_mock.file_exists.return_value = True
@@ -65,7 +81,7 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            runtime="python3.7",
+            runtime="python3.9",
             osutils=osutils_mock,
             dependencies_dir="dep",
             download_dependencies=False,
@@ -86,7 +102,7 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            runtime="python3.7",
+            runtime="python3.9",
             osutils=osutils_mock,
             dependencies_dir="dep",
             download_dependencies=True,
@@ -111,7 +127,7 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            runtime="python3.7",
+            runtime="python3.9",
             osutils=osutils_mock,
             dependencies_dir=None,
             download_dependencies=False,
@@ -128,7 +144,7 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            runtime="python3.7",
+            runtime="python3.9",
             osutils=osutils_mock,
             dependencies_dir="dep",
             download_dependencies=True,
@@ -147,7 +163,7 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            runtime="python3.7",
+            runtime="python3.9",
             architecture="ARM64",
             osutils=self.osutils_mock,
         )
@@ -155,7 +171,7 @@ class TestPythonPipWorkflow(TestCase):
             "artifacts",
             "scratch_dir",
             "manifest",
-            "python3.7",
+            "python3.9",
             None,
             binaries=ANY,
             architecture="ARM64",

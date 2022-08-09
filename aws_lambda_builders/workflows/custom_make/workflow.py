@@ -34,6 +34,7 @@ class CustomMakeWorkflow(BaseWorkflow):
         # Find the logical id of the function to be built.
         options = kwargs.get("options") or {}
         build_logical_id = options.get("build_logical_id", None)
+        working_directory = options.get("working_directory", scratch_dir)
 
         if not build_logical_id:
             raise WorkflowFailedError(
@@ -51,6 +52,7 @@ class CustomMakeWorkflow(BaseWorkflow):
             osutils=self.os_utils,
             subprocess_make=subprocess_make,
             build_logical_id=build_logical_id,
+            working_directory=working_directory,
         )
 
         self.actions = [CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES), make_action]
