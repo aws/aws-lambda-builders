@@ -69,6 +69,9 @@ for:
       # setup make
       - "choco install make"
 
+      # Setup esbuild
+      - ps: "npm install esbuild@0.14.48 -g"
+
       # install dotnet6
       - ps: "&powershell -NoProfile -ExecutionPolicy unrestricted -Command \"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; &([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://dot.net/v1/dotnet-install.ps1'))) -Version 6.0.200 -InstallDir 'C:\\Program Files\\dotnet\\'\""
 
