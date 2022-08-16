@@ -192,7 +192,10 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     actions += esbuild_no_deps
             else:
                 # Invalid workflow, can't have no dependency dir and no installation
-                raise EsbuildExecutionError(message="Lambda Builders encountered an invalid workflow")
+                raise EsbuildExecutionError(
+                    message="Lambda Builders encountered an invalid workflow. A workflow can't "
+                    "include a dependencies directory without installing dependencies."
+                )
 
         return actions
 
