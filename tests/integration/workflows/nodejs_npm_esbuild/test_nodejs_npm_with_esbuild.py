@@ -31,20 +31,6 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         shutil.rmtree(self.scratch_dir)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
-    def test_doesnt_build_without_feature_flag(self, runtime):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
-
-        with self.assertRaises(EsbuildExecutionError) as context:
-            self.builder.build(
-                source_dir,
-                self.artifacts_dir,
-                self.scratch_dir,
-                os.path.join(source_dir, "package.json"),
-                runtime=runtime,
-            )
-        self.assertEqual(str(context.exception), "Esbuild Failed: Feature flag must be enabled to use this workflow")
-
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
     def test_builds_javascript_project_with_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
