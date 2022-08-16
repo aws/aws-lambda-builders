@@ -13,7 +13,6 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAct
 from aws_lambda_builders.workflows.nodejs_npm_esbuild import NodejsNpmEsbuildWorkflow
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction, EsbuildCheckVersionAction
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_ESBUILD
 
 
 class FakePopen:
@@ -52,7 +51,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 3)
@@ -73,7 +72,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
@@ -93,7 +92,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "manifest",
             osutils=self.osutils,
             executable_search_paths=["other/bin"],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
@@ -111,7 +110,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
             options={"use_npm_ci": True},
         )
 
@@ -131,7 +130,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
             options={"use_npm_ci": True},
         )
 
@@ -153,7 +152,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 3)
@@ -175,7 +174,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "manifest",
             options={"artifact_executable_name": "foo"},
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         workflow_with_arm = NodejsNpmEsbuildWorkflow(
@@ -185,7 +184,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "manifest",
             architecture=ARM64,
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(workflow.architecture, "x86_64")
@@ -200,7 +199,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 3)
@@ -220,7 +219,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             download_dependencies=False,
             combine_dependencies=True,
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 3)
@@ -240,7 +239,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             download_dependencies=False,
             combine_dependencies=False,
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 4)
@@ -261,7 +260,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             dependencies_dir="dep",
             download_dependencies=True,
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 6)
@@ -283,7 +282,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             download_dependencies=True,
             combine_dependencies=False,
             osutils=self.osutils,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 6)
