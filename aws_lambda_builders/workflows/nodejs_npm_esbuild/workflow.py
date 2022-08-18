@@ -123,7 +123,11 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         )
 
         install_action = NodejsNpmWorkflow.get_install_action(
-            source_dir, scratch_dir, subprocess_npm, osutils, self.options, is_production=False
+            source_dir,
+            scratch_dir,
+            subprocess_npm,
+            osutils,
+            self.options,
         )
 
         if self.download_dependencies and not self.dependencies_dir:
@@ -184,7 +188,10 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     actions += esbuild_no_deps
             else:
                 # Invalid workflow, can't have no dependency dir and no installation
-                raise EsbuildExecutionError(message="Lambda Builders encountered and invalid workflow")
+                raise EsbuildExecutionError(
+                    message="Lambda Builders encountered an invalid workflow. A workflow can't "
+                    "include a dependencies directory without installing dependencies."
+                )
 
         return actions
 
@@ -207,7 +214,10 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     def _get_esbuild_subprocess(self, subprocess_npm, scratch_dir, osutils) -> SubprocessEsbuild:
-        npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
+        try:
+            npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
+        except FileNotFoundError:
+            raise EsbuildExecutionError(message="The esbuild workflow couldn't find npm installed on your system.")
         executable_search_paths = [npm_bin_path]
         if self.executable_search_paths is not None:
             executable_search_paths = executable_search_paths + self.executable_search_paths

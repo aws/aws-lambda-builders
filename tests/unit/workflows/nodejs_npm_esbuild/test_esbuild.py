@@ -70,7 +70,11 @@ class TestSubprocessEsbuild(TestCase):
         with self.assertRaises(EsbuildExecutionError) as raised:
             self.under_test.run(["pack"])
 
-        self.assertEqual(raised.exception.args[0], "Esbuild Failed: cannot find esbuild")
+        self.assertEqual(
+            raised.exception.args[0],
+            "Esbuild Failed: Cannot find esbuild. esbuild must be installed on the host machine to use this feature. "
+            "It is recommended to be installed on the PATH, but can also be included as a project dependency.",
+        )
 
     def test_raises_ValueError_if_args_not_a_list(self):
         with self.assertRaises(ValueError) as raised:

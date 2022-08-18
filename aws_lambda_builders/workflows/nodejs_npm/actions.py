@@ -80,7 +80,7 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm, is_production=True):
+    def __init__(self, artifacts_dir, subprocess_npm):
         """
         :type artifacts_dir: str
         :param artifacts_dir: an existing (writable) directory with project source files.
@@ -96,7 +96,6 @@ class NodejsNpmInstallAction(BaseAction):
         super(NodejsNpmInstallAction, self).__init__()
         self.artifacts_dir = artifacts_dir
         self.subprocess_npm = subprocess_npm
-        self.is_production = is_production
 
     def execute(self):
         """
@@ -104,14 +103,11 @@ class NodejsNpmInstallAction(BaseAction):
 
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
-
-        mode = "--production" if self.is_production else "--production=false"
-
         try:
             LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
 
             self.subprocess_npm.run(
-                ["install", "-q", "--no-audit", "--no-save", mode, "--unsafe-perm"], cwd=self.artifacts_dir
+                ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"], cwd=self.artifacts_dir
             )
 
         except NpmExecutionError as ex:

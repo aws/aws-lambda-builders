@@ -145,7 +145,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     @staticmethod
-    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, build_options, is_production=True):
+    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, build_options):
         """
         Get the install action used to install dependencies at artifacts_dir
 
@@ -180,4 +180,4 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
             return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
 
-        return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm, is_production=is_production)
+        return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
