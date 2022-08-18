@@ -64,19 +64,7 @@ class TestNodejsNpmInstallAction(TestCase):
 
         action.execute()
 
-        expected_args = ["install", "-q", "--no-audit", "--no-save", "--production", "--unsafe-perm"]
-
-        subprocess_npm.run.assert_called_with(expected_args, cwd="artifacts")
-
-    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
-    def test_can_set_mode(self, SubprocessNpmMock):
-        subprocess_npm = SubprocessNpmMock.return_value
-
-        action = NodejsNpmInstallAction("artifacts", subprocess_npm=subprocess_npm, is_production=False)
-
-        action.execute()
-
-        expected_args = ["install", "-q", "--no-audit", "--no-save", "--production=false", "--unsafe-perm"]
+        expected_args = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"]
 
         subprocess_npm.run.assert_called_with(expected_args, cwd="artifacts")
 

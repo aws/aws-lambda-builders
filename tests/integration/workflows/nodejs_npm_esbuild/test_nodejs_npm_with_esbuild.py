@@ -2,6 +2,8 @@ import os
 import shutil
 import tempfile
 from unittest import TestCase
+from unittest.mock import patch
+
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
@@ -22,10 +24,16 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.dependencies_dir = tempfile.mkdtemp()
-
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
-
         self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm-esbuild", application_framework=None)
+        self.osutils = OSUtils()
+        self._set_esbuild_binary_path()
+
+    def _set_esbuild_binary_path(self):
+        npm = SubprocessNpm(self.osutils)
+        esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+        npm.run(["ci"], cwd=esbuild_dir)
+        self.binpath = npm.run(["bin"], cwd=esbuild_dir)
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -58,6 +66,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -78,6 +87,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -98,6 +108,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -107,15 +118,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
     def test_builds_with_external_esbuild(self, runtime):
-        osutils = OSUtils()
-        npm = SubprocessNpm(osutils)
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
-        esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
-
-        npm.run(["ci"], cwd=esbuild_dir)
-
-        binpath = npm.run(["bin"], cwd=esbuild_dir)
-
         options = {"entry_points": ["included.js"]}
 
         self.builder.build(
@@ -125,7 +128,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
-            executable_search_paths=[binpath],
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -144,6 +147,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 self.scratch_dir,
                 os.path.join(source_dir, "package.json"),
                 runtime=runtime,
+                executable_search_paths=[self.binpath],
                 experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
@@ -162,6 +166,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -237,6 +242,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             options=options,
             dependencies_dir=self.dependencies_dir,
             download_dependencies=True,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -267,10 +273,15 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 runtime=runtime,
                 dependencies_dir=None,
                 download_dependencies=False,
+                executable_search_paths=[self.binpath],
                 experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
-        self.assertEqual(str(context.exception), "Esbuild Failed: Lambda Builders encountered and invalid workflow")
+        self.assertEqual(
+            str(context.exception),
+            "Esbuild Failed: Lambda Builders encountered an invalid workflow. A"
+            " workflow can't include a dependencies directory without installing dependencies.",
+        )
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
     def test_builds_project_without_combine_dependencies(self, runtime):
@@ -287,6 +298,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             dependencies_dir=self.dependencies_dir,
             download_dependencies=True,
             combine_dependencies=False,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -315,6 +327,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -340,6 +353,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
@@ -380,6 +394,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            executable_search_paths=[self.binpath],
             experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
