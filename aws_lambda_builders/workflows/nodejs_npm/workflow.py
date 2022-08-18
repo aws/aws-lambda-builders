@@ -180,4 +180,4 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
             return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
 
-        return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm, is_production=True)
+        return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
