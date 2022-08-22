@@ -112,6 +112,7 @@ SUPPORTED_ESBUILD_APIS_BOOLEAN = [
 SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
     "target",
     "format",
+    "main-fields",
 ]
 
 # Multi-value types (--external:axios --external:aws-sdk)
