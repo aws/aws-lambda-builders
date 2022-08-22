@@ -200,6 +200,7 @@ class TestEsbuildCommandBuilder(TestCase):
             "target": "node14",
             "loader": [".proto=text", ".json=js"],
             "external": ["aws-sdk", "axios"],
+            "main-fields": "module,main",
         }
 
         args = (
@@ -213,6 +214,7 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--minify",
                 "--target=node14",
                 "--format=esm",
+                "--main-fields=module,main",
                 "--external:aws-sdk",
                 "--external:axios",
                 "--loader:.proto=text",
