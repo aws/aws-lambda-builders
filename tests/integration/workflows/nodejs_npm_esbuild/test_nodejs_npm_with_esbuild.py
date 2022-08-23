@@ -9,7 +9,6 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildExecutionError
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.utils import EXPERIMENTAL_FLAG_ESBUILD
 from parameterized import parameterized
 
 
@@ -40,20 +39,6 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         shutil.rmtree(self.scratch_dir)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
-    def test_doesnt_build_without_feature_flag(self, runtime):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
-
-        with self.assertRaises(EsbuildExecutionError) as context:
-            self.builder.build(
-                source_dir,
-                self.artifacts_dir,
-                self.scratch_dir,
-                os.path.join(source_dir, "package.json"),
-                runtime=runtime,
-            )
-        self.assertEqual(str(context.exception), "Esbuild Failed: Feature flag must be enabled to use this workflow")
-
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
     def test_builds_javascript_project_with_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
@@ -66,8 +51,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js"}
@@ -87,8 +72,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js", "included2.js"}
@@ -108,8 +93,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js"}
@@ -128,8 +113,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js"}
@@ -147,8 +132,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 self.scratch_dir,
                 os.path.join(source_dir, "package.json"),
                 runtime=runtime,
+                experimental_flags=[],
                 executable_search_paths=[self.binpath],
-                experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
         self.assertEqual(str(context.exception), "NodejsNpmEsbuildBuilder:EsbuildBundle - entry_points not set ({})")
@@ -166,8 +151,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"implicit.js", "included.js"}
@@ -192,7 +177,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
             executable_search_paths=[binpath],
         )
 
@@ -220,7 +205,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             runtime=runtime,
             dependencies_dir=self.dependencies_dir,
             download_dependencies=False,
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
+            experimental_flags=[],
             executable_search_paths=[binpath],
         )
 
@@ -242,8 +227,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             options=options,
             dependencies_dir=self.dependencies_dir,
             download_dependencies=True,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js"}
@@ -273,8 +258,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
                 runtime=runtime,
                 dependencies_dir=None,
                 download_dependencies=False,
+                experimental_flags=[],
                 executable_search_paths=[self.binpath],
-                experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
             )
 
         self.assertEqual(
@@ -298,8 +283,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             dependencies_dir=self.dependencies_dir,
             download_dependencies=True,
             combine_dependencies=False,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js"}
@@ -327,8 +312,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js"}
@@ -353,8 +338,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js"}
@@ -394,8 +379,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             options=options,
+            experimental_flags=[],
             executable_search_paths=[self.binpath],
-            experimental_flags=[EXPERIMENTAL_FLAG_ESBUILD],
         )
 
         expected_files = {"included.js", "included.js.map"}

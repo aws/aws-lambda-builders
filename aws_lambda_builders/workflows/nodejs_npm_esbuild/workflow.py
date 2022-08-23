@@ -19,7 +19,6 @@ from .actions import (
     EsbuildBundleAction,
     EsbuildCheckVersionAction,
 )
-from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm import NodejsNpmWorkflow
 from ..nodejs_npm.npm import SubprocessNpm
@@ -66,9 +65,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 )
             ]
             return
-
-        if not is_experimental_esbuild_scope(self.experimental_flags):
-            raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
 
         self.actions = self.actions_with_bundler(
             source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
