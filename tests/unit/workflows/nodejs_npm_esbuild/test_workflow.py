@@ -306,6 +306,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             download_dependencies=True,
             combine_dependencies=False,
             osutils=self.osutils,
+            experimental_flags=[],
         )
 
         self.assertEqual(len(workflow.actions), 3)
