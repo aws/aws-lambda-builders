@@ -255,5 +255,5 @@ class TestEsbuildCommandBuilder(TestCase):
             ("bundle", "bundle"),
         ]
     )
-    def test_get_dash_delimited_argument(self, field, expected):
-        self.assertEqual(EsbuildCommandBuilder._get_dash_delimited_argument(field), expected)
+    def test_convert_snake_case_to_kebab_case(self, field, expected):
+        self.assertEqual(EsbuildCommandBuilder._convert_snake_to_kebab_case(field), expected)

@@ -237,7 +237,7 @@ class EsbuildCommandBuilder:
         args = []
         for param in SUPPORTED_ESBUILD_APIS_BOOLEAN:
             if param in self._bundler_config and self._bundler_config[param] is True:
-                args.append(f"--{self._get_dash_delimited_argument(param)}")
+                args.append(f"--{self._convert_snake_to_kebab_case(param)}")
         return args
 
     def _get_single_value_args(self) -> List[str]:
@@ -251,7 +251,7 @@ class EsbuildCommandBuilder:
         for param in SUPPORTED_ESBUILD_APIS_SINGLE_VALUE:
             if param in self._bundler_config:
                 value = self._bundler_config.get(param)
-                args.append(f"--{self._get_dash_delimited_argument(param)}={value}")
+                args.append(f"--{self._convert_snake_to_kebab_case(param)}={value}")
         return args
 
     def _get_multi_value_args(self) -> List[str]:
@@ -268,7 +268,7 @@ class EsbuildCommandBuilder:
                 if not isinstance(values, list):
                     raise EsbuildCommandError(f"Invalid type for property {param}, must be a dict.")
                 for param_item in values:
-                    args.append(f"--{self._get_dash_delimited_argument(param)}:{param_item}")
+                    args.append(f"--{self._convert_snake_to_kebab_case(param)}:{param_item}")
         return args
 
     def _get_explicit_file_type(self, entry_point, entry_path):
@@ -299,7 +299,7 @@ class EsbuildCommandBuilder:
         raise ActionFailedError("entry point {} does not exist".format(entry_path))
 
     @staticmethod
-    def _get_dash_delimited_argument(arg: str) -> str:
+    def _convert_snake_to_kebab_case(arg: str) -> str:
         """
         The configuration properties passed down to Lambda Builders are done so using snake case
         e.g. "main_fields" but esbuild expects them using kebab-case "main-fields"
