@@ -299,7 +299,7 @@ class EsbuildCommandBuilder:
         raise ActionFailedError("entry point {} does not exist".format(entry_path))
 
     @staticmethod
-    def _get_dash_delimited_argument(arg: str):
+    def _get_dash_delimited_argument(arg: str) -> str:
         """
         The configuration properties passed down to Lambda Builders are done so using snake case
         e.g. "main_fields" but esbuild expects them using kebab-case "main-fields"
