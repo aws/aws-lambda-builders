@@ -10,17 +10,15 @@ from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
-    CopyDependenciesAction,
     MoveDependenciesAction,
     BaseAction,
+    LinkSourceAction,
 )
 from aws_lambda_builders.utils import which
 from .actions import (
     EsbuildBundleAction,
     EsbuildCheckVersionAction,
 )
-from .node import SubprocessNodejs
-from .utils import is_experimental_esbuild_scope
 from .esbuild import SubprocessEsbuild, EsbuildExecutionError
 from ..nodejs_npm import NodejsNpmWorkflow
 from ..nodejs_npm.npm import SubprocessNpm
@@ -61,11 +59,12 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
         if not osutils.file_exists(manifest_path):
             LOG.warning("package.json file not found. Bundling source without dependencies.")
-            self.actions = [EsbuildBundleAction(source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)]
+            self.actions = [
+                EsbuildBundleAction(
+                    source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
+                )
+            ]
             return
-
-        if not is_experimental_esbuild_scope(self.experimental_flags):
-            raise EsbuildExecutionError(message="Feature flag must be enabled to use this workflow")
 
         self.actions = self.actions_with_bundler(
             source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
@@ -105,8 +104,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES + tuple(["node_modules"]))
         ]
 
-        subprocess_node = SubprocessNodejs(osutils, self.executable_search_paths, which=which)
-
         # Bundle dependencies separately in a dependency layer. We need to check the esbuild
         # version here to ensure that it supports skipping dependency bundling
         esbuild_no_deps = [
@@ -117,14 +114,20 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 bundler_config,
                 osutils,
                 subprocess_esbuild,
-                subprocess_node,
+                self.manifest_path,
                 skip_deps=True,
             ),
         ]
-        esbuild_with_deps = EsbuildBundleAction(scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild)
+        esbuild_with_deps = EsbuildBundleAction(
+            scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
+        )
 
         install_action = NodejsNpmWorkflow.get_install_action(
-            source_dir, scratch_dir, subprocess_npm, osutils, self.options, is_production=False
+            source_dir,
+            scratch_dir,
+            subprocess_npm,
+            osutils,
+            self.options,
         )
 
         if self.download_dependencies and not self.dependencies_dir:
@@ -165,13 +168,18 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             actions += [install_action, CleanUpAction(self.dependencies_dir)]
             if self.combine_dependencies:
                 # Auto dependency layer disabled, first build
-                actions += [esbuild_with_deps, CopyDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
+                actions += [
+                    esbuild_with_deps,
+                    MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
+                    LinkSourceAction(self.dependencies_dir, scratch_dir),
+                ]
             else:
                 # Auto dependency layer enabled, first build
                 actions += esbuild_no_deps + [MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir)]
         else:
             if self.dependencies_dir:
-                actions.append(CopySourceAction(self.dependencies_dir, scratch_dir))
+                actions.append(LinkSourceAction(self.dependencies_dir, scratch_dir))
+
                 if self.combine_dependencies:
                     # Auto dependency layer disabled, subsequent builds
                     actions += [esbuild_with_deps]
@@ -180,7 +188,10 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     actions += esbuild_no_deps
             else:
                 # Invalid workflow, can't have no dependency dir and no installation
-                raise EsbuildExecutionError(message="Lambda Builders encountered and invalid workflow")
+                raise EsbuildExecutionError(
+                    message="Lambda Builders encountered an invalid workflow. A workflow can't "
+                    "include a dependencies directory without installing dependencies."
+                )
 
         return actions
 
@@ -203,7 +214,10 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     def _get_esbuild_subprocess(self, subprocess_npm, scratch_dir, osutils) -> SubprocessEsbuild:
-        npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
+        try:
+            npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
+        except FileNotFoundError:
+            raise EsbuildExecutionError(message="The esbuild workflow couldn't find npm installed on your system.")
         executable_search_paths = [npm_bin_path]
         if self.executable_search_paths is not None:
             executable_search_paths = executable_search_paths + self.executable_search_paths

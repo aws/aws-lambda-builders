@@ -9,11 +9,12 @@ from aws_lambda_builders.path_resolver import PathResolver
 
 class TestPathResolver(TestCase):
     def setUp(self):
-        self.path_resolver = PathResolver(runtime="chitti2.0", binary="chitti")
+        self.path_resolver = PathResolver(runtime="chitti2.0", binary="chitti", additional_binaries=["chitti2"])
 
     def test_inits(self):
         self.assertEqual(self.path_resolver.runtime, "chitti2.0")
         self.assertEqual(self.path_resolver.binary, "chitti")
+        self.assertEqual(self.path_resolver.executables, ["chitti2.0", "chitti", "chitti2"])
 
     def test_which_fails(self):
         with self.assertRaises(ValueError):

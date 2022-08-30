@@ -6,6 +6,7 @@ import shutil
 import sys
 import os
 import logging
+from pathlib import Path
 
 from aws_lambda_builders.architecture import X86_64, ARM64
 
@@ -182,3 +183,16 @@ def get_goarch(architecture):
         returns a valid GO Architecture value
     """
     return "arm64" if architecture == ARM64 else "amd64"
+
+
+def create_symlink_or_copy(source: str, destination: str) -> None:
+    """Tries to create symlink, if it fails it will copy source into destination"""
+    LOG.debug("Creating symlink; source: %s, destination: %s", source, destination)
+    try:
+        os.symlink(Path(source).absolute(), Path(destination).absolute())
+    except OSError as ex:
+        LOG.warning(
+            "Symlink operation is failed, falling back to copying files",
+            exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
+        )
+        copytree(source, destination)

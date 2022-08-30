@@ -1,0 +1,4 @@
+requests==2.23.0
+
+# Pinning so the test can expect a given version
+certifi==2020.4.5.2 # dep of requests
