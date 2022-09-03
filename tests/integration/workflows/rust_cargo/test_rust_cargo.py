@@ -145,3 +145,41 @@ class TestRustCargo(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
 
         self.assertEqual(expected_files, output_files)
+
+    def test_builds_multi_function_project_with_function_a(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "multi-binary")
+        rm_target_lambda(source_dir)
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Cargo.toml"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "function_a"},
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
+        )
+
+        expected_files = {"bootstrap"}
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+
+    def test_builds_multi_function_project_with_function_b(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "multi-binary")
+        rm_target_lambda(source_dir)
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Cargo.toml"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "function_b"},
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
+        )
+
+        expected_files = {"bootstrap"}
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
