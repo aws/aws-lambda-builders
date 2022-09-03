@@ -14,7 +14,7 @@ from aws_lambda_builders.architecture import X86_64, ARM64
 LOG = logging.getLogger(__name__)
 
 
-class RustBuilderError(Exception):
+class RustCargoLambdaBuilderError(Exception):
     MESSAGE = "Builder Failed: {message}"
 
     def __init__(self, **kwargs):
@@ -38,7 +38,7 @@ class OSUtils(object):
             os.makedirs(path)
 
 
-class RustBuildAction(BaseAction):
+class RustCargoLambdaBuildAction(BaseAction):
     NAME = "CargoLambdaBuild"
     DESCRIPTION = "Building the project using Cargo Lambda"
     PURPOSE = Purpose.COMPILE_SOURCE
@@ -65,7 +65,7 @@ class RustBuildAction(BaseAction):
 
         :type handler: str, optional
         :param handler:
-            Handler name in `package.bin_name` or `bin_name` format
+            Handler name in `bin_name` format
 
         :type flags: list, optional
         :param flags:
@@ -117,7 +117,7 @@ class RustBuildAction(BaseAction):
                 error = err.decode("utf8").strip()
                 LOG.debug("cargo-lambda STDOUT:\n\n%s\n\n", output)
                 LOG.debug("cargo-lambda STDERR:\n\n%s\n\n", error)
-                raise RustBuilderError(message=error)
+                raise RustCargoLambdaBuilderError(message=error)
 
             return output
         except Exception as ex:
@@ -171,7 +171,7 @@ class RustCopyAndRenameAction(BaseAction):
             return binary_path
 
         LOG.debug("unexpected list of binary directories: [%s]", ", ".join(output))
-        raise RustBuilderError(
+        raise RustCargoLambdaBuilderError(
             message="unable to find function binary, use the option `artifact_executable_name` to specify the binary's name"
         )
 

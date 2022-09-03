@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.workflows.rust_cargo.feature_flag import EXPERIMENTAL_FLAG_CARGO_LAMBDA
 
 
 def rm_target_lambda(base):
@@ -42,10 +43,11 @@ class TestRustCargo(TestCase):
                 os.path.join(source_dir, "Cargo.toml"),
                 runtime=self.runtime,
                 options={"artifact_executable_name": "fail"},
+                experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
             )
             self.maxDiff = None
         self.assertTrue(
-            raised.exception.args[0].startswith("RustCargoBuilder:CargoLambdaBuild - Builder Failed"),
+            raised.exception.args[0].startswith("RustCargoLambdaBuilder:CargoLambdaBuild - Builder Failed"),
             raised.exception.args[0],
         )
 
@@ -59,6 +61,7 @@ class TestRustCargo(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "Cargo.toml"),
             runtime=self.runtime,
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
         )
 
         expected_files = {"bootstrap"}
@@ -77,6 +80,7 @@ class TestRustCargo(TestCase):
             os.path.join(source_dir, "Cargo.toml"),
             runtime=self.runtime,
             options={"artifact_executable_name": "hello"},
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
         )
 
         expected_files = {"bootstrap"}
@@ -96,6 +100,7 @@ class TestRustCargo(TestCase):
             architecture="arm64",
             runtime=self.runtime,
             options={"artifact_executable_name": "hello"},
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
         )
 
         expected_files = {"bootstrap"}
@@ -114,6 +119,7 @@ class TestRustCargo(TestCase):
             os.path.join(source_dir, "Cargo.toml"),
             runtime=self.runtime,
             options={"artifact_executable_name": "foo"},
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
         )
 
         expected_files = {"bootstrap"}
@@ -132,6 +138,7 @@ class TestRustCargo(TestCase):
             os.path.join(source_dir, "Cargo.toml"),
             runtime=self.runtime,
             options={"cargo_lambda_flags": ["--package", "foo"]},
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
         )
 
         expected_files = {"bootstrap"}

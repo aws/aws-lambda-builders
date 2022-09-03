@@ -7,7 +7,7 @@ from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.rust_cargo.actions import (
-    RustBuildAction,
+    RustCargoLambdaBuildAction,
     RustCopyAndRenameAction,
 )
 
@@ -25,7 +25,7 @@ class FakePopen:
 class TestBuildAction(TestCase):
     def test_release_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE)
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE)
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--release"],
@@ -33,7 +33,7 @@ class TestBuildAction(TestCase):
 
     def test_release_build_cargo_command_with_target(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, "arm64")
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, "arm64")
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--release", "--arm64"],
@@ -41,7 +41,7 @@ class TestBuildAction(TestCase):
 
     def test_debug_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG)
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG)
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build"],
@@ -49,7 +49,7 @@ class TestBuildAction(TestCase):
 
     def test_debug_build_cargo_command_with_architecture(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64")
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64")
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--arm64"],
@@ -58,7 +58,7 @@ class TestBuildAction(TestCase):
     def test_debug_build_cargo_command_with_flags(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         flags = ["--package", "package-in-workspace"]
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64", flags=flags)
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64", flags=flags)
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--arm64", "--package", "package-in-workspace"],
@@ -66,7 +66,7 @@ class TestBuildAction(TestCase):
 
     def test_debug_build_cargo_command_with_handler(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64", handler="foo")
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.DEBUG, "arm64", handler="foo")
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--arm64", "--bin", "foo"],
@@ -78,7 +78,7 @@ class TestBuildAction(TestCase):
         popen = FakePopen()
         osutils.popen.side_effect = [popen]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
         action.execute()
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
@@ -87,7 +87,7 @@ class TestBuildAction(TestCase):
         popen = FakePopen(retcode=1, err=b"build failed")
         osutils.popen.side_effect = [popen]
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
         with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
         self.assertEqual(err_assert.exception.args[0], "Builder Failed: build failed")

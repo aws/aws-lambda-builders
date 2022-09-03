@@ -1,5 +1,5 @@
 """
-Builds Rust Lambda functions using Cargo
+Builds Rust Lambda functions using Cargo Lambda
 """
 
-from .workflow import RustCargoWorkflow
+from .workflow import RustCargoLambdaWorkflow
