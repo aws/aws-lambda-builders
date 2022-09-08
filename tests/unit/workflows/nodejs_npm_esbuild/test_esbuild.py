@@ -200,7 +200,7 @@ class TestEsbuildCommandBuilder(TestCase):
             "target": "node14",
             "loader": [".proto=text", ".json=js"],
             "external": ["aws-sdk", "axios"],
-            "main-fields": "module,main",
+            "main_fields": "module,main",
         }
 
         args = (
@@ -246,3 +246,14 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--loader:.json=js",
             ],
         )
+
+    @parameterized.expand(
+        [
+            ("main_fields", "main-fields"),
+            ("entry_points", "entry-points"),
+            ("main-fields", "main-fields"),
+            ("bundle", "bundle"),
+        ]
+    )
+    def test_convert_snake_case_to_kebab_case(self, field, expected):
+        self.assertEqual(EsbuildCommandBuilder._convert_snake_to_kebab_case(field), expected)
