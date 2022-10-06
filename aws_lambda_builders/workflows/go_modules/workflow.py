@@ -28,10 +28,11 @@ class GoModulesWorkflow(BaseWorkflow):
 
         options = kwargs.get("options") or {}
         handler = options.get("artifact_executable_name", None)
+        trim_go_path = options.get("trim_go_path", False)
 
         output_path = osutils.joinpath(artifacts_dir, handler)
 
-        builder = GoModulesBuilder(osutils, binaries=self.binaries, mode=mode, architecture=self.architecture)
+        builder = GoModulesBuilder(osutils, binaries=self.binaries, mode=mode, architecture=self.architecture, trim_go_path=trim_go_path)
         self.actions = [GoModulesBuildAction(source_dir, output_path, builder)]
 
     def get_validators(self):

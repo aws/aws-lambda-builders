@@ -112,6 +112,19 @@ class TestGoWorkflow(TestCase):
             options={"artifact_executable_name": "no-deps-main-arm64"},
             architecture="arm64",
         )
-
         pathname = Path(self.artifacts_dir, "no-deps-main-arm64")
         self.assertEqual(get_executable_arch(pathname), "AArch64")
+
+    def test_builds_with_trimpath(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
+        built_trimpath = self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "go.mod"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "no-deps-main-trimpath", "trim_go_path": True},
+            architecture="x86_64",
+        )
+        pathname = Path(self.artifacts_dir, "no-deps-main-trimpath")
+        self.assertEqual(get_executable_arch(pathname), "x64")

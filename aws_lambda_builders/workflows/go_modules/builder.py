@@ -21,7 +21,7 @@ class GoModulesBuilder(object):
 
     LANGUAGE = "go"
 
-    def __init__(self, osutils, binaries, mode=BuildMode.RELEASE, architecture=X86_64):
+    def __init__(self, osutils, binaries, mode=BuildMode.RELEASE, architecture=X86_64, trim_go_path=False):
         """Initialize a GoModulesBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -38,6 +38,7 @@ class GoModulesBuilder(object):
         self.binaries = binaries
         self.mode = mode
         self.goarch = get_goarch(architecture)
+        self.trim_go_path = trim_go_path
 
     def build(self, source_dir_path, output_path):
         """Builds a go project onto an output path.
@@ -53,6 +54,9 @@ class GoModulesBuilder(object):
         env.update({"GOOS": "linux", "GOARCH": self.goarch})
         runtime_path = self.binaries[self.LANGUAGE].binary_path
         cmd = [runtime_path, "build"]
+        if self.trim_go_path:
+            LOG.debug("Trimpath requested: Setting go build configuration to -trimpath")
+            cmd += ["-trimpath"]
         if self.mode and self.mode.lower() == BuildMode.DEBUG:
             LOG.debug("Debug build requested: Setting configuration to Debug")
             cmd += ["-gcflags", "all=-N -l"]
