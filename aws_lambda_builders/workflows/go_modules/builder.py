@@ -33,6 +33,9 @@ class GoModulesBuilder(object):
 
         :type architecture: str
         :param architecture: name of the type of architecture
+
+        :type trim_go_path: bool
+        :param trim_go_path: should go build use -trimpath flag
         """
         self.osutils = osutils
         self.binaries = binaries
