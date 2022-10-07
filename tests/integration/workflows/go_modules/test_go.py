@@ -158,7 +158,7 @@ class TestGoWorkflow(TestCase):
 
     def test_builds_with_trimpath_are_equal(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
-        built_no_trimpath = self.builder.build(
+        built_with_trimpath = self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
@@ -169,7 +169,7 @@ class TestGoWorkflow(TestCase):
         )
 
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-copy")
-        built_no_trimpath_copy = self.builder.build(
+        built_with_trimpath_copy = self.builder.build(
             source_dir,
             self.artifacts_dir,
             self.scratch_dir,
