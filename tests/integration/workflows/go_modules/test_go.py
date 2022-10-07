@@ -13,6 +13,7 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
 from tests.integration.workflows.go_modules.utils import get_executable_arch
+from tests.integration.workflows.go_modules.utils import get_md5_hexdigest
 
 
 class TestGoWorkflow(TestCase):
@@ -128,3 +129,55 @@ class TestGoWorkflow(TestCase):
         )
         pathname = Path(self.artifacts_dir, "no-deps-main-trimpath")
         self.assertEqual(get_executable_arch(pathname), "x64")
+
+    def test_builds_without_trimpath_are_not_equal(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
+        built_no_trimpath = self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "go.mod"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "no-deps-main", "trim_go_path": False},
+            architecture="x86_64",
+        )
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-copy")
+        built_no_trimpath_copy = self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "go.mod"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "no-deps-main-copy", "trim_go_path": False},
+            architecture="x86_64",
+        )
+        pathname = Path(self.artifacts_dir, "no-deps-main")
+        pathnameOfCopy = Path(self.artifacts_dir, "no-deps-main-copy")
+        self.assertNotEqual(get_md5_hexdigest(pathname), get_md5_hexdigest(pathnameOfCopy))
+
+    def test_builds_with_trimpath_are_equal(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
+        built_no_trimpath = self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "go.mod"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "no-deps-main", "trim_go_path": True},
+            architecture="x86_64",
+        )
+
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-copy")
+        built_no_trimpath_copy = self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "go.mod"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "no-deps-main-copy", "trim_go_path": True},
+            architecture="x86_64",
+        )
+        pathname = Path(self.artifacts_dir, "no-deps-main")
+        pathnameOfCopy = Path(self.artifacts_dir, "no-deps-main-copy")
+        self.assertEqual(get_md5_hexdigest(pathname), get_md5_hexdigest(pathnameOfCopy))
