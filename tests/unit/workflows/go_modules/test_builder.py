@@ -61,6 +61,17 @@ class TestGoBuilder(TestCase):
             stdout="PIPE",
         )
 
+    def test_trimpath_configuration_set(self):
+        self.under_test = GoModulesBuilder(self.osutils, self.binaries, "release", "x86_64", True)
+        self.under_test.build("source_dir", "output_path")
+        self.osutils.popen.assert_called_with(
+            ["/path/to/go", "build", "-trimpath", "-o", "output_path", "source_dir"],
+            cwd="source_dir",
+            env={"GOOS": "linux", "GOARCH": "amd64"},
+            stderr="PIPE",
+            stdout="PIPE",
+        )
+
     def test_debug_configuration_set_with_arm_architecture(self):
         self.under_test = GoModulesBuilder(self.osutils, self.binaries, "Debug", "arm64")
         self.under_test.build("source_dir", "output_path")
