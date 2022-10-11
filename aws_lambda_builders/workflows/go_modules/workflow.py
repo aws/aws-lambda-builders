@@ -35,4 +35,4 @@ class GoModulesWorkflow(BaseWorkflow):
         self.actions = [GoModulesBuildAction(source_dir, output_path, builder)]
 
     def get_validators(self):
-        return [GoRuntimeValidator(runtime="go1.x", architecture=self.architecture)]
+        return [GoRuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
