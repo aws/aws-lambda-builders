@@ -1,5 +1,8 @@
 """
 AWS Lambda Builder Library
 """
-__version__ = "1.19.0"
+
+# Changing version will trigger a new release!
+# Please make the version change as the last step of your development.
+__version__ = "1.20.0"
 RPC_PROTOCOL_VERSION = "0.3"
