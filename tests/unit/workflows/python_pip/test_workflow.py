@@ -88,7 +88,8 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
         self.assertEqual(len(self.workflow.actions), 2)
-        if self.experimental_flags:
+        # symlinking python dependencies is disabled for now since it is breaking sam local commands
+        if False and self.experimental_flags:
             self.assertIsInstance(self.workflow.actions[0], LinkSourceAction)
         else:
             self.assertIsInstance(self.workflow.actions[0], CopySourceAction)
@@ -111,7 +112,8 @@ class TestPythonPipWorkflow(TestCase):
         self.assertEqual(len(self.workflow.actions), 4)
         self.assertIsInstance(self.workflow.actions[0], CleanUpAction)
         self.assertIsInstance(self.workflow.actions[1], PythonPipBuildAction)
-        if self.experimental_flags:
+        # symlinking python dependencies is disabled for now since it is breaking sam local commands
+        if False and self.experimental_flags:
             self.assertIsInstance(self.workflow.actions[2], LinkSourceAction)
         else:
             self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
