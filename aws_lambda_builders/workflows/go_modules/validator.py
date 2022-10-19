@@ -52,8 +52,6 @@ class GoRuntimeValidator(RuntimeValidator):
 
         runtime_path = super(GoRuntimeValidator, self).validate(runtime_path)
 
-
-
         p = subprocess.Popen([runtime_path, "version"], cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         version_string, _ = p.communicate()
 
