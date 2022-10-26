@@ -90,6 +90,7 @@ for:
       - sh: "nvm install ${nodejs_version}"
       - sh: "npm install npm@7.24.2 -g"
       - sh: "npm -v"
+      - sh: "go version"
       - sh: "echo $PATH"
       - sh: "java --version"
 
