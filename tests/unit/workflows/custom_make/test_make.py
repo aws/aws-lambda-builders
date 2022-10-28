@@ -1,3 +1,4 @@
+import io
 from unittest import TestCase
 from mock import patch
 
@@ -8,10 +9,15 @@ class FakePopen:
     def __init__(self, out=b"out", err=b"err", retcode=0):
         self.out = out
         self.err = err
+        self.stderr = io.BytesIO(err)
+        self.stdout = [out]
         self.returncode = retcode
 
     def communicate(self):
         return self.out, self.err
+
+    def wait(self):
+        return self.returncode
 
 
 class TestSubprocessMake(TestCase):
@@ -67,7 +73,7 @@ class TestSubprocessMake(TestCase):
         )
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
-        self.popen.out = b"some encoded text\n\n"
+        self.popen.stdout = [b"some encoded text\n\n"]
 
         result = self.under_test.run(["build_logical_id"])
 
@@ -75,7 +81,7 @@ class TestSubprocessMake(TestCase):
 
     def test_raises_MakeExecutionError_with_err_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
-        self.popen.err = b"some error text\n\n"
+        self.popen.stderr = io.BytesIO(b"some error text\n\n")
 
         with self.assertRaises(MakeExecutionError) as raised:
             self.under_test.run(["build-logical_id"])

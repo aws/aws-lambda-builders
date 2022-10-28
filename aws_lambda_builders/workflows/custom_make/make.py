@@ -1,8 +1,11 @@
 """
 Wrapper around calling make through a subprocess.
 """
-
+import io
 import logging
+import subprocess
+import shutil
+import threading
 
 LOG = logging.getLogger(__name__)
 
@@ -82,14 +85,26 @@ class SubProcessMake(object):
 
         p = self.osutils.popen(invoke_make, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd, env=env)
 
-        out, err = p.communicate()
+        # Create a stdout variable that will contain the final stitched stdout result
+        stdout = ""
+        # Create a buffer and use a thread to gather the stderr stream into the buffer
+        stderr_buf = io.BytesIO()
+        stderr_thread = threading.Thread(target=shutil.copyfileobj, args=(p.stderr, stderr_buf), daemon=True)
+        stderr_thread.start()
 
-        # Typically this type of information is logged to DEBUG, however, since the Make builder
-        # can be different per customer's use case, it is helpful to always log the output so
-        # developers can diagnose any issues.
-        LOG.info(out.decode("utf8").strip())
+        # Log every stdout line by iterating
+        for line in p.stdout:
+            decoded_line = line.decode("utf-8").strip()
+            LOG.info(decoded_line)
+            # Gather total stdout
+            stdout += decoded_line
 
-        if p.returncode != 0:
-            raise MakeExecutionError(message=err.decode("utf8").strip())
+        # Wait for the process to exit and stderr thread to end.
+        return_code = p.wait()
+        stderr_thread.join()
 
-        return out.decode("utf8").strip()
+        if return_code != 0:
+            # Raise an Error with the appropriate value from the stderr buffer.
+            raise MakeExecutionError(message=stderr_buf.getvalue().decode("utf8").strip())
+
+        return stdout
