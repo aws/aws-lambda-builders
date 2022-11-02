@@ -52,15 +52,14 @@ class GoRuntimeValidator(RuntimeValidator):
 
         runtime_path = super(GoRuntimeValidator, self).validate(runtime_path)
 
-        expected_major_version = int(self.runtime.replace(self.LANGUAGE, "").split(".")[0])
-        min_expected_minor_version = 11 if expected_major_version == 1 else 0
-
         p = subprocess.Popen([runtime_path, "version"], cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         version_string, _ = p.communicate()
 
         if p.returncode == 0:
             major_version, minor_version = GoRuntimeValidator.get_go_versions(version_string.decode())
-            if major_version == expected_major_version and minor_version >= min_expected_minor_version:
+            min_expected_major_version = 1
+            min_expected_minor_version = 11 if major_version == 1 else 0
+            if major_version >= min_expected_major_version and minor_version >= min_expected_minor_version:
                 self._valid_runtime_path = runtime_path
                 return self._valid_runtime_path
 
