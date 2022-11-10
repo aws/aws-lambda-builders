@@ -45,6 +45,10 @@ class TestDotnetBase(TestCase):
 
         self.assertEqual(target, target_name)
 
+    def verify_execute_permissions(self, entrypoint_file_name):
+        entrypoint_file_path = os.path.join(self.artifacts_dir, entrypoint_file_name)
+        self.assertTrue(os.access(entrypoint_file_path, os.X_OK))
+
 
 class TestDotnet31(TestDotnetBase):
     """
@@ -192,3 +196,29 @@ class TestDotnet6(TestDotnetBase):
 
         self.assertEqual(expected_files, output_files)
         self.verify_architecture("WithDefaultsFile.deps.json", "linux-arm64", version="6.0")
+
+    def test_with_custom_runtime(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "CustomRuntime6")
+
+        self.builder.build(
+            source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime, architecture=X86_64
+        )
+
+        expected_files = {
+            "Amazon.Lambda.Core.dll",
+            "Amazon.Lambda.RuntimeSupport.dll",
+            "Amazon.Lambda.Serialization.SystemTextJson.dll",
+            "bootstrap",
+            "bootstrap.deps.json",
+            "bootstrap.dll",
+            "bootstrap.pdb",
+            "bootstrap.runtimeconfig.json",
+        }
+
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+        self.verify_architecture("bootstrap.deps.json", "linux-x64", version="6.0")
+        # Execute permissions are required for custom runtimes which bootstrap themselves, otherwise `sam local invoke`
+        # won't have permission to run the file
+        self.verify_execute_permissions("bootstrap")
