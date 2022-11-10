@@ -108,7 +108,7 @@ class RunPackageAction(BaseAction):
 
             # The dotnet lambda package command outputs a zip file for the package. To make this compatible
             # with the workflow, unzip the zip file into the artifacts directory and then delete the zip archive.
-            self.os_utils.expand_zip(zipfullpath, self.artifacts_dir)
+            self.os_utils.unzip(zipfullpath, self.artifacts_dir)
 
         except DotnetCLIExecutionError as ex:
             raise ActionFailedError(str(ex))
