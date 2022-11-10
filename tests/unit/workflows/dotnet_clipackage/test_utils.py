@@ -8,23 +8,22 @@ from aws_lambda_builders.workflows.dotnet_clipackage.utils import OSUtils
 
 
 class TestDotnetCliPackageWorkflow(TestCase):
-
     def test_unzip_keeps_execute_permission_on_linux(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             with tempfile.TemporaryDirectory(dir=temp_dir) as output_dir:
-                test_file_name = 'myFileToZip'
+                test_file_name = "myFileToZip"
                 path_to_file_to_zip = os.path.join(temp_dir, test_file_name)
-                path_to_zip_file = os.path.join(temp_dir, 'myZip.zip')
+                path_to_zip_file = os.path.join(temp_dir, "myZip.zip")
                 expected_output_file = os.path.join(output_dir, test_file_name)
-                with open(path_to_file_to_zip, 'a') as the_file:
-                    the_file.write('Hello World!')
+                with open(path_to_file_to_zip, "a") as the_file:
+                    the_file.write("Hello World!")
 
                 # Set execute permissions on the file before zipping (won't do anything on Windows)
                 st = os.stat(path_to_file_to_zip)
                 os.chmod(path_to_file_to_zip, st.st_mode | stat.S_IEXEC | stat.S_IXOTH | stat.S_IXGRP)
 
                 # Zip the file
-                with ZipFile(path_to_zip_file, 'w') as myzip:
+                with ZipFile(path_to_zip_file, "w") as myzip:
                     myzip.write(path_to_file_to_zip, test_file_name)
 
                 # Unzip the file

@@ -28,38 +28,38 @@ class OSUtils(object):
 
     def unzip(self, zip_file_path, output_dir, permission=None):
         """
-            This method and dependent methods were copied from SAM CLI, but with the addition of deleting the zip file
-            https://github.com/aws/aws-sam-cli/blob/458076265651237a662a372f54d5b3df49fd6797/samcli/local/lambdafn/zip.py#L81
+        This method and dependent methods were copied from SAM CLI, but with the addition of deleting the zip file
+        https://github.com/aws/aws-sam-cli/blob/458076265651237a662a372f54d5b3df49fd6797/samcli/local/lambdafn/zip.py#L81
 
-            Unzip the given file into the given directory while preserving file permissions in the process.
-            Parameters
-            ----------
-            zip_file_path : str
-                Path to the zip file
-            output_dir : str
-                Path to the directory where the it should be unzipped to
-            permission : int
-                Permission to set in an octal int form
-            """
+        Unzip the given file into the given directory while preserving file permissions in the process.
+        Parameters
+        ----------
+        zip_file_path : str
+            Path to the zip file
+        output_dir : str
+            Path to the directory where the it should be unzipped to
+        permission : int
+            Permission to set in an octal int form
+        """
 
         with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
 
             # For each item in the zip file, extract the file and set permissions if available
             for file_info in zip_ref.infolist():
-                extracted_path = self.extract(file_info, output_dir, zip_ref)
+                extracted_path = self._extract(file_info, output_dir, zip_ref)
 
                 # If the extracted_path is a symlink, do not set the permissions. If the target of the symlink does not
                 # exist, then os.chmod will fail with FileNotFoundError
                 if not os.path.islink(extracted_path):
-                    self.set_permissions(file_info, extracted_path)
-                    self.override_permissions(extracted_path, permission)
+                    self._set_permissions(file_info, extracted_path)
+                    self._override_permissions(extracted_path, permission)
 
         if not os.path.islink(extracted_path):
-            self.override_permissions(output_dir, permission)
+            self._override_permissions(output_dir, permission)
 
         os.remove(zip_file_path)
 
-    def is_symlink(self, file_info):
+    def _is_symlink(self, file_info):
         """
         Check the upper 4 bits of the external attribute for a symlink.
         See: https://unix.stackexchange.com/questions/14705/the-zip-formats-external-file-attribute
@@ -75,7 +75,7 @@ class OSUtils(object):
 
         return (file_info.external_attr >> 28) == 0xA
 
-    def extract(self, file_info, output_dir, zip_ref):
+    def _extract(self, file_info, output_dir, zip_ref):
         """
         Unzip the given file into the given directory while preserving file permissions in the process.
         Parameters
@@ -93,7 +93,7 @@ class OSUtils(object):
         """
 
         # Handle any regular file/directory entries
-        if not self.is_symlink(file_info):
+        if not self._is_symlink(file_info):
             return zip_ref.extract(file_info, output_dir)
 
         source = zip_ref.read(file_info.filename).decode("utf8")
@@ -113,7 +113,7 @@ class OSUtils(object):
 
         return link_name
 
-    def override_permissions(self, path, permission):
+    def _override_permissions(self, path, permission):
         """
         Forcefully override the permissions on the path
         Parameters
@@ -126,7 +126,7 @@ class OSUtils(object):
         if permission:
             os.chmod(path, permission)
 
-    def set_permissions(self, zip_file_info, extracted_path):
+    def _set_permissions(self, zip_file_info, extracted_path):
         """
         Sets permissions on the extracted file by reading the ``external_attr`` property of given file info.
         Parameters
