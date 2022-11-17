@@ -4,6 +4,7 @@ NodeJS NPM Workflow using the esbuild bundler
 
 import logging
 import json
+from pathlib import Path
 from typing import List
 
 from aws_lambda_builders.workflow import BaseWorkflow, Capability
@@ -215,7 +216,8 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
     def _get_esbuild_subprocess(self, subprocess_npm, scratch_dir, osutils) -> SubprocessEsbuild:
         try:
-            npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
+            npm_bin_path_root = subprocess_npm.run(["root"], cwd=scratch_dir)
+            npm_bin_path = str(Path(npm_bin_path_root, ".bin"))
         except FileNotFoundError:
             raise EsbuildExecutionError(message="The esbuild workflow couldn't find npm installed on your system.")
         executable_search_paths = [npm_bin_path]
