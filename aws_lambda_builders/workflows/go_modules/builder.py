@@ -6,6 +6,7 @@ import logging
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.architecture import X86_64, ARM64
 from aws_lambda_builders.utils import get_goarch
+from pathlib import Path
 
 LOG = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class GoModulesBuilder(object):
 
     LANGUAGE = "go"
 
-    def __init__(self, osutils, binaries, mode=BuildMode.RELEASE, architecture=X86_64, trim_go_path=False):
+    def __init__(self, osutils, binaries, handler, mode=BuildMode.RELEASE, architecture=X86_64, trim_go_path=False):
         """Initialize a GoModulesBuilder.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -42,6 +43,7 @@ class GoModulesBuilder(object):
         self.mode = mode
         self.goarch = get_goarch(architecture)
         self.trim_go_path = trim_go_path
+        self.handler = handler
 
     def build(self, source_dir_path, output_path):
         """Builds a go project onto an output path.
@@ -69,6 +71,17 @@ class GoModulesBuilder(object):
         out, err = p.communicate()
 
         if p.returncode != 0:
-            raise BuilderError(message=err.decode("utf8").strip())
+            LOG.debug("Go files not found. Attempting to build for Go files in a different directory")
+            process, p_out, p_err = self._attempt_to_build_from_handler(cmd, source_dir_path, env)
+            if process.returncode != 0:
+                raise BuilderError(message=err.decode("utf8").strip())
 
         return out.decode("utf8").strip()
+
+    def _attempt_to_build_from_handler(self, cmd, source_dir_path, env):
+        #Path to the source directory for Go files in a diff directory
+        cmd[-1] = Path(source_dir_path, self.handler)
+        LOG.debug(f"Building for Go files in a different directory")
+        p = self.osutils.popen(cmd, cwd=source_dir_path, env=env, stdout=self.osutils.pipe, stderr=self.osutils.pipe)
+        out, err = p.communicate()
+        return p, out, err
