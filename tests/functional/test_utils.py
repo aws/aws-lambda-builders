@@ -1,6 +1,8 @@
 import os
 import tempfile
 import shutil
+import platform
+from tarfile import ExtractError
 
 from unittest import TestCase
 
@@ -65,18 +67,20 @@ class TestCopyTree(TestCase):
 
 class TestExtractTarFile(TestCase):
     def test_extract_tarfile_unpacks_a_tar(self):
-
         test_tar = os.path.join(os.path.dirname(__file__), "testdata", "test.tgz")
-
         test_dir = tempfile.mkdtemp()
-
         extract_tarfile(test_tar, test_dir)
-
         output_files = set(os.listdir(test_dir))
-
         shutil.rmtree(test_dir)
-
         self.assertEqual({"test_utils.py"}, output_files)
+
+    def test_raise_exception_for_unsafe_tarfile(self):
+        tar_filename = "path_reversal_win.tgz" if platform.system().lower() == "windows" else "path_reversal_uxix.tgz"
+        test_tar = os.path.join(os.path.dirname(__file__), "testdata", tar_filename)
+        test_dir = tempfile.mkdtemp()
+        self.assertRaisesRegexp(
+            ExtractError, "Attempted Path Traversal in Tar File", extract_tarfile, test_tar, test_dir
+        )
 
 
 def file(*args):

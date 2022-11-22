@@ -164,6 +164,8 @@ typings/
 
 # Except test file
 !tests/functional/testdata/test.tgz
+!tests/functional/testdata/path_reversal_uxix.tgz
+!tests/functional/testdata/path_reversal_win.tgz
 
 # Yarn Integrity file
 .yarn-integrity
