@@ -163,7 +163,7 @@ typings/
 *.tgz
 
 # Except test file
-!tests/functional/workflows/ruby_bundler/test_data/test.tgz
+!tests/functional/testdata/test.tgz
 
 # Yarn Integrity file
 .yarn-integrity
