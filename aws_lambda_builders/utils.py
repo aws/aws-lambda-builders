@@ -7,6 +7,7 @@ import sys
 import os
 import logging
 from pathlib import Path
+from typing import Union
 
 from aws_lambda_builders.architecture import X86_64, ARM64
 
@@ -198,7 +199,7 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
         copytree(source, destination)
 
 
-def _is_within_directory(directory, target):
+def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, os.PathLike]) -> bool:
     """Checks if target is located under directory"""
     abs_directory = os.path.abspath(directory)
     abs_target = os.path.abspath(target)
@@ -208,7 +209,7 @@ def _is_within_directory(directory, target):
     return prefix == abs_directory
 
 
-def extract_tarfile(tarfile_path, unpack_dir):
+def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str, os.PathLike]) -> None:
     """Extracts a tarfile"""
     import tarfile
 
