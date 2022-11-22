@@ -5,6 +5,7 @@ Action to resolve NodeJS dependencies using NPM
 import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.utils import extract_tarfile
 from .npm import NpmExecutionError
 
 LOG = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ class NodejsNpmPackAction(BaseAction):
 
             LOG.debug("NODEJS extracting to %s", self.artifacts_dir)
 
-            self.osutils.extract_tarfile(tarfile_path, self.artifacts_dir)
+            extract_tarfile(tarfile_path, self.artifacts_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))

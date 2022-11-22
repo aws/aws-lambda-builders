@@ -196,3 +196,28 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
         copytree(source, destination)
+
+
+def _is_within_directory(directory, target):
+    """Checks if target is located under directory"""
+    abs_directory = os.path.abspath(directory)
+    abs_target = os.path.abspath(target)
+
+    prefix = os.path.commonprefix([abs_directory, abs_target])
+
+    return prefix == abs_directory
+
+
+def extract_tarfile(tarfile_path, unpack_dir):
+    """Extracts a tarfile"""
+    import tarfile
+
+    with tarfile.open(tarfile_path, "r:*") as tar:
+        # Makes sure the tar file is sanitized and is free of directory traversal vulnerability
+        # See: https://github.com/advisories/GHSA-gw9q-c7gh-j9vm
+        for member in tar.getmembers():
+            member_path = os.path.join(unpack_dir, member.name)
+            if not _is_within_directory(unpack_dir, member_path):
+                raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
+
+        tar.extractall(unpack_dir)
