@@ -15,9 +15,10 @@ from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
 
 class TestNodejsNpmPackAction(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.actions.extract_tarfile")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
-    def test_tars_and_unpacks_npm_project(self, OSUtilMock, SubprocessNpmMock):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_tars_and_unpacks_npm_project(self, OSUtilMock, SubprocessNpmMock, extract_tarfile_mock):
         osutils = OSUtilMock.return_value
         subprocess_npm = SubprocessNpmMock.return_value
 
@@ -34,7 +35,7 @@ class TestNodejsNpmPackAction(TestCase):
         action.execute()
 
         subprocess_npm.run.assert_called_with(["pack", "-q", "file:/abs:/dir:manifest"], cwd="scratch_dir")
-        osutils.extract_tarfile.assert_called_with("scratch_dir/package.tar", "artifacts")
+        extract_tarfile_mock.assert_called_with("scratch_dir/package.tar", "artifacts")
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
