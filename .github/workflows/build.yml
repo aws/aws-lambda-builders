@@ -58,12 +58,13 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: '11'
+      - run: make init
       - name: Linux Tests
         if: matrix.os == 'ubuntu-latest'
         run: make integ-test
 
   esbuild-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild / {{ matrix.npm }}
+    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild / ${{ matrix.npm }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -89,3 +90,25 @@ jobs:
       - run: npm --version
       - run: make init
       - run: pytest -vv tests/integration/workflows/nodejs_npm_esbuild
+
+  golang-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / golang
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.16'
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/go_modules
