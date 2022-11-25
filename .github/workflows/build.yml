@@ -28,7 +28,7 @@ jobs:
         run: make func-test
 
   esbuild-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild
+    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild / {{ matrix.node }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: pytest LAMBDA_BUILDERS_DEV=1 pytest tests/integration/workflow/nodejs_npm_esbuild
+      - run: LAMBDA_BUILDERS_DEV=1 pytest tests/integration/workflow/nodejs_npm_esbuild
 #      - uses: actions/setup-go@v3
 #        with:
 #          go-version: '^1.16'
