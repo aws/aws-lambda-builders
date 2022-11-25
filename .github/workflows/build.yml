@@ -126,7 +126,7 @@ jobs:
           distribution: 'corretto'
           java-version: '11'
       - run: make init
-      - run: pytest -vv tests/integration/workflows/java_gradle
+      - run: python -m pytest -vv tests/integration/workflows/java_gradle
 
 #  custom-make-integration:
 #    name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
