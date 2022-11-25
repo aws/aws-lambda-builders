@@ -63,7 +63,7 @@ jobs:
         run: make integ-test
 
   esbuild-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild / {{ matrix.node }}
+    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild / {{ matrix.npm }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -84,22 +84,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: npm i -g npm@{{ npm }}
+      - if: ${{ matrix.npm }}
+        run: npm install -g npm@${{ matrix.npm }}
+      - run: npm --version
       - run: make init
       - run: pytest -vv tests/integration/workflows/nodejs_npm_esbuild
-#      - uses: actions/setup-go@v3
-#        with:
-#          go-version: '^1.16'
-#      - uses: actions/setup-ruby@v1
-#        with:
-#          ruby-version: '^3.1'
-#      - uses: actions/setup-java@v3
-#        with:
-#          distribution: 'corretto'
-#          java-version: '11'
-#      - uses: actions/setup-node@v3
-#        with:
-#          node-version: 14
-#      - name: Linux Tests
-#        if: matrix.os == 'ubuntu-latest'
-#        run: make integ-test
