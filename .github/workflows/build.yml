@@ -104,26 +104,26 @@ jobs:
       - run: pytest -vv tests/integration/workflows/java_maven
       - run: pytest -vv tests/integration/workflows/java_gradle
 
-#  custom-make-integration:
-#    name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
-#    runs-on: ${{ matrix.os }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        os:
-#          - ubuntu-latest
-#          - windows-latest
-#        python:
-#          - "3.9"
-#          - "3.8"
-#          - "3.7"
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: actions/setup-python@v4
-#        with:
-#          python-version: ${{ matrix.python }}
-#      - run: make init
-#      - run: pytest -vv tests/integration/workflows/custom_make
+  custom-make-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+          - "3.8"
+          - "3.7"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/custom_make
 #
 #  python-integration:
 #    name: ${{ matrix.os }} / ${{ matrix.python }} / python
