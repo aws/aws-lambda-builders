@@ -17,11 +17,24 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+        node:
+          - 14
+          - 16
+          - 18
     steps:
+      - name: Unit Testing
+        run: make pr
+      - name: Functional Testing
+        run: make func-test
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+      - name: esbuild Integration Testing
+        uses: actions/setup-node@v3
+          with:
+            node-version: ${{ matrix.node }}
+        run: pytest LAMBDA_BUILDERS_DEV=1 pytest tests/integration/workflow/nodejs_npm_esbuild
       - uses: actions/setup-go@v3
         with:
           go-version: '^1.16'
@@ -35,8 +48,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 14
-      - run: make pr
-      - run: make func-test
       - name: Linux Tests
         if: matrix.os == 'ubuntu-latest'
         run: make integ-test
