@@ -7,25 +7,25 @@ jobs:
   unit-functional:
     name: ${{ matrix.os }} / ${{ matrix.python }} / unit-functional
     runs-on: ${{ matrix.os }}
-      strategy:
-        fail-fast: false
-        matrix:
-          os:
-            - ubuntu-latest
-            - windows-latest
-          python:
-            - "3.7"
-            - "3.8"
-            - "3.9"
-      steps:
-        - uses: actions/setup-python@v4
-            with:
-              python-version: ${{ matrix.python }}
-        - uses: actions/checkout@v3
-        - name: Unit Testing
-          run: make pr
-        - name: Functional Testing
-          run: make func-test
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+    steps:
+      - uses: actions/setup-python@v4
+          with:
+            python-version: ${{ matrix.python }}
+      - uses: actions/checkout@v3
+      - name: Unit Testing
+        run: make pr
+      - name: Functional Testing
+        run: make func-test
 
   esbuild-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild
@@ -51,7 +51,7 @@ jobs:
             python-version: ${{ matrix.python }}
       - uses: actions/setup-node@v3
           with:
-            node-version: ${{ matrix.node }}
+            node-version: 18
       - run: pytest LAMBDA_BUILDERS_DEV=1 pytest tests/integration/workflow/nodejs_npm_esbuild
 #      - uses: actions/setup-go@v3
 #        with:
