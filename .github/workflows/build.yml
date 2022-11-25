@@ -27,8 +27,36 @@ jobs:
       - name: Functional Testing
         run: make func-test
 
+  node-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-node / npm ${{ matrix.npm }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+        npm:
+          - 8
+          - 9
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - if: ${{ matrix.npm }}
+        run: npm install -g npm@${{ matrix.npm }}
+      - run: npm --version
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/nodejs_npm
+
   node-esbuild-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild-node / ${{ matrix.npm }}
+    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild / npm ${{ matrix.npm }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -54,7 +82,6 @@ jobs:
       - run: npm --version
       - run: make init
       - run: pytest -vv tests/integration/workflows/nodejs_npm_esbuild
-      - run: pytest -vv tests/integration/workflows/nodejs_npm
 
   golang-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / golang
@@ -123,7 +150,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-java@v3
         with:
-          distribution: 'corretto'
+          distribution: 'zulu'
           java-version: '11'
       - run: make init
       - run: python -m pytest -vv tests/integration/workflows/java_gradle
