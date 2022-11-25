@@ -4,8 +4,31 @@ on:
   pull_request
 
 jobs:
-  build-linux:
-    name: ${{ matrix.os }} / ${{ matrix.python }}
+  unit-functional:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / unit-functional
+    runs-on: ${{ matrix.os }}
+      strategy:
+        fail-fast: false
+        matrix:
+          os:
+            - ubuntu-latest
+            - windows-latest
+          python:
+            - "3.7"
+            - "3.8"
+            - "3.9"
+      steps:
+        - uses: actions/setup-python@v4
+            with:
+              python-version: ${{ matrix.python }}
+        - uses: actions/checkout@v3
+        - name: Unit Testing
+          run: make pr
+        - name: Functional Testing
+          run: make func-test
+
+  esbuild-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,32 +45,27 @@ jobs:
           - 16
           - 18
     steps:
-      - name: Unit Testing
-        run: make pr
-      - name: Functional Testing
-        run: make func-test
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
-      - name: esbuild Integration Testing
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
           with:
             node-version: ${{ matrix.node }}
         run: pytest LAMBDA_BUILDERS_DEV=1 pytest tests/integration/workflow/nodejs_npm_esbuild
-      - uses: actions/setup-go@v3
-        with:
-          go-version: '^1.16'
-      - uses: actions/setup-ruby@v1
-        with:
-          ruby-version: '^3.1'
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'corretto'
-          java-version: '11'
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 14
-      - name: Linux Tests
-        if: matrix.os == 'ubuntu-latest'
-        run: make integ-test
+#      - uses: actions/setup-go@v3
+#        with:
+#          go-version: '^1.16'
+#      - uses: actions/setup-ruby@v1
+#        with:
+#          ruby-version: '^3.1'
+#      - uses: actions/setup-java@v3
+#        with:
+#          distribution: 'corretto'
+#          java-version: '11'
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: 14
+#      - name: Linux Tests
+#        if: matrix.os == 'ubuntu-latest'
+#        run: make integ-test
