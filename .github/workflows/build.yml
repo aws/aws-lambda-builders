@@ -52,6 +52,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
+      - run: make init
       - run: LAMBDA_BUILDERS_DEV=1 pytest tests/integration/workflow/nodejs_npm_esbuild
 #      - uses: actions/setup-go@v3
 #        with:
