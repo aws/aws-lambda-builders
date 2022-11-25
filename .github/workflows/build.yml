@@ -104,89 +104,89 @@ jobs:
       - run: pytest -vv tests/integration/workflows/java_maven
       - run: pytest -vv tests/integration/workflows/java_gradle
 
-  custom-make-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-        python:
-          - "3.9"
-          - "3.8"
-          - "3.7"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-      - run: make init
-      - run: pytest -vv tests/integration/workflows/custom_make
-
-  python-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / python
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-        python:
-          - "3.9"
-          - "3.8"
-          - "3.7"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-      - run: make init
-      - run: pytest -vv tests/integration/workflows/python_pip
-
-  ruby-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-        python:
-          - "3.9"
-          - "3.8"
-          - "3.7"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-      - uses: actions/setup-ruby@v1
-        with:
-          ruby-version: '^3.1'
-      - run: make init
-      - run: pytest -vv tests/integration/workflows/ruby_bundler
-
-  dotnet-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / dotnet
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-        python:
-          - "3.9"
-          - "3.8"
-          - "3.7"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
-      - run: make init
-      - run: pytest -vv tests/integration/workflows/dotnet_clipackage
+#  custom-make-integration:
+#    name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os:
+#          - ubuntu-latest
+#          - windows-latest
+#        python:
+#          - "3.9"
+#          - "3.8"
+#          - "3.7"
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+#      - run: make init
+#      - run: pytest -vv tests/integration/workflows/custom_make
+#
+#  python-integration:
+#    name: ${{ matrix.os }} / ${{ matrix.python }} / python
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os:
+#          - ubuntu-latest
+#          - windows-latest
+#        python:
+#          - "3.9"
+#          - "3.8"
+#          - "3.7"
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+#      - run: make init
+#      - run: pytest -vv tests/integration/workflows/python_pip
+#
+#  ruby-integration:
+#    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os:
+#          - ubuntu-latest
+#          - windows-latest
+#        python:
+#          - "3.9"
+#          - "3.8"
+#          - "3.7"
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+#      - uses: actions/setup-ruby@v1
+#        with:
+#          ruby-version: '^3.1'
+#      - run: make init
+#      - run: pytest -vv tests/integration/workflows/ruby_bundler
+#
+#  dotnet-integration:
+#    name: ${{ matrix.os }} / ${{ matrix.python }} / dotnet
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        os:
+#          - ubuntu-latest
+#          - windows-latest
+#        python:
+#          - "3.9"
+#          - "3.8"
+#          - "3.7"
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.python }}
+#      - run: make init
+#      - run: pytest -vv tests/integration/workflows/dotnet_clipackage
