@@ -20,10 +20,6 @@ class OSUtils(object):
     def copy_file(self, file_path, destination_path):
         return shutil.copy2(file_path, destination_path)
 
-    def extract_tarfile(self, tarfile_path, unpack_dir):
-        with tarfile.open(tarfile_path, "r:*") as tar:
-            tar.extractall(unpack_dir)
-
     def file_exists(self, filename):
         return os.path.isfile(filename)
 
