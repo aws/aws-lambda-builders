@@ -133,7 +133,7 @@ jobs:
   java-gradle-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / java gradle
     runs-on: ${{ matrix.os }}
-    envs:
+    env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     strategy:
       fail-fast: false
