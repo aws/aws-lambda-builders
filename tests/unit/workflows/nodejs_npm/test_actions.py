@@ -1,3 +1,4 @@
+import itertools
 from unittest import TestCase
 from mock import patch, call
 from parameterized import parameterized
@@ -112,16 +113,7 @@ class TestNodejsNpmCIAction(TestCase):
 
 class TestNodejsNpmrcAndLockfileCopyAction(TestCase):
     @parameterized.expand(
-        [
-            [False, False, False],
-            [True, False, False],
-            [False, True, False],
-            [True, True, False],
-            [False, False, True],
-            [True, False, True],
-            [False, True, True],
-            [True, True, True],
-        ]
+        itertools.product([True, False], [True, False], [True, False])
     )
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     def test_copies_into_a_project_if_file_exists(
