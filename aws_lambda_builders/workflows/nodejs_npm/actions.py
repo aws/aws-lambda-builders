@@ -165,7 +165,7 @@ class NodejsNpmrcAndLockfileCopyAction(BaseAction):
     """
 
     NAME = "CopyNpmrcAndLockfile"
-    DESCRIPTION = "Copying configuration from .npmrc and dependencies from lockfile/shrinkwrap"
+    DESCRIPTION = "Copying configuration from .npmrc and dependencies from lockfile"
     PURPOSE = Purpose.COPY_SOURCE
 
     def __init__(self, artifacts_dir, source_dir, osutils):
@@ -194,7 +194,7 @@ class NodejsNpmrcAndLockfileCopyAction(BaseAction):
         """
 
         try:
-            for filename in [".npmrc", "package-lock.json", "npm-shrinkwrap.json"]:
+            for filename in [".npmrc", "package-lock.json"]:
                 file_path = self.osutils.joinpath(self.source_dir, filename)
                 if self.osutils.file_exists(file_path):
                     LOG.debug("%s copying in: %s", filename, self.artifacts_dir)
