@@ -206,7 +206,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/python_pip
 
   ruby-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby-${{ ruby }}
+    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby-${{ matrix.ruby }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -229,7 +229,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-ruby@v1
         with:
-          ruby-version: ${{ ruby }}
+          ruby-version: ${{ matrix.ruby }}
       - run: make init
       - run: pytest -vv tests/integration/workflows/ruby_bundler
 
