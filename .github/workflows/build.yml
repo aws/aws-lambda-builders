@@ -28,7 +28,7 @@ jobs:
         run: make func-test
 
   node-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-node / npm ${{ matrix.npm }}
+    name: ${{ matrix.os }} / ${{ matrix.python }} / node / npm ${{ matrix.npm }}.x
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -58,7 +58,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/nodejs_npm
 
   node-esbuild-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / integration-esbuild / npm ${{ matrix.npm }}
+    name: ${{ matrix.os }} / ${{ matrix.python }} / esbuild / npm ${{ matrix.npm }}.x
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -206,7 +206,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/python_pip
 
   ruby-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby
+    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby-${{ ruby }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -218,6 +218,10 @@ jobs:
           - "3.9"
           - "3.8"
           - "3.7"
+        ruby:
+          - "^3.1"
+          - "^2.7"
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -225,7 +229,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-ruby@v1
         with:
-          ruby-version: '^3.1'
+          ruby-version: ${{ ruby }}
       - run: make init
       - run: pytest -vv tests/integration/workflows/ruby_bundler
 
