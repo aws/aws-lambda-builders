@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -32,7 +33,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         npm = SubprocessNpm(self.osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
         npm.run(["ci"], cwd=esbuild_dir)
-        self.binpath = npm.run(["bin"], cwd=esbuild_dir)
+        self.root_path = npm.run(["root"], cwd=esbuild_dir)
+        self.binpath = Path(self.root_path, ".bin")
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -168,7 +170,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
         npm.run(["ci"], cwd=esbuild_dir)
-        binpath = npm.run(["bin"], cwd=esbuild_dir)
+        binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
             source_dir,
@@ -194,7 +196,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
         npm.run(["ci"], cwd=esbuild_dir)
-        binpath = npm.run(["bin"], cwd=esbuild_dir)
+        binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
             source_dir,

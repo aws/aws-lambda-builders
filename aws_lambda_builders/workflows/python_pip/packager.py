@@ -9,6 +9,7 @@ import logging
 from email.parser import FeedParser
 
 from aws_lambda_builders.architecture import ARM64, X86_64
+from aws_lambda_builders.utils import extract_tarfile
 from .compat import pip_import_string
 from .compat import pip_no_compile_c_env_vars
 from .compat import pip_no_compile_c_shim
@@ -619,7 +620,7 @@ class SDistMetadataFetcher(object):
         if sdist_path.endswith(".zip"):
             self._osutils.extract_zipfile(sdist_path, unpack_dir)
         elif sdist_path.endswith((".tar.gz", ".tar.bz2")):
-            self._osutils.extract_tarfile(sdist_path, unpack_dir)
+            extract_tarfile(sdist_path, unpack_dir)
         else:
             raise InvalidSourceDistributionNameError(sdist_path)
         # There should only be one directory unpacked.

@@ -1,3 +1,4 @@
+import itertools
 from unittest import TestCase
 from mock import patch, call
 from parameterized import parameterized
@@ -15,9 +16,10 @@ from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
 
 class TestNodejsNpmPackAction(TestCase):
-    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.actions.extract_tarfile")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
-    def test_tars_and_unpacks_npm_project(self, OSUtilMock, SubprocessNpmMock):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def test_tars_and_unpacks_npm_project(self, OSUtilMock, SubprocessNpmMock, extract_tarfile_mock):
         osutils = OSUtilMock.return_value
         subprocess_npm = SubprocessNpmMock.return_value
 
@@ -34,7 +36,7 @@ class TestNodejsNpmPackAction(TestCase):
         action.execute()
 
         subprocess_npm.run.assert_called_with(["pack", "-q", "file:/abs:/dir:manifest"], cwd="scratch_dir")
-        osutils.extract_tarfile.assert_called_with("scratch_dir/package.tar", "artifacts")
+        extract_tarfile_mock.assert_called_with("scratch_dir/package.tar", "artifacts")
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
@@ -110,26 +112,22 @@ class TestNodejsNpmCIAction(TestCase):
 
 
 class TestNodejsNpmrcAndLockfileCopyAction(TestCase):
-    @parameterized.expand(
-        [
-            [False, False],
-            [True, False],
-            [False, True],
-            [True, True],
-        ]
-    )
+    @parameterized.expand(itertools.product([True, False], [True, False], [True, False]))
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
-    def test_copies_into_a_project_if_file_exists(self, npmrc_exists, package_lock_exists, OSUtilMock):
+    def test_copies_into_a_project_if_file_exists(
+        self, npmrc_exists, package_lock_exists, shrinkwrap_exists, OSUtilMock
+    ):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
         action = NodejsNpmrcAndLockfileCopyAction("artifacts", "source", osutils=osutils)
-        osutils.file_exists.side_effect = [npmrc_exists, package_lock_exists]
+        osutils.file_exists.side_effect = [npmrc_exists, package_lock_exists, shrinkwrap_exists]
         action.execute()
 
         filename_exists = {
             ".npmrc": npmrc_exists,
             "package-lock.json": package_lock_exists,
+            "npm-shrinkwrap.json": shrinkwrap_exists,
         }
         file_exists_calls = [call("source/{}".format(filename)) for filename in filename_exists]
         copy_file_calls = [

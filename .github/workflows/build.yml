@@ -1,0 +1,255 @@
+name: Build & Test
+
+on:
+  pull_request
+
+jobs:
+  unit-functional:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / unit-functional
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit Testing
+        run: make pr
+      - name: Functional Testing
+        run: make func-test
+
+  node-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / node / npm ${{ matrix.npm }}.x
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+        npm:
+          - 8
+          - 9
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - if: ${{ matrix.npm }}
+        run: npm install -g npm@${{ matrix.npm }}
+      - run: npm --version
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/nodejs_npm
+
+  node-esbuild-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / esbuild / npm ${{ matrix.npm }}.x
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+        npm:
+          - 8
+          - 9
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - if: ${{ matrix.npm }}
+        run: npm install -g npm@${{ matrix.npm }}
+      - run: npm --version
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/nodejs_npm_esbuild
+
+  golang-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / golang
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.16'
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/go_modules
+
+  java-maven-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / java maven
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+          - "3.8"
+          - "3.7"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: '11'
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/java_maven
+
+  java-gradle-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / java gradle
+    runs-on: ${{ matrix.os }}
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+          - "3.8"
+          - "3.7"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/java_gradle
+
+  custom-make-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+          - "3.8"
+          - "3.7"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/custom_make
+
+  python-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / python
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+          - "3.8"
+          - "3.7"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/python_pip
+
+  ruby-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby-${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+          - "3.8"
+          - "3.7"
+        ruby:
+          - "3.1"
+          - "2.7"
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/ruby_bundler
+
+  dotnet-integration:
+    name: ${{ matrix.os }} / ${{ matrix.python }} / dotnet
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        python:
+          - "3.9"
+          - "3.8"
+          - "3.7"
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: make init
+      - run: pytest -vv tests/integration/workflows/dotnet_clipackage
