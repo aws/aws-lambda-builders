@@ -227,7 +227,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
-      - uses: actions/setup-ruby@v1
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
       - run: make init
