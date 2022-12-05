@@ -1,11 +1,14 @@
 name: Build & Test
 
 on:
-  pull_request
+  pull_request:
+    branches:
+      - develop
 
 jobs:
   unit-functional:
     name: ${{ matrix.os }} / ${{ matrix.python }} / unit-functional
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -29,6 +32,7 @@ jobs:
 
   node-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / node / npm ${{ matrix.npm }}.x
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -59,6 +63,7 @@ jobs:
 
   node-esbuild-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / esbuild / npm ${{ matrix.npm }}.x
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -89,6 +94,7 @@ jobs:
 
   golang-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / golang
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -113,6 +119,7 @@ jobs:
 
   java-maven-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / java maven
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -138,6 +145,7 @@ jobs:
 
   java-gradle-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / java gradle
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -165,6 +173,7 @@ jobs:
 
   custom-make-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -186,6 +195,7 @@ jobs:
 
   python-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / python
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -207,6 +217,7 @@ jobs:
 
   ruby-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / ruby-${{ matrix.ruby }}
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -221,7 +232,6 @@ jobs:
         ruby:
           - "3.1"
           - "2.7"
-
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -235,6 +245,7 @@ jobs:
 
   dotnet-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / dotnet
+    if: github.repository == 'aws/aws-lambda-builders'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
