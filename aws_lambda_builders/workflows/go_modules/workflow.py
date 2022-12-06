@@ -32,7 +32,14 @@ class GoModulesWorkflow(BaseWorkflow):
 
         output_path = osutils.joinpath(artifacts_dir, handler)
 
-        builder = GoModulesBuilder(osutils, binaries=self.binaries, mode=mode, architecture=self.architecture, handler=handler)
+        builder = GoModulesBuilder(
+            osutils,
+            binaries=self.binaries,
+            mode=mode,
+            architecture=self.architecture,
+            trim_go_path=trim_go_path,
+            handler=handler,
+        )
 
         self.actions = [GoModulesBuildAction(source_dir, output_path, builder)]
 
