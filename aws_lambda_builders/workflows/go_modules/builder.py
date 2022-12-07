@@ -80,7 +80,19 @@ class GoModulesBuilder(object):
 
         return out.decode("utf8").strip()
 
-    def _attempt_to_build_from_handler(self, cmd, source_dir_path, env):
+    def _attempt_to_build_from_handler(self, cmd:list, source_dir_path:str, env:dict):
+        """Builds Go files when package/source file in different directory
+
+        :type cmd: list
+        :param cmd: list of commands.
+
+        :type source_dir_path: str
+        :param source_dir_path: path to the source file/package.
+
+        :type env: dict
+        :param env: dictionary with environment variables.
+        """
+
         # Path to the source directory for Go files in a diff directory
         cmd[-1] = Path(source_dir_path, self.handler)
         LOG.debug(
