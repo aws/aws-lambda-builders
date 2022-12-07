@@ -94,7 +94,7 @@ class GoModulesBuilder(object):
         """
 
         # Path to the source directory for Go files in a diff directory
-        cmd[-1] = Path(source_dir_path, self.handler)
+        cmd[-1] = str(Path(source_dir_path, self.handler))
         LOG.debug(
             "Go files not found at CodeUri %s . Descending into sub-directories to find the handler: %s",
             source_dir_path,
