@@ -35,10 +35,10 @@ class GoModulesWorkflow(BaseWorkflow):
         builder = GoModulesBuilder(
             osutils,
             binaries=self.binaries,
+            handler=handler,
             mode=mode,
             architecture=self.architecture,
             trim_go_path=trim_go_path,
-            handler=handler,
         )
 
         self.actions = [GoModulesBuildAction(source_dir, output_path, builder)]
