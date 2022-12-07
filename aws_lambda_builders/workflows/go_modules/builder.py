@@ -2,7 +2,7 @@
 Build a Go project using standard Go tooling
 """
 import logging
-import os
+from pathlib import Path
 
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.architecture import X86_64, ARM64
@@ -94,7 +94,7 @@ class GoModulesBuilder(object):
         """
 
         # Path to the source directory for Go files in a diff directory
-        cmd[-1] = os.path.join(source_dir_path, self.handler)
+        cmd[-1] = str(Path(source_dir_path, self.handler))
         LOG.debug(
             "Go files not found at CodeUri %s . Descending into sub-directories to find the handler: %s",
             source_dir_path,
