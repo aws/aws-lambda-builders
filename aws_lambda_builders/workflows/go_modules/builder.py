@@ -80,7 +80,7 @@ class GoModulesBuilder(object):
 
         return out.decode("utf8").strip()
 
-    def _attempt_to_build_from_handler(self, cmd:list, source_dir_path:str, env:dict):
+    def _attempt_to_build_from_handler(self, cmd: list, source_dir_path: str, env: dict):
         """Builds Go files when package/source file in different directory
 
         :type cmd: list
