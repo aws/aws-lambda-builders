@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from mock import patch, Mock
+from pathlib import Path
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.workflows.go_modules.builder import GoModulesBuilder, BuilderError
@@ -48,7 +49,7 @@ class TestGoBuilder(TestCase):
         self.under_test.build("source_dir_path", "output_path")
 
         self.osutils.popen.assert_called_with(
-            ["/path/to/go", "build", "-o", "output_path", "source_dir_path/cmd/helloWorld"],
+            ["/path/to/go", "build", "-o", "output_path", str(Path("source_dir_path/cmd/helloWorld"))],
             cwd="source_dir_path",
             env={"GOOS": "linux", "GOARCH": "amd64"},
             stderr="PIPE",
