@@ -165,6 +165,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         architecture=X86_64,
         is_building_layer=False,
         experimental_flags=None,
+        build_in_source=False,
     ):
         # pylint: disable-msg=too-many-locals
         """
@@ -208,6 +209,9 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
         experimental_flags: list, optional
             List of strings, which will indicate enabled experimental flags for the current build session
+
+        build_in_source: bool
+            Should execute the build operation in the source directory.
         """
 
         self.source_dir = source_dir
@@ -225,6 +229,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.architecture = architecture
         self.is_building_layer = is_building_layer
         self.experimental_flags = experimental_flags if experimental_flags else []
+        self.build_in_source = build_in_source
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []

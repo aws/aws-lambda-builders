@@ -83,6 +83,7 @@ class TestCliWithHelloWorkflow(TestCase):
                 "architecture": "x86_64",
                 "is_building_layer": False,
                 "experimental_flags": ["experimental"],
+                "build_in_source": False,
             },
         }
 
@@ -149,6 +150,7 @@ class TestCliWithHelloWorkflow(TestCase):
                     "combine_dependencies": False,
                     "is_building_layer": False,
                     "experimental_flags": ["experimental"],
+                    "build_in_source": False,
                 },
             }
         )
