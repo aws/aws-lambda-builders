@@ -183,7 +183,7 @@ class TestGoWorkflow(TestCase):
         self.assertEqual(get_md5_hexdigest(pathname), get_md5_hexdigest(pathnameOfCopy))
 
     def test_builds_project_with_nested_dir(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "nested_directory_folder")
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "nested_build_folder")
         package_dir = os.path.join(source_dir, "cmd/helloWorld")
         self.builder.build(
             package_dir,
