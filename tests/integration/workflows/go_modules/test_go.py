@@ -181,3 +181,18 @@ class TestGoWorkflow(TestCase):
         pathname = Path(self.artifacts_dir, "no-deps-main")
         pathnameOfCopy = Path(self.artifacts_dir, "no-deps-main-copy")
         self.assertEqual(get_md5_hexdigest(pathname), get_md5_hexdigest(pathnameOfCopy))
+
+    def test_builds_project_with_nested_dir(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "nested_build_folder")
+        package_dir = os.path.join(source_dir, "cmd/helloWorld")
+        self.builder.build(
+            package_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "go.mod"),
+            runtime=self.runtime,
+            options={"artifact_executable_name": "helloWorld"},
+        )
+        expected_files = {"helloWorld"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
