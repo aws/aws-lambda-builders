@@ -34,7 +34,6 @@ class CustomMakeWorkflow(BaseWorkflow):
         # Find the logical id of the function to be built.
         options = kwargs.get("options") or {}
         build_logical_id = options.get("build_logical_id", None)
-        working_directory = options.get("working_directory", scratch_dir)
 
         if not build_logical_id:
             raise WorkflowFailedError(
@@ -45,9 +44,11 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
 
+        build_in_source = kwargs.get("build_in_source", False)
+        working_directory = self._get_working_directory(options, source_dir, scratch_dir, build_in_source)
+
         make_action = CustomMakeAction(
             artifacts_dir,
-            scratch_dir,
             manifest_path,
             osutils=self.os_utils,
             subprocess_make=subprocess_make,
@@ -55,7 +56,27 @@ class CustomMakeWorkflow(BaseWorkflow):
             working_directory=working_directory,
         )
 
-        self.actions = [CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES), make_action]
+        self.actions = []
+
+        if not self.build_in_source:
+            # if we're building on scratch_dir, we have to first copy the source there
+            self.actions.append(CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES))
+
+        self.actions.append(make_action)
+
+    def _get_working_directory(self, options, source_dir, scratch_dir, build_in_source):
+        """
+        Gets the directory where the make action should be executed
+        """
+        options_working_directory = options.get("working_directory")
+        
+        # an explicitly definied working directory should take precedence
+        if options_working_directory:
+            return options_working_directory
+        elif build_in_source:
+            return source_dir
+        else:
+            return scratch_dir
 
     def get_resolvers(self):
         return [PathResolver(runtime="provided", binary="make", executable_search_paths=self.executable_search_paths)]

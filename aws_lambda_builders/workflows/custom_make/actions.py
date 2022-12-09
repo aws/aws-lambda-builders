@@ -25,19 +25,15 @@ class CustomMakeAction(BaseAction):
     def __init__(
         self,
         artifacts_dir,
-        scratch_dir,
         manifest_path,
         osutils,
         subprocess_make,
         build_logical_id,
-        working_directory=None,
+        working_directory,
     ):
         """
         :type artifacts_dir: str
         :param artifacts_dir: directory where artifacts needs to be stored.
-
-        :type scratch_dir: str
-        :param scratch_dir: an existing (writable) directory for temporary files
 
         :type manifest_path: str
         :param manifest_path: path to Makefile of an Make project with the source in same folder.
@@ -52,17 +48,15 @@ class CustomMakeAction(BaseAction):
         :param build_logical_id: the lambda resource logical id that will be built by the custom action.
 
         :type working_directory: str
-        :param working_directory: path to the working directory where the Makefile will be executed. Use the scratch_dir
-        as the working directory if the input working_directory is None
+        :param working_directory: path to the working directory where the Makefile will be executed.
         """
         super(CustomMakeAction, self).__init__()
         self.artifacts_dir = artifacts_dir
-        self.scratch_dir = scratch_dir
         self.manifest_path = manifest_path
         self.osutils = osutils
         self.subprocess_make = subprocess_make
         self.build_logical_id = build_logical_id
-        self.working_directory = working_directory if working_directory else scratch_dir
+        self.working_directory = working_directory
 
     @property
     def artifact_dir_path(self):
