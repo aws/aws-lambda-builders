@@ -6,9 +6,21 @@ on:
       - develop
 
 jobs:
+  run-workflow:
+    name: PR Workflow
+    if: github.repository_owner == 'aws'
+    runs-on: ubuntu-latest
+    needs: [unit-functional, node-integration, node-esbuild-integration]
+    steps:
+      - name: report-failure
+        if: (needs.unit-functional.result != 'success' || needs.node-integration.result != 'success' || needs.node-esbuild-integration.result != 'success')
+        run: exit 1
+      - name: report-success
+        run: exit 0
+
   unit-functional:
     name: ${{ matrix.os }} / ${{ matrix.python }} / unit-functional
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -32,7 +44,7 @@ jobs:
 
   node-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / node / npm ${{ matrix.npm }}.x
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -63,7 +75,7 @@ jobs:
 
   node-esbuild-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / esbuild / npm ${{ matrix.npm }}.x
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -94,7 +106,7 @@ jobs:
 
   golang-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / golang
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -119,7 +131,7 @@ jobs:
 
   java-maven-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / java maven
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -145,7 +157,7 @@ jobs:
 
   java-gradle-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / java gradle
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
@@ -173,7 +185,7 @@ jobs:
 
   custom-make-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / custom make
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -195,7 +207,7 @@ jobs:
 
   python-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / python
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -217,7 +229,7 @@ jobs:
 
   ruby-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / ruby-${{ matrix.ruby }}
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -245,7 +257,7 @@ jobs:
 
   dotnet-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / dotnet
-    if: github.repository == 'aws/aws-lambda-builders'
+    if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
