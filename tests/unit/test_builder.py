@@ -32,7 +32,7 @@ class TesetLambdaBuilder_init(TestCase):
         # then check if we tried to get a workflow for given capability
         get_workflow_mock.assert_called_with(
             Capability(
-                language=self.lang, dependency_manager=self.lang_framework, application_framework=self.app_framework
+                language="oh no", dependency_manager=self.lang_framework, application_framework=self.app_framework
             )
         )
 

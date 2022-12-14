@@ -10,10 +10,30 @@ jobs:
     name: PR Workflow
     if: github.repository_owner == 'aws'
     runs-on: ubuntu-latest
-    needs: [unit-functional, node-integration, node-esbuild-integration]
+    needs:
+      - unit-functional
+      - node-integration
+      - node-esbuild-integration
+      - golang-integration
+      - java-maven-intregration
+      - java-gradle-integration
+      - custom-make-integration
+      - python-integration
+      - ruby-integration
+      - dotnet-integration
     steps:
       - name: report-failure
-        if: (needs.unit-functional.result != 'success' || needs.node-integration.result != 'success' || needs.node-esbuild-integration.result != 'success')
+        if: |
+          needs.unit-functional.result != 'success' ||
+          needs.node-integration.result != 'success' ||
+          needs.node-esbuild-integration.result != 'success' ||
+          needs.golang-integration.result != 'success' ||
+          needs.java-maven-intregration != 'success' ||
+          needs.java-gradle-integration.result != 'success' ||
+          needs.custom-make-integration.result != 'success' ||
+          needs.python-integration.result != 'success' ||
+          needs.ruby-integration.result != 'success' ||
+          needs.dotnet-integration.result != 'success'
         run: exit 1
       - name: report-success
         run: exit 0
