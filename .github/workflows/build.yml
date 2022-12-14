@@ -15,7 +15,7 @@ jobs:
       - node-integration
       - node-esbuild-integration
       - golang-integration
-      - java-maven-intregration
+      - java-maven-integration
       - java-gradle-integration
       - custom-make-integration
       - python-integration
@@ -28,7 +28,7 @@ jobs:
           needs.node-integration.result != 'success' ||
           needs.node-esbuild-integration.result != 'success' ||
           needs.golang-integration.result != 'success' ||
-          needs.java-maven-intregration != 'success' ||
+          needs.java-maven-integration.result != 'success' ||
           needs.java-gradle-integration.result != 'success' ||
           needs.custom-make-integration.result != 'success' ||
           needs.python-integration.result != 'success' ||
