@@ -165,7 +165,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         architecture=X86_64,
         is_building_layer=False,
         experimental_flags=None,
-        build_in_source=False,
+        build_in_source=None,
     ):
         # pylint: disable-msg=too-many-locals
         """
@@ -210,7 +210,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         experimental_flags: list, optional
             List of strings, which will indicate enabled experimental flags for the current build session
 
-        build_in_source: bool
+        build_in_source: Optional[bool]
             Should execute the build operation in the source directory.
         """
 

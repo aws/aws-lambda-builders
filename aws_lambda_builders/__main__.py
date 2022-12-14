@@ -131,7 +131,7 @@ def main():  # pylint: disable=too-many-statements
             architecture=params.get("architecture", X86_64),
             is_building_layer=params.get("is_building_layer", False),
             experimental_flags=params.get("experimental_flags", []),
-            build_in_source=params.get("build_in_source", False),
+            build_in_source=params.get("build_in_source", None),
         )
 
         # Return a success response

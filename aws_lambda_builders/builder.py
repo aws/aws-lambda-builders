@@ -71,7 +71,7 @@ class LambdaBuilder(object):
         architecture=X86_64,
         is_building_layer=False,
         experimental_flags=None,
-        build_in_source=False,
+        build_in_source=None,
     ):
         # pylint: disable-msg=too-many-locals
         """
@@ -140,7 +140,7 @@ class LambdaBuilder(object):
         :param experimental_flags:
             List of strings, which will indicate enabled experimental flags for the current build session
 
-        :type build_in_source: bool
+        :type build_in_source: Optional[bool]
         :param build_in_source:
             Should execute the build operation in the source directory.
             # TODO: confirm param name and help text
