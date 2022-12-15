@@ -56,10 +56,6 @@ class OSUtils(object):
         with zipfile.ZipFile(zipfile_path, "r") as z:
             z.extractall(unpack_dir)
 
-    def extract_tarfile(self, tarfile_path, unpack_dir):
-        with tarfile.open(tarfile_path, "r:*") as tar:
-            tar.extractall(unpack_dir)
-
     def directory_exists(self, path):
         return os.path.isdir(path)
 
