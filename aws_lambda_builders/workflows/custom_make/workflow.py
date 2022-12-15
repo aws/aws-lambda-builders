@@ -68,7 +68,7 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         self.actions.append(make_action)
 
-    def _get_working_directory(self, options, source_dir, scratch_dir, build_in_source):
+    def _get_working_directory(self, options: dict, source_dir: str, scratch_dir: str, build_in_source: bool):
         """
         Gets the directory where the make action should be executed
         """
