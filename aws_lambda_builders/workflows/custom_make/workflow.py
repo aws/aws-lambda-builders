@@ -73,7 +73,7 @@ class CustomMakeWorkflow(BaseWorkflow):
         Gets the directory where the make action should be executed
         """
         options_working_directory = options.get("working_directory")
-        
+
         # an explicitly definied working directory should take precedence
         if options_working_directory:
             return options_working_directory
