@@ -44,7 +44,11 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
 
-        build_in_source = kwargs.get("build_in_source", False)
+        build_in_source = kwargs.get("build_in_source")
+        # Don't build in source by default (backwards compatibility)
+        if build_in_source is None:
+            build_in_source = False
+
         working_directory = self._get_working_directory(options, source_dir, scratch_dir, build_in_source)
 
         make_action = CustomMakeAction(
