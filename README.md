@@ -1,6 +1,6 @@
 ## Lambda Builders
 
-![Build status](https://github.com/aws/aws-lambda-builders/actions/workflows/build.yml/badge.svg)
+[![Build & Test](https://github.com/aws/aws-lambda-builders/actions/workflows/build.yml/badge.svg)](https://github.com/aws/aws-lambda-builders/actions/workflows/build.yml)
 
 Lambda Builders is a Python library to compile, build and package AWS Lambda functions for several runtimes & 
 frameworks.
