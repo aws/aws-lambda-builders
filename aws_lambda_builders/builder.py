@@ -142,8 +142,7 @@ class LambdaBuilder(object):
 
         :type build_in_source: Optional[bool]
         :param build_in_source:
-            Should execute the build operation in the source directory.
-            # TODO: confirm param name and help text
+            Optional, will execute the build operation in the source directory if True.
 
         """
 

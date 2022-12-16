@@ -211,7 +211,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
             List of strings, which will indicate enabled experimental flags for the current build session
 
         build_in_source: Optional[bool]
-            Should execute the build operation in the source directory.
+            Optional, will execute the build operation in the source directory if True.
         """
 
         self.source_dir = source_dir
