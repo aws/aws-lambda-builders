@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -32,13 +33,14 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         npm = SubprocessNpm(self.osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
         npm.run(["ci"], cwd=esbuild_dir)
-        self.binpath = npm.run(["bin"], cwd=esbuild_dir)
+        self.root_path = npm.run(["root"], cwd=esbuild_dir)
+        self.binpath = Path(self.root_path, ".bin")
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_javascript_project_with_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
@@ -59,7 +61,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_javascript_project_with_multiple_entrypoints(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-multiple-entrypoints")
 
@@ -80,7 +82,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_typescript_projects(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-typescript")
 
@@ -101,7 +103,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_with_external_esbuild(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
         options = {"entry_points": ["included.js"]}
@@ -121,7 +123,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_no_options_passed_to_esbuild(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
@@ -138,7 +140,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.assertEqual(str(context.exception), "NodejsNpmEsbuildBuilder:EsbuildBundle - entry_points not set ({})")
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_bundle_with_implicit_file_types(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "implicit-file-types")
 
@@ -159,7 +161,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_bundles_project_without_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-package-esbuild")
         options = {"entry_points": ["included"]}
@@ -168,7 +170,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
         npm.run(["ci"], cwd=esbuild_dir)
-        binpath = npm.run(["bin"], cwd=esbuild_dir)
+        binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
             source_dir,
@@ -185,7 +187,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
@@ -194,7 +196,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
         npm.run(["ci"], cwd=esbuild_dir)
-        binpath = npm.run(["bin"], cwd=esbuild_dir)
+        binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
             source_dir,
@@ -213,7 +215,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_with_remote_dependencies_with_download_dependencies_and_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
@@ -243,7 +245,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(
         self, runtime
     ):
@@ -268,7 +270,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             " workflow can't include a dependencies directory without installing dependencies.",
         )
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_without_combine_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
@@ -299,7 +301,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_javascript_project_with_external(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-externals")
 
@@ -324,7 +326,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             # Check that the module has been require() instead of bundled
             self.assertIn('require("minimal-request-promise")', js_file)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_javascript_project_with_loader(self, runtime):
         osutils = OSUtils()
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild-loader")
@@ -366,7 +368,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             ),
         )
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",)])
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_includes_sourcemap_if_requested(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 

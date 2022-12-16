@@ -12,14 +12,6 @@ class TestOSUtils(TestCase):
     def setUp(self):
         self.osutils = utils.OSUtils()
 
-    def test_extract_tarfile_unpacks_a_tar(self):
-        test_tar = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
-        test_dir = tempfile.mkdtemp()
-        self.osutils.extract_tarfile(test_tar, test_dir)
-        output_files = set(os.listdir(test_dir))
-        shutil.rmtree(test_dir)
-        self.assertEqual({"test_utils.py"}, output_files)
-
     def test_dirname_returns_directory_for_path(self):
         dirname = self.osutils.dirname(sys.executable)
         self.assertEqual(dirname, os.path.dirname(sys.executable))
