@@ -31,10 +31,10 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         self.os_utils = OSUtils()
 
-        # Find the logical id of the function to be built.
         options = kwargs.get("options") or {}
-        build_logical_id = options.get("build_logical_id", None)
+        build_in_source = kwargs.get("build_in_source")
 
+        build_logical_id = options.get("build_logical_id", None)
         if not build_logical_id:
             raise WorkflowFailedError(
                 workflow_name=self.NAME,
@@ -44,12 +44,14 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
 
-        build_in_source = kwargs.get("build_in_source")
         # Don't build in source by default (backwards compatibility)
         if build_in_source is None:
             build_in_source = False
 
-        working_directory = self._get_working_directory(options, source_dir, scratch_dir, build_in_source)
+        # an explicitly definied working directory should take precedence
+        working_directory = options.get("working_directory") or self._select_working_directory(
+            source_dir, scratch_dir, build_in_source
+        )
 
         make_action = CustomMakeAction(
             artifacts_dir,
@@ -68,19 +70,11 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         self.actions.append(make_action)
 
-    def _get_working_directory(self, options: dict, source_dir: str, scratch_dir: str, build_in_source: bool):
+    def _select_working_directory(self, source_dir: str, scratch_dir: str, build_in_source: bool):
         """
-        Gets the directory where the make action should be executed
+        Returns the directory where the make action should be executed
         """
-        options_working_directory = options.get("working_directory")
-
-        # an explicitly definied working directory should take precedence
-        if options_working_directory:
-            return options_working_directory
-        elif build_in_source:
-            return source_dir
-        else:
-            return scratch_dir
+        return source_dir if build_in_source else scratch_dir
 
     def get_resolvers(self):
         return [PathResolver(runtime="provided", binary="make", executable_search_paths=self.executable_search_paths)]
