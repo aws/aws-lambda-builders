@@ -127,6 +127,7 @@ class TestLambdaBuilder_build(TestCase):
             [True, False],  # combine_dependencies
             [True, False],  # is_building_layer
             [None, [], ["a", "b"]],  # experimental flags
+            [True, False],  # build_in_source
         )
     )
     @patch("aws_lambda_builders.builder.os")
@@ -139,6 +140,7 @@ class TestLambdaBuilder_build(TestCase):
         combine_dependencies,
         is_building_layer,
         experimental_flags,
+        build_in_source,
         get_workflow_mock,
         os_mock,
     ):
@@ -167,6 +169,7 @@ class TestLambdaBuilder_build(TestCase):
             combine_dependencies=combine_dependencies,
             is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
+            build_in_source=build_in_source,
         )
 
         workflow_cls.assert_called_with(
@@ -185,6 +188,7 @@ class TestLambdaBuilder_build(TestCase):
             combine_dependencies=combine_dependencies,
             is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
+            build_in_source=build_in_source,
         )
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")
