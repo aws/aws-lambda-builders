@@ -5,6 +5,7 @@ Action to resolve NodeJS dependencies using NPM
 import logging
 
 from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.utils import extract_tarfile
 from .npm import NpmExecutionError
 
 LOG = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ class NodejsNpmPackAction(BaseAction):
 
             LOG.debug("NODEJS extracting to %s", self.artifacts_dir)
 
-            self.osutils.extract_tarfile(tarfile_path, self.artifacts_dir)
+            extract_tarfile(tarfile_path, self.artifacts_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
@@ -164,7 +165,7 @@ class NodejsNpmrcAndLockfileCopyAction(BaseAction):
     """
 
     NAME = "CopyNpmrcAndLockfile"
-    DESCRIPTION = "Copying configuration from .npmrc and dependencies from lockfile"
+    DESCRIPTION = "Copying configuration from .npmrc and dependencies from lockfile/shrinkwrap"
     PURPOSE = Purpose.COPY_SOURCE
 
     def __init__(self, artifacts_dir, source_dir, osutils):
@@ -193,7 +194,7 @@ class NodejsNpmrcAndLockfileCopyAction(BaseAction):
         """
 
         try:
-            for filename in [".npmrc", "package-lock.json"]:
+            for filename in [".npmrc", "package-lock.json", "npm-shrinkwrap.json"]:
                 file_path = self.osutils.joinpath(self.source_dir, filename)
                 if self.osutils.file_exists(file_path):
                     LOG.debug("%s copying in: %s", filename, self.artifacts_dir)

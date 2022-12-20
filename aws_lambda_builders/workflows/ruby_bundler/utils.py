@@ -16,10 +16,6 @@ class OSUtils(object):
     unit test actions in memory
     """
 
-    def extract_tarfile(self, tarfile_path, unpack_dir):
-        with tarfile.open(tarfile_path, "r:*") as tar:
-            tar.extractall(unpack_dir)
-
     def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
         p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
         return p
