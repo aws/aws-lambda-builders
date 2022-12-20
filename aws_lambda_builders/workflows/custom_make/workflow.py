@@ -2,7 +2,7 @@
 ProvidedMakeWorkflow
 """
 from aws_lambda_builders.workflows.custom_make.validator import CustomMakeRuntimeValidator
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.path_resolver import PathResolver
 from .actions import CustomMakeAction
@@ -22,6 +22,9 @@ class CustomMakeWorkflow(BaseWorkflow):
     CAPABILITY = Capability(language="provided", dependency_manager=None, application_framework=None)
 
     EXCLUDED_FILES = (".aws-sam", ".git")
+
+    BUILD_IN_SOURCE_BY_DEFAULT = False
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
@@ -43,10 +46,6 @@ class CustomMakeWorkflow(BaseWorkflow):
             )
 
         subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
-
-        # Don't build in source by default (backwards compatibility)
-        if build_in_source is None:
-            build_in_source = False
 
         # an explicitly definied working directory should take precedence
         working_directory = options.get("working_directory") or self._select_working_directory(

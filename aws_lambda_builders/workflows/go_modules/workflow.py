@@ -1,7 +1,7 @@
 """
 Go Modules Workflow
 """
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
 
 from .actions import GoModulesBuildAction
 from .builder import GoModulesBuilder
@@ -14,6 +14,9 @@ class GoModulesWorkflow(BaseWorkflow):
     NAME = "GoModulesBuilder"
 
     CAPABILITY = Capability(language="go", dependency_manager="modules", application_framework=None)
+
+    BUILD_IN_SOURCE_BY_DEFAULT = True
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.EXCLUSIVELY_SUPPORTED
 
     def __init__(
         self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, mode=None, **kwargs
