@@ -449,7 +449,9 @@ class TestBaseWorkflow_build_in_source(TestCase):
             ("unsupported", False, BuildInSourceSupport.OPTIONALLY_SUPPORTED),  # unsupported value passed in
         ]
     )
-    def test_must_validate_value(self, build_in_source_value, build_in_source_default, build_in_source_support):
+    def test_must_use_default_if_unsupported_value_is_provided(
+        self, build_in_source_value, build_in_source_default, build_in_source_support
+    ):
         class MyWorkflow(BaseWorkflow):
             __TESTING__ = True
             NAME = "MyWorkflow"
@@ -459,52 +461,16 @@ class TestBaseWorkflow_build_in_source(TestCase):
             BUILD_IN_SOURCE_BY_DEFAULT = build_in_source_default
             BUILD_IN_SOURCE_SUPPORT = build_in_source_support
 
-        with self.assertRaises(WorkflowFailedError):
-            self.work = MyWorkflow(
-                "source_dir",
-                "artifacts_dir",
-                "scratch_dir",
-                "manifest_path",
-                runtime="runtime",
-                executable_search_paths=[str(sys.executable)],
-                optimizations={"a": "b"},
-                options={"c": "d"},
-                build_in_source=build_in_source_value,
-            )
+        self.work = MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[str(sys.executable)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+            build_in_source=build_in_source_value,
+        )
 
-    @parameterized.expand(
-        [
-            (True, BuildInSourceSupport.NOT_SUPPORTED),
-            (False, BuildInSourceSupport.EXCLUSIVELY_SUPPORTED),
-        ]
-    )
-    def test_validate_default_value_is_supported(self, build_in_source_default, build_in_source_support):
-        class MyWorkflow(BaseWorkflow):
-            __TESTING__ = True
-            NAME = "MyWorkflow"
-            CAPABILITY = Capability(
-                language="test", dependency_manager="testframework", application_framework="appframework"
-            )
-            BUILD_IN_SOURCE_BY_DEFAULT = build_in_source_default
-            BUILD_IN_SOURCE_SUPPORT = build_in_source_support
-
-        with self.assertRaises(WorkflowFailedError):
-            self.work = MyWorkflow(
-                "source_dir",
-                "artifacts_dir",
-                "scratch_dir",
-                "manifest_path",
-                runtime="runtime",
-                executable_search_paths=[str(sys.executable)],
-                optimizations={"a": "b"},
-                options={"c": "d"},
-            )
-
-    def test_workflow_must_define_default_and_supported_values(self):
-        with self.assertRaises(ValueError):
-
-            class MyWorkflow(BaseWorkflow):
-                NAME = "MyWorkflow"
-                CAPABILITY = Capability(
-                    language="test", dependency_manager="testframework", application_framework="appframework"
-                )
+        self.assertEqual(self.work.build_in_source, build_in_source_default)

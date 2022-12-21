@@ -261,26 +261,18 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.build_in_source = build_in_source
         if build_in_source is None:
             self.build_in_source = self.BUILD_IN_SOURCE_BY_DEFAULT
-        self._validate_build_in_source()
+        elif build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
+            LOG.warning(
+                'Workflow %s does not support value "%s" for building in source. Using default value: %s.',
+                self.NAME,
+                build_in_source,
+                self.BUILD_IN_SOURCE_BY_DEFAULT,
+            )
+            self.build_in_source = self.BUILD_IN_SOURCE_BY_DEFAULT
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
         self._binaries = {}
-
-    def _validate_build_in_source(self):
-        """
-        Validates that the value of build_in_source is supported by the chosen workflow.
-        """
-        if self.build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
-            error_reason = ""
-            if self.BUILD_IN_SOURCE_SUPPORT == BuildInSourceSupport.NOT_SUPPORTED:
-                error_reason = "This workflow does not support building in source"
-            elif self.BUILD_IN_SOURCE_SUPPORT == BuildInSourceSupport.EXCLUSIVELY_SUPPORTED:
-                error_reason = "This workflow only supports building in source"
-            else:
-                error_reason = "Unsupported value for build_in_source"
-
-            raise WorkflowFailedError(workflow_name=self.NAME, action_name=None, reason=error_reason)
 
     def is_supported(self):
         """
