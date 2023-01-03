@@ -71,6 +71,8 @@ class TestRegisteringWorkflows(TestCase):
 
             class TestWorkflow1(BaseWorkflow):
                 CAPABILITY = self.CAPABILITY1
+                BUILD_IN_SOURCE_BY_DEFAULT = False
+                BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         self.assertEqual(len(DEFAULT_REGISTRY), 0)
         self.assertEqual(str(ctx.exception), "Workflow must provide a valid name")
@@ -81,6 +83,8 @@ class TestRegisteringWorkflows(TestCase):
 
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
+                BUILD_IN_SOURCE_BY_DEFAULT = False
+                BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         self.assertEqual(len(DEFAULT_REGISTRY), 0)
         self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
@@ -92,9 +96,31 @@ class TestRegisteringWorkflows(TestCase):
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
                 CAPABILITY = "wrong data type"
+                BUILD_IN_SOURCE_BY_DEFAULT = False
+                BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         self.assertEqual(len(DEFAULT_REGISTRY), 0)
         self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
+
+    @parameterized.expand(
+        [
+            (None, BuildInSourceSupport.NOT_SUPPORTED),  # default not defined
+            (False, None),  # support not defined
+            (False, BuildInSourceSupport.EXCLUSIVELY_SUPPORTED),  # default incompatible with support
+            (True, False),  # support not instance of enum
+        ]
+    )
+    def test_must_fail_if_build_in_source_variables_invalid(self, build_in_source_default, build_in_source_support):
+
+        with self.assertRaises(ValueError) as ctx:
+
+            class TestWorkflow1(BaseWorkflow):
+                NAME = "somename"
+                CAPABILITY = self.CAPABILITY1
+                BUILD_IN_SOURCE_BY_DEFAULT = build_in_source_default
+                BUILD_IN_SOURCE_SUPPORT = build_in_source_support
+
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
 
 
 class TestBaseWorkflow_init(TestCase):

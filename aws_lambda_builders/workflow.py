@@ -140,10 +140,13 @@ class _WorkflowMetaClass(type):
         if not isinstance(cls.CAPABILITY, Capability):
             raise ValueError("Workflow '{}' must register valid capabilities".format(cls.NAME))
 
-        # All workflows must define default value and supported values for build in source
-        if cls.BUILD_IN_SOURCE_BY_DEFAULT is None or cls.BUILD_IN_SOURCE_SUPPORT is None:
+        # All workflows must define valid default and supported values for build in source
+        if (
+            not isinstance(cls.BUILD_IN_SOURCE_SUPPORT, BuildInSourceSupport)
+            or cls.BUILD_IN_SOURCE_BY_DEFAULT not in cls.BUILD_IN_SOURCE_SUPPORT.value
+        ):
             raise ValueError(
-                "Workflow '{}' must define default value and supported values for build in source".format(cls.NAME)
+                "Workflow '{}' must define valid default and supported values for build in source".format(cls.NAME)
             )
 
         LOG.debug("Registering workflow '%s' with capability '%s'", cls.NAME, cls.CAPABILITY)
