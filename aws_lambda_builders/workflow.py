@@ -266,7 +266,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
             self.build_in_source = self.BUILD_IN_SOURCE_BY_DEFAULT
         elif build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
             LOG.warning(
-                'Workflow %s does not support value "%s" for building in source. Using default value: %s.',
+                'Workflow %s does not support value "%s" for building in source. Using default value "%s".',
                 self.NAME,
                 build_in_source,
                 self.BUILD_IN_SOURCE_BY_DEFAULT,
