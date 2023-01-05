@@ -262,15 +262,15 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.experimental_flags = experimental_flags if experimental_flags else []
 
         self.build_in_source = build_in_source
-        if build_in_source is None:
-            self.build_in_source = self.BUILD_IN_SOURCE_BY_DEFAULT
-        elif build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
-            LOG.warning(
-                'Workflow %s does not support value "%s" for building in source. Using default value "%s".',
-                self.NAME,
-                build_in_source,
-                self.BUILD_IN_SOURCE_BY_DEFAULT,
-            )
+        if build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
+            # only show warning if an unsupported value was explicitly passed in
+            if build_in_source is not None:
+                LOG.warning(
+                    'Workflow %s does not support value "%s" for building in source. Using default value "%s".',
+                    self.NAME,
+                    build_in_source,
+                    self.BUILD_IN_SOURCE_BY_DEFAULT,
+                )
             self.build_in_source = self.BUILD_IN_SOURCE_BY_DEFAULT
 
         # Actions are registered by the subclasses as they seem fit
