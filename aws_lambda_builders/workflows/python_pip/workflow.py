@@ -3,7 +3,7 @@ Python PIP Workflow
 """
 import logging
 
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, BuildInSourceSupport, Capability
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 from aws_lambda_builders.path_resolver import PathResolver
@@ -66,6 +66,9 @@ class PythonPipWorkflow(BaseWorkflow):
     )
 
     PYTHON_VERSION_THREE = "3"
+
+    BUILD_IN_SOURCE_BY_DEFAULT = False
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 

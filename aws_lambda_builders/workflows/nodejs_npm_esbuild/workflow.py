@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import List
 
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
@@ -43,6 +43,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
     EXCLUDED_FILES = (".aws-sam", ".git")
 
     CONFIG_PROPERTY = "aws_sam"
+
+    BUILD_IN_SOURCE_BY_DEFAULT = False
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 

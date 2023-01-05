@@ -6,6 +6,7 @@ import os
 import logging
 
 from collections import namedtuple
+from enum import Enum
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.path_resolver import PathResolver
@@ -35,6 +36,21 @@ class BuildMode(object):
 
     DEBUG = "debug"
     RELEASE = "release"
+
+
+class BuildInSourceSupport(Enum):
+    """
+    Enum to define a workflow's support for building in source.
+    """
+
+    # can't build in source directory (e.g. only able to build in temporary or artifacts directories)
+    NOT_SUPPORTED = [False]
+
+    # can build in source directory but not required to
+    OPTIONALLY_SUPPORTED = [False, True]
+
+    # only able to build in source directory and not somewhere else
+    EXCLUSIVELY_SUPPORTED = [True]
 
 
 # TODO: Move sanitize out to its own class.
@@ -124,6 +140,15 @@ class _WorkflowMetaClass(type):
         if not isinstance(cls.CAPABILITY, Capability):
             raise ValueError("Workflow '{}' must register valid capabilities".format(cls.NAME))
 
+        # All workflows must define valid default and supported values for build in source
+        if (
+            not isinstance(cls.BUILD_IN_SOURCE_SUPPORT, BuildInSourceSupport)
+            or cls.BUILD_IN_SOURCE_BY_DEFAULT not in cls.BUILD_IN_SOURCE_SUPPORT.value
+        ):
+            raise ValueError(
+                "Workflow '{}' must define valid default and supported values for build in source".format(cls.NAME)
+            )
+
         LOG.debug("Registering workflow '%s' with capability '%s'", cls.NAME, cls.CAPABILITY)
         DEFAULT_REGISTRY[cls.CAPABILITY] = cls
 
@@ -147,6 +172,12 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
     # Optional list of manifests file/folder names supported by this workflow.
     SUPPORTED_MANIFESTS = []
+
+    # Whether the workflow builds in source by default, each workflow should define this.
+    # (some workflows build in temporary or artifact directories by default)
+    BUILD_IN_SOURCE_BY_DEFAULT = None
+    # Support for building in source, each workflow should define this.
+    BUILD_IN_SOURCE_SUPPORT = None
 
     def __init__(
         self,
@@ -229,7 +260,18 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.architecture = architecture
         self.is_building_layer = is_building_layer
         self.experimental_flags = experimental_flags if experimental_flags else []
+
         self.build_in_source = build_in_source
+        if build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
+            # only show warning if an unsupported value was explicitly passed in
+            if build_in_source is not None:
+                LOG.warning(
+                    'Workflow %s does not support value "%s" for building in source. Using default value "%s".',
+                    self.NAME,
+                    build_in_source,
+                    self.BUILD_IN_SOURCE_BY_DEFAULT,
+                )
+            self.build_in_source = self.BUILD_IN_SOURCE_BY_DEFAULT
 
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
