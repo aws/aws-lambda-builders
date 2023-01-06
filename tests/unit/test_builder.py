@@ -4,7 +4,7 @@ from mock import patch, call, Mock
 from parameterized import parameterized, param
 
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.workflow import Capability, BaseWorkflow
+from aws_lambda_builders.workflow import BuildInSourceSupport, Capability, BaseWorkflow
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
 
 
@@ -71,6 +71,8 @@ class TesetLambdaBuilder_init(TestCase):
             CAPABILITY = Capability(
                 language=self.lang, dependency_manager=self.lang_framework, application_framework=self.app_framework
             )
+            BUILD_IN_SOURCE_BY_DEFAULT = False
+            BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
             def __init__(
                 self,
@@ -127,6 +129,7 @@ class TestLambdaBuilder_build(TestCase):
             [True, False],  # combine_dependencies
             [True, False],  # is_building_layer
             [None, [], ["a", "b"]],  # experimental flags
+            [True, False],  # build_in_source
         )
     )
     @patch("aws_lambda_builders.builder.os")
@@ -139,6 +142,7 @@ class TestLambdaBuilder_build(TestCase):
         combine_dependencies,
         is_building_layer,
         experimental_flags,
+        build_in_source,
         get_workflow_mock,
         os_mock,
     ):
@@ -167,6 +171,7 @@ class TestLambdaBuilder_build(TestCase):
             combine_dependencies=combine_dependencies,
             is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
+            build_in_source=build_in_source,
         )
 
         workflow_cls.assert_called_with(
@@ -185,6 +190,7 @@ class TestLambdaBuilder_build(TestCase):
             combine_dependencies=combine_dependencies,
             is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
+            build_in_source=build_in_source,
         )
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")

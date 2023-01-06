@@ -1,7 +1,7 @@
 """
 .NET Core CLI Package Workflow
 """
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
 
 from .actions import GlobalToolInstallAction, RunPackageAction
 from .dotnetcli import SubprocessDotnetCLI
@@ -18,6 +18,9 @@ class DotnetCliPackageWorkflow(BaseWorkflow):
     NAME = "DotnetCliPackageBuilder"
 
     CAPABILITY = Capability(language="dotnet", dependency_manager="cli-package", application_framework=None)
+
+    BUILD_IN_SOURCE_BY_DEFAULT = True
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.EXCLUSIVELY_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, mode=None, **kwargs):
 
