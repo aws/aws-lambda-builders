@@ -105,7 +105,7 @@ class TestBuildAction(TestCase):
             action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
             out = action.execute()
             self.assertEqual(out, "out")
-        mock_warning.assert_called_with("RUST_LOG environment variable set to `debug`")
+        mock_warning.assert_called_with("RUST_LOG environment variable set to `%s`", "debug")
 
 
 class TestCopyAndRenameAction(TestCase):
