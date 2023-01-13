@@ -32,6 +32,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def _set_esbuild_binary_path(self):
         npm = SubprocessNpm(self.osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+        npm.run(["install"], cwd=esbuild_dir)
         self.root_path = npm.run(["root"], cwd=esbuild_dir)
         self.binpath = Path(self.root_path, ".bin")
 
@@ -168,6 +169,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         osutils = OSUtils()
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+        npm.run(["install"], cwd=esbuild_dir)
         binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
@@ -193,6 +195,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         osutils = OSUtils()
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
+        npm.run(["install"], cwd=esbuild_dir)
         binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
