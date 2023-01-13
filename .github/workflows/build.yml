@@ -309,7 +309,7 @@ jobs:
       run:
         shell: bash
     strategy:
-      fail-fast: true # TODO(david): change this before merging
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
