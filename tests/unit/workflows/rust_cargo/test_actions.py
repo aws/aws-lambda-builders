@@ -1,6 +1,6 @@
 from unittest import TestCase
 from mock import patch
-import json
+import logging
 import os
 
 from aws_lambda_builders.binary_path import BinaryPath
@@ -10,6 +10,8 @@ from aws_lambda_builders.workflows.rust_cargo.actions import (
     RustCargoLambdaBuildAction,
     RustCopyAndRenameAction,
 )
+
+LOG = logging.getLogger("aws_lambda_builders.workflows.rust_cargo.actions")
 
 
 class FakePopen:
@@ -91,6 +93,19 @@ class TestBuildAction(TestCase):
         with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
         self.assertEqual(err_assert.exception.args[0], "Builder Failed: build failed")
+
+    @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
+    def test_execute_happy_with_logger(self, OSUtilsMock):
+        osutils = OSUtilsMock.return_value
+        popen = FakePopen()
+        osutils.popen.side_effect = [popen]
+        LOG.setLevel(logging.DEBUG)
+        with patch.object(LOG, "debug") as mock_warning:
+            cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
+            action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
+            out = action.execute()
+            self.assertEqual(out, "out")
+        mock_warning.assert_called_with("RUST_LOG environment variable set to `debug`")
 
 
 class TestCopyAndRenameAction(TestCase):
