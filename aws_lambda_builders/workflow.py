@@ -371,3 +371,6 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
                 Name=Action3, Purpose=COMPILE_SOURCE, Description=Compiles code
         """
         return "Workflow={}\nActions=\n\t{}".format(self.NAME, "\n\t".join(map(str, self.actions)))
+
+    def get_option(self, key, default=None):
+        return (self.options or {}).get(key, default)

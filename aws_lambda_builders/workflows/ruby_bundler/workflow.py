@@ -37,7 +37,9 @@ class RubyBundlerWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
-        self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
+        self.actions = [
+            CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES, ignore=self.get_option("ignore"))
+        ]
 
         if self.download_dependencies:
             # installed the dependencies into artifact folder

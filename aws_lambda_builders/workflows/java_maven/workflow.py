@@ -47,7 +47,7 @@ class JavaMavenWorkflow(BaseWorkflow):
             copy_artifacts_action = JavaMavenCopyLayerArtifactsAction(scratch_dir, artifacts_dir, self.os_utils)
 
         self.actions = [
-            CopySourceAction(root_dir, scratch_dir, excludes=self.EXCLUDED_FILES),
+            CopySourceAction(root_dir, scratch_dir, excludes=self.EXCLUDED_FILES, ignore=self.get_option("ignore")),
             JavaMavenBuildAction(scratch_dir, subprocess_maven),
             JavaMavenCopyDependencyAction(scratch_dir, subprocess_maven),
             copy_artifacts_action,

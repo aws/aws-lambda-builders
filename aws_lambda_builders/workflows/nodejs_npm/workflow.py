@@ -56,7 +56,11 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         if not osutils.file_exists(manifest_path):
             LOG.warning("package.json file not found. Continuing the build without dependencies.")
-            self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
+            self.actions = [
+                CopySourceAction(
+                    source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES, ignore=self.get_option("ignore")
+                )
+            ]
             return
 
         subprocess_npm = SubprocessNpm(osutils)
@@ -101,7 +105,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
         actions = [
             npm_pack,
             npm_copy_npmrc_and_lockfile,
-            CopySourceAction(tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES),
+            CopySourceAction(
+                tar_package_dir, artifacts_dir, excludes=self.EXCLUDED_FILES, ignore=self.get_option("ignore")
+            ),
         ]
 
         if self.download_dependencies:

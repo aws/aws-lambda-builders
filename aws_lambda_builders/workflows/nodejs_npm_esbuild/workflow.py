@@ -104,8 +104,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         :rtype: list
         :return: List of build actions to execute
         """
+        excludes: tuple[str] = self.EXCLUDED_FILES + tuple(["node_modules"])
         actions: List[BaseAction] = [
-            CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES + tuple(["node_modules"]))
+            CopySourceAction(source_dir, scratch_dir, excludes=excludes, ignore=self.get_option("ignore"))
         ]
 
         # Bundle dependencies separately in a dependency layer. We need to check the esbuild

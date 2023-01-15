@@ -88,7 +88,11 @@ class PythonPipWorkflow(BaseWorkflow):
         self.actions = []
         if not osutils.file_exists(manifest_path):
             LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
-            self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+            self.actions.append(
+                CopySourceAction(
+                    source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES, ignore=self.get_option("ignore")
+                )
+            )
             return
 
         # If a requirements.txt exists, run pip builder before copy action.
@@ -118,7 +122,9 @@ class PythonPipWorkflow(BaseWorkflow):
             else:
                 self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
 
-        self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+        self.actions.append(
+            CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES, ignore=self.get_option("ignore"))
+        )
 
     def get_resolvers(self):
         """

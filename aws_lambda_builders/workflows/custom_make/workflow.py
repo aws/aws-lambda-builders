@@ -65,7 +65,9 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         if not self.build_in_source:
             # if we're building on scratch_dir, we have to first copy the source there
-            self.actions.append(CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES))
+            self.actions.append(
+                CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES, ignore=options.get("ignore"))
+            )
 
         self.actions.append(make_action)
 

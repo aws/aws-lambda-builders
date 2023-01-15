@@ -107,13 +107,16 @@ class CopySourceAction(BaseAction):
 
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self, source_dir, dest_dir, excludes=None):
+    def __init__(self, source_dir, dest_dir, excludes=None, ignore=None):
         self.source_dir = source_dir
         self.dest_dir = dest_dir
         self.excludes = excludes or []
+        self.ignore = list(self.excludes)
+        if ignore and isinstance(ignore, (list, tuple)):
+            self.ignore += ignore
 
     def execute(self):
-        copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
+        copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.ignore))
 
 
 class LinkSourceAction(BaseAction):

@@ -397,3 +397,27 @@ class TestPythonPipWorkflow(TestCase):
         dependencies_files = set(os.listdir(self.dependencies_dir))
         for f in expected_dependencies_files:
             self.assertIn(f, dependencies_files)
+
+    def test_must_build_python_project_with_ignore(self):
+        ignore = {"main.py"}
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_valid,
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
+            options={"ignore": list(ignore)},
+        )
+
+        if self.runtime == "python3.6":
+            self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+            expected_files = self.test_data_files.difference(ignore).union({"numpy", "numpy-1.17.4.dist-info"})
+        else:
+            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+            expected_files = self.test_data_files.difference(ignore).union(
+                {"numpy", "numpy-1.20.3.dist-info", "numpy.libs"}
+            )
+
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
