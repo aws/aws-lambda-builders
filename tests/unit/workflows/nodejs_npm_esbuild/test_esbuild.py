@@ -220,7 +220,7 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--external:axios",
                 "--loader:.proto=text",
                 "--loader:.json=js",
-                "--out-extension:.js=.mjs"
+                "--out-extension:.js=.mjs",
             ],
         )
 
