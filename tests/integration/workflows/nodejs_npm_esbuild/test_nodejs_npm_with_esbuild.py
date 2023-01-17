@@ -3,7 +3,6 @@ import shutil
 import tempfile
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -386,5 +385,25 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         )
 
         expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_produces_mjs_output_files(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+        options = {"entry_points": ["included.js"], "sourcemap": True, "out_extension": [".js=.mjs"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.mjs", "included.mjs.map"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
