@@ -93,6 +93,7 @@ class TestProvidedMakeWorkflow(TestCase):
             build_in_source=True,
         )
 
-        self.assertEqual(len(workflow.actions), 1)
-        self.assertIsInstance(workflow.actions[0], CustomMakeAction)
-        self.assertEqual(workflow.actions[0].working_directory, working_dir)
+        self.assertEqual(len(workflow.actions), 2)
+        # since it's going to build in a custom working directory, should copy the source there first
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertEqual(workflow.actions[1].working_directory, working_dir)

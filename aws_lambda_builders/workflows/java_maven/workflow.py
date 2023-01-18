@@ -1,7 +1,7 @@
 """
 Java Maven Workflow
 """
-from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
 from aws_lambda_builders.workflows.java.utils import OSUtils
@@ -28,7 +28,7 @@ class JavaMavenWorkflow(BaseWorkflow):
 
     EXCLUDED_FILES = (".aws-sam", ".git")
 
-    BUILD_IN_SOURCE_BY_DEFAULT = False
+    DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs):
