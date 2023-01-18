@@ -475,7 +475,7 @@ class TestBaseWorkflow_build_in_source(TestCase):
             executable_search_paths=[str(sys.executable)],
             optimizations={"a": "b"},
             options={"c": "d"},
-            build_in_source=True
+            build_in_source=True,
         )
 
         self.assertEqual(self.work.build_dir, source_dir)
@@ -487,9 +487,7 @@ class TestBaseWorkflow_build_in_source(TestCase):
             (BuildDirectory.ARTIFACTS, "artifacts_dir"),
         ]
     )
-    def test_must_use_correct_default_value(
-        self, default_build_dir, expected_build_dir
-    ):
+    def test_must_use_correct_default_value(self, default_build_dir, expected_build_dir):
         class MyWorkflow(BaseWorkflow):
             __TESTING__ = True
             NAME = "MyWorkflow"
@@ -514,14 +512,24 @@ class TestBaseWorkflow_build_in_source(TestCase):
 
     @parameterized.expand(
         [
-            (True, BuildInSourceSupport.NOT_SUPPORTED, BuildDirectory.SCRATCH, "scratch_dir"),  # want to build in source but it's not supported
+            (
+                True,
+                BuildInSourceSupport.NOT_SUPPORTED,
+                BuildDirectory.SCRATCH,
+                "scratch_dir",
+            ),  # want to build in source but it's not supported
             (
                 False,
                 BuildInSourceSupport.EXCLUSIVELY_SUPPORTED,
                 BuildDirectory.SOURCE,
-                "source_dir"
+                "source_dir",
             ),  # don't want to build in source but workflow requires it
-            ("unsupported", BuildInSourceSupport.OPTIONALLY_SUPPORTED, BuildDirectory.ARTIFACTS, "artifacts_dir"),  # unsupported value passed in
+            (
+                "unsupported",
+                BuildInSourceSupport.OPTIONALLY_SUPPORTED,
+                BuildDirectory.ARTIFACTS,
+                "artifacts_dir",
+            ),  # unsupported value passed in
         ]
     )
     def test_must_use_default_if_unsupported_value_is_provided(

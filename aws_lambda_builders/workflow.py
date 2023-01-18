@@ -38,10 +38,12 @@ class BuildMode(object):
     DEBUG = "debug"
     RELEASE = "release"
 
+
 class BuildDirectory(Enum):
     SCRATCH = "scratch"
     ARTIFACTS = "artifacts"
     SOURCE = "source"
+
 
 class BuildInSourceSupport(Enum):
     """
@@ -147,15 +149,11 @@ class _WorkflowMetaClass(type):
 
         # All workflows must define supported values for build in source
         if not isinstance(cls.BUILD_IN_SOURCE_SUPPORT, BuildInSourceSupport):
-            raise ValueError(
-                "Workflow '{}' must define supported values for build in source".format(cls.NAME)
-            )
+            raise ValueError("Workflow '{}' must define supported values for build in source".format(cls.NAME))
 
         # All workflows must define default build directory
         if not isinstance(cls.DEFAULT_BUILD_DIR, BuildDirectory):
-            raise ValueError(
-                "Workflow '{}' must define default build directory".format(cls.NAME)
-            )
+            raise ValueError("Workflow '{}' must define default build directory".format(cls.NAME))
 
         LOG.debug("Registering workflow '%s' with capability '%s'", cls.NAME, cls.CAPABILITY)
         DEFAULT_REGISTRY[cls.CAPABILITY] = cls
@@ -274,7 +272,6 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.actions = []
         self._binaries = {}
 
-
     def _select_build_dir(self, build_in_source: Optional[bool]) -> str:
         """
         Returns the build directory for the workflow.
@@ -284,7 +281,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         if build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
             # assign default value
             should_build_in_source = self.DEFAULT_BUILD_DIR == BuildDirectory.SOURCE
-            
+
             # only show warning if an unsupported value was explicitly passed in
             if build_in_source is not None:
                 LOG.warning(
