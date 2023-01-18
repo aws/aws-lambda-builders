@@ -266,6 +266,8 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.architecture = architecture
         self.is_building_layer = is_building_layer
         self.experimental_flags = experimental_flags if experimental_flags else []
+
+        # this represents where the build/install happens, not the final output directory (that's the artifacts_dir)
         self.build_dir = self._select_build_dir(build_in_source)
 
         # Actions are registered by the subclasses as they seem fit
