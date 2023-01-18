@@ -46,7 +46,7 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
 
-        # an explicitly definied working directory should take precedence
+        # an explicitly defined working directory should take precedence
         working_directory = options.get("working_directory") or self.build_dir
 
         make_action = CustomMakeAction(
@@ -60,9 +60,9 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         self.actions = []
 
-        if working_directory != source_dir:
+        if self.build_dir != source_dir:
             # if we're not building in the source directory, we have to first copy the source
-            self.actions.append(CopySourceAction(source_dir, working_directory, excludes=self.EXCLUDED_FILES))
+            self.actions.append(CopySourceAction(source_dir, self.build_dir, excludes=self.EXCLUDED_FILES))
 
         self.actions.append(make_action)
 
