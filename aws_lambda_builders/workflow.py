@@ -182,7 +182,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
     # Support for building in source, each workflow should define this.
     BUILD_IN_SOURCE_SUPPORT = None
 
-    # Default build directory, each workflow should define this.
+    # The directory where the workflow builds/installs by default, each workflow should define this.
     DEFAULT_BUILD_DIR = None
 
     def __init__(
