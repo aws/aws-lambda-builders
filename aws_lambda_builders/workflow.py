@@ -145,13 +145,13 @@ class _WorkflowMetaClass(type):
         if not isinstance(cls.CAPABILITY, Capability):
             raise ValueError("Workflow '{}' must register valid capabilities".format(cls.NAME))
 
-        # All workflows define supported values for build in source
+        # All workflows must define supported values for build in source
         if not isinstance(cls.BUILD_IN_SOURCE_SUPPORT, BuildInSourceSupport):
             raise ValueError(
                 "Workflow '{}' must define supported values for build in source".format(cls.NAME)
             )
 
-        # All workflows define default build directory
+        # All workflows must define default build directory
         if not isinstance(cls.DEFAULT_BUILD_DIR, BuildDirectory):
             raise ValueError(
                 "Workflow '{}' must define default build directory".format(cls.NAME)
