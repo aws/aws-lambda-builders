@@ -10,15 +10,19 @@ import shutil
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.exceptions import LambdaBuilderError
+
 
 LOG = logging.getLogger(__name__)
 
 
-class RustCargoLambdaBuilderError(Exception):
-    MESSAGE = "Builder Failed: {message}"
+class RustCargoLambdaBuilderError(LambdaBuilderError):
+    """
+    Exception raised in case Cargo Lambda execution fails.
+    It will pass on the standard error output from the Cargo Lambda console.
+    """
 
-    def __init__(self, **kwargs):
-        Exception.__init__(self, self.MESSAGE.format(**kwargs))
+    MESSAGE = "Cargo Lambda failed: {message}"
 
 
 class OSUtils(object):

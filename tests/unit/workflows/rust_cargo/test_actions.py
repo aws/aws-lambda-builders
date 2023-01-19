@@ -92,7 +92,7 @@ class TestBuildAction(TestCase):
         action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
         with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
-        self.assertEqual(err_assert.exception.args[0], "Builder Failed: build failed")
+        self.assertEqual(err_assert.exception.args[0], "Cargo Lambda failed: build failed")
 
     @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
     def test_execute_happy_with_logger(self, OSUtilsMock):
