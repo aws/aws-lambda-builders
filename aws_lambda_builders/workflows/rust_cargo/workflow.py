@@ -31,7 +31,7 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
                 message="Feature flag `experimentalCargoLambda` must be enabled to use this workflow"
             )
 
-        self.check_cargo_lambda_installation()
+        self.check_cargo_lambda_installation(which)
 
         # we utilize the handler identifier to
         # select the binary to build
@@ -52,7 +52,7 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
             PathResolver(runtime=self.runtime, binary="cargo-lambda"),
         ]
 
-    def check_cargo_lambda_installation(self):
+    def check_cargo_lambda_installation(self, which):
         LOG.debug("checking for cargo-lambda")
         binaries = which("cargo-lambda")
         LOG.debug("potential cargo-lambda binaries: %s", binaries)
