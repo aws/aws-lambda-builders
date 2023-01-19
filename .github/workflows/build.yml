@@ -305,6 +305,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CARGO_LAMBDA_VERSION: 0.15.0
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
