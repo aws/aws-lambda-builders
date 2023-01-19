@@ -56,7 +56,7 @@ class TestRustCargoLambdaWorkflow(TestCase):
         )
 
         with self.assertRaises(RustCargoLambdaBuilderError) as raised:
-            workflow.check_cargo_lambda_installation(which)
+            workflow.check_cargo_lambda_installation(which_cmd=which)
 
         self.assertEqual(
             raised.exception.args[0],
