@@ -6,9 +6,9 @@ This package enables the creation of a Lambda deployment package for Rust projec
 
 ## Implementation
 
-This package uses [cargo-lambda](https://crates.io/crates/cargo-lambda) to do all the heavy lifting for cross compilation, target validation, and other executable optimizations.
+This package uses [Cargo Lambda](https://www.cargo-lambda.info) to do all the heavy lifting for cross compilation, target validation, and other executable optimizations.
 
-It supports X86-64 architectures with the target `x86_64-unknown-linux-gnu` by default. It also supports ARM architectures with the target option `aarch64-unknown-linux-gnu`. Those are the only two valid targets. The target is automatically configured based on the `architecture` option in the `RustWorkflow`.
+It supports X86-64 architectures with the target `x86_64-unknown-linux-gnu` by default. It also supports ARM architectures with the target option `aarch64-unknown-linux-gnu`. Those are the only two valid targets. The target is automatically configured based on the `architecture` option in the `RustCargoLambdaWorkflow`.
 
 The general algorithm for preparing a rust executable for use on AWS Lambda is as follows.
 
