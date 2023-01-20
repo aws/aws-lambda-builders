@@ -29,7 +29,7 @@ class RustCargoLambdaBuildAction(BaseAction):
         architecture=X86_64,
         handler=None,
         flags=None,
-        subprocess_cargo_lambda=SubprocessCargoLambda
+        subprocess_cargo_lambda=SubprocessCargoLambda,
     ):
         """
         Build the a Rust executable

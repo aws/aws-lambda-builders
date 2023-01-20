@@ -2,7 +2,11 @@ from unittest import TestCase
 
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflows.rust_cargo.workflow import RustCargoLambdaWorkflow
-from aws_lambda_builders.workflows.rust_cargo.actions import RustCargoLambdaBuildAction, RustCopyAndRenameAction, CargoLambdaExecutionException
+from aws_lambda_builders.workflows.rust_cargo.actions import (
+    RustCargoLambdaBuildAction,
+    RustCopyAndRenameAction,
+    CargoLambdaExecutionException,
+)
 from aws_lambda_builders.workflows.rust_cargo.feature_flag import EXPERIMENTAL_FLAG_CARGO_LAMBDA
 
 

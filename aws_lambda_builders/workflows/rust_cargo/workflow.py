@@ -37,8 +37,15 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
         flags = options.get("cargo_lambda_flags", None)
         subprocess_cargo_lambda = SubprocessCargoLambda(which=which)
         self.actions = [
-            RustCargoLambdaBuildAction(source_dir, self.binaries, mode, self.architecture,
-                                       handler, flags, subprocess_cargo_lambda=subprocess_cargo_lambda),
+            RustCargoLambdaBuildAction(
+                source_dir,
+                self.binaries,
+                mode,
+                self.architecture,
+                handler,
+                flags,
+                subprocess_cargo_lambda=subprocess_cargo_lambda,
+            ),
             RustCopyAndRenameAction(source_dir, artifacts_dir, handler),
         ]
 

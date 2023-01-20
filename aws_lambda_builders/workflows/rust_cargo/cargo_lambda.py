@@ -19,12 +19,7 @@ class SubprocessCargoLambda(object):
     easy to consume execution results.
     """
 
-    def __init__(
-        self,
-        which,
-        executable_search_paths=None,
-        osutils=OSUtils()
-    ):
+    def __init__(self, which, executable_search_paths=None, osutils=OSUtils()):
         """
         :type which: aws_lambda_builders.utils.which
         :param which: Function to get paths which conform to the given mode on the PATH

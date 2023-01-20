@@ -31,7 +31,9 @@ class TestBuildAction(TestCase):
         self.osutils = OSUtilMock.return_value
         self.osutils.popen.side_effect = [FakePopen()]
 
-        def which(cmd, executable_search_paths): return ["/bin/cargo-lambda"]
+        def which(cmd, executable_search_paths):
+            return ["/bin/cargo-lambda"]
+
         proc = SubprocessCargoLambda(which=which, osutils=self.osutils)
         self.subprocess_cargo_lambda = proc
 
@@ -86,8 +88,9 @@ class TestBuildAction(TestCase):
 
     def test_execute_happy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {
-                                            "cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda)
+        action = RustCargoLambdaBuildAction(
+            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda
+        )
         action.execute()
 
     def test_execute_cargo_build_fail(self):
@@ -95,8 +98,9 @@ class TestBuildAction(TestCase):
         self.subprocess_cargo_lambda._osutils.popen.side_effect = [popen]
 
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {
-                                            "cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda)
+        action = RustCargoLambdaBuildAction(
+            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda
+        )
         with self.assertRaises(CargoLambdaExecutionException) as err_assert:
             action.execute()
         self.assertEqual(err_assert.exception.args[0], "Cargo Lambda failed: build failed")
@@ -105,8 +109,9 @@ class TestBuildAction(TestCase):
         LOG.setLevel(logging.DEBUG)
         with patch.object(LOG, "debug") as mock_warning:
             cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-            action = RustCargoLambdaBuildAction("source_dir", {
-                                                "cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda)
+            action = RustCargoLambdaBuildAction(
+                "source_dir", {"cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda
+            )
             out = action.execute()
             self.assertEqual(out, "out")
         mock_warning.assert_called_with("RUST_LOG environment variable set to `%s`", "debug")
