@@ -6,7 +6,7 @@ import logging
 import os
 
 from aws_lambda_builders.workflow import BuildMode
-from aws_lambda_builders.actions import BaseAction, Purpose
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64, ARM64
 from .cargo_lambda import SubprocessCargoLambda
 from .exceptions import CargoLambdaExecutionException
@@ -84,7 +84,10 @@ class RustCargoLambdaBuildAction(BaseAction):
         return cmd
 
     def execute(self):
-        return self._subprocess_cargo_lambda.run(command=self.build_command(), cwd=self._source_dir)
+        try:
+            return self._subprocess_cargo_lambda.run(command=self.build_command(), cwd=self._source_dir)
+        except CargoLambdaExecutionException as ex:
+            raise ActionFailedError(str(ex))
 
 
 class RustCopyAndRenameAction(BaseAction):

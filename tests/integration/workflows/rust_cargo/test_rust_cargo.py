@@ -45,9 +45,8 @@ class TestRustCargo(TestCase):
                 options={"artifact_executable_name": "fail"},
                 experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
             )
-            self.maxDiff = None
         self.assertTrue(
-            raised.exception.args[0].startswith("RustCargoLambdaBuilder:CargoLambdaBuild - Builder Failed"),
+            raised.exception.args[0].startswith("RustCargoLambdaBuilder:CargoLambdaBuild - Cargo Lambda failed"),
             raised.exception.args[0],
         )
 

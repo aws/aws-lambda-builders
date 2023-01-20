@@ -5,7 +5,6 @@ import logging
 import os
 import subprocess
 
-from aws_lambda_builders.actions import ActionFailedError
 from .exceptions import CargoLambdaExecutionException
 from .utils import OSUtils
 
