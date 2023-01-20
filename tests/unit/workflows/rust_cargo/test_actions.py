@@ -5,12 +5,12 @@ import os
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.workflow import BuildMode
-from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.rust_cargo.actions import (
     RustCargoLambdaBuildAction,
     RustCopyAndRenameAction,
 )
 from aws_lambda_builders.workflows.rust_cargo.cargo_lambda import SubprocessCargoLambda
+from aws_lambda_builders.workflows.rust_cargo.exceptions import CargoLambdaExecutionException
 
 LOG = logging.getLogger("aws_lambda_builders.workflows.rust_cargo.cargo_lambda")
 
@@ -97,7 +97,7 @@ class TestBuildAction(TestCase):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction("source_dir", {
                                             "cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda)
-        with self.assertRaises(ActionFailedError) as err_assert:
+        with self.assertRaises(CargoLambdaExecutionException) as err_assert:
             action.execute()
         self.assertEqual(err_assert.exception.args[0], "Cargo Lambda failed: build failed")
 

@@ -1,7 +1,7 @@
 
 from unittest import TestCase
 
-from aws_lambda_builders.workflows.rust_cargo.actions import RustCargoLambdaBuilderError
+from aws_lambda_builders.workflows.rust_cargo.actions import CargoLambdaExecutionException
 from aws_lambda_builders.workflows.rust_cargo.cargo_lambda import SubprocessCargoLambda
 
 
@@ -10,7 +10,7 @@ class TestSubprocessCargoLambda(TestCase):
         def which(cmd, executable_search_paths): return []
         proc = SubprocessCargoLambda(which=which)
 
-        with self.assertRaises(RustCargoLambdaBuilderError) as raised:
+        with self.assertRaises(CargoLambdaExecutionException) as raised:
             proc.run("cargo lambda build", "/source_dir")
 
         self.assertEqual(

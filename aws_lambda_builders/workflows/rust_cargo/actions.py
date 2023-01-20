@@ -9,7 +9,7 @@ from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64, ARM64
 from .cargo_lambda import SubprocessCargoLambda
-from .exceptions import RustCargoLambdaBuilderError
+from .exceptions import CargoLambdaExecutionException
 from .utils import OSUtils
 
 
@@ -134,7 +134,7 @@ class RustCopyAndRenameAction(BaseAction):
             return binary_path
 
         LOG.debug("unexpected list of binary directories: [%s]", ", ".join(output))
-        raise RustCargoLambdaBuilderError(
+        raise CargoLambdaExecutionException(
             message="unable to find function binary, use the option `artifact_executable_name` to specify the binary's name"
         )
 
