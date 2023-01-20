@@ -4,42 +4,16 @@ Rust Cargo build actions
 
 import logging
 import os
-import subprocess
-import shutil
 
 from aws_lambda_builders.workflow import BuildMode
-from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
+from aws_lambda_builders.actions import BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64, ARM64
-from aws_lambda_builders.exceptions import LambdaBuilderError
+from .cargo_lambda import SubprocessCargoLambda
+from .exceptions import RustCargoLambdaBuilderError
+from .utils import OSUtils
 
 
 LOG = logging.getLogger(__name__)
-
-
-class RustCargoLambdaBuilderError(LambdaBuilderError):
-    """
-    Exception raised in case Cargo Lambda execution fails.
-    It will pass on the standard error output from the Cargo Lambda console.
-    """
-
-    MESSAGE = "Cargo Lambda failed: {message}"
-
-
-class OSUtils(object):
-    """
-    Wrapper around file system functions, to make it easy to
-    unit test actions in memory
-    """
-
-    def popen(self, command, stdout=None, stderr=None, env=None, cwd=None):
-        return subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
-
-    def copyfile(self, source, destination):
-        shutil.copyfile(source, destination)
-
-    def makedirs(self, path):
-        if not os.path.exists(path):
-            os.makedirs(path)
 
 
 class RustCargoLambdaBuildAction(BaseAction):
@@ -47,7 +21,16 @@ class RustCargoLambdaBuildAction(BaseAction):
     DESCRIPTION = "Building the project using Cargo Lambda"
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, binaries, mode, architecture=X86_64, handler=None, flags=None, osutils=OSUtils()):
+    def __init__(
+        self,
+        source_dir,
+        binaries,
+        mode,
+        architecture=X86_64,
+        handler=None,
+        flags=None,
+        subprocess_cargo_lambda=SubprocessCargoLambda
+    ):
         """
         Build the a Rust executable
 
@@ -75,17 +58,17 @@ class RustCargoLambdaBuildAction(BaseAction):
         :param flags:
             Extra list of flags to pass to `cargo lambda build`
 
-        :type osutils: object, optional
-        :param osutils:
-            Optional, External IO utils
+        :type subprocess_cargo_lambda: aws_lambda_builders.workflows.rust_cargo.cargo_lambda.SubprocessCargoLambda
+        :param subprocess_cargo_lambda: An instance of the Cargo Lambda process wrapper
         """
+
         self._source_dir = source_dir
         self._mode = mode
         self._binaries = binaries
         self._handler = handler
         self._flags = flags
         self._architecture = architecture
-        self._osutils = osutils
+        self._subprocess_cargo_lambda = subprocess_cargo_lambda
 
     def build_command(self):
         cmd = [self._binaries["cargo"].binary_path, "lambda", "build"]
@@ -101,31 +84,7 @@ class RustCargoLambdaBuildAction(BaseAction):
         return cmd
 
     def execute(self):
-        try:
-            command = self.build_command()
-            LOG.debug("Executing cargo-lambda: %s", " ".join(command))
-            if LOG.isEnabledFor(logging.DEBUG):
-                if "RUST_LOG" not in os.environ:
-                    os.environ["RUST_LOG"] = "debug"
-                LOG.debug("RUST_LOG environment variable set to `%s`", os.environ.get("RUST_LOG"))
-
-            cargo_process = self._osutils.popen(
-                command,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                cwd=self._source_dir,
-            )
-            out, err = cargo_process.communicate()
-            output = out.decode("utf8").strip()
-            if cargo_process.returncode != 0:
-                error = err.decode("utf8").strip()
-                LOG.debug("cargo-lambda STDOUT:\n\n%s\n\n", output)
-                LOG.debug("cargo-lambda STDERR:\n\n%s\n\n", error)
-                raise RustCargoLambdaBuilderError(message=error)
-
-            return output
-        except Exception as ex:
-            raise ActionFailedError(str(ex))
+        return self._subprocess_cargo_lambda.run(command=self.build_command(), cwd=self._source_dir)
 
 
 class RustCopyAndRenameAction(BaseAction):

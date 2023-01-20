@@ -10,8 +10,9 @@ from aws_lambda_builders.workflows.rust_cargo.actions import (
     RustCargoLambdaBuildAction,
     RustCopyAndRenameAction,
 )
+from aws_lambda_builders.workflows.rust_cargo.cargo_lambda import SubprocessCargoLambda
 
-LOG = logging.getLogger("aws_lambda_builders.workflows.rust_cargo.actions")
+LOG = logging.getLogger("aws_lambda_builders.workflows.rust_cargo.cargo_lambda")
 
 
 class FakePopen:
@@ -25,6 +26,15 @@ class FakePopen:
 
 
 class TestBuildAction(TestCase):
+    @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
+    def setUp(self, OSUtilMock):
+        self.osutils = OSUtilMock.return_value
+        self.osutils.popen.side_effect = [FakePopen()]
+
+        def which(cmd, executable_search_paths): return ["/bin/cargo-lambda"]
+        proc = SubprocessCargoLambda(which=which, osutils=self.osutils)
+        self.subprocess_cargo_lambda = proc
+
     def test_release_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE)
@@ -74,35 +84,29 @@ class TestBuildAction(TestCase):
             ["path/to/cargo", "lambda", "build", "--arm64", "--bin", "foo"],
         )
 
-    @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
-    def test_execute_happy_path(self, OSUtilsMock):
-        osutils = OSUtilsMock.return_value
-        popen = FakePopen()
-        osutils.popen.side_effect = [popen]
+    def test_execute_happy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
+        action = RustCargoLambdaBuildAction("source_dir", {
+                                            "cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda)
         action.execute()
 
-    @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
-    def test_execute_cargo_build_fail(self, OSUtilsMock):
-        osutils = OSUtilsMock.return_value
+    def test_execute_cargo_build_fail(self):
         popen = FakePopen(retcode=1, err=b"build failed")
-        osutils.popen.side_effect = [popen]
+        self.subprocess_cargo_lambda._osutils.popen.side_effect = [popen]
+
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
+        action = RustCargoLambdaBuildAction("source_dir", {
+                                            "cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda)
         with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
         self.assertEqual(err_assert.exception.args[0], "Cargo Lambda failed: build failed")
 
-    @patch("aws_lambda_builders.workflows.rust_cargo.actions.OSUtils")
-    def test_execute_happy_with_logger(self, OSUtilsMock):
-        osutils = OSUtilsMock.return_value
-        popen = FakePopen()
-        osutils.popen.side_effect = [popen]
+    def test_execute_happy_with_logger(self):
         LOG.setLevel(logging.DEBUG)
         with patch.object(LOG, "debug") as mock_warning:
             cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-            action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, BuildMode.RELEASE, osutils=osutils)
+            action = RustCargoLambdaBuildAction("source_dir", {
+                                                "cargo": cargo}, BuildMode.RELEASE, subprocess_cargo_lambda=self.subprocess_cargo_lambda)
             out = action.execute()
             self.assertEqual(out, "out")
         mock_warning.assert_called_with("RUST_LOG environment variable set to `%s`", "debug")
@@ -126,6 +130,5 @@ class TestCopyAndRenameAction(TestCase):
         osutils = OSUtilsMock.return_value
         osutils.copyfile.return_value = ""
         osutils.makedirs.return_value = ""
-        cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCopyAndRenameAction("source_dir", "foo", "output_dir", osutils=osutils)
         action.execute()

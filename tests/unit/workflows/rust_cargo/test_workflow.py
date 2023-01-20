@@ -43,23 +43,3 @@ class TestRustCargoLambdaWorkflow(TestCase):
         self.assertIsInstance(resolver, PathResolver)
         self.assertEqual(resolver.binary, "cargo-lambda")
         self.assertEqual(resolver.runtime, "provided")
-
-    def test_raises_RustCargoLambdaBuilderError_if_which_returns_no_results(self):
-        def which(cmd): return []
-        workflow = RustCargoLambdaWorkflow(
-            "source",
-            "artifacts",
-            "scratch_dir",
-            "manifest",
-            runtime="provided",
-            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
-        )
-
-        with self.assertRaises(RustCargoLambdaBuilderError) as raised:
-            workflow.check_cargo_lambda_installation(which_cmd=which)
-
-        self.assertEqual(
-            raised.exception.args[0],
-            "Cargo Lambda failed: Cannot find Cargo Lambda. Cargo Lambda must be installed on the host machine to use this feature. "
-            "Follow the gettings started guide to learn how to install it: https://www.cargo-lambda.info/guide/getting-started.html"
-        )

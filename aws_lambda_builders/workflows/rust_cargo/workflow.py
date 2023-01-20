@@ -1,15 +1,14 @@
 """
 Rust Cargo Workflow
 """
-import logging
 
 from aws_lambda_builders.utils import which
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
-from .actions import RustCargoLambdaBuildAction, RustCopyAndRenameAction, RustCargoLambdaBuilderError
+from .actions import RustCargoLambdaBuildAction, RustCopyAndRenameAction
+from .cargo_lambda import SubprocessCargoLambda
+from .exceptions import RustCargoLambdaBuilderError
 from .feature_flag import is_experimental_cargo_lambda_scope
-
-LOG = logging.getLogger(__name__)
 
 
 class RustCargoLambdaWorkflow(BaseWorkflow):
@@ -31,15 +30,15 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
                 message="Feature flag `experimentalCargoLambda` must be enabled to use this workflow"
             )
 
-        self.check_cargo_lambda_installation(which_cmd=which)
-
         # we utilize the handler identifier to
         # select the binary to build
         options = kwargs.get("options") or {}
         handler = options.get("artifact_executable_name", None)
         flags = options.get("cargo_lambda_flags", None)
+        subprocess_cargo_lambda = SubprocessCargoLambda(which=which)
         self.actions = [
-            RustCargoLambdaBuildAction(source_dir, self.binaries, mode, self.architecture, handler, flags),
+            RustCargoLambdaBuildAction(source_dir, self.binaries, mode, self.architecture,
+                                       handler, flags, subprocess_cargo_lambda=subprocess_cargo_lambda),
             RustCopyAndRenameAction(source_dir, artifacts_dir, handler),
         ]
 
@@ -51,14 +50,3 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
             PathResolver(runtime=self.runtime, binary="cargo"),
             PathResolver(runtime=self.runtime, binary="cargo-lambda"),
         ]
-
-    def check_cargo_lambda_installation(self, which_cmd):
-        LOG.debug("checking for cargo-lambda")
-        binaries = which_cmd("cargo-lambda")
-        LOG.debug("potential cargo-lambda binaries: %s", binaries)
-
-        if not binaries:
-            raise RustCargoLambdaBuilderError(
-                message="Cannot find Cargo Lambda. Cargo Lambda must be installed on the host machine to use this feature. "
-                "Follow the gettings started guide to learn how to install it: https://www.cargo-lambda.info/guide/getting-started.html"
-            )
