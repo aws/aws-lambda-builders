@@ -2,7 +2,7 @@
 name: Bug report
 about: Create an issue to report a bug for AWS Lambda Builders
 title: "Bug: TITLE"
-labels: ['type/bug', 'stage/needs-triage']
+labels: ['stage/needs-triage']
 assignees: ''
 
 ---
