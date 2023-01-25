@@ -68,17 +68,20 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
                 )
             ]
-            return
-
-        self.actions = self.actions_with_bundler(
-            source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
-        )
+        else:
+            self.actions = self.actions_with_bundler(
+                source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
+            )
 
         if kwargs and "options" in kwargs and isinstance(kwargs["options"], dict) and "include" in kwargs["options"]:
-            self.actions.append(CopyResourceAction(
-                source_dir,
-                kwargs["options"]["include"],
-                artifacts_dir))
+            include = kwargs["options"]["include"]
+            if isinstance(include, list) or isinstance(include, str):
+                self.actions.append(CopyResourceAction(
+                    source_dir,
+                    kwargs["options"]["include"],
+                    artifacts_dir))
+            elif include is not None:
+                raise ValueError("Resource include items must be strings or lists of strings")
 
     def actions_with_bundler(
         self, source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild

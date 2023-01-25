@@ -94,6 +94,22 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(expected_files2, output_files2)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_error_project_without_dependencies_and_invalid_resource(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-with-resources")
+
+        self.assertRaisesRegex(
+            ValueError,
+            "Resource include items must be strings or lists of strings",
+            self.builder.build,
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options={"include": {}}
+        )
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_without_manifest(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-manifest")
 

@@ -66,10 +66,14 @@ class NodejsNpmWorkflow(BaseWorkflow):
         )
 
         if kwargs and "options" in kwargs and isinstance(kwargs["options"], dict) and "include" in kwargs["options"]:
-            self.actions.append(CopyResourceAction(
-                source_dir,
-                kwargs["options"]["include"],
-                artifacts_dir))
+            include = kwargs["options"]["include"]
+            if isinstance(include, list) or isinstance(include, str):
+                self.actions.append(CopyResourceAction(
+                    source_dir,
+                    kwargs["options"]["include"],
+                    artifacts_dir))
+            elif include is not None:
+                raise ValueError("Resource include items must be strings or lists of strings")
 
     def actions_without_bundler(self, source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
         """
