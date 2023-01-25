@@ -13,7 +13,8 @@ from aws_lambda_builders.actions import (
     CleanUpAction,
     MoveDependenciesAction,
     BaseAction,
-    LinkSourceAction, CopyResourceAction,
+    LinkSourceAction,
+    CopyResourceAction,
 )
 from aws_lambda_builders.utils import which, get_option_from_args
 from .actions import (

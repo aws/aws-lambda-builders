@@ -231,10 +231,10 @@ def glob_copy(source: Union[str, list], destination: str) -> None:
     known_paths = []
     for item in items:
         if Path(item).is_absolute():
-            raise ValueError("\"{item}\" is not a relative path".format(item=item))
+            raise ValueError('"{item}" is not a relative path'.format(item=item))
         files = glob(item, recursive=True)
         if len(files) == 0:
-            raise ValueError("\"{item}\" not found".format(item=item))
+            raise ValueError('"{item}" not found'.format(item=item))
         for file in files:
             save_to = str(dest_path.joinpath(file))
             LOG.debug("Copying resource file from source (%s) to destination (%s)", file, save_to)

@@ -9,6 +9,7 @@ from aws_lambda_builders.actions import (
     CleanUpAction,
     MoveDependenciesAction,
     LinkSourceAction,
+    CopyResourceAction,
 )
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAction, NodejsNpmCIAction
@@ -315,3 +316,49 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
         get_workflow_mock.get_install_action.assert_called_with("source", "scratch_dir", ANY, ANY, None)
+
+    def test_bundle_only_if_no_manifest(self):
+
+        self.osutils.file_exists.side_effect = [False]
+
+        workflow = NodejsNpmEsbuildWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], EsbuildBundleAction)
+        self.osutils.file_exists.assert_has_calls([call("manifest")])
+
+    def test_workflow_sets_up_esbuild_actions_with_includes(self):
+        self.osutils.file_exists.return_value = True
+        self.osutils.file_exists.side_effect = [True, True]
+
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[],
+            options={"include": "foo.txt"},
+        )
+
+        self.assertEqual(len(workflow.actions), 4)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[3], CopyResourceAction)
+
+    def test_workflow_fails_with_invalid_includes(self):
+        self.osutils.file_exists.return_value = True
+
+        self.assertRaisesRegex(
+            ValueError,
+            "Resource include items must be strings or lists of strings",
+            NodejsNpmEsbuildWorkflow,
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            experimental_flags=[],
+            options={"include": {}},
+        )

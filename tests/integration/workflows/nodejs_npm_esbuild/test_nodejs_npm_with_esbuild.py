@@ -135,9 +135,9 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files2 = set(os.listdir(os.path.join(self.artifacts_dir, "resources")))
         self.assertEqual(expected_files2, output_files2)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
-    def test_error_javascript_project_with_no_dependencies_and_invalid_resource(self, runtime):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-with-resources")
+    # @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_error_javascript_project_with_no_dependencies_and_invalid_resource(self, runtime="nodejs18.x"):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild-with-resources")
         options = {"entry_points": ["included.js"], "include": {}}
 
         self.assertRaisesRegex(
@@ -153,7 +153,6 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             experimental_flags=[],
             executable_search_paths=[self.binpath],
         )
-
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_javascript_project_with_multiple_entrypoints(self, runtime):

@@ -61,7 +61,7 @@ class TestNodejsNpmWorkflow(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
-            options={"include": "resources/file*"}
+            options={"include": "resources/file*"},
         )
 
         expected_files1 = {"package.json", "included.js", "resources"}
@@ -82,7 +82,7 @@ class TestNodejsNpmWorkflow(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
-            options={"include": ["resources/file1.txt", "resources/file2.txt"]}
+            options={"include": ["resources/file1.txt", "resources/file2.txt"]},
         )
 
         expected_files1 = {"package.json", "included.js", "resources"}
@@ -103,7 +103,7 @@ class TestNodejsNpmWorkflow(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
-            options={}
+            options={},
         )
 
         expected_files = {"package.json", "included.js"}
@@ -123,13 +123,12 @@ class TestNodejsNpmWorkflow(TestCase):
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
-            options={"include": {}}
+            options={"include": {}},
         )
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_without_manifest(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-manifest")
-        raise ValueError("Argh")
         with mock.patch.object(logger, "warning") as mock_warning:
             self.builder.build(
                 source_dir,

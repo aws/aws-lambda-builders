@@ -248,7 +248,6 @@ class CopyResourceAction(BaseAction):
             os.chdir(old_dir)
 
 
-
 class DependencyManager:
     """
     Class for handling the management of dependencies between directories

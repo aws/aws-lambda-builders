@@ -1,7 +1,13 @@
 from unittest import TestCase
 from mock import patch, call
 
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, CopyDependenciesAction, MoveDependenciesAction
+from aws_lambda_builders.actions import (
+    CopySourceAction,
+    CleanUpAction,
+    CopyDependenciesAction,
+    MoveDependenciesAction,
+    CopyResourceAction,
+)
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
@@ -232,3 +238,55 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
         self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
         self.osutils.file_exists.assert_has_calls([call("source/package-lock.json")])
+
+    def test_copy_only_if_no_manifest(self):
+
+        self.osutils.file_exists.side_effect = [False]
+
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            options={"use_npm_ci": True},
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.osutils.file_exists.assert_has_calls([call("manifest")])
+
+    def test_workflow_sets_up_npm_actions_with_download_dependencies_and_includes(self):
+        self.osutils.file_exists.return_value = True
+
+        self.osutils.file_exists.side_effect = [True, True, False, False]
+
+        workflow = NodejsNpmWorkflow(
+            "source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils, options={"include": "foo.txt"}
+        )
+
+        self.assertEqual(len(workflow.actions), 7)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmrcAndLockfileCopyAction)
+        self.assertIsInstance(workflow.actions[2], CopySourceAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
+        self.assertIsInstance(workflow.actions[6], CopyResourceAction)
+
+    def test_workflow_fails_with_download_dependencies_and_invalid_includes(self):
+        self.osutils.file_exists.return_value = True
+
+        self.osutils.file_exists.side_effect = [True, True, False, False]
+
+        self.assertRaisesRegex(
+            ValueError,
+            "Resource include items must be strings or lists of strings",
+            NodejsNpmWorkflow,
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=self.osutils,
+            options={"include": {}},
+        )

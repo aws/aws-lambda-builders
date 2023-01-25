@@ -10,7 +10,8 @@ from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
     CopyDependenciesAction,
-    MoveDependenciesAction, CopyResourceAction,
+    MoveDependenciesAction,
+    CopyResourceAction,
 )
 
 from .actions import (

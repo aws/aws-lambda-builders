@@ -115,11 +115,10 @@ class TestGlobCopy(TestCase):
         file(".", "b", "file3.txt")
         file(".", "c", "file4.txt")
         file(".", "c", "file5.txt")
-        glob_copy([
-            os.path.join(".", "a", "file*.txt"),
-            os.path.join(".", "b", "file3.txt"),
-            os.path.join(".", "c", "*")
-            ], self.dest)
+        glob_copy(
+            [os.path.join(".", "a", "file*.txt"), os.path.join(".", "b", "file3.txt"), os.path.join(".", "c", "*")],
+            self.dest,
+        )
         self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file1.txt")))
         self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file2.txt")))
         self.assertTrue(os.path.exists(os.path.join(self.dest, "b", "file3.txt")))
@@ -129,20 +128,18 @@ class TestGlobCopy(TestCase):
     def test_raise_exception_for_single_absolute_glob(self):
         test = "\\foo" if os.name == "nt" else "/foo"
         self.assertRaisesRegex(
-            ValueError, "\"{test}\" is not a relative path".format(test=test), glob_copy, test, "./dest"
+            ValueError, '"{test}" is not a relative path'.format(test=test), glob_copy, test, "./dest"
         )
 
     def test_raise_exception_for_list_item_absolute_glob(self):
         test = "\\bar" if os.name == "nt" else "/bar"
         self.assertRaisesRegex(
-            ValueError, "\"{test}\" is not a relative path".format(test=test), glob_copy, [test], "./dest"
+            ValueError, '"{test}" is not a relative path'.format(test=test), glob_copy, [test], "./dest"
         )
 
     def test_raise_exception_for_not_found(self):
         test = "./not-going-to-exist-in-100-years"
-        self.assertRaisesRegex(
-            ValueError, "\"{test}\" not found".format(test=test), glob_copy, test, "./dest"
-        )
+        self.assertRaisesRegex(ValueError, '"{test}" not found'.format(test=test), glob_copy, test, "./dest")
 
 
 def file(*args):
@@ -156,7 +153,6 @@ def file(*args):
 
 
 class TestGetOptionFromArgs(TestCase):
-
     def test_returns_none_on_no_args(self):
         self.assertEqual(None, get_option_from_args(None, "foo"))
 
