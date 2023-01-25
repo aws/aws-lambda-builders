@@ -136,6 +136,12 @@ class TestGlobCopy(TestCase):
             ValueError, "\"{test}\" is not a relative path".format(test=test), glob_copy, ["./foo", test], "./dest"
         )
 
+    def test_raise_exception_for_not_found(self):
+        test = "./not-going-to-exist-in-100-years"
+        self.assertRaisesRegex(
+            ValueError, "\"{test}\" not found".format(test=test), glob_copy, test, "./dest"
+        )
+
 
 def file(*args):
     path = os.path.join(*args)
