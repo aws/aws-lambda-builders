@@ -94,6 +94,23 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(expected_files2, output_files2)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_without_dependencies_and_no_include_option(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-with-resources")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options={}
+        )
+
+        expected_files = {"package.json", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_error_project_without_dependencies_and_invalid_resource(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-with-resources")
 
@@ -112,7 +129,7 @@ class TestNodejsNpmWorkflow(TestCase):
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_without_manifest(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-manifest")
-
+        raise ValueError("Argh")
         with mock.patch.object(logger, "warning") as mock_warning:
             self.builder.build(
                 source_dir,

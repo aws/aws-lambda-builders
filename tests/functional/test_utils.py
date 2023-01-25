@@ -6,7 +6,7 @@ from tarfile import ExtractError
 
 from unittest import TestCase
 
-from aws_lambda_builders.utils import copytree, get_goarch, extract_tarfile, glob_copy
+from aws_lambda_builders.utils import copytree, get_goarch, extract_tarfile, glob_copy, get_option_from_args
 
 
 class TestCopyTree(TestCase):
@@ -78,19 +78,21 @@ class TestExtractTarFile(TestCase):
         tar_filename = "path_reversal_win.tgz" if platform.system().lower() == "windows" else "path_reversal_uxix.tgz"
         test_tar = os.path.join(os.path.dirname(__file__), "testdata", tar_filename)
         test_dir = tempfile.mkdtemp()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ExtractError, "Attempted Path Traversal in Tar File", extract_tarfile, test_tar, test_dir
         )
 
 
 class TestGlobCopy(TestCase):
     def setUp(self):
+        self.save_dir = os.getcwd()
         self.source = tempfile.mkdtemp()
         self.dest = tempfile.mkdtemp()
 
     def tearDown(self):
         shutil.rmtree(self.source)
         shutil.rmtree(self.dest)
+        os.chdir(self.save_dir)
 
     def test_copy_single_file(self):
         os.chdir(self.source)
@@ -100,11 +102,11 @@ class TestGlobCopy(TestCase):
 
     def test_copy_single_wildcard(self):
         os.chdir(self.source)
-        file(".", "a", "file1.txt")
-        file(".", "a", "file2.txt")
-        glob_copy(os.path.join(".", "a", "file*.txt"), self.dest)
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file1.txt")))
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file2.txt")))
+        file(".", "a", "b", "file1.txt")
+        file(".", "a", "b", "file2.txt")
+        glob_copy(os.path.join(".", "a", "b", "file*.txt"), self.dest)
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "b", "file1.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "b", "file2.txt")))
 
     def test_copy_list_with_wildcards(self):
         os.chdir(self.source)
@@ -133,7 +135,7 @@ class TestGlobCopy(TestCase):
     def test_raise_exception_for_list_item_absolute_glob(self):
         test = "\\bar" if os.name == "nt" else "/bar"
         self.assertRaisesRegex(
-            ValueError, "\"{test}\" is not a relative path".format(test=test), glob_copy, ["./foo", test], "./dest"
+            ValueError, "\"{test}\" is not a relative path".format(test=test), glob_copy, [test], "./dest"
         )
 
     def test_raise_exception_for_not_found(self):
@@ -151,3 +153,21 @@ def file(*args):
 
     # empty file
     open(path, "a").close()
+
+
+class TestGetOptionFromArgs(TestCase):
+
+    def test_returns_none_on_no_args(self):
+        self.assertEqual(None, get_option_from_args(None, "foo"))
+
+    def test_returns_none_on_no_options_in_args(self):
+        self.assertEqual(None, get_option_from_args({}, "foo"))
+
+    def test_returns_none_on_none_options_in_args(self):
+        self.assertEqual(None, get_option_from_args({"options": None}, "foo"))
+
+    def test_returns_none_on_no_matching_option_in_args(self):
+        self.assertEqual(None, get_option_from_args({"options": {}}, "foo"))
+
+    def test_returns_value_on_matching_option_in_args(self):
+        self.assertEqual("bar", get_option_from_args({"options": {"foo": "bar"}}, "foo"))

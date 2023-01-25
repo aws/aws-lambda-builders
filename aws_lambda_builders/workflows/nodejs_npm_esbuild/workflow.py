@@ -15,7 +15,7 @@ from aws_lambda_builders.actions import (
     BaseAction,
     LinkSourceAction, CopyResourceAction,
 )
-from aws_lambda_builders.utils import which
+from aws_lambda_builders.utils import which, get_option_from_args
 from .actions import (
     EsbuildBundleAction,
     EsbuildCheckVersionAction,
@@ -68,20 +68,17 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     source_dir, artifacts_dir, bundler_config, osutils, subprocess_esbuild, self.manifest_path
                 )
             ]
-        else:
-            self.actions = self.actions_with_bundler(
-                source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
-            )
+            return
 
-        if kwargs and "options" in kwargs and isinstance(kwargs["options"], dict) and "include" in kwargs["options"]:
-            include = kwargs["options"]["include"]
-            if isinstance(include, list) or isinstance(include, str):
-                self.actions.append(CopyResourceAction(
-                    source_dir,
-                    kwargs["options"]["include"],
-                    artifacts_dir))
-            elif include is not None:
-                raise ValueError("Resource include items must be strings or lists of strings")
+        self.actions = self.actions_with_bundler(
+            source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild
+        )
+
+        include = get_option_from_args(kwargs, "include")
+        if isinstance(include, (list, str)):
+            self.actions.append(CopyResourceAction(source_dir, include, artifacts_dir))
+        elif include is not None:
+            raise ValueError("Resource include items must be strings or lists of strings")
 
     def actions_with_bundler(
         self, source_dir, scratch_dir, artifacts_dir, bundler_config, osutils, subprocess_npm, subprocess_esbuild

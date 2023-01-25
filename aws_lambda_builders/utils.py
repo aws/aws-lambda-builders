@@ -8,7 +8,7 @@ import os
 import logging
 from glob import glob
 from pathlib import Path
-from typing import Union
+from typing import Union, Dict
 
 from aws_lambda_builders.architecture import X86_64, ARM64
 
@@ -241,5 +241,14 @@ def glob_copy(source: Union[str, list], destination: str) -> None:
             save_to_dir = os.path.dirname(save_to)
             if save_to_dir not in known_paths:
                 os.makedirs(save_to_dir, exist_ok=True)
-                known_paths += save_to_dir
+                known_paths.append(save_to_dir)
             shutil.copyfile(file, save_to)
+
+
+def get_option_from_args(args: Union[None, Dict[str, any]], option_name: str) -> any:
+    if args is not None:
+        if "options" in args:
+            if args["options"] is not None:
+                if option_name in args["options"]:
+                    return args["options"][option_name]
+    return None
