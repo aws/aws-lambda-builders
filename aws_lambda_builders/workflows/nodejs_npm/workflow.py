@@ -10,7 +10,7 @@ from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
     CopyDependenciesAction,
-    MoveDependenciesAction,
+    MoveDependenciesAction, CopyResourceAction,
 )
 
 from .actions import (
@@ -64,6 +64,12 @@ class NodejsNpmWorkflow(BaseWorkflow):
         self.actions = self.actions_without_bundler(
             source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm
         )
+
+        if kwargs and "options" in kwargs and isinstance(kwargs["options"], dict) and "include" in kwargs["options"]:
+            self.actions.append(CopyResourceAction(
+                source_dir,
+                kwargs["options"]["include"],
+                artifacts_dir))
 
     def actions_without_bundler(self, source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
         """

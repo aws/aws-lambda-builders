@@ -29,7 +29,7 @@ class TestCopyDependenciesAction(TestCase):
             copy_dependencies_action = CopyDependenciesAction(empty_source, test_folder, target)
             copy_dependencies_action.execute()
 
-            self.assertEqual(os.listdir(test_folder), os.listdir(target))
+            self.assertEqual(sorted(os.listdir(test_folder)), sorted(os.listdir(target)))
 
 
 class TestMoveDependenciesAction(TestCase):
@@ -56,4 +56,4 @@ class TestMoveDependenciesAction(TestCase):
             move_dependencies_action = MoveDependenciesAction(empty_source, test_source, target)
             move_dependencies_action.execute()
 
-            self.assertEqual(os.listdir(test_folder), os.listdir(target))
+            self.assertEqual(sorted(os.listdir(test_folder)), sorted(os.listdir(target)))

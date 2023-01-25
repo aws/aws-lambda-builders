@@ -6,7 +6,7 @@ from tarfile import ExtractError
 
 from unittest import TestCase
 
-from aws_lambda_builders.utils import copytree, get_goarch, extract_tarfile
+from aws_lambda_builders.utils import copytree, get_goarch, extract_tarfile, glob_copy
 
 
 class TestCopyTree(TestCase):
@@ -80,6 +80,60 @@ class TestExtractTarFile(TestCase):
         test_dir = tempfile.mkdtemp()
         self.assertRaisesRegexp(
             ExtractError, "Attempted Path Traversal in Tar File", extract_tarfile, test_tar, test_dir
+        )
+
+
+class TestGlobCopy(TestCase):
+    def setUp(self):
+        self.source = tempfile.mkdtemp()
+        self.dest = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.source)
+        shutil.rmtree(self.dest)
+
+    def test_copy_single_file(self):
+        os.chdir(self.source)
+        file(".", "a", "file.txt")
+        glob_copy(os.path.join(".", "a", "file.txt"), self.dest)
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file.txt")))
+
+    def test_copy_single_wildcard(self):
+        os.chdir(self.source)
+        file(".", "a", "file1.txt")
+        file(".", "a", "file2.txt")
+        glob_copy(os.path.join(".", "a", "file*.txt"), self.dest)
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file1.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file2.txt")))
+
+    def test_copy_list_with_wildcards(self):
+        os.chdir(self.source)
+        file(".", "a", "file1.txt")
+        file(".", "a", "file2.txt")
+        file(".", "b", "file3.txt")
+        file(".", "c", "file4.txt")
+        file(".", "c", "file5.txt")
+        glob_copy([
+            os.path.join(".", "a", "file*.txt"),
+            os.path.join(".", "b", "file3.txt"),
+            os.path.join(".", "c", "*")
+            ], self.dest)
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file1.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file2.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "b", "file3.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "c", "file4.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "c", "file5.txt")))
+
+    def test_raise_exception_for_single_absolute_glob(self):
+        test = "\\foo" if os.name == "nt" else "/foo"
+        self.assertRaisesRegex(
+            ValueError, "\"{test}\" is not a relative path".format(test=test), glob_copy, test, "./dest"
+        )
+
+    def test_raise_exception_for_list_item_absolute_glob(self):
+        test = "\\bar" if os.name == "nt" else "/bar"
+        self.assertRaisesRegex(
+            ValueError, "\"{test}\" is not a relative path".format(test=test), glob_copy, ["./foo", test], "./dest"
         )
 
 

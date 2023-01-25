@@ -6,6 +6,7 @@ import shutil
 import sys
 import os
 import logging
+from glob import glob
 from pathlib import Path
 from typing import Union
 
@@ -222,3 +223,20 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
 
         tar.extractall(unpack_dir)
+
+
+def glob_copy(source: Union[str, list], destination: str) -> None:
+    items = source if isinstance(source, list) else [source]
+    dest_path = Path(destination)
+    known_paths = []
+    for item in items:
+        if Path(item).is_absolute():
+            raise ValueError("\"{item}\" is not a relative path".format(item=item))
+        for file in glob(str(item), recursive=True):
+            save_to = str(dest_path.joinpath(file))
+            LOG.debug("Copying resource file from source (%s) to destination (%s)", file, save_to)
+            save_to_dir = os.path.dirname(save_to)
+            if save_to_dir not in known_paths:
+                os.makedirs(save_to_dir, exist_ok=True)
+                known_paths += save_to_dir
+            shutil.copyfile(file, save_to)

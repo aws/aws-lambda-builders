@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Set, Iterator, Tuple
 
 from aws_lambda_builders import utils
-from aws_lambda_builders.utils import copytree
+from aws_lambda_builders.utils import copytree, glob_copy
 
 LOG = logging.getLogger(__name__)
 
@@ -44,6 +44,9 @@ class Purpose(object):
 
     # Action is compiling source code
     COMPILE_SOURCE = "COMPILE_SOURCE"
+
+    # Action is copying resources for deployment
+    COPY_RESOURCES = "COPY_RESOURCES"
 
     # Action is cleaning up the target folder
     CLEAN_UP = "CLEAN_UP"
@@ -218,6 +221,32 @@ class CleanUpAction(BaseAction):
                 shutil.rmtree(target_path)
             else:
                 os.remove(target_path)
+
+
+class CopyResourceAction(BaseAction):
+    """
+    Class to copy a relative glob-defined or list of glob-defined resources to the specified destination
+    """
+
+    NAME = "CopyResource"
+
+    DESCRIPTION = "Copying resource files for deployment"
+
+    PURPOSE = Purpose.COPY_RESOURCES
+
+    def __init__(self, source_dir, source_globs, dest_dir):
+        self.source_dir = source_dir
+        self.source_globs = source_globs
+        self.dest_dir = dest_dir
+
+    def execute(self):
+        old_dir = os.getcwd()
+        try:
+            os.chdir(self.source_dir)
+            glob_copy(self.source_globs, self.dest_dir)
+        finally:
+            os.chdir(old_dir)
+
 
 
 class DependencyManager:
