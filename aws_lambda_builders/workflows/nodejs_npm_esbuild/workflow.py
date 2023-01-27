@@ -175,7 +175,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 actions += [
                     esbuild_with_deps,
                     MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
-                    LinkSourceAction(self.dependencies_dir, scratch_dir),
                 ]
             else:
                 # Auto dependency layer enabled, first build
