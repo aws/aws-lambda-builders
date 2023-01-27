@@ -4,7 +4,7 @@ from mock import patch, call, Mock
 from parameterized import parameterized, param
 
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.workflow import BuildInSourceSupport, Capability, BaseWorkflow
+from aws_lambda_builders.workflow import BuildDirectory, BuildInSourceSupport, Capability, BaseWorkflow
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
 
 
@@ -71,7 +71,7 @@ class TesetLambdaBuilder_init(TestCase):
             CAPABILITY = Capability(
                 language=self.lang, dependency_manager=self.lang_framework, application_framework=self.app_framework
             )
-            BUILD_IN_SOURCE_BY_DEFAULT = False
+            DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
             BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
             def __init__(
