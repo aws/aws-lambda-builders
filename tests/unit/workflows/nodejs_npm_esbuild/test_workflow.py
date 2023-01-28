@@ -265,14 +265,13 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[],
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 5)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[2], CleanUpAction)
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
         self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
-        self.assertIsInstance(workflow.actions[5], LinkSourceAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir_no_combine_deps(self):
         workflow = NodejsNpmEsbuildWorkflow(
