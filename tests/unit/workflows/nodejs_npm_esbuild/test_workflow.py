@@ -13,7 +13,7 @@ from aws_lambda_builders.actions import (
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAction, NodejsNpmCIAction
 from aws_lambda_builders.workflows.nodejs_npm_esbuild import NodejsNpmEsbuildWorkflow
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction, EsbuildCheckVersionAction
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild
 
 
@@ -244,11 +244,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[],
         )
 
-        self.assertEqual(len(workflow.actions), 4)
+        self.assertEqual(len(workflow.actions), 3)
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], LinkSourceAction)
-        self.assertIsInstance(workflow.actions[2], EsbuildCheckVersionAction)
-        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir(self):
 
@@ -269,8 +268,8 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[2], CleanUpAction)
-        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[3], CleanUpAction)
         self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir_no_combine_deps(self):
@@ -286,14 +285,13 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[],
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 5)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
-        self.assertIsInstance(workflow.actions[2], CleanUpAction)
-        self.assertIsInstance(workflow.actions[3], EsbuildCheckVersionAction)
-        self.assertIsInstance(workflow.actions[4], EsbuildBundleAction)
-        self.assertIsInstance(workflow.actions[5], MoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[3], CleanUpAction)
+        self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
 
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmWorkflow")
     def test_workflow_uses_production_npm_version(self, get_workflow_mock):
@@ -313,4 +311,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
-        get_workflow_mock.get_install_action.assert_called_with("source", "scratch_dir", ANY, ANY, None)
+        get_workflow_mock.get_install_action.assert_called_with(
+            source_dir="source", artifacts_dir="scratch_dir", subprocess_npm=ANY, osutils=ANY, build_options=None
+        )
