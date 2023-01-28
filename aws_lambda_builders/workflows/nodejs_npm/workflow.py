@@ -5,7 +5,7 @@ NodeJS NPM Workflow
 import logging
 
 from aws_lambda_builders.path_resolver import PathResolver
-from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
@@ -44,7 +44,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     CONFIG_PROPERTY = "aws_sam"
 
-    BUILD_IN_SOURCE_BY_DEFAULT = False
+    DEFAULT_BUILD_DIR = BuildDirectory.ARTIFACTS
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
