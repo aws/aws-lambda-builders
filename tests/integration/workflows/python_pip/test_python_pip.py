@@ -57,7 +57,6 @@ class TestPythonPipWorkflow(TestCase):
             language=self.builder.capability.language, major=sys.version_info.major, minor=sys.version_info.minor
         )
         self.runtime_mismatch = {
-            "python3.6": "python3.7",
             "python3.7": "python3.8",
             "python3.8": "python3.9",
             "python3.9": "python3.7",
@@ -93,12 +92,8 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
 
-        if self.runtime == "python3.6":
-            self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
-            expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
-        else:
-            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
-            expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
+        self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+        expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
 
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
@@ -118,13 +113,8 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
             executable_search_paths=[executable_dir],
         )
-
-        if self.runtime == "python3.6":
-            self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
-            expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
-        else:
-            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
-            expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
+        self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+        expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
 
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
