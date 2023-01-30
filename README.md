@@ -1,6 +1,9 @@
 ## Lambda Builders
 
-[![Build status](https://ci.appveyor.com/api/projects/status/mrehrn5im0305lje/branch/develop?svg=true)](https://ci.appveyor.com/project/AWSSAMCLI/aws-lambda-builders/branch/develop)
+![Apache 2.0 License](https://img.shields.io/github/license/aws/aws-lambda-builders)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/aws/aws-lambda-builders)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/aws-lambda-builders)
+![pip](https://img.shields.io/badge/pip-aws--lambda--builders-9cf)
 
 Lambda Builders is a Python library to compile, build and package AWS Lambda functions for several runtimes & 
 frameworks.
@@ -12,8 +15,8 @@ Lambda Builders currently contains the following workflows
 * Dotnet with amazon.lambda.tools
 * Python with Pip
 * Javascript with Npm
+* Typescript with esbuild
 * Ruby with Bundler
-* Go with Dep
 * Go with Mod
 
 In Addition to above workflows, AWS Lambda Builders also supports *Custom Workflows* through a Makefile.

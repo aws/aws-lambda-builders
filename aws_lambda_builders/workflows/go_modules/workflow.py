@@ -1,7 +1,7 @@
 """
 Go Modules Workflow
 """
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 
 from .actions import GoModulesBuildAction
 from .builder import GoModulesBuilder
@@ -14,6 +14,9 @@ class GoModulesWorkflow(BaseWorkflow):
     NAME = "GoModulesBuilder"
 
     CAPABILITY = Capability(language="go", dependency_manager="modules", application_framework=None)
+
+    DEFAULT_BUILD_DIR = BuildDirectory.SOURCE
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.EXCLUSIVELY_SUPPORTED
 
     def __init__(
         self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, mode=None, **kwargs
@@ -33,8 +36,14 @@ class GoModulesWorkflow(BaseWorkflow):
         output_path = osutils.joinpath(artifacts_dir, handler)
 
         builder = GoModulesBuilder(
-            osutils, binaries=self.binaries, mode=mode, architecture=self.architecture, trim_go_path=trim_go_path
+            osutils,
+            binaries=self.binaries,
+            handler=handler,
+            mode=mode,
+            architecture=self.architecture,
+            trim_go_path=trim_go_path,
         )
+
         self.actions = [GoModulesBuildAction(source_dir, output_path, builder)]
 
     def get_validators(self):

@@ -6,6 +6,8 @@ import os
 import logging
 
 from collections import namedtuple
+from enum import Enum
+from typing import Dict, Optional
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.path_resolver import PathResolver
@@ -35,6 +37,27 @@ class BuildMode(object):
 
     DEBUG = "debug"
     RELEASE = "release"
+
+
+class BuildDirectory(Enum):
+    SCRATCH = "scratch"
+    ARTIFACTS = "artifacts"
+    SOURCE = "source"
+
+
+class BuildInSourceSupport(Enum):
+    """
+    Enum to define a workflow's support for building in source.
+    """
+
+    # can't build in source directory (e.g. only able to build in temporary or artifacts directories)
+    NOT_SUPPORTED = [False]
+
+    # can build in source directory but not required to
+    OPTIONALLY_SUPPORTED = [False, True]
+
+    # only able to build in source directory and not somewhere else
+    EXCLUSIVELY_SUPPORTED = [True]
 
 
 # TODO: Move sanitize out to its own class.
@@ -124,6 +147,14 @@ class _WorkflowMetaClass(type):
         if not isinstance(cls.CAPABILITY, Capability):
             raise ValueError("Workflow '{}' must register valid capabilities".format(cls.NAME))
 
+        # All workflows must define supported values for build in source
+        if not isinstance(cls.BUILD_IN_SOURCE_SUPPORT, BuildInSourceSupport):
+            raise ValueError("Workflow '{}' must define supported values for build in source".format(cls.NAME))
+
+        # All workflows must define default build directory
+        if not isinstance(cls.DEFAULT_BUILD_DIR, BuildDirectory):
+            raise ValueError("Workflow '{}' must define default build directory".format(cls.NAME))
+
         LOG.debug("Registering workflow '%s' with capability '%s'", cls.NAME, cls.CAPABILITY)
         DEFAULT_REGISTRY[cls.CAPABILITY] = cls
 
@@ -148,6 +179,12 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
     # Optional list of manifests file/folder names supported by this workflow.
     SUPPORTED_MANIFESTS = []
 
+    # Support for building in source, each workflow should define this.
+    BUILD_IN_SOURCE_SUPPORT = None
+
+    # The directory where the workflow builds/installs by default, each workflow should define this.
+    DEFAULT_BUILD_DIR = None
+
     def __init__(
         self,
         source_dir,
@@ -165,6 +202,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         architecture=X86_64,
         is_building_layer=False,
         experimental_flags=None,
+        build_in_source=None,
     ):
         # pylint: disable-msg=too-many-locals
         """
@@ -208,6 +246,9 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
         experimental_flags: list, optional
             List of strings, which will indicate enabled experimental flags for the current build session
+
+        build_in_source: Optional[bool]
+            Optional, will execute the build operation in the source directory if True.
         """
 
         self.source_dir = source_dir
@@ -226,9 +267,39 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.is_building_layer = is_building_layer
         self.experimental_flags = experimental_flags if experimental_flags else []
 
+        # this represents where the build/install happens, not the final output directory (that's the artifacts_dir)
+        self.build_dir = self._select_build_dir(build_in_source)
+
         # Actions are registered by the subclasses as they seem fit
         self.actions = []
         self._binaries = {}
+
+    def _select_build_dir(self, build_in_source: Optional[bool]) -> str:
+        """
+        Returns the build directory for the workflow.
+        """
+
+        should_build_in_source = build_in_source
+        if build_in_source not in self.BUILD_IN_SOURCE_SUPPORT.value:
+            # assign default value
+            should_build_in_source = self.DEFAULT_BUILD_DIR == BuildDirectory.SOURCE
+
+            # only show warning if an unsupported value was explicitly passed in
+            if build_in_source is not None:
+                LOG.warning(
+                    'Workflow %s does not support value "%s" for building in source. Using default value "%s".',
+                    self.NAME,
+                    build_in_source,
+                    should_build_in_source,
+                )
+
+        build_directory_mapping = {
+            BuildDirectory.SCRATCH: self.scratch_dir,
+            BuildDirectory.ARTIFACTS: self.artifacts_dir,
+            BuildDirectory.SOURCE: self.source_dir,
+        }
+
+        return self.source_dir if should_build_in_source else build_directory_mapping.get(self.DEFAULT_BUILD_DIR)
 
     def is_supported(self):
         """

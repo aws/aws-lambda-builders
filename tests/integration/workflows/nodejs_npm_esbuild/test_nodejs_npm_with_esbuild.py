@@ -1,8 +1,8 @@
 import os
 import shutil
 import tempfile
+from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -31,8 +31,9 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def _set_esbuild_binary_path(self):
         npm = SubprocessNpm(self.osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
-        npm.run(["ci"], cwd=esbuild_dir)
-        self.binpath = npm.run(["bin"], cwd=esbuild_dir)
+        npm.run(["install"], cwd=esbuild_dir)
+        self.root_path = npm.run(["root"], cwd=esbuild_dir)
+        self.binpath = Path(self.root_path, ".bin")
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
@@ -167,8 +168,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         osutils = OSUtils()
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
-        npm.run(["ci"], cwd=esbuild_dir)
-        binpath = npm.run(["bin"], cwd=esbuild_dir)
+        npm.run(["install"], cwd=esbuild_dir)
+        binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
             source_dir,
@@ -193,8 +194,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         osutils = OSUtils()
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
-        npm.run(["ci"], cwd=esbuild_dir)
-        binpath = npm.run(["bin"], cwd=esbuild_dir)
+        npm.run(["install"], cwd=esbuild_dir)
+        binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
             source_dir,
@@ -384,5 +385,25 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         )
 
         expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_produces_mjs_output_files(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+        options = {"entry_points": ["included.js"], "sourcemap": True, "out_extension": [".js=.mjs"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.mjs", "included.mjs.map"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)

@@ -4,9 +4,10 @@ NodeJS NPM Workflow using the esbuild bundler
 
 import logging
 import json
+from pathlib import Path
 from typing import List
 
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
@@ -42,6 +43,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
     EXCLUDED_FILES = (".aws-sam", ".git")
 
     CONFIG_PROPERTY = "aws_sam"
+
+    DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
@@ -171,7 +175,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 actions += [
                     esbuild_with_deps,
                     MoveDependenciesAction(source_dir, scratch_dir, self.dependencies_dir),
-                    LinkSourceAction(self.dependencies_dir, scratch_dir),
                 ]
             else:
                 # Auto dependency layer enabled, first build
@@ -215,7 +218,8 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
     def _get_esbuild_subprocess(self, subprocess_npm, scratch_dir, osutils) -> SubprocessEsbuild:
         try:
-            npm_bin_path = subprocess_npm.run(["bin"], cwd=scratch_dir)
+            npm_bin_path_root = subprocess_npm.run(["root"], cwd=scratch_dir)
+            npm_bin_path = str(Path(npm_bin_path_root, ".bin"))
         except FileNotFoundError:
             raise EsbuildExecutionError(message="The esbuild workflow couldn't find npm installed on your system.")
         executable_search_paths = [npm_bin_path]

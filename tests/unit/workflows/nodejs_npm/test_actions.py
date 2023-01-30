@@ -1,3 +1,4 @@
+import itertools
 from unittest import TestCase
 from mock import patch, call
 from parameterized import parameterized
@@ -111,26 +112,22 @@ class TestNodejsNpmCIAction(TestCase):
 
 
 class TestNodejsNpmrcAndLockfileCopyAction(TestCase):
-    @parameterized.expand(
-        [
-            [False, False],
-            [True, False],
-            [False, True],
-            [True, True],
-        ]
-    )
+    @parameterized.expand(itertools.product([True, False], [True, False], [True, False]))
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
-    def test_copies_into_a_project_if_file_exists(self, npmrc_exists, package_lock_exists, OSUtilMock):
+    def test_copies_into_a_project_if_file_exists(
+        self, npmrc_exists, package_lock_exists, shrinkwrap_exists, OSUtilMock
+    ):
         osutils = OSUtilMock.return_value
         osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
         action = NodejsNpmrcAndLockfileCopyAction("artifacts", "source", osutils=osutils)
-        osutils.file_exists.side_effect = [npmrc_exists, package_lock_exists]
+        osutils.file_exists.side_effect = [npmrc_exists, package_lock_exists, shrinkwrap_exists]
         action.execute()
 
         filename_exists = {
             ".npmrc": npmrc_exists,
             "package-lock.json": package_lock_exists,
+            "npm-shrinkwrap.json": shrinkwrap_exists,
         }
         file_exists_calls = [call("source/{}".format(filename)) for filename in filename_exists]
         copy_file_calls = [

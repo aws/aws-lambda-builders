@@ -64,3 +64,35 @@ class TestProvidedMakeWorkflow(TestCase):
         )
 
         self.assertEqual(workflow.actions[1].working_directory, "working/dir/path")
+
+    def test_build_in_source(self):
+        source_dir = "source"
+
+        workflow = CustomMakeWorkflow(
+            source_dir,
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            options={"build_logical_id": "hello"},
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], CustomMakeAction)
+        self.assertEqual(workflow.actions[0].working_directory, source_dir)
+
+    def test_build_in_source_with_custom_working_directory(self):
+        working_dir = "working/dir/path"
+
+        workflow = CustomMakeWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            options={"build_logical_id": "hello", "working_directory": working_dir},
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], CustomMakeAction)
+        self.assertEqual(workflow.actions[0].working_directory, working_dir)

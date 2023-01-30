@@ -200,6 +200,7 @@ class TestEsbuildCommandBuilder(TestCase):
             "target": "node14",
             "loader": [".proto=text", ".json=js"],
             "external": ["aws-sdk", "axios"],
+            "out_extension": [".js=.mjs"],
             "main_fields": "module,main",
         }
 
@@ -219,6 +220,7 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--external:axios",
                 "--loader:.proto=text",
                 "--loader:.json=js",
+                "--out-extension:.js=.mjs",
             ],
         )
 

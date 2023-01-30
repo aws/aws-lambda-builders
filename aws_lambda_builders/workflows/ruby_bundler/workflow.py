@@ -3,7 +3,7 @@ Ruby Bundler Workflow
 """
 import logging
 
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 from .utils import OSUtils
@@ -24,6 +24,9 @@ class RubyBundlerWorkflow(BaseWorkflow):
     CAPABILITY = Capability(language="ruby", dependency_manager="bundler", application_framework=None)
 
     EXCLUDED_FILES = (".aws-sam", ".git")
+
+    DEFAULT_BUILD_DIR = BuildDirectory.ARTIFACTS
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 

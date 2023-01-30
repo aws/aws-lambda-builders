@@ -4,7 +4,7 @@ Java Gradle Workflow
 import hashlib
 import os
 from aws_lambda_builders.actions import CleanUpAction
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
 from aws_lambda_builders.workflows.java.utils import OSUtils
 
@@ -24,6 +24,9 @@ class JavaGradleWorkflow(BaseWorkflow):
     CAPABILITY = Capability(language="java", dependency_manager="gradle", application_framework=None)
 
     INIT_FILE = "lambda-build-init.gradle"
+
+    DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs):
         super(JavaGradleWorkflow, self).__init__(source_dir, artifacts_dir, scratch_dir, manifest_path, **kwargs)

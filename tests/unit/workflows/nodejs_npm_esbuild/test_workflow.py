@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY
 
@@ -65,7 +66,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
     def test_sets_up_esbuild_search_path_from_npm_bin(self):
 
-        self.popen.out = b"project/bin"
+        self.popen.out = b"project/"
 
         workflow = NodejsNpmEsbuildWorkflow(
             "source",
@@ -76,15 +77,15 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[],
         )
 
-        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
+        self.osutils.popen.assert_called_with(["npm", "root"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
         esbuild = workflow.actions[2]._subprocess_esbuild
 
         self.assertIsInstance(esbuild, SubprocessEsbuild)
-        self.assertEqual(esbuild.executable_search_paths, ["project/bin"])
+        self.assertEqual(esbuild.executable_search_paths, [str(Path("project/.bin"))])
 
     def test_sets_up_esbuild_search_path_with_workflow_executable_search_paths_after_npm_bin(self):
 
-        self.popen.out = b"project/bin"
+        self.popen.out = b"project"
 
         workflow = NodejsNpmEsbuildWorkflow(
             "source",
@@ -96,10 +97,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[],
         )
 
-        self.osutils.popen.assert_called_with(["npm", "bin"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
+        self.osutils.popen.assert_called_with(["npm", "root"], stdout="PIPE", stderr="PIPE", cwd="scratch_dir")
         esbuild = workflow.actions[2]._subprocess_esbuild
         self.assertIsInstance(esbuild, SubprocessEsbuild)
-        self.assertEqual(esbuild.executable_search_paths, ["project/bin", "other/bin"])
+        self.assertEqual(esbuild.executable_search_paths, [str(Path("project/.bin")), "other/bin"])
 
     def test_workflow_uses_npm_ci_if_lockfile_exists(self):
 
@@ -264,14 +265,13 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             experimental_flags=[],
         )
 
-        self.assertEqual(len(workflow.actions), 6)
+        self.assertEqual(len(workflow.actions), 5)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
         self.assertIsInstance(workflow.actions[2], CleanUpAction)
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
         self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
-        self.assertIsInstance(workflow.actions[5], LinkSourceAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir_no_combine_deps(self):
         workflow = NodejsNpmEsbuildWorkflow(
