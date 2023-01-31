@@ -6,6 +6,7 @@ select = [
     "F",  # Pyflakes
     "PL", # pylint
 ]
+ignore = ["PLR0913"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401", "E501"]
