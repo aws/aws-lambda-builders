@@ -18,7 +18,7 @@ integ-test:
 
 lint:
 	# Liner performs static analysis to catch latent bugs
-	pylint --rcfile .pylintrc aws_lambda_builders
+	ruff aws_lambda_builders
 
 # Command to run everytime you make changes to verify everything works
 dev: lint test

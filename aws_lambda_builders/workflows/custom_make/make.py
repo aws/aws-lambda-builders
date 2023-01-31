@@ -3,7 +3,6 @@ Wrapper around calling make through a subprocess.
 """
 import io
 import logging
-import subprocess
 import shutil
 import threading
 
