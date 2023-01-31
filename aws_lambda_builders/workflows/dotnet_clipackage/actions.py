@@ -45,7 +45,7 @@ class GlobalToolInstallAction(BaseAction):
                 LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
                 self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
                 GlobalToolInstallAction.__tools_installed = True
-            except DotnetCLIExecutionError as ex:
+            except DotnetCLIExecutionError:
                 LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
                 try:
                     self.subprocess_dotnet.run(
