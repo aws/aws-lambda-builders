@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 from aws_lambda_builders.workflow import BuildMode
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.utils import get_goarch
 
 LOG = logging.getLogger(__name__)

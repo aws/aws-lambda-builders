@@ -10,7 +10,7 @@ from glob import glob
 from pathlib import Path
 from typing import Union, Dict
 
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import ARM64
 
 LOG = logging.getLogger(__name__)
 
