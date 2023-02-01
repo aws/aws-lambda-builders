@@ -73,8 +73,8 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         if not self.download_dependencies and not self.dependencies_dir:
             # Invalid workflow, can't have no dependency dir and no installation
             raise EsbuildExecutionError(
-                message="Lambda Builders encountered an invalid workflow. A workflow can't "
-                "include a dependencies directory without installing dependencies."
+                message="Lambda Builders was unable to find the location of the dependencies since a "
+                "dependencies directory was not provided and downloading dependencies is disabled."
             )
 
         self.actions = [
