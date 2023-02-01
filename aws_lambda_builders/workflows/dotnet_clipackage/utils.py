@@ -72,8 +72,8 @@ class OSUtils(object):
         bool
             A response regarding whether the ZipInfo defines a symlink or not.
         """
-
-        return (file_info.external_attr >> 28) == 0xA
+        symlink = 0xA
+        return (file_info.external_attr >> 28) == symlink
 
     def _extract(self, file_info, output_dir, zip_ref):
         """
