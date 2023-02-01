@@ -265,7 +265,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.assertEqual(
             str(context.exception),
-            "Lambda Builders was unable to find the location of the dependencies since a "
+            "Esbuild Failed: Lambda Builders was unable to find the location of the dependencies since a "
             "dependencies directory was not provided and downloading dependencies is disabled.",
         )
 
