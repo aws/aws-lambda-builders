@@ -18,7 +18,8 @@ def pip_import_string(python_exe):
     # Pip moved its internals to an _internal module in version 10.
     # In order to be compatible with version 9 which has it at at the
     # top level we need to figure out the correct import path here.
-    if pip_major_version == 9:
+    pip_version_9 = 9
+    if pip_major_version == pip_version_9:
         return "from pip import main"
     # Pip changed their import structure again in 19.3
     # https://github.com/pypa/pip/commit/09fd200
