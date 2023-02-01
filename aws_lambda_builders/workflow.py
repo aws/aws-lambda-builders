@@ -7,7 +7,7 @@ import logging
 
 from collections import namedtuple
 from enum import Enum
-from typing import Dict, Optional
+from typing import Optional
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.path_resolver import PathResolver
