@@ -12,6 +12,7 @@ from aws_lambda_builders.workflows.nodejs_npm_esbuild.exceptions import EsbuildE
 LOG = logging.getLogger(__name__)
 
 EXTERNAL_KEY = "external"
+# minimum esbuild version required to use "--external"
 MINIMUM_VERSION_FOR_EXTERNAL = "0.14.13"
 
 

@@ -58,7 +58,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
 
         if not self.osutils.file_exists(manifest_path):
             LOG.warning("package.json file not found. Bundling source without installing dependencies.")
-            self.actions.append(
+            self.actions = [
                 EsbuildBundleAction(
                     working_directory=self.source_dir,
                     output_directory=self.artifacts_dir,
@@ -67,7 +67,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     subprocess_esbuild=self.subprocess_esbuild,
                     manifest=self.manifest_path,
                 )
-            )
+            ]
             return
 
         if not self.download_dependencies and not self.dependencies_dir:
@@ -77,9 +77,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 "include a dependencies directory without installing dependencies."
             )
 
-        self.actions.append(
+        self.actions = [
             CopySourceAction(source_dir=self.source_dir, dest_dir=self.scratch_dir, excludes=self.EXCLUDED_FILES)
-        )
+        ]
 
         bundle_action = EsbuildBundleAction(
             working_directory=self.scratch_dir,
