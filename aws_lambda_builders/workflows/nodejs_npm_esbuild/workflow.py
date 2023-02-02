@@ -92,24 +92,25 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         )
 
         if self.download_dependencies:
-            self.actions += [
+            self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
                     artifacts_dir=self.scratch_dir,
                     subprocess_npm=self.subprocess_npm,
                     osutils=self.osutils,
                     build_options=self.options,
-                ),
-                bundle_action,
-            ]
+                )
+            )
 
+        # If there's no dependencies_dir, just bundle and we're done.
         if not self.dependencies_dir:
-            # we need a dependencies dir for the logic below
+            self.actions.append(bundle_action)
             return
 
         if self.download_dependencies:
-            # if we downloaded dependencies, we have to update dependencies_dir
+            # if we downloaded dependencies, bundle and update dependencies_dir
             self.actions += [
+                bundle_action,
                 CleanUpAction(self.dependencies_dir),
                 MoveDependenciesAction(self.source_dir, self.scratch_dir, self.dependencies_dir),
             ]
