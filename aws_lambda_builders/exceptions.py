@@ -73,3 +73,11 @@ class WorkflowUnknownError(LambdaBuilderError):
     """
 
     MESSAGE = "{workflow_name}:{action_name} - {reason}"
+
+
+class FileOperationError(LambdaBuilderError):
+    """
+    Raised when a file operation fails
+    """
+
+    MESSAGE = "{operation_name} - {reason}"

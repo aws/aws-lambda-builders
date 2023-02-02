@@ -8,9 +8,11 @@ import os
 import logging
 from glob import glob
 from pathlib import Path
+import time
 from typing import Union, Dict
 
 from aws_lambda_builders.architecture import ARM64
+from aws_lambda_builders.exceptions import FileOperationError
 
 LOG = logging.getLogger(__name__)
 
@@ -230,11 +232,11 @@ def glob_copy(source: Union[str, list], destination: str) -> None:
     dest_path = Path(destination)
     known_paths = []
     for item in items:
-        if Path(item).is_absolute():
-            raise ValueError('"{item}" is not a relative path'.format(item=item))
+        if os.path.isabs(item.replace('\\', '/')):
+            raise FileOperationError(operation_name='glob_copy', reason='"{item}" is not a relative path'.format(item=item))
         files = glob(item, recursive=True)
         if len(files) == 0:
-            raise ValueError('"{item}" not found'.format(item=item))
+            raise FileOperationError(operation_name='glob_copy', reason='"{item}" not found'.format(item=item))
         for file in files:
             save_to = str(dest_path.joinpath(file))
             LOG.debug("Copying resource file from source (%s) to destination (%s)", file, save_to)
@@ -245,10 +247,30 @@ def glob_copy(source: Union[str, list], destination: str) -> None:
             shutil.copyfile(file, save_to)
 
 
+def robust_rmtree(path, timeout=1):
+    """Robustly tries to delete paths, because shutil.rmtree is broken,
+    See https://bugs.python.org/issue40143
+
+    Retries several times if an OSError occurs.
+    If the final attempt fails, the Exception is propagated
+    to the caller.
+    """
+    next_retry = 0.001
+    while next_retry < timeout:
+        try:
+            shutil.rmtree(path)
+            return  # Only hits this on success
+        except OSError:
+            # Increase the next_retry and try again
+            time.sleep(next_retry)
+            next_retry *= 2
+
+    # Final attempt, pass any Exceptions up to caller.
+    shutil.rmtree(path)
+
 def get_option_from_args(args: Union[None, Dict[str, any]], option_name: str) -> any:
     if args is not None:
-        if "options" in args:
-            if args["options"] is not None:
-                if option_name in args["options"]:
-                    return args["options"][option_name]
+        options = args.get("options", None)
+        if options is not None:
+            return options.get(option_name, None)
     return None
