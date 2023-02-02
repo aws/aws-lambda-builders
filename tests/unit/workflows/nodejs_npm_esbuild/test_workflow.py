@@ -15,6 +15,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAct
 from aws_lambda_builders.workflows.nodejs_npm_esbuild import NodejsNpmEsbuildWorkflow
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.exceptions import EsbuildExecutionError
 
 
 class FakePopen:
@@ -314,3 +315,30 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         get_workflow_mock.get_install_action.assert_called_with(
             source_dir="source", artifacts_dir="scratch_dir", subprocess_npm=ANY, osutils=ANY, build_options=None
         )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.SubprocessNpm")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.OSUtils")
+    def test_manifest_not_found(self, osutils_mock, subprocess_npm_mock):
+        osutils_mock.file_exists.return_value = False
+
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            osutils=osutils_mock,
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], EsbuildBundleAction)
+
+    def test_no_download_dependencies_and_no_dependencies_dir_fails(self):
+        with self.assertRaises(EsbuildExecutionError):
+            NodejsNpmEsbuildWorkflow(
+                "source",
+                "artifacts",
+                "scratch_dir",
+                "manifest",
+                osutils=self.osutils,
+                download_dependencies=False,
+            )
