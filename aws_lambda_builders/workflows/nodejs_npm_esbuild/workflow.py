@@ -125,9 +125,11 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         """
         Get the aws_sam specific properties from the manifest, if they exist.
 
-        :rtype: dict
-        :return: Dict with aws_sam specific bundler configs
-        """
+        Returns
+        -------
+        dict
+            aws_sam specific bundler configs
+        """        
         if self.options and isinstance(self.options, dict):
             LOG.debug("Lambda Builders found the following esbuild properties:\n%s", json.dumps(self.options))
             return self.options

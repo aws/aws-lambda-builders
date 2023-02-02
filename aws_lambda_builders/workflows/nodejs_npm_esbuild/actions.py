@@ -38,28 +38,24 @@ class EsbuildBundleAction(BaseAction):
         skip_deps=False,
     ):
         """
-        :type working_directory: str
-        :param working_directory: directory where esbuild bundle is executed
-
-        :type output_directory: str
-        :param output_directory: an existing (writable) directory where to store the output.
+        Parameters
+        ----------
+        working_directory : str
+            directory where esbuild is executed
+        output_directory : str
+            an existing (writable) directory where to store the output.
             Note that the actual result will be in the 'package' subdirectory here.
-
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
-
-        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
-        :param subprocess_esbuild: An instance of the Esbuild process wrapper
-
-        :type skip_deps: bool
-        :param skip_deps: if dependencies should be omitted from bundling
-
-        :type bundler_config: Dict[str,Any]
-        :param bundler_config: the bundler configuration
-
-        :type manifest: str
-        :param manifest: path to package.json file contents to read
-        """
+        bundler_config : Dict[str, Any]
+            the bundle configuration
+        osutils : OSUtils
+            An instance of OS Utilities for file manipulation
+        subprocess_esbuild : SubprocessEsbuild
+            An instance of the Esbuild process wrapper
+        manifest : str
+            path to package.json file contents to read
+        skip_deps : bool, optional
+            if dependencies should be omitted from bundling, by default False
+        """    
         super(EsbuildBundleAction, self).__init__()
         self._working_directory = working_directory
         self._output_directory = output_directory
@@ -73,7 +69,10 @@ class EsbuildBundleAction(BaseAction):
         """
         Runs the action.
 
-        :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
+        Raises
+        ------
+        ActionFailedError
+            when esbuild packaging fails
         """
         esbuild_command = EsbuildCommandBuilder(
             self._working_directory, self._output_directory, self._bundler_config, self._osutils, self._manifest
