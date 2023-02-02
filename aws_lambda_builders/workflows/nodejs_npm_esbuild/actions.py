@@ -55,7 +55,7 @@ class EsbuildBundleAction(BaseAction):
             path to package.json file contents to read
         skip_deps : bool, optional
             if dependencies should be omitted from bundling, by default False
-        """    
+        """
         super(EsbuildBundleAction, self).__init__()
         self._working_directory = working_directory
         self._output_directory = output_directory

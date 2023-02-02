@@ -129,7 +129,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         -------
         dict
             aws_sam specific bundler configs
-        """        
+        """
         if self.options and isinstance(self.options, dict):
             LOG.debug("Lambda Builders found the following esbuild properties:\n%s", json.dumps(self.options))
             return self.options
