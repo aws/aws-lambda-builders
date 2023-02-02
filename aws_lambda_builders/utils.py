@@ -268,6 +268,7 @@ def robust_rmtree(path, timeout=1):
     # Final attempt, pass any Exceptions up to caller.
     shutil.rmtree(path)
 
+
 def get_option_from_args(args: Union[None, Dict[str, any]], option_name: str) -> any:
     if args is not None:
         options = args.get("options", None)
