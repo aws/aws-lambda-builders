@@ -265,8 +265,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.assertEqual(
             str(context.exception),
-            "Esbuild Failed: Lambda Builders encountered an invalid workflow. A"
-            " workflow can't include a dependencies directory without installing dependencies.",
+            "Esbuild Failed: Lambda Builders was unable to find the location of the dependencies since a "
+            "dependencies directory was not provided and downloading dependencies is disabled.",
         )
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
