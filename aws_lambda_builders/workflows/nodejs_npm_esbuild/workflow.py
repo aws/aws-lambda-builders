@@ -81,16 +81,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             CopySourceAction(source_dir=self.source_dir, dest_dir=self.scratch_dir, excludes=self.EXCLUDED_FILES)
         ]
 
-        bundle_action = EsbuildBundleAction(
-            working_directory=self.scratch_dir,
-            output_directory=self.artifacts_dir,
-            bundler_config=bundler_config,
-            osutils=self.osutils,
-            subprocess_esbuild=self.subprocess_esbuild,
-            manifest=self.manifest_path,
-            skip_deps=not self.combine_dependencies,
-        )
-
         if self.download_dependencies:
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
@@ -101,6 +91,16 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     build_options=self.options,
                 )
             )
+
+        bundle_action = EsbuildBundleAction(
+            working_directory=self.scratch_dir,
+            output_directory=self.artifacts_dir,
+            bundler_config=bundler_config,
+            osutils=self.osutils,
+            subprocess_esbuild=self.subprocess_esbuild,
+            manifest=self.manifest_path,
+            skip_deps=not self.combine_dependencies,
+        )
 
         # If there's no dependencies_dir, just bundle and we're done.
         if not self.dependencies_dir:
