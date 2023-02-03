@@ -79,7 +79,7 @@ class MavenValidator(RuntimeValidator):
         if p.returncode != 0:
             return None
 
-        for l in stdout.splitlines():
-            l_dec = l.decode()
+        for line in stdout.splitlines():
+            l_dec = line.decode()
             if l_dec.startswith("Java version"):
                 return l_dec

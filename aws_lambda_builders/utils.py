@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 from typing import Union
 
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import ARM64
 
 LOG = logging.getLogger(__name__)
 

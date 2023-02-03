@@ -12,6 +12,8 @@ from aws_lambda_builders.workflows.nodejs_npm_esbuild.exceptions import EsbuildE
 LOG = logging.getLogger(__name__)
 
 EXTERNAL_KEY = "external"
+# minimum esbuild version required to use "--external"
+MINIMUM_VERSION_FOR_EXTERNAL = "0.14.13"
 
 
 class EsbuildBundleAction(BaseAction):
@@ -27,8 +29,8 @@ class EsbuildBundleAction(BaseAction):
 
     def __init__(
         self,
-        scratch_dir: str,
-        artifacts_dir: str,
+        working_directory: str,
+        output_directory: str,
         bundler_config: Dict[str, Any],
         osutils: OSUtils,
         subprocess_esbuild: SubprocessEsbuild,
@@ -36,31 +38,27 @@ class EsbuildBundleAction(BaseAction):
         skip_deps=False,
     ):
         """
-        :type scratch_dir: str
-        :param scratch_dir: an existing (writable) directory for temporary files
-
-        :type artifacts_dir: str
-        :param artifacts_dir: an existing (writable) directory where to store the output.
+        Parameters
+        ----------
+        working_directory : str
+            directory where esbuild is executed
+        output_directory : str
+            an existing (writable) directory where to store the output.
             Note that the actual result will be in the 'package' subdirectory here.
-
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
-
-        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
-        :param subprocess_esbuild: An instance of the Esbuild process wrapper
-
-        :type skip_deps: bool
-        :param skip_deps: if dependencies should be omitted from bundling
-
-        :type bundler_config: Dict[str,Any]
-        :param bundler_config: the bundler configuration
-
-        :type manifest: str
-        :param manifest: path to package.json file contents to read
+        bundler_config : Dict[str, Any]
+            the bundle configuration
+        osutils : OSUtils
+            An instance of OS Utilities for file manipulation
+        subprocess_esbuild : SubprocessEsbuild
+            An instance of the Esbuild process wrapper
+        manifest : str
+            path to package.json file contents to read
+        skip_deps : bool, optional
+            if dependencies should be omitted from bundling, by default False
         """
         super(EsbuildBundleAction, self).__init__()
-        self._scratch_dir = scratch_dir
-        self._artifacts_dir = artifacts_dir
+        self._working_directory = working_directory
+        self._output_directory = output_directory
         self._bundler_config = bundler_config
         self._osutils = osutils
         self._subprocess_esbuild = subprocess_esbuild
@@ -71,13 +69,21 @@ class EsbuildBundleAction(BaseAction):
         """
         Runs the action.
 
-        :raises lambda_builders.actions.ActionFailedError: when esbuild packaging fails
+        Raises
+        ------
+        ActionFailedError
+            when esbuild packaging fails
         """
         esbuild_command = EsbuildCommandBuilder(
-            self._scratch_dir, self._artifacts_dir, self._bundler_config, self._osutils, self._manifest
+            self._working_directory, self._output_directory, self._bundler_config, self._osutils, self._manifest
         )
 
         if self._should_bundle_deps_externally():
+            check_minimum_esbuild_version(
+                minimum_version_required=MINIMUM_VERSION_FOR_EXTERNAL,
+                working_directory=self._working_directory,
+                subprocess_esbuild=self._subprocess_esbuild,
+            )
             esbuild_command.build_with_no_dependencies()
             if EXTERNAL_KEY in self._bundler_config:
                 # Already marking everything as external,
@@ -89,7 +95,7 @@ class EsbuildBundleAction(BaseAction):
         )
 
         try:
-            self._subprocess_esbuild.run(args, cwd=self._scratch_dir)
+            self._subprocess_esbuild.run(args, cwd=self._working_directory)
         except EsbuildExecutionError as ex:
             raise ActionFailedError(str(ex))
 
@@ -103,65 +109,62 @@ class EsbuildBundleAction(BaseAction):
         return self._skip_deps or "./node_modules/*" in self._bundler_config.get(EXTERNAL_KEY, [])
 
 
-class EsbuildCheckVersionAction(BaseAction):
+def check_minimum_esbuild_version(
+    minimum_version_required: str, working_directory: str, subprocess_esbuild: SubprocessEsbuild
+):
     """
-    A Lambda Builder Action that verifies that esbuild is a version supported by sam accelerate
+    Checks esbuild version against a minimum version required.
+
+    Parameters
+    ----------
+    minimum_version_required: str
+        minimum esbuild version required for check to pass
+
+    working_directory: str
+        directory where esbuild is executed
+
+    subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
+        An instance of the Esbuild process wrapper
+
+    Raises
+    ----------
+    lambda_builders.actions.ActionFailedError
+        when esbuild version checking fails
     """
+    args = ["--version"]
 
-    NAME = "EsbuildCheckVersion"
-    DESCRIPTION = "Checking esbuild version"
-    PURPOSE = Purpose.COMPILE_SOURCE
+    try:
+        version = subprocess_esbuild.run(args, cwd=working_directory)
+    except EsbuildExecutionError as ex:
+        raise ActionFailedError(str(ex))
 
-    MIN_VERSION = "0.14.13"
+    LOG.debug("Found esbuild with version: %s", version)
 
-    def __init__(self, scratch_dir, subprocess_esbuild):
-        """
-        :type scratch_dir: str
-        :param scratch_dir: temporary directory where esbuild is executed
+    try:
+        check_version = _get_version_tuple(minimum_version_required)
+        esbuild_version = _get_version_tuple(version)
 
-        :type subprocess_esbuild: aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild
-        :param subprocess_esbuild: An instance of the Esbuild process wrapper
-        """
-        super().__init__()
-        self.scratch_dir = scratch_dir
-        self.subprocess_esbuild = subprocess_esbuild
+        if esbuild_version < check_version:
+            raise ActionFailedError(
+                f"Unsupported esbuild version. To use a dependency layer, the esbuild version must be at "
+                f"least {minimum_version_required}. Version found: {version}"
+            )
+    except (TypeError, ValueError) as ex:
+        raise ActionFailedError(f"Unable to parse esbuild version: {str(ex)}")
 
-    def execute(self):
-        """
-        Runs the action.
 
-        :raises lambda_builders.actions.ActionFailedError: when esbuild version checking fails
-        """
-        args = ["--version"]
+def _get_version_tuple(version_string: str):
+    """
+    Get an integer tuple representation of the version for comparison
 
-        try:
-            version = self.subprocess_esbuild.run(args, cwd=self.scratch_dir)
-        except EsbuildExecutionError as ex:
-            raise ActionFailedError(str(ex))
+    Parameters
+    ----------
+    version_string: str
+        string containing the esbuild version
 
-        LOG.debug("Found esbuild with version: %s", version)
-
-        try:
-            check_version = EsbuildCheckVersionAction._get_version_tuple(self.MIN_VERSION)
-            esbuild_version = EsbuildCheckVersionAction._get_version_tuple(version)
-
-            if esbuild_version < check_version:
-                raise ActionFailedError(
-                    f"Unsupported esbuild version. To use a dependency layer, the esbuild version must be at "
-                    f"least {self.MIN_VERSION}. Version found: {version}"
-                )
-        except (TypeError, ValueError) as ex:
-            raise ActionFailedError(f"Unable to parse esbuild version: {str(ex)}")
-
-    @staticmethod
-    def _get_version_tuple(version_string):
-        """
-        Get an integer tuple representation of the version for comparison
-
-        :type version_string: str
-        :param version_string: string containing the esbuild version
-
-        :rtype: tuple
-        :return: version tuple used for comparison
-        """
-        return tuple(map(int, version_string.split(".")))
+    Returns
+    ----------
+    tuple
+        version tuple used for comparison
+    """
+    return tuple(map(int, version_string.split(".")))

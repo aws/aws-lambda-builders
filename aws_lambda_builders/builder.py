@@ -6,7 +6,7 @@ import importlib
 import os
 import logging
 
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
 from aws_lambda_builders.workflow import Capability
 

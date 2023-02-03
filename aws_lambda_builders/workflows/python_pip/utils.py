@@ -8,7 +8,6 @@ import zipfile
 import contextlib
 import tempfile
 import shutil
-import tarfile
 import subprocess
 import sys
 from typing import Optional, List
