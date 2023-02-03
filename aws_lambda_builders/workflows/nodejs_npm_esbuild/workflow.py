@@ -42,7 +42,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
     CONFIG_PROPERTY = "aws_sam"
 
     DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
-    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
 
@@ -77,15 +77,18 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 "dependencies directory was not provided and downloading dependencies is disabled."
             )
 
-        self.actions = [
-            CopySourceAction(source_dir=self.source_dir, dest_dir=self.scratch_dir, excludes=self.EXCLUDED_FILES)
-        ]
+        # if we're building in the source directory, we don't have to copy the source code
+        self.actions = (
+            []
+            if self.build_dir == self.source_dir
+            else [CopySourceAction(source_dir=self.source_dir, dest_dir=self.build_dir, excludes=self.EXCLUDED_FILES)]
+        )
 
         if self.download_dependencies:
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
-                    artifacts_dir=self.scratch_dir,
+                    install_dir=self.build_dir,
                     subprocess_npm=self.subprocess_npm,
                     osutils=self.osutils,
                     build_options=self.options,
@@ -93,7 +96,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             )
 
         bundle_action = EsbuildBundleAction(
-            working_directory=self.scratch_dir,
+            working_directory=self.build_dir,
             output_directory=self.artifacts_dir,
             bundler_config=bundler_config,
             osutils=self.osutils,
@@ -103,7 +106,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         )
 
         # If there's no dependencies_dir, just bundle and we're done.
-        if not self.dependencies_dir:
+        # Same thing if we're building in the source directory (since the dependencies persist in
+        # the source directory, we don't want to move them or symlink them back to the source)
+        if not self.dependencies_dir or self.build_dir == self.source_dir:
             self.actions.append(bundle_action)
             return
 

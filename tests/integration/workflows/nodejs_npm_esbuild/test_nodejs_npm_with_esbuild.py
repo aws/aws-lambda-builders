@@ -20,6 +20,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
 
     def setUp(self):
+        self.source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.dependencies_dir = tempfile.mkdtemp()
@@ -38,6 +39,11 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
+
+        # clean up dependencies that were installed in source dir
+        source_dependencies = os.path.join(self.source_dir, "node_modules")
+        if os.path.exists(source_dependencies):
+            shutil.rmtree(source_dependencies)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_javascript_project_with_dependencies(self, runtime):
@@ -405,5 +411,31 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         )
 
         expected_files = {"included.mjs", "included.mjs.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_can_build_in_source(self, runtime):
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(self.source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            executable_search_paths=[self.binpath],
+            build_in_source=True,
+        )
+
+        # dependencies installed in source folder
+        self.assertIn("node_modules", os.listdir(self.source_dir))
+
+        # dependencies not in scratch
+        self.assertNotIn("node_modules", os.listdir(self.scratch_dir))
+
+        # bundle is in artifacts
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
