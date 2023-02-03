@@ -81,11 +81,10 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm):
+    def __init__(self, install_dir, subprocess_npm):
         """
-        :type artifacts_dir: str
-        :param artifacts_dir: an existing (writable) directory with project source files.
-            Dependencies will be installed in this directory.
+        :type install_dir: str
+        :param install_dir: Dependencies will be installed in this directory.
 
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
@@ -95,7 +94,7 @@ class NodejsNpmInstallAction(BaseAction):
         """
 
         super(NodejsNpmInstallAction, self).__init__()
-        self.artifacts_dir = artifacts_dir
+        self.install_dir = install_dir
         self.subprocess_npm = subprocess_npm
 
     def execute(self):
@@ -105,10 +104,10 @@ class NodejsNpmInstallAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
+            LOG.debug("NODEJS installing in: %s", self.install_dir)
 
             self.subprocess_npm.run(
-                ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"], cwd=self.artifacts_dir
+                ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"], cwd=self.install_dir
             )
 
         except NpmExecutionError as ex:
@@ -128,18 +127,17 @@ class NodejsNpmCIAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM using the CI method"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm):
+    def __init__(self, install_dir, subprocess_npm):
         """
-        :type artifacts_dir: str
-        :param artifacts_dir: an existing (writable) directory with project source files.
-            Dependencies will be installed in this directory.
+        :type install_dir: str
+        :param install_dir: Dependencies will be installed in this directory.
 
         :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
         :param subprocess_npm: An instance of the NPM process wrapper
         """
 
         super(NodejsNpmCIAction, self).__init__()
-        self.artifacts_dir = artifacts_dir
+        self.install_dir = install_dir
         self.subprocess_npm = subprocess_npm
 
     def execute(self):
@@ -150,9 +148,9 @@ class NodejsNpmCIAction(BaseAction):
         """
 
         try:
-            LOG.debug("NODEJS installing ci in: %s", self.artifacts_dir)
+            LOG.debug("NODEJS installing ci in: %s", self.install_dir)
 
-            self.subprocess_npm.run(["ci"], cwd=self.artifacts_dir)
+            self.subprocess_npm.run(["ci"], cwd=self.install_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
