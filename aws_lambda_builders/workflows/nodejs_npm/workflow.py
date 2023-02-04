@@ -156,15 +156,15 @@ class NodejsNpmWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     @staticmethod
-    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, build_options):
+    def get_install_action(source_dir, install_dir, subprocess_npm, osutils, build_options):
         """
         Get the install action used to install dependencies at artifacts_dir
 
         :type source_dir: str
         :param source_dir: an existing (readable) directory containing source files
 
-        :type artifacts_dir: str
-        :param artifacts_dir: Dependencies will be installed in this directory.
+        :type install_dir: str
+        :param install_dir: Dependencies will be installed in this directory.
 
         :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
@@ -189,6 +189,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
             npm_ci_option = build_options.get("use_npm_ci", False)
 
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
-            return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
+            return NodejsNpmCIAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
 
-        return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
+        return NodejsNpmInstallAction(install_dir=install_dir, subprocess_npm=subprocess_npm)

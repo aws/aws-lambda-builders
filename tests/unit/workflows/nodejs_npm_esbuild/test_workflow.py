@@ -314,7 +314,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
         get_workflow_mock.get_install_action.assert_called_with(
-            source_dir="source", artifacts_dir="scratch_dir", subprocess_npm=ANY, osutils=ANY, build_options=None
+            source_dir="source", install_dir="scratch_dir", subprocess_npm=ANY, osutils=ANY, build_options=None
         )
 
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.SubprocessNpm")
@@ -343,3 +343,21 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
                 osutils=self.osutils,
                 download_dependencies=False,
             )
+
+    def test_build_in_source(self):
+        source_dir = "source"
+        workflow = NodejsNpmEsbuildWorkflow(
+            source_dir=source_dir,
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path="manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 2)
+
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertEqual(workflow.actions[0].install_dir, source_dir)
+        self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
+        self.assertEqual(workflow.actions[1]._working_directory, source_dir)
