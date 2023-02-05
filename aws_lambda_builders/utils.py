@@ -8,8 +8,7 @@ import os
 import logging
 from glob import glob
 from pathlib import Path
-import time
-from typing import Union, Dict
+from typing import List, NamedTuple, Tuple, Union, Dict
 
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.exceptions import FileOperationError
@@ -227,49 +226,55 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
         tar.extractall(unpack_dir)
 
 
-def glob_copy(source: Union[str, list], destination: str) -> None:
-    items = source if isinstance(source, list) else [source]
-    dest_path = Path(destination)
-    known_paths = []
-    for item in items:
-        if os.path.isabs(item.replace('\\', '/')):
-            raise FileOperationError(operation_name='glob_copy', reason='"{item}" is not a relative path'.format(item=item))
-        files = glob(item, recursive=True)
-        if len(files) == 0:
-            raise FileOperationError(operation_name='glob_copy', reason='"{item}" not found'.format(item=item))
-        for file in files:
-            save_to = str(dest_path.joinpath(file))
-            LOG.debug("Copying resource file from source (%s) to destination (%s)", file, save_to)
-            save_to_dir = os.path.dirname(save_to)
-            if save_to_dir not in known_paths:
-                os.makedirs(save_to_dir, exist_ok=True)
-                known_paths.append(save_to_dir)
-            shutil.copyfile(file, save_to)
-
-
-def robust_rmtree(path, timeout=1):
-    """Robustly tries to delete paths, because shutil.rmtree is broken,
-    See https://bugs.python.org/issue40143
-
-    Retries several times if an OSError occurs.
-    If the final attempt fails, the Exception is propagated
-    to the caller.
+def glob_copy(source_glob: str, destination: str, recursive: bool = True) -> None:
     """
-    next_retry = 0.001
-    while next_retry < timeout:
-        try:
-            shutil.rmtree(path)
-            return  # Only hits this on success
-        except OSError:
-            # Increase the next_retry and try again
-            time.sleep(next_retry)
-            next_retry *= 2
+    Copy files matching by glob to destination_directory
 
-    # Final attempt, pass any Exceptions up to caller.
-    shutil.rmtree(path)
+    Parameters
+    ----------
+    source_glob: glob pattern to match file names
+    destination: directory to copy to
+    recursive: match and copy files recursively (default = True)
+
+    Returns
+    -------
+    None
+
+    """
+    # We are going to trim the leading path off when creating copy destination
+    leadingPathLength = len(source_glob) - len(os.path.split(source_glob)[1])
+    known_paths = []
+
+    matches = glob(source_glob, recursive=recursive)
+    numOfMatches = len(matches)
+    if numOfMatches == 0:
+        raise FileOperationError(operation_name="glob_copy", reason='"{item}" not found'.format(item=source_glob))
+
+    for match in matches:
+        save_to = os.path.join(destination, match[leadingPathLength:])
+        LOG.debug("Copying resource file from source (%s) to destination (%s)", match, save_to)
+        save_to_dir = os.path.dirname(save_to)
+        if save_to_dir not in known_paths:
+            os.makedirs(save_to_dir, exist_ok=True)
+            known_paths.append(save_to_dir)
+        shutil.copyfile(match, save_to)
 
 
-def get_option_from_args(args: Union[None, Dict[str, any]], option_name: str) -> any:
+def get_option_from_args(args: Union[None, Dict[str, any]], option_name: str) -> Union[None, any]:
+    """
+    Retrieve the specified named argument from argument list,
+    returns the value is defined, otherwise returns None
+
+    Parameters
+    ----------
+    args: Union[None, Dict[str, any]]
+        keyword argument list or None
+
+    Returns
+    -------
+    Union[None, any]
+        returns value if defined or None if args is not set or does not contain the value
+    """
     if args is not None:
         options = args.get("options", None)
         if options is not None:

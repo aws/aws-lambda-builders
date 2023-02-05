@@ -67,11 +67,10 @@ class NodejsNpmWorkflow(BaseWorkflow):
             source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm
         )
 
+        # Copy any resources specified in "include" metadata option
         include = get_option_from_args(kwargs, "include")
-        if isinstance(include, (list, str)):
+        if include:
             self.actions.append(CopyResourceAction(source_dir, include, artifacts_dir))
-        elif include is not None:
-            raise ValueError("Resource include items must be strings or lists of strings")
 
     def actions_without_bundler(self, source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
         """

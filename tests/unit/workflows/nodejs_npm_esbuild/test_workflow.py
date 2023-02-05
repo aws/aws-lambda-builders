@@ -295,6 +295,34 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], CleanUpAction)
         self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
 
+    def test_workflow_sets_up_copy_resource_action_with_include_option(self):
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            dependencies_dir="dep",
+            download_dependencies=True,
+            combine_dependencies=False,
+            osutils=self.osutils,
+            options={"include": "foo.txt"},
+            experimental_flags=[],
+        )
+
+        self.assertEqual(len(workflow.actions), 6)
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+        self.assertIsInstance(workflow.actions[3], CleanUpAction)
+        self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
+        self.assertIsInstance(workflow.actions[5], CopyResourceAction)
+
+        copyAction = workflow.actions[5]
+        self.assertEqual(copyAction.source_dir, "source")
+        self.assertEqual(copyAction.source_globs, "foo.txt")
+        self.assertEqual(copyAction.dest_dir, "artifacts")
+
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmWorkflow")
     def test_workflow_uses_production_npm_version(self, get_workflow_mock):
         workflow = NodejsNpmEsbuildWorkflow(

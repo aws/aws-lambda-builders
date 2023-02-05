@@ -18,6 +18,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmLockFileCleanUpAction,
     NodejsNpmCIAction,
 )
+from aws_lambda_builders.path_resolver import PathResolver
 
 
 class FakePopen:
@@ -274,19 +275,22 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
         self.assertIsInstance(workflow.actions[6], CopyResourceAction)
 
-    def test_workflow_fails_with_download_dependencies_and_invalid_includes(self):
-        self.osutils.file_exists.return_value = True
+        copyAction = workflow.actions[6]
+        self.assertEqual(copyAction.source_dir, "source")
+        self.assertEqual(copyAction.source_globs, "foo.txt")
+        self.assertEqual(copyAction.dest_dir, "artifacts")
 
-        self.osutils.file_exists.side_effect = [True, True, False, False]
-
-        self.assertRaisesRegex(
-            ValueError,
-            "Resource include items must be strings or lists of strings",
-            NodejsNpmWorkflow,
+    @patch("aws_lambda_builders.path_resolver.PathResolver.__init__", return_value=None)
+    def test_get_resolvers(self, PathResolverMock):
+        workflow = NodejsNpmWorkflow(
             "source",
             "artifacts",
             "scratch_dir",
             "manifest",
+            dependencies_dir="dep",
+            download_dependencies=False,
             osutils=self.osutils,
-            options={"include": {}},
         )
+        results = workflow.get_resolvers()
+        self.assertIsInstance(results[0], PathResolver)
+        self.assertEqual(1, len(results))

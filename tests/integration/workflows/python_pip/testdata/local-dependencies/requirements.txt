@@ -1,0 +1,1 @@
+/media/data/Projects/aws/aws-lambda-builders/tests/integration/workflows/python_pip/testdata/local-dependencies

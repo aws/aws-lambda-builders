@@ -1,11 +1,13 @@
+import os
 from pathlib import Path
-from typing import List, Tuple
+from unittest.mock import patch
 from unittest import TestCase
-from mock import patch, ANY, Mock
+from mock import patch, ANY
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import (
     BaseAction,
+    CopyResourceAction,
     CopySourceAction,
     Purpose,
     CopyDependenciesAction,
@@ -13,6 +15,7 @@ from aws_lambda_builders.actions import (
     CleanUpAction,
     DependencyManager,
 )
+from aws_lambda_builders.exceptions import InvalidResourceError
 
 
 class TestBaseActionInheritance(TestCase):
@@ -176,3 +179,92 @@ class TestDependencyManager(TestCase):
     @staticmethod
     def _convert_strings_to_paths(source_dest_list):
         return map(lambda item: (Path(item[0]), Path(item[1])), source_dest_list)
+
+
+class TestCopyResourceAction(TestCase):
+    def test_generates_operations_from_string(self):
+        action = CopyResourceAction("source", "dest", "foo.txt")
+        self.assertEqual(1, len(action.operations))
+        self.assertEqual(
+            action.operations[0], {"src": os.path.join("source", "foo.txt"), "dest": "dest", "recursive": None}
+        )
+
+    def test_generates_operations_from_object(self):
+        action = CopyResourceAction("source", "dest", {"Source": "foo.txt", "Destination": "abc"})
+        self.assertEqual(1, len(action.operations))
+        self.assertEqual(1, len(action.operations))
+        self.assertEqual(
+            action.operations[0],
+            {"src": os.path.join("source", "foo.txt"), "dest": os.path.join("dest", "abc"), "recursive": None},
+        )
+
+    def test_generates_operations_from_list(self):
+        action = CopyResourceAction(
+            "source", "dest", ["foo1.txt", {"Source": "foo2.txt", "Destination": "abc", "Recursive": False}]
+        )
+        self.assertEqual(2, len(action.operations))
+        self.assertEqual(
+            action.operations[0], {"src": os.path.join("source", "foo1.txt"), "dest": "dest", "recursive": None}
+        )
+        self.assertEqual(
+            action.operations[1],
+            {"src": os.path.join("source", "foo2.txt"), "dest": os.path.join("dest", "abc"), "recursive": False},
+        )
+
+    def test_faults_on_non_string_source(self):
+        self.assertRaisesRegex(
+            InvalidResourceError,
+            "Invalid Copy Resource: Entry 0 - Entries must be strings, dictionaries, or a list of strings and dictionaries",
+            CopyResourceAction,
+            "source",
+            "dest",
+            123,
+        )
+
+    def test_faults_on_non_string_source_in_object(self):
+        self.assertRaisesRegex(
+            InvalidResourceError,
+            "Invalid Copy Resource: Entry 0 - Source is required and must be a string",
+            CopyResourceAction,
+            "soruce",
+            "dest",
+            {"Source": 123},
+        )
+
+    def test_faults_on_empty_source(self):
+        self.assertRaisesRegex(
+            InvalidResourceError,
+            "Invalid Copy Resource: Entry 0 - Source cannot be empty",
+            CopyResourceAction,
+            "soruce",
+            "dest",
+            {"Source": ""},
+        )
+
+    def test_faults_on_non_string_source_in_object(self):
+        self.assertRaisesRegex(
+            InvalidResourceError,
+            "Invalid Copy Resource: Entry 0 - Source is required and must be a string",
+            CopyResourceAction,
+            "soruce",
+            "dest",
+            {"Source": 123},
+        )
+
+    def test_faults_on_non_bool_recursive_in_object(self):
+        self.assertRaisesRegex(
+            InvalidResourceError,
+            "Invalid Copy Resource: Entry 0 - Recursive, if specified, must be a boolean",
+            CopyResourceAction,
+            "soruce",
+            "dest",
+            {"Source": "xxx", "Recursive": "xxx"},
+        )
+
+    @patch("aws_lambda_builders.actions.glob_copy")
+    def test_executes_calls_glob_copy(self, patched_glob_copy):
+        patched_glob_copy.return_value = None
+        action = CopyResourceAction("source", "dest", "foo.txt")
+        action.execute()
+        operation = action.operations[0]
+        patched_glob_copy.assert_called_once_with(operation["src"], operation["dest"], operation["recursive"])

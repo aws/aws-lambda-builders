@@ -50,7 +50,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         super(NodejsNpmEsbuildWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
-
         self.osutils = osutils or OSUtils()
         self.subprocess_npm = SubprocessNpm(self.osutils)
         self.subprocess_esbuild = self._get_esbuild_subprocess()
@@ -111,9 +110,9 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         # the source directory, we don't want to move them or symlink them back to the source)
         if not self.dependencies_dir or self.build_dir == self.source_dir:
             self.actions.append(bundle_action)
-            return
+            # return
 
-        if self.download_dependencies:
+        elif self.download_dependencies:
             # if we downloaded dependencies, bundle and update dependencies_dir
             self.actions += [
                 bundle_action,
@@ -126,6 +125,11 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                 LinkSourceAction(self.dependencies_dir, self.scratch_dir),
                 bundle_action,
             ]
+
+        # If specified, copy any resources specified in "include" metadata option after bundling
+        include = get_option_from_args(kwargs, "include")
+        if include:
+            self.actions.append(CopyResourceAction(source_dir, include, artifacts_dir))
 
     def get_build_properties(self):
         """

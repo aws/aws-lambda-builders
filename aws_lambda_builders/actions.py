@@ -6,10 +6,11 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Set, Iterator, Tuple
+from typing import Set, Iterator, Tuple, Union, List
 
 from aws_lambda_builders import utils
 from aws_lambda_builders.utils import copytree, glob_copy
+from aws_lambda_builders.exceptions import InvalidResourceError
 
 LOG = logging.getLogger(__name__)
 
@@ -230,22 +231,86 @@ class CopyResourceAction(BaseAction):
 
     NAME = "CopyResource"
 
-    DESCRIPTION = "Copying resource files for deployment"
+    DESCRIPTION = "Copy resource files for deployment"
 
     PURPOSE = Purpose.COPY_RESOURCES
 
-    def __init__(self, source_dir, source_globs, dest_dir):
-        self.source_dir = source_dir
-        self.source_globs = source_globs
-        self.dest_dir = dest_dir
+    def __init__(self, source_dir: str, dest_dir: str, entries: Union[List[Union[str, object]], str, object]):
+        """
+        Initialize CopyResourceAction
+
+        Parameters
+        ----------
+        source_dir: str
+            Project directory from which entries will be copied
+        dest_dir: str
+            Destination directory to which entries will be coped by default
+        entries:
+            Definitions of resources to copy.  
+            If a string, the value will be used as a glob source and 
+            the files will be copied to the root of the dest_dir.
+            If a dictionary, the required Source property will be used as a glob source,
+            the optional Destinaion property will be a relative path of the dest_dir,
+            and the optional Recursive property can be set to False to prevent recursive copying (default=True).
+            If a list, values may be strings or dictionaries and will be processed as described above
+
+        Returns
+        -------
+        None
+        """
+        self.operations = []
+
+        if not isinstance(entries, list):
+            entries = [entries]
+
+        for idx, entry in enumerate(entries):
+            src = ""
+            dest = None
+            recursive = None
+
+            if isinstance(entry, str):
+                src = entry
+            elif isinstance(entry, dict):
+                src = entry.get("Source", None)
+                dest = entry.get("Destination", None)
+                recursive = entry.get("Recursive", None)
+
+                if not isinstance(src, str):
+                    raise InvalidResourceError(
+                        index=idx,
+                        reason="Source is required and must be a string",
+                    )
+
+                if dest is not None and not isinstance(dest, str):
+                    raise InvalidResourceError(
+                        index=idx,
+                        reason="Destination, if specified, must be a string",
+                    )
+
+                if recursive is not None and not isinstance(recursive, bool):
+                    raise InvalidResourceError(
+                        index=idx,
+                        reason="Recursive, if specified, must be a boolean",
+                    )
+            else:
+                raise InvalidResourceError(
+                    index=idx,
+                    reason="Entries must be strings, dictionaries, or a list of strings and dictionaries",
+                )
+
+            if not (src):
+                raise InvalidResourceError(
+                    index=idx,
+                    reason="Source cannot be empty",
+                )
+
+            dest = os.path.join(dest_dir, dest) if bool(dest) else dest_dir
+
+            self.operations.append({"src": os.path.join(source_dir, src), "dest": dest, "recursive": recursive})
 
     def execute(self):
-        old_dir = os.getcwd()
-        try:
-            os.chdir(self.source_dir)
-            glob_copy(self.source_globs, self.dest_dir)
-        finally:
-            os.chdir(old_dir)
+        for operation in self.operations:
+            glob_copy(operation["src"], operation["dest"], operation["recursive"])
 
 
 class DependencyManager:

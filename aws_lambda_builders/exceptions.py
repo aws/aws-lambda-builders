@@ -81,3 +81,11 @@ class FileOperationError(LambdaBuilderError):
     """
 
     MESSAGE = "{operation_name} - {reason}"
+
+
+class InvalidResourceError(LambdaBuilderError):
+    """
+    Raised when requested resource is invalid
+    """
+
+    MESSAGE = "Invalid Copy Resource: Entry {index} - {reason}"

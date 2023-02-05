@@ -3,11 +3,18 @@ import tempfile
 import shutil
 import platform
 from tarfile import ExtractError
+import time
 
 from unittest import TestCase
 from aws_lambda_builders.exceptions import FileOperationError
 
-from aws_lambda_builders.utils import copytree, robust_rmtree, get_goarch, extract_tarfile, glob_copy, get_option_from_args
+from aws_lambda_builders.utils import (
+    copytree,
+    get_goarch,
+    extract_tarfile,
+    glob_copy,
+    get_option_from_args,
+)
 
 
 class TestCopyTree(TestCase):
@@ -86,79 +93,38 @@ class TestExtractTarFile(TestCase):
 
 class TestRobustRmdtree(TestCase):
     def test_must_remove_recently_created_temp_directory(self):
-        dir = tempfile.mkdtemp();
+        dir = tempfile.mkdtemp()
         robust_rmtree(dir)
         self.assertFalse(os.path.exists(dir))
 
 
 class TestGlobCopy(TestCase):
     def setUp(self):
-        self.save_dir = os.getcwd()
         self.source = tempfile.mkdtemp()
         self.dest = tempfile.mkdtemp()
 
     def tearDown(self):
-        if not os.name == 'nt':
-            shutil.rmtree(self.source)
-            shutil.rmtree(self.dest)
-        os.chdir(self.save_dir)
+        robust_rmtree(self.source)
+        robust_rmtree(self.dest)
 
-    def test_copy_single_file(self):
-        os.chdir(self.source)
-        # file(".", "a", "file.txt")
-        # glob_copy(os.path.join(".", "a", "file.txt"), self.dest)
-        # self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file.txt")))
+    def test_copy_with_wildcard_to_dest(self):
+        file(self.source, "a", "b", "file1.txt")
+        file(self.source, "a", "b", "file2.txt")
+        glob_copy(os.path.join(self.source, "a", "b", "file*.txt"), self.dest)
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "file1.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "file2.txt")))
 
-    def test_copy_single_wildcard(self):
-        os.chdir(self.source)
-        file(".", "a", "b", "file1.txt")
-        file(".", "a", "b", "file2.txt")
-        glob_copy(os.path.join(".", "a", "b", "file*.txt"), self.dest)
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "b", "file1.txt")))
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "b", "file2.txt")))
-
-    def test_copy_list_with_wildcards(self):
-        os.chdir(self.source)
-        file(".", "a", "file1.txt")
-        file(".", "a", "file2.txt")
-        file(".", "b", "file3.txt")
-        file(".", "c", "file4.txt")
-        file(".", "c", "file5.txt")
-        glob_copy(
-            [os.path.join(".", "a", "file*.txt"), os.path.join(".", "b", "file3.txt"), os.path.join(".", "c", "*")],
-            self.dest,
-        )
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file1.txt")))
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "a", "file2.txt")))
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "b", "file3.txt")))
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "c", "file4.txt")))
-        self.assertTrue(os.path.exists(os.path.join(self.dest, "c", "file5.txt")))
-
-    def test_raise_exception_for_single_absolute_glob(self):
-        test = "\\foo" if os.name == "nt" else "/foo"
-        self.assertRaisesRegex(
-            FileOperationError, 'is not a relative path'.format(test=test), glob_copy, test, "./dest"
-        )
-
-    def test_raise_exception_for_list_item_absolute_glob(self):
-        test = "\\bar" if os.name == "nt" else "/bar"
-        self.assertRaisesRegex(
-            FileOperationError, 'is not a relative path'.format(test=test), glob_copy, [test], "./dest"
-        )
+    def test_copy_with_wildcard_to_deep_dest_with_recursive(self):
+        file(self.source, "a", "b", "file1.txt")
+        file(self.source, "a", "b", "file2.txt")
+        file(self.source, "a", "b", "c", "file3.txt")
+        glob_copy(os.path.join(self.source, "a", "b", "file*.txt"), os.path.join(self.dest, "foo"))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "foo", "file1.txt")))
+        self.assertTrue(os.path.exists(os.path.join(self.dest, "foo", "file2.txt")))
 
     def test_raise_exception_for_not_found(self):
         test = "./not-going-to-exist-in-100-years"
-        self.assertRaisesRegex(FileOperationError, 'not found'.format(test=test), glob_copy, test, "./dest")
-
-
-def file(*args):
-    path = os.path.join(*args)
-    basedir = os.path.dirname(path)
-    if not os.path.exists(basedir):
-        os.makedirs(basedir)
-
-    # empty file
-    open(path, "a").close()
+        self.assertRaisesRegex(FileOperationError, "not found".format(test=test), glob_copy, test, "./dest")
 
 
 class TestGetOptionFromArgs(TestCase):
@@ -176,3 +142,56 @@ class TestGetOptionFromArgs(TestCase):
 
     def test_returns_value_on_matching_option_in_args(self):
         self.assertEqual("bar", get_option_from_args({"options": {"foo": "bar"}}, "foo"))
+
+
+def file(*args) -> None:
+    """
+    Create an empty file, named by joining path/file name segments
+
+    Parameters
+    ----------
+    args:
+        one or more path/file name segments to join
+
+    """
+    path = os.path.join(*args)
+    basedir = os.path.dirname(path)
+    if not os.path.exists(basedir):
+        os.makedirs(basedir)
+
+    # empty file
+    open(path, "a").close()
+
+
+def robust_rmtree(path: str, timeout: int = 1) -> None:
+    """
+    Like shutil.rmtree, recursively deletes path, but includes workaround for Windows
+    See https://bugs.python.org/issue40143
+
+    Retries several times if an OSError occurs.
+    If the final attempt fails, the Exception is propagated
+    to the caller.
+
+    Parameters
+    ----------
+    path: str
+        Name of the directory to removee
+    timeout: int
+        Timeout in seconds to attempt retries
+
+    Returns
+    -------
+    None
+    """
+    next_retry = 0.001
+    while next_retry < timeout:
+        try:
+            shutil.rmtree(path)
+            return  # Only hits this on success
+        except OSError:
+            # Increase the next_retry and try again
+            time.sleep(next_retry)
+            next_retry *= 2
+
+    # Final attempt, pass any Exceptions up to caller.
+    shutil.rmtree(path)
