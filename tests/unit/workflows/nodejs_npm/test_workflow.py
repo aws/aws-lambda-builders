@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 from mock import patch, call
 
@@ -275,10 +276,10 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
         self.assertIsInstance(workflow.actions[6], CopyResourceAction)
 
-        copyAction = workflow.actions[6]
-        self.assertEqual(copyAction.source_dir, "source")
-        self.assertEqual(copyAction.source_globs, "foo.txt")
-        self.assertEqual(copyAction.dest_dir, "artifacts")
+        copyActionOperation = workflow.actions[6].operations[0]
+        self.assertEqual(copyActionOperation["src"], os.path.join("source", "foo.txt"))
+        self.assertEqual(copyActionOperation["dest"], "artifacts")
+        self.assertEqual(copyActionOperation["recursive"], None)
 
     @patch("aws_lambda_builders.path_resolver.PathResolver.__init__", return_value=None)
     def test_get_resolvers(self, PathResolverMock):

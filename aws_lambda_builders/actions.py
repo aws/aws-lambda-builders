@@ -246,8 +246,8 @@ class CopyResourceAction(BaseAction):
         dest_dir: str
             Destination directory to which entries will be coped by default
         entries:
-            Definitions of resources to copy.  
-            If a string, the value will be used as a glob source and 
+            Definitions of resources to copy.
+            If a string, the value will be used as a glob source and
             the files will be copied to the root of the dest_dir.
             If a dictionary, the required Source property will be used as a glob source,
             the optional Destinaion property will be a relative path of the dest_dir,

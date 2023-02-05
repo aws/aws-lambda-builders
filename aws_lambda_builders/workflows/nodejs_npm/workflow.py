@@ -70,7 +70,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         # Copy any resources specified in "include" metadata option
         include = get_option_from_args(kwargs, "include")
         if include:
-            self.actions.append(CopyResourceAction(source_dir, include, artifacts_dir))
+            self.actions.append(CopyResourceAction(source_dir, artifacts_dir, include))
 
     def actions_without_bundler(self, source_dir, artifacts_dir, scratch_dir, manifest_path, osutils, subprocess_npm):
         """

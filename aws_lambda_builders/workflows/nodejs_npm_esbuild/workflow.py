@@ -129,7 +129,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         # If specified, copy any resources specified in "include" metadata option after bundling
         include = get_option_from_args(kwargs, "include")
         if include:
-            self.actions.append(CopyResourceAction(source_dir, include, artifacts_dir))
+            self.actions.append(CopyResourceAction(source_dir, artifacts_dir, include))
 
     def get_build_properties(self):
         """

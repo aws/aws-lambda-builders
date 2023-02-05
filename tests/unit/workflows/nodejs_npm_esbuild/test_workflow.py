@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY
@@ -318,10 +319,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[4], MoveDependenciesAction)
         self.assertIsInstance(workflow.actions[5], CopyResourceAction)
 
-        copyAction = workflow.actions[5]
-        self.assertEqual(copyAction.source_dir, "source")
-        self.assertEqual(copyAction.source_globs, "foo.txt")
-        self.assertEqual(copyAction.dest_dir, "artifacts")
+        copyActionOperation = workflow.actions[5].operations[0]
+        self.assertEqual(copyActionOperation["src"], os.path.join("source", "foo.txt"))
+        self.assertEqual(copyActionOperation["dest"], "artifacts")
+        self.assertEqual(copyActionOperation["recursive"], None)
 
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmWorkflow")
     def test_workflow_uses_production_npm_version(self, get_workflow_mock):

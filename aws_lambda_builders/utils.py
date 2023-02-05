@@ -8,7 +8,7 @@ import os
 import logging
 from glob import glob
 from pathlib import Path
-from typing import List, NamedTuple, Tuple, Union, Dict
+from typing import Union, Dict
 
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.exceptions import FileOperationError
