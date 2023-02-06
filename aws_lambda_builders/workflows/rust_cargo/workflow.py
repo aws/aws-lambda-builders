@@ -4,7 +4,7 @@ Rust Cargo Workflow
 
 from aws_lambda_builders.utils import which
 from aws_lambda_builders.path_resolver import PathResolver
-from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
+from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport, BuildDirectory
 from .actions import RustCargoLambdaBuildAction, RustCopyAndRenameAction
 from .cargo_lambda import SubprocessCargoLambda
 from .exceptions import CargoLambdaExecutionException
@@ -16,7 +16,7 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
 
     CAPABILITY = Capability(language="rust", dependency_manager="cargo", application_framework=None)
 
-    BUILD_IN_SOURCE_BY_DEFAULT = True
+    DEFAULT_BUILD_DIR = BuildDirectory.SOURCE
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.EXCLUSIVELY_SUPPORTED
 
     SUPPORTED_MANIFESTS = ["Cargo.toml"]
