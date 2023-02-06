@@ -82,7 +82,6 @@ class UnsupportedPythonVersion(PackagerError):
 
 def get_lambda_abi(runtime):
     supported = {
-        "python3.6": "cp36m",
         "python3.7": "cp37m",
         "python3.8": "cp38",
         "python3.9": "cp39",
@@ -100,7 +99,7 @@ class PythonPipDependencyBuilder(object):
 
         :type runtime: str
         :param runtime: Python version to build dependencies for. This can
-            either be python3.6, python3.7, python3.8 or python3.9. These are currently the
+            either be python3.7, python3.8 or python3.9. These are currently the
             only supported values.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -199,8 +198,6 @@ class DependencyBuilder(object):
 
     # Mapping of abi to glibc version in Lambda runtime.
     _RUNTIME_GLIBC = {
-        "cp27mu": (2, 17),
-        "cp36m": (2, 17),
         "cp37m": (2, 17),
         "cp38": (2, 26),
         "cp39": (2, 26),
@@ -410,14 +407,10 @@ class DependencyBuilder(object):
                 return True
             prefix_version = implementation[:3]
             if prefix_version == "cp3":
-                # Deploying python 3 function which means we need cp36m abi
+                # Deploying python 3 function which means we need cp37m abi
                 # We can also accept abi3 which is the CPython 3 Stable ABI and
                 # will work on any version of python 3.
                 if abi == lambda_runtime_abi or abi == "abi3":
-                    return True
-            elif prefix_version == "cp2":
-                # Deploying to python 2 function which means we need cp27mu abi
-                if abi == "cp27mu":
                     return True
         # Don't know what we have but it didn't pass compatibility tests.
         return False
