@@ -3,11 +3,12 @@ Ruby Bundler Workflow
 """
 import logging
 
+from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
-from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
+
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
-from .utils import OSUtils
 from .bundler import SubprocessBundler
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 

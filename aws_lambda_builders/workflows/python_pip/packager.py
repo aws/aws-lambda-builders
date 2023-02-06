@@ -2,17 +2,16 @@
 Installs packages using PIP
 """
 
-import sys
+import logging
 import re
 import subprocess
-import logging
+import sys
 from email.parser import FeedParser
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.utils import extract_tarfile
-from .compat import pip_import_string
-from .compat import pip_no_compile_c_env_vars
-from .compat import pip_no_compile_c_shim
+
+from .compat import pip_import_string, pip_no_compile_c_env_vars, pip_no_compile_c_shim
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)

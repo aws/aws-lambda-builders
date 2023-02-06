@@ -4,8 +4,9 @@ Action to resolve NodeJS dependencies using NPM
 
 import logging
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.utils import extract_tarfile
+
 from .npm import NpmExecutionError
 
 LOG = logging.getLogger(__name__)

@@ -1,10 +1,9 @@
 """
 Wrapper around calling esbuild through a subprocess.
 """
-from pathlib import Path
-
 import logging
-from typing import Dict, Any, List
+from pathlib import Path
+from typing import Any, Dict, List
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils

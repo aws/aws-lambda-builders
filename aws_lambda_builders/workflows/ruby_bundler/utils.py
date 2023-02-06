@@ -4,8 +4,8 @@ Commonly used utilities
 
 import os
 import platform
-import subprocess
 import shutil
+import subprocess
 
 
 class OSUtils(object):
