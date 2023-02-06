@@ -138,7 +138,7 @@ class RustCopyAndRenameAction(BaseAction):
 
         LOG.debug("unexpected list of binary directories: [%s]", ", ".join(output))
         raise CargoLambdaExecutionException(
-            message="unable to find function binary, use the option `artifact_executable_name` to specify the binary's name"
+            message="unable to find function binary, use the option `artifact_executable_name` to specify the name"
         )
 
     def execute(self):

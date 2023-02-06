@@ -51,8 +51,10 @@ class SubprocessCargoLambda(object):
             return binaries[0]
         else:
             raise CargoLambdaExecutionException(
-                message="Cannot find Cargo Lambda. Cargo Lambda must be installed on the host machine to use this feature. "
-                "Follow the gettings started guide to learn how to install it: https://www.cargo-lambda.info/guide/getting-started.html"
+                message="Cannot find Cargo Lambda. "
+                "Cargo Lambda must be installed on the host machine to use this feature. "
+                "Follow the gettings started guide to learn how to install it: "
+                "https://www.cargo-lambda.info/guide/getting-started.html"
             )
 
     def run(self, command, cwd):
