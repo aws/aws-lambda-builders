@@ -4,7 +4,6 @@ Commonly used utilities
 
 import os
 import platform
-import tarfile
 import subprocess
 import shutil
 import json

@@ -5,7 +5,7 @@ NodeJS NPM Workflow
 import logging
 
 from aws_lambda_builders.path_resolver import PathResolver
-from aws_lambda_builders.workflow import BaseWorkflow, Capability, BuildInSourceSupport
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
@@ -42,7 +42,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     CONFIG_PROPERTY = "aws_sam"
 
-    BUILD_IN_SOURCE_BY_DEFAULT = False
+    DEFAULT_BUILD_DIR = BuildDirectory.ARTIFACTS
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
@@ -148,15 +148,15 @@ class NodejsNpmWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     @staticmethod
-    def get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, build_options):
+    def get_install_action(source_dir, install_dir, subprocess_npm, osutils, build_options):
         """
         Get the install action used to install dependencies at artifacts_dir
 
         :type source_dir: str
         :param source_dir: an existing (readable) directory containing source files
 
-        :type artifacts_dir: str
-        :param artifacts_dir: Dependencies will be installed in this directory.
+        :type install_dir: str
+        :param install_dir: Dependencies will be installed in this directory.
 
         :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
         :param osutils: An instance of OS Utilities for file manipulation
@@ -181,6 +181,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
             npm_ci_option = build_options.get("use_npm_ci", False)
 
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
-            return NodejsNpmCIAction(artifacts_dir, subprocess_npm=subprocess_npm)
+            return NodejsNpmCIAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
 
-        return NodejsNpmInstallAction(artifacts_dir, subprocess_npm=subprocess_npm)
+        return NodejsNpmInstallAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
