@@ -196,6 +196,7 @@ class TestEsbuildCommandBuilder(TestCase):
         bundler_config = {
             "minify": True,
             "sourcemap": False,
+            "sources_content": "false",
             "format": "esm",
             "target": "node14",
             "loader": [".proto=text", ".json=js"],
@@ -216,6 +217,7 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--target=node14",
                 "--format=esm",
                 "--main-fields=module,main",
+                "--sources-content=false",
                 "--external:aws-sdk",
                 "--external:axios",
                 "--loader:.proto=text",
