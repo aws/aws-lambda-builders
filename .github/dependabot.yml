@@ -21,3 +21,8 @@ updates:
       include: scope
     reviewers:
       -  aws/serverless-application-experience-sbt
+    ignore:
+      # The dependencies are intentionally pinned to certain
+      # version ranges for specific Python versions
+      - dependency-name: "flake8"
+      - dependency-name: "isort"
