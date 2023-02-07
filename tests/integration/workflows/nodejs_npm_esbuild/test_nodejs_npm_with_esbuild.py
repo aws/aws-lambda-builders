@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -412,6 +413,29 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         expected_files = {"included.mjs", "included.mjs.map"}
         output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_produces_sourcemap_without_source_contents(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+        options = {"entry_points": ["included.js"], "sourcemap": True, "sources_content": "false"}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        with open(Path(self.artifacts_dir, "included.js.map")) as f:
+            sourcemap = json.load(f)
+        self.assertNotIn("sourcesContent", sourcemap)
         self.assertEqual(expected_files, output_files)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
