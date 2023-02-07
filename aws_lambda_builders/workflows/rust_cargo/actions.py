@@ -8,7 +8,6 @@ import os
 from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64, ARM64
-from .cargo_lambda import SubprocessCargoLambda
 from .exceptions import CargoLambdaExecutionException
 from .utils import OSUtils
 
@@ -26,10 +25,10 @@ class RustCargoLambdaBuildAction(BaseAction):
         source_dir,
         binaries,
         mode,
+        subprocess_cargo_lambda,
         architecture=X86_64,
         handler=None,
         flags=None,
-        subprocess_cargo_lambda=SubprocessCargoLambda,
     ):
         """
         Build the a Rust executable

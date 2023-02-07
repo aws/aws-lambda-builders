@@ -41,10 +41,10 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
                 source_dir,
                 self.binaries,
                 mode,
+                subprocess_cargo_lambda,
                 self.architecture,
                 handler,
                 flags,
-                subprocess_cargo_lambda=subprocess_cargo_lambda,
             ),
             RustCopyAndRenameAction(source_dir, artifacts_dir, handler),
         ]
