@@ -32,7 +32,7 @@ class PythonRuntimeValidator(RuntimeValidator):
         Returns
         -------
         str
-            runtime_path, runtime to check eg: /usr/bin/python3.6
+            runtime_path, runtime to check eg: /usr/bin/python3.9
 
         Raises
         ------

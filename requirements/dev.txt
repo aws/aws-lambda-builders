@@ -11,11 +11,6 @@ mock==4.0.2
 parameterized==0.7.4
 pyelftools~=0.27 # Used to verify the generated Go binary architecture in integration tests (utils.py)
 
-
-# tempfile backport for < 3.7
-backports.tempfile==1.0; python_version<"3.7"
-
-
 # formatter
 black==22.3.0
 ruff
