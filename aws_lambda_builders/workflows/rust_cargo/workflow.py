@@ -33,8 +33,8 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
         # we utilize the handler identifier to
         # select the binary to build
         options = kwargs.get("options") or {}
-        handler = options.get("artifact_executable_name", None)
-        flags = options.get("cargo_lambda_flags", None)
+        handler = options.get("artifact_executable_name")
+        flags = options.get("cargo_lambda_flags")
         subprocess_cargo_lambda = SubprocessCargoLambda(which=which)
         self.actions = [
             RustCargoLambdaBuildAction(
