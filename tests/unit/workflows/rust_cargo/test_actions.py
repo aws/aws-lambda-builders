@@ -1,5 +1,6 @@
 from unittest import TestCase
 from mock import patch
+import io
 import logging
 import os
 
@@ -19,10 +20,15 @@ class FakePopen:
     def __init__(self, out=b"out", err=b"err", retcode=0):
         self.out = out
         self.err = err
+        self.stderr = io.BytesIO(err)
+        self.stdout = [out]
         self.returncode = retcode
 
     def communicate(self):
         return self.out, self.err
+
+    def wait(self):
+        return self.returncode
 
 
 class TestBuildAction(TestCase):

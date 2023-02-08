@@ -1,9 +1,12 @@
 """
 Wrapper around calling Cargo Lambda through a subprocess.
 """
+import io
 import logging
 import os
 import subprocess
+import shutil
+import threading
 
 from .exceptions import CargoLambdaExecutionException
 from .utils import OSUtils
@@ -91,12 +94,25 @@ class SubprocessCargoLambda(object):
             stdout=subprocess.PIPE,
             cwd=cwd,
         )
-        out, err = cargo_process.communicate()
-        output = out.decode("utf8").strip()
-        if cargo_process.returncode != 0:
-            error = err.decode("utf8").strip()
-            LOG.debug("cargo-lambda STDOUT:\n\n%s\n\n", output)
-            LOG.debug("cargo-lambda STDERR:\n\n%s\n\n", error)
-            raise CargoLambdaExecutionException(message=error)
+        stdout = ""
+        # Create a buffer and use a thread to gather the stderr stream into the buffer
+        stderr_buf = io.BytesIO()
+        stderr_thread = threading.Thread(target=shutil.copyfileobj, args=(
+            cargo_process.stderr, stderr_buf), daemon=True)
+        stderr_thread.start()
 
-        return output
+        # Log every stdout line by iterating
+        for line in cargo_process.stdout:
+            decoded_line = line.decode("utf-8").strip()
+            LOG.info(decoded_line)
+            # Gather total stdout
+            stdout += decoded_line
+
+        # Wait for the process to exit and stderr thread to end.
+        return_code = cargo_process.wait()
+        stderr_thread.join()
+
+        if return_code != 0:
+            # Raise an Error with the appropriate value from the stderr buffer.
+            raise CargoLambdaExecutionException(message=stderr_buf.getvalue().decode("utf8").strip())
+        return stdout
