@@ -23,16 +23,18 @@ class SubprocessCargoLambda(object):
 
     def __init__(self, which, executable_search_paths=None, osutils=OSUtils()):
         """
-        :type which: aws_lambda_builders.utils.which
-        :param which: Function to get paths which conform to the given mode on the PATH
+        Parameters
+        ----------
+        which : aws_lambda_builders.utils.which
+            Function to get paths which conform to the given mode on the PATH
             with the prepended additional search paths
 
-        :type executable_search_paths: list
-        :param executable_search_paths: List of paths to the NPM package binary utilities. This will
+        executable_search_paths : list, optional
+            List of paths to the NPM package binary utilities. This will
             be used to find embedded esbuild at runtime if present in the package
 
-        :type osutils: aws_lambda_builders.workflows.rust_cargo.actions.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
+        osutils : aws_lambda_builders.workflows.rust_cargo.utils.OSUtils, optional
+            An instance of OS Utilities for file manipulation
         """
         self._which = which
         self._executable_search_paths = executable_search_paths
@@ -42,8 +44,15 @@ class SubprocessCargoLambda(object):
         """
         Checks if Cargo Lambda is in the system
 
-        :raises aws_lambda_builders.workflows.rust_cargo.exceptions.CargoLambdaExecutionException:
-            when Cargo Lambda is not installed in the system to run the command.
+        Returns
+        -------
+        str
+            Path to the cargo-lambda binary
+
+        Raises
+        ------
+        CargoLambdaExecutionException:
+            Raised when Cargo Lambda is not installed in the system to run the command.
         """
 
         LOG.debug("checking for cargo-lambda")
@@ -64,20 +73,23 @@ class SubprocessCargoLambda(object):
         """
         Runs the build command.
 
-        :type command: str
-        :param args: Cargo Lambda command to run
+        Parameters
+        ----------
+        command : str
+            Cargo Lambda command to run
 
-        :type cwd: str
-        :param cwd: Directory where to execute the command (defaults to current dir)
+        cwd : str
+            Directory where to execute the command (defaults to current dir)
 
-        :rtype: str
-        :return: text of the standard output from the command
+        Returns
+        -------
+        str
+            Text of the standard output from the command
 
-        :raises aws_lambda_builders.workflows.rust_cargo.exceptions.CargoLambdaExecutionException:
-            when Cargo Lambda is not installed in the system to run the command.
-
-        :raises aws_lambda_builders.workflows.rust_cargo.exceptions.CargoLambdaExecutionException:
-            when the command executes with a non-zero return code. The exception will
+        Raises
+        ------
+        CargoLambdaExecutionException:
+            Raised when the command executes with a non-zero return code. The exception will
             contain the text of the standard error output from the command.
         """
 

@@ -98,20 +98,18 @@ class RustCopyAndRenameAction(BaseAction):
         """
         Copy and rename Rust executable
 
-        :type source_dir: str
-        :param source_dir:
+        Parameters
+        ----------
+        source_dir : str
             Path to a folder containing the source code
 
-        :type artifacts_dir: str
-        :param binaries:
+        artifacts_dir : str
             Path to a folder containing the deployable artifacts
 
-        :type handler: str, optional
-        :param handler:
+        handler : str, optional
             Handler name in `package.bin_name` or `bin_name` format
 
-        :type osutils: object
-        :param osutils:
+        osutils : aws_lambda_builders.workflows.rust_cargo.utils.OSUtils, optional
             Optional, External IO utils
         """
         self._source_dir = source_dir
