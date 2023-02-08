@@ -71,7 +71,7 @@ class RustCargoLambdaBuildAction(BaseAction):
 
     def build_command(self):
         cmd = [self._binaries["cargo"].binary_path, "lambda", "build"]
-        if self._mode == BuildMode.RELEASE:
+        if self._mode != BuildMode.DEBUG:
             cmd.append("--release")
         if self._architecture == ARM64:
             cmd.append("--arm64")
