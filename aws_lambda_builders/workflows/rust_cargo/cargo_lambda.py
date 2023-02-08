@@ -109,8 +109,9 @@ class SubprocessCargoLambda(object):
         stdout = ""
         # Create a buffer and use a thread to gather the stderr stream into the buffer
         stderr_buf = io.BytesIO()
-        stderr_thread = threading.Thread(target=shutil.copyfileobj, args=(
-            cargo_process.stderr, stderr_buf), daemon=True)
+        stderr_thread = threading.Thread(
+            target=shutil.copyfileobj, args=(cargo_process.stderr, stderr_buf), daemon=True
+        )
         stderr_thread.start()
 
         # Log every stdout line by iterating

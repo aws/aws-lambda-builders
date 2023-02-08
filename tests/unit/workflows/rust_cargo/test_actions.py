@@ -45,9 +45,7 @@ class TestBuildAction(TestCase):
 
     def test_release_build_cargo_command_without_release_mode(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, None, self.subprocess_cargo_lambda
-        )
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, self.subprocess_cargo_lambda)
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--release"],
