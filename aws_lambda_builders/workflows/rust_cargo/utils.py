@@ -13,7 +13,7 @@ class OSUtils(object):
         return subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, cwd=cwd)
 
     def copyfile(self, source, destination):
-        shutil.copyfile(source, destination)
+        shutil.copy2(source, destination)
 
     def makedirs(self, path):
         if not os.path.exists(path):
