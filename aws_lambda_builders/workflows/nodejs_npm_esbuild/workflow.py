@@ -2,26 +2,27 @@
 NodeJS NPM Workflow using the esbuild bundler
 """
 
-import logging
 import json
+import logging
 from pathlib import Path
 
-from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import (
     CleanUpAction,
     CopySourceAction,
-    MoveDependenciesAction,
     LinkSourceAction,
+    MoveDependenciesAction,
 )
 from aws_lambda_builders.utils import which
-from .actions import (
-    EsbuildBundleAction,
-)
-from .esbuild import SubprocessEsbuild, EsbuildExecutionError
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
+
+from ...path_resolver import PathResolver
 from ..nodejs_npm import NodejsNpmWorkflow
 from ..nodejs_npm.npm import SubprocessNpm
 from ..nodejs_npm.utils import OSUtils
-from ...path_resolver import PathResolver
+from .actions import (
+    EsbuildBundleAction,
+)
+from .esbuild import EsbuildExecutionError, SubprocessEsbuild
 
 LOG = logging.getLogger(__name__)
 

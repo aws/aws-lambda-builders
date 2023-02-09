@@ -2,11 +2,11 @@
 Commonly used utilities
 """
 
+import json
 import os
 import platform
-import subprocess
 import shutil
-import json
+import subprocess
 
 
 class OSUtils(object):

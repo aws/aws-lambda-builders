@@ -4,7 +4,7 @@ Actions specific to the esbuild bundler
 import logging
 from typing import Any, Dict
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildCommandBuilder, SubprocessEsbuild
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.exceptions import EsbuildExecutionError
