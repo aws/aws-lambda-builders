@@ -1,6 +1,6 @@
 import os
-import subprocess
 import shutil
+import subprocess
 
 
 class OSUtils(object):

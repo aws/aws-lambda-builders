@@ -5,12 +5,12 @@ Rust Cargo build actions
 import logging
 import os
 
-from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import ARM64, X86_64
+from aws_lambda_builders.workflow import BuildMode
+
 from .exceptions import CargoLambdaExecutionException
 from .utils import OSUtils
-
 
 LOG = logging.getLogger(__name__)
 
