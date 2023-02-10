@@ -4,9 +4,9 @@ Build a Go project using standard Go tooling
 import logging
 from pathlib import Path
 
-from aws_lambda_builders.workflow import BuildMode
 from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.utils import get_goarch
+from aws_lambda_builders.workflow import BuildMode
 
 LOG = logging.getLogger(__name__)
 

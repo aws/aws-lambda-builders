@@ -6,6 +6,7 @@ import os
 import platform
 import subprocess
 import zipfile
+
 from aws_lambda_builders.utils import which
 
 LOG = logging.getLogger(__name__)

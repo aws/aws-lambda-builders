@@ -2,26 +2,24 @@
 Implementation of a base workflow
 """
 import functools
-import os
 import logging
-
+import os
 from collections import namedtuple
 from enum import Enum
 from typing import Optional
 
-from aws_lambda_builders.binary_path import BinaryPath
-from aws_lambda_builders.path_resolver import PathResolver
-from aws_lambda_builders.validator import RuntimeValidator
-from aws_lambda_builders.registry import DEFAULT_REGISTRY
-from aws_lambda_builders.exceptions import (
-    WorkflowFailedError,
-    WorkflowUnknownError,
-    MisMatchRuntimeError,
-    RuntimeValidatorError,
-)
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.architecture import X86_64
-
+from aws_lambda_builders.binary_path import BinaryPath
+from aws_lambda_builders.exceptions import (
+    MisMatchRuntimeError,
+    RuntimeValidatorError,
+    WorkflowFailedError,
+    WorkflowUnknownError,
+)
+from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.registry import DEFAULT_REGISTRY
+from aws_lambda_builders.validator import RuntimeValidator
 
 LOG = logging.getLogger(__name__)
 

@@ -2,11 +2,12 @@
 Action to resolve Python dependencies using PIP
 """
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
+
 from .exceptions import MissingPipError
-from .packager import PythonPipDependencyBuilder, PackagerError, DependencyBuilder, SubprocessPip, PipRunner
+from .packager import DependencyBuilder, PackagerError, PipRunner, PythonPipDependencyBuilder, SubprocessPip
 
 
 class PythonPipBuildAction(BaseAction):

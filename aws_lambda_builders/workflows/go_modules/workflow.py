@@ -1,12 +1,12 @@
 """
 Go Modules Workflow
 """
-from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import GoModulesBuildAction
 from .builder import GoModulesBuilder
-from .validator import GoRuntimeValidator
 from .utils import OSUtils
+from .validator import GoRuntimeValidator
 
 
 class GoModulesWorkflow(BaseWorkflow):
