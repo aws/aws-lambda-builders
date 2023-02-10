@@ -3,7 +3,7 @@ from unittest import TestCase
 import os
 import platform
 from concurrent.futures import ThreadPoolExecutor
-from mock import patch
+from unittest.mock import patch
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.architecture import ARM64, X86_64

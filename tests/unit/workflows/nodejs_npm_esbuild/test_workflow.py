@@ -1,8 +1,6 @@
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import ANY
-
-from mock import patch, call
+from unittest.mock import ANY, patch, call
 
 from aws_lambda_builders.actions import (
     CopySourceAction,

@@ -1,8 +1,7 @@
 import os
 
 from unittest import TestCase
-
-from mock import patch, ANY
+from unittest.mock import patch, ANY
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.custom_make.utils import OSUtils

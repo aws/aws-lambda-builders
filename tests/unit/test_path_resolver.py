@@ -1,7 +1,8 @@
 from unittest import TestCase
 
+from unittest.mock import patch
+
 import os
-import mock
 
 from aws_lambda_builders import utils
 from aws_lambda_builders.path_resolver import PathResolver
@@ -22,6 +23,6 @@ class TestPathResolver(TestCase):
             self.path_resolver._which()
 
     def test_which_success_immediate(self):
-        with mock.patch.object(self.path_resolver, "_which") as which_mock:
+        with patch.object(self.path_resolver, "_which") as which_mock:
             which_mock.return_value = os.getcwd()
             self.assertEqual(self.path_resolver.exec_paths, os.getcwd())

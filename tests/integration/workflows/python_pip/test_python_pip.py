@@ -4,8 +4,8 @@ import shutil
 import sys
 import platform
 import tempfile
-from unittest import TestCase, skipIf
-import mock
+from unittest import TestCase, skipIf, mock
+
 from parameterized import parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder

@@ -78,7 +78,7 @@ class TestExtractTarFile(TestCase):
         tar_filename = "path_reversal_win.tgz" if platform.system().lower() == "windows" else "path_reversal_uxix.tgz"
         test_tar = os.path.join(os.path.dirname(__file__), "testdata", tar_filename)
         test_dir = tempfile.mkdtemp()
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             ExtractError, "Attempted Path Traversal in Tar File", extract_tarfile, test_tar, test_dir
         )
 

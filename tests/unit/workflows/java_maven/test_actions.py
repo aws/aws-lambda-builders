@@ -1,6 +1,5 @@
-import shutil
 from unittest import TestCase
-from mock import patch, call, ANY
+from unittest.mock import patch, call, ANY
 import os
 
 from aws_lambda_builders.actions import ActionFailedError

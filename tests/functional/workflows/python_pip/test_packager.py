@@ -4,9 +4,9 @@ import zipfile
 import tarfile
 import io
 from collections import defaultdict, namedtuple
+from unittest import mock
 
 import pytest
-import mock
 
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.python_pip.packager import PipRunner, UnsupportedPackageError

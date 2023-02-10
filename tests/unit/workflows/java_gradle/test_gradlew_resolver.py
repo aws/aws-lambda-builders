@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import patch
+from unittest.mock import patch
 from parameterized import parameterized
 from aws_lambda_builders.workflows.java_gradle.gradle_resolver import GradleResolver
 

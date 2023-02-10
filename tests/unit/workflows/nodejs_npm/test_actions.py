@@ -1,6 +1,6 @@
 import itertools
 from unittest import TestCase
-from mock import patch, call
+from unittest.mock import patch, call
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError

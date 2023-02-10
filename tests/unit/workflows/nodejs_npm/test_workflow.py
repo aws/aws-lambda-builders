@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, call
+from unittest.mock import patch, call
 
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, CopyDependenciesAction, MoveDependenciesAction
 from aws_lambda_builders.architecture import ARM64

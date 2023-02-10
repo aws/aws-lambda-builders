@@ -1,5 +1,6 @@
 from unittest import TestCase
-from mock import Mock, call
+from unittest.mock import Mock, call
+
 from parameterized import parameterized
 
 from aws_lambda_builders.registry import Registry, DEFAULT_REGISTRY, get_workflow

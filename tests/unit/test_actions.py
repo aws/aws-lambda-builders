@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import List, Tuple
 from unittest import TestCase
-from mock import patch, ANY, Mock
+from unittest.mock import ANY, patch
+
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import (
