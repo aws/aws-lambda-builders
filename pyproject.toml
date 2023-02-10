@@ -5,6 +5,7 @@ select = [
     "E",  # Pycodestyle
     "F",  # Pyflakes
     "PL", # pylint
+    "I",  # isort
 ]
 ignore = ["PLR0913"]
 

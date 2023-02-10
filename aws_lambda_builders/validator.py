@@ -5,8 +5,7 @@ No-op validator that does not validate the runtime_path for a specified language
 import logging
 
 from aws_lambda_builders.architecture import ARM64, X86_64
-from aws_lambda_builders.exceptions import UnsupportedRuntimeError, UnsupportedArchitectureError
-
+from aws_lambda_builders.exceptions import UnsupportedArchitectureError, UnsupportedRuntimeError
 
 LOG = logging.getLogger(__name__)
 

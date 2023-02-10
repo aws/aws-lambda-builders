@@ -4,13 +4,12 @@ Wrapper around calling Cargo Lambda through a subprocess.
 import io
 import logging
 import os
-import subprocess
 import shutil
+import subprocess
 import threading
 
 from .exceptions import CargoLambdaExecutionException
 from .utils import OSUtils
-
 
 LOG = logging.getLogger(__name__)
 

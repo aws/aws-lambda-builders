@@ -44,7 +44,6 @@ if os.name == "nt":
         import distutils._msvccompiler
         import distutils.msvc9compiler
         import distutils.msvccompiler
-
         from distutils.errors import CompileError
 
         def raise_compile_error(*args, **kwargs):

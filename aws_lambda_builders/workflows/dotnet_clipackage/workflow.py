@@ -1,7 +1,7 @@
 """
 .NET Core CLI Package Workflow
 """
-from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import GlobalToolInstallAction, RunPackageAction
 from .dotnetcli import SubprocessDotnetCLI

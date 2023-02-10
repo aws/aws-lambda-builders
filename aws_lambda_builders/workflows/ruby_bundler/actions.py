@@ -4,7 +4,8 @@ Actions for Ruby dependency resolution with Bundler
 
 import logging
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
+
 from .bundler import BundlerExecutionError
 
 LOG = logging.getLogger(__name__)

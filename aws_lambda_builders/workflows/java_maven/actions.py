@@ -2,13 +2,14 @@
 Actions for the Java Maven Workflow
 """
 
-import os
 import logging
+import os
 import shutil
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
-from .maven import MavenExecutionError
+
 from ..java.utils import jar_file_filter
+from .maven import MavenExecutionError
 
 LOG = logging.getLogger(__name__)
 

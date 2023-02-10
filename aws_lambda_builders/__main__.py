@@ -6,16 +6,16 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
 Read the design document for explanation of the JSON-RPC interface
 """
 
-import sys
 import json
-import os
 import logging
+import os
 import re
+import sys
 
+from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.exceptions import WorkflowNotFoundError, WorkflowUnknownError, WorkflowFailedError
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowNotFoundError, WorkflowUnknownError
 
 log_level = int(os.environ.get("LAMBDA_BUILDERS_LOG_LEVEL", logging.INFO))
 

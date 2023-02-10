@@ -6,7 +6,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Set, Iterator, Tuple
+from typing import Iterator, Set, Tuple
 
 from aws_lambda_builders import utils
 from aws_lambda_builders.utils import copytree

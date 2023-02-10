@@ -2,10 +2,10 @@
 Common utilities for the library
 """
 
+import logging
+import os
 import shutil
 import sys
-import os
-import logging
 from pathlib import Path
 from typing import Union
 
