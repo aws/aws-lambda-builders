@@ -5,7 +5,8 @@ Action to build a specific Makefile target
 import logging
 from pathlib import Path
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
+
 from .exceptions import MakeFileNotFoundError
 from .make import MakeExecutionError
 

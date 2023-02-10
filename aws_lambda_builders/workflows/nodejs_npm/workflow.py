@@ -4,25 +4,25 @@ NodeJS NPM Workflow
 
 import logging
 
-from aws_lambda_builders.path_resolver import PathResolver
-from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, Capability, BuildInSourceSupport
 from aws_lambda_builders.actions import (
-    CopySourceAction,
     CleanUpAction,
     CopyDependenciesAction,
+    CopySourceAction,
     MoveDependenciesAction,
 )
+from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import (
-    NodejsNpmPackAction,
-    NodejsNpmLockFileCleanUpAction,
+    NodejsNpmCIAction,
     NodejsNpmInstallAction,
+    NodejsNpmLockFileCleanUpAction,
+    NodejsNpmPackAction,
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
-    NodejsNpmCIAction,
 )
-from .utils import OSUtils
 from .npm import SubprocessNpm
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 

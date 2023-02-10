@@ -3,12 +3,12 @@ Go Runtime Validation
 """
 
 import logging
-import re
 import os
+import re
 import subprocess
 
-from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
+from aws_lambda_builders.validator import RuntimeValidator
 
 LOG = logging.getLogger(__name__)
 

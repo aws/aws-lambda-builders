@@ -2,8 +2,8 @@
 Wrapper around calls to dotent CLI through a subprocess.
 """
 
-import logging
 import locale
+import logging
 
 from .utils import OSUtils
 
