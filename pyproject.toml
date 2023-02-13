@@ -9,6 +9,9 @@ select = [
 ]
 ignore = ["PLR0913"]
 
+[tool.ruff.pylint]
+max-branches = 13
+
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401", "E501"]
 "aws_lambda_builders/workflow.py" = ["E501"]
