@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.ruby_bundler.actions import RubyBundlerInstallAction, RubyBundlerVendorAction

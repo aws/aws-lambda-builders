@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError

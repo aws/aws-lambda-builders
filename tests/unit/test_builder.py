@@ -1,7 +1,8 @@
 import itertools
 from unittest import TestCase
-from mock import patch, call, Mock
-from parameterized import parameterized, param
+from unittest.mock import patch, call, Mock
+
+from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.workflow import BuildDirectory, BuildInSourceSupport, Capability, BaseWorkflow

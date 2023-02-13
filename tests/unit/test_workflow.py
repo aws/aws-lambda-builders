@@ -1,14 +1,11 @@
 import os
 import sys
 from unittest import TestCase
+from unittest.mock import Mock, MagicMock, call
+
 from parameterized import parameterized
 
-from mock import Mock, MagicMock, call
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.validator import RuntimeValidator

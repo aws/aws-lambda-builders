@@ -1,7 +1,7 @@
 import subprocess
 
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.workflows.java_gradle.gradle import (

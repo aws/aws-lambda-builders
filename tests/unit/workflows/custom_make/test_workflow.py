@@ -1,7 +1,6 @@
 from unittest import TestCase
-from unittest.mock import patch
 
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.custom_make.workflow import CustomMakeWorkflow

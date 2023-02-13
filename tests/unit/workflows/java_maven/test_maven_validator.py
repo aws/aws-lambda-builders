@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 from parameterized import parameterized
 from aws_lambda_builders.workflows.java_maven.maven_validator import MavenValidator
 from aws_lambda_builders.exceptions import UnsupportedRuntimeError, UnsupportedArchitectureError

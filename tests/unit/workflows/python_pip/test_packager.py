@@ -1,8 +1,7 @@
 import sys
 from collections import namedtuple
-from unittest import TestCase
+from unittest import TestCase, mock
 
-import mock
 import pytest
 
 from aws_lambda_builders.architecture import ARM64, X86_64

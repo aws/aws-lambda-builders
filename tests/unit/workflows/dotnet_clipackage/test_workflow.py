@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from aws_lambda_builders.architecture import ARM64, X86_64
+from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.dotnet_clipackage.workflow import DotnetCliPackageWorkflow
 from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
 

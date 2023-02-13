@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, ANY
+from unittest.mock import patch, ANY
 
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction
 from aws_lambda_builders.workflows.java_maven.workflow import JavaMavenWorkflow

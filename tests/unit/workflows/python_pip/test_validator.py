@@ -1,6 +1,5 @@
-from unittest import TestCase
+from unittest import TestCase, mock
 
-import mock
 from parameterized import parameterized
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
