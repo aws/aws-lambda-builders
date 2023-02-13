@@ -79,7 +79,6 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[6], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_without_bundler_if_manifest_doesnt_request_it(self):
-
         self.osutils.file_exists.side_effect = [True, False, False]
 
         workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "manifest", osutils=self.osutils)
@@ -94,7 +93,6 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_with_download_dependencies_and_dependencies_dir(self):
-
         self.osutils.file_exists.side_effect = [True, False, False]
 
         workflow = NodejsNpmWorkflow(
@@ -139,7 +137,6 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[4], NodejsNpmLockFileCleanUpAction)
 
     def test_workflow_sets_up_npm_actions_without_combine_dependencies(self):
-
         self.osutils.file_exists.side_effect = [True, False, False]
 
         workflow = NodejsNpmWorkflow(
@@ -188,7 +185,6 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(workflow_with_arm.architecture, "arm64")
 
     def test_workflow_uses_npm_ci_if_shrinkwrap_exists_and_npm_ci_enabled(self):
-
         self.osutils.file_exists.side_effect = [True, False, True]
 
         workflow = NodejsNpmWorkflow(
@@ -212,7 +208,6 @@ class TestNodejsNpmWorkflow(TestCase):
         )
 
     def test_workflow_uses_npm_ci_if_lockfile_exists_and_npm_ci_enabled(self):
-
         self.osutils.file_exists.side_effect = [True, True]
 
         workflow = NodejsNpmWorkflow(

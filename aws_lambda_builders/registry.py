@@ -24,7 +24,6 @@ class Registry(object):
         return self._data[key]
 
     def __setitem__(self, capability, value):
-
         key = self._make_key(capability)
 
         try:

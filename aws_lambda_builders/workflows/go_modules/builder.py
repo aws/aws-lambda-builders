@@ -19,7 +19,6 @@ class BuilderError(Exception):
 
 
 class GoModulesBuilder(object):
-
     LANGUAGE = "go"
 
     def __init__(self, osutils, binaries, handler, mode=BuildMode.RELEASE, architecture=X86_64, trim_go_path=False):

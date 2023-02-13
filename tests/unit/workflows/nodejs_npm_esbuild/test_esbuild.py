@@ -33,7 +33,6 @@ class TestSubprocessEsbuild(TestCase):
         self.under_test = SubprocessEsbuild(self.osutils, ["/a/b", "/c/d"], which)
 
     def test_run_executes_binary_found_in_exec_paths(self):
-
         self.under_test.run(["arg-a", "arg-b"])
 
         self.osutils.popen.assert_called_with(
@@ -64,7 +63,6 @@ class TestSubprocessEsbuild(TestCase):
         self.assertEqual(raised.exception.args[0], "Esbuild Failed: some error text")
 
     def test_raises_EsbuildExecutionError_if_which_returns_no_results(self):
-
         which = lambda cmd, executable_search_paths: []
         self.under_test = SubprocessEsbuild(self.osutils, ["/a/b", "/c/d"], which)
         with self.assertRaises(EsbuildExecutionError) as raised:

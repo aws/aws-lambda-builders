@@ -4,7 +4,6 @@ Collection of public exceptions raised by this library
 
 
 class LambdaBuilderError(Exception):
-
     MESSAGE = ""
 
     def __init__(self, **kwargs):
