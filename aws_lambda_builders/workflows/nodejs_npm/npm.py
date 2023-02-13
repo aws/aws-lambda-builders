@@ -47,7 +47,6 @@ class SubprocessNpm(object):
         self.npm_exe = npm_exe
 
     def run(self, args, cwd=None):
-
         """
         Runs the action.
 

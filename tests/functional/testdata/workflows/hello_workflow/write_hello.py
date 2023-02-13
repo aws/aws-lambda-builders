@@ -31,7 +31,6 @@ class WriteHelloAction(BaseAction):
 
 
 class WriteHelloWorkflow(BaseWorkflow):
-
     NAME = "WriteHelloWorkflow"
     CAPABILITY = Capability(language="python", dependency_manager="test", application_framework="test")
     DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH

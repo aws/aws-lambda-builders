@@ -22,7 +22,6 @@ from aws_lambda_builders.actions import ActionFailedError
 
 
 class TestRegisteringWorkflows(TestCase):
-
     CAPABILITY1 = Capability(language="test", dependency_manager="testframework", application_framework="appframework")
 
     CAPABILITY2 = Capability(
@@ -33,7 +32,6 @@ class TestRegisteringWorkflows(TestCase):
         DEFAULT_REGISTRY.clear()
 
     def test_must_register_one_workflow(self):
-
         # Just loading the classes will register them to default registry
         class TestWorkflow(BaseWorkflow):
             NAME = "TestWorkflow"
@@ -63,7 +61,6 @@ class TestRegisteringWorkflows(TestCase):
         self.assertEqual(get_workflow(self.CAPABILITY2), TestWorkflow2)
 
     def test_must_fail_if_name_not_present(self):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):
@@ -75,7 +72,6 @@ class TestRegisteringWorkflows(TestCase):
         self.assertEqual(str(ctx.exception), "Workflow must provide a valid name")
 
     def test_must_fail_if_capabilities_not_present(self):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):
@@ -87,7 +83,6 @@ class TestRegisteringWorkflows(TestCase):
         self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
 
     def test_must_fail_if_capabilities_is_wrong_type(self):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):
@@ -106,7 +101,6 @@ class TestRegisteringWorkflows(TestCase):
         ]
     )
     def test_must_fail_if_build_in_source_support_invalid(self, build_in_source_support):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):
@@ -124,7 +118,6 @@ class TestRegisteringWorkflows(TestCase):
         ]
     )
     def test_must_fail_if_default_build_dir_invalid(self, default_build_dir):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):

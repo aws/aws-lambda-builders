@@ -36,7 +36,6 @@ def _error_response(request_id, http_status_code, message):
 
 
 def _parse_version(version_string):
-
     if VERSION_REGEX.match(version_string):
         return float(version_string)
     else:

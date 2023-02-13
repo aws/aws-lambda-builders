@@ -55,7 +55,6 @@ class Purpose(object):
 
 class _ActionMetaClass(type):
     def __new__(mcs, name, bases, class_dict):
-
         cls = type.__new__(mcs, name, bases, class_dict)
 
         if cls.__name__ == "BaseAction":
@@ -100,7 +99,6 @@ class BaseAction(object, metaclass=_ActionMetaClass):
 
 
 class CopySourceAction(BaseAction):
-
     NAME = "CopySource"
 
     DESCRIPTION = "Copying source code while skipping certain commonly excluded files"
@@ -117,7 +115,6 @@ class CopySourceAction(BaseAction):
 
 
 class LinkSourceAction(BaseAction):
-
     NAME = "LinkSource"
 
     DESCRIPTION = "Linking source code to the target folder"
@@ -142,7 +139,6 @@ class LinkSourceAction(BaseAction):
 
 
 class CopyDependenciesAction(BaseAction):
-
     NAME = "CopyDependencies"
 
     DESCRIPTION = "Copying dependencies while skipping source file"
@@ -166,7 +162,6 @@ class CopyDependenciesAction(BaseAction):
 
 
 class MoveDependenciesAction(BaseAction):
-
     NAME = "MoveDependencies"
 
     DESCRIPTION = "Moving dependencies while skipping source file"

@@ -8,7 +8,6 @@ from .builder import BuilderError
 
 
 class GoModulesBuildAction(BaseAction):
-
     NAME = "Build"
     DESCRIPTION = "Building Go package with Go Modules"
     PURPOSE = Purpose.COMPILE_SOURCE

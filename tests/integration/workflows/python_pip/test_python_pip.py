@@ -218,7 +218,6 @@ class TestPythonPipWorkflow(TestCase):
             self.assertIn(f, output_files)
 
     def test_must_fail_to_resolve_dependencies(self):
-
         with self.assertRaises(WorkflowFailedError) as ctx:
             self.builder.build(
                 self.source_dir,

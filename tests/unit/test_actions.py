@@ -25,14 +25,12 @@ class TestBaseActionInheritance(TestCase):
         self.assertIsNotNone(action)
 
     def test_must_validate_name_property(self):
-
         with self.assertRaises(ValueError):
 
             class MyAction(BaseAction):
                 PURPOSE = Purpose.COPY_SOURCE
 
     def test_must_validate_purpose_property(self):
-
         with self.assertRaises(ValueError):
 
             class MyAction(BaseAction):
