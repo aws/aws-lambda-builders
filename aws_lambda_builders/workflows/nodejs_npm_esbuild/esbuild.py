@@ -60,7 +60,6 @@ class SubprocessEsbuild(object):
             )
 
     def run(self, args, cwd=None):
-
         """
         Runs the action.
 

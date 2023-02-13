@@ -10,7 +10,6 @@ from aws_lambda_builders.registry import DEFAULT_REGISTRY
 
 
 class TesetLambdaBuilder_init(TestCase):
-
     DEFAULT_WORKFLOW_MODULE = "aws_lambda_builders.workflows"
 
     def setUp(self):
@@ -21,7 +20,6 @@ class TesetLambdaBuilder_init(TestCase):
     @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
     def test_must_load_all_default_workflows(self, get_workflow_mock, importlib_mock):
-
         # instantiate
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework)
 
@@ -40,7 +38,6 @@ class TesetLambdaBuilder_init(TestCase):
     @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
     def test_must_support_loading_custom_workflows(self, get_workflow_mock, importlib_mock):
-
         modules = ["a.b.c", "c.d", "e.f", "z.k"]
 
         # instantiate
@@ -54,7 +51,6 @@ class TesetLambdaBuilder_init(TestCase):
     @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
     def test_must_not_load_any_workflows(self, get_workflow_mock, importlib_mock):
-
         modules = []  # Load no modules
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=modules)
 

@@ -49,7 +49,6 @@ class SubProcessMake(object):
         self.make_exe = make_exe
 
     def run(self, args, env=None, cwd=None):
-
         """
         Runs the action.
 

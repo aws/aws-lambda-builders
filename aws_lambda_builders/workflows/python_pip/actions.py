@@ -11,7 +11,6 @@ from .packager import DependencyBuilder, PackagerError, PipRunner, PythonPipDepe
 
 
 class PythonPipBuildAction(BaseAction):
-
     NAME = "ResolveDependencies"
     DESCRIPTION = "Installing dependencies from PIP"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES

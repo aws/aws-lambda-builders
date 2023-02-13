@@ -13,7 +13,6 @@ class DotnetCliResolver(object):
 
     @property
     def exec_paths(self):
-
         # look for the windows executable
         paths = self.os_utils.which("dotnet.exe", executable_search_paths=self.executable_search_paths)
         if not paths:

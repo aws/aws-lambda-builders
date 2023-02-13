@@ -32,7 +32,6 @@ Capability = namedtuple("Capability", ["language", "dependency_manager", "applic
 
 
 class BuildMode(object):
-
     DEBUG = "debug"
     RELEASE = "release"
 
@@ -376,7 +375,6 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
                 raise WorkflowFailedError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))
             except Exception as ex:
-
                 LOG.debug("%s raised unhandled exception", action_info, exc_info=ex)
 
                 raise WorkflowUnknownError(workflow_name=self.NAME, action_name=action.NAME, reason=str(ex))

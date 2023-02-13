@@ -23,7 +23,6 @@ class DotnetCliPackageWorkflow(BaseWorkflow):
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.EXCLUSIVELY_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, mode=None, **kwargs):
-
         super(DotnetCliPackageWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, mode=mode, **kwargs
         )
