@@ -314,9 +314,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             source_dir="source", install_dir="scratch_dir", subprocess_npm=ANY, osutils=ANY, build_options=None
         )
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow._get_esbuild_subprocess")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.SubprocessNpm")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.OSUtils")
-    def test_manifest_not_found(self, osutils_mock, subprocess_npm_mock):
+    def test_manifest_not_found(self, osutils_mock, subprocess_npm_mock, get_esbuild_subprocess_mock):
         osutils_mock.file_exists.return_value = False
 
         workflow = NodejsNpmEsbuildWorkflow(
