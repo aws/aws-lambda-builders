@@ -463,3 +463,31 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_can_build_in_source_with_local_dependency(self, runtime):
+        self.source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-local-dependency")
+
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(self.source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            executable_search_paths=[self.binpath],
+            build_in_source=True,
+        )
+
+        # dependencies installed in source folder
+        self.assertIn("node_modules", os.listdir(self.source_dir))
+
+        # dependencies not in scratch
+        self.assertNotIn("node_modules", os.listdir(self.scratch_dir))
+
+        # bundle is in artifacts
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
