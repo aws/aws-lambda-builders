@@ -100,7 +100,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
                 CopyDependenciesAction if self.combine_dependencies else MoveDependenciesAction
             )
             self.actions.append(dependencies_dir_update_action(source_dir, artifacts_dir, self.dependencies_dir))
-        # otherwise if we want to use the dependencies from dependencies_dir and we want to combine them, 
+        # otherwise if we want to use the dependencies from dependencies_dir and we want to combine them,
         # then copy them into the artifacts dir
         elif self.combine_dependencies:
             self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
