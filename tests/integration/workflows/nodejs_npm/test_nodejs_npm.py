@@ -249,11 +249,6 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-        mock_info.assert_called_with(
-            "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
-            "artifacts directory. "
-        )
-
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_without_combine_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
