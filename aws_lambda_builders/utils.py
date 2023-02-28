@@ -14,7 +14,7 @@ from aws_lambda_builders.architecture import ARM64
 LOG = logging.getLogger(__name__)
 
 
-def copytree(source, destination, ignore=None, include=None):
+def copytree(source, destination, ignore=None, include=None, maintain_symlinks=False):
     """
     Similar to shutil.copytree except that it removes the limitation that the destination directory should
     be present.
@@ -74,8 +74,12 @@ def copytree(source, destination, ignore=None, include=None):
             LOG.debug("File (%s) doesn't satisfy the include rule, skipping it", name)
             continue
 
-        if os.path.isdir(new_source):
-            copytree(new_source, new_destination, ignore=ignore, include=include)
+        if os.path.islink(new_source) and maintain_symlinks:
+            linkto = os.readlink(new_source)
+            create_symlink_or_copy(linkto, new_destination)
+            shutil.copystat(new_source, new_destination, follow_symlinks=False)
+        elif os.path.isdir(new_source):
+            copytree(new_source, new_destination, ignore=ignore, include=include, maintain_symlinks=maintain_symlinks)
         else:
             LOG.debug("Copying source file (%s) to destination (%s)", new_source, new_destination)
             shutil.copy2(new_source, new_destination)
@@ -193,7 +197,8 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
         os.symlink(Path(source).absolute(), Path(destination).absolute())
     except OSError as ex:
         LOG.warning(
-            "Symlink operation is failed, falling back to copying files",
+            "Symbolic link creation failed, falling back to copying files instead. To optimize speed, "
+            "consider enabling the necessary settings or privileges on your system to support symbolic links.",
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
         copytree(source, destination)
