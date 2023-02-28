@@ -83,11 +83,13 @@ class TestCopyTree(TestCase):
 
         dest_symlink_file_path = os.path.join(self.dest, "symlinkfile.txt")
         self.assertTrue(os.path.islink(dest_symlink_file_path))
-        self.assertEqual(os.readlink(dest_symlink_file_path), source_target_file_path)
+        dest_symlink_file_target = read_link_without_junction_prefix(dest_symlink_file_path)
+        self.assertEqual(dest_symlink_file_target, source_target_file_path)
 
         dest_symlink_dir_path = os.path.join(self.dest, "symlinkdir")
         self.assertTrue(os.path.islink(dest_symlink_dir_path))
-        self.assertEqual(os.readlink(dest_symlink_dir_path), source_target_dir_path)
+        dest_symlink_dir_target = read_link_without_junction_prefix(dest_symlink_file_path)
+        self.assertEqual(dest_symlink_dir_target, source_target_file_path)
 
     def test_must_not_maintain_symlinks_by_default(self):
         # set up symlinked file and directory
@@ -143,3 +145,11 @@ def file(*args):
     open(path, "a").close()
 
     return path
+
+def read_link_without_junction_prefix(path: str):
+    # When our tests run on CI on Windows, it seems to use junctions, which causes symlink targets
+    # have a prefix. This function reads a symlink and returns the target without the prefix (if any).
+    target = os.readlink(path)
+    if target.startswith("\\\\?\\"): # \\?\, with escaped slashes
+        target = target[4:]
+    return target

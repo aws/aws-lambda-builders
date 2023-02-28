@@ -52,7 +52,8 @@ class TestCopyDependenciesAction(TestCase):
 
             destination_node_modules = os.path.join(destination_dir, "node_modules")
             self.assertTrue(os.path.islink(destination_node_modules))
-            self.assertEqual(os.readlink(destination_node_modules), source_node_modules)
+            destination_node_modules_target = read_link_without_junction_prefix(destination_node_modules)
+            self.assertEqual(destination_node_modules_target, source_node_modules)
 
     def test_must_not_maintain_symlinks_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -86,7 +87,8 @@ class TestLinkSinglePathAction(TestCase):
             link_action.execute()
 
             self.assertTrue(os.path.islink(dest_dir))
-            self.assertEqual(os.readlink(dest_dir), source_dir)
+            dest_dir_target = read_link_without_junction_prefix(dest_dir)
+            self.assertEqual(dest_dir_target, source_dir)
 
 
 class TestMoveDependenciesAction(TestCase):
@@ -114,3 +116,12 @@ class TestMoveDependenciesAction(TestCase):
             move_dependencies_action.execute()
 
             self.assertEqual(os.listdir(test_folder), os.listdir(target))
+
+
+def read_link_without_junction_prefix(path: str):
+    # When our tests run on CI on Windows, it seems to use junctions, which causes symlink targets
+    # have a prefix. This function reads a symlink and returns the target without the prefix (if any).
+    target = os.readlink(path)
+    if target.startswith("\\\\?\\"): # \\?\, with escaped slashes
+        target = target[4:]
+    return target
