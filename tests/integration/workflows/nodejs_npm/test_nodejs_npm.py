@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 import shutil
@@ -25,6 +26,11 @@ class TestNodejsNpmWorkflow(TestCase):
         self.scratch_dir = tempfile.mkdtemp()
         self.dependencies_dir = tempfile.mkdtemp()
 
+        # use this so tests don't modify actual testdata, and we can parallelize
+        self.temp_dir = tempfile.mkdtemp()
+        self.temp_testdata_dir = os.path.join(self.temp_dir, "testdata")
+        shutil.copytree(self.TEST_DATA_FOLDER, self.temp_testdata_dir)
+
         self.no_deps = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
 
         self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm", application_framework=None)
@@ -33,6 +39,7 @@ class TestNodejsNpmWorkflow(TestCase):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
         shutil.rmtree(self.dependencies_dir)
+        shutil.rmtree(self.temp_dir)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_project_without_dependencies(self, runtime):
@@ -275,3 +282,185 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_dependencies_files = {"node_modules"}
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_build_in_source_with_download_dependencies(self, runtime):
+        source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+        )
+
+        # dependencies installed in source folder
+        source_node_modules = os.path.join(source_dir, "node_modules")
+        self.assertTrue(os.path.isdir(source_node_modules))
+        expected_node_modules_contents = {"minimal-request-promise", ".package-lock.json"}
+        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+
+        # source dependencies are symlinked to artifacts dir
+        artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
+        self.assertTrue(os.path.islink(artifacts_node_modules))
+        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+
+        # expected output
+        expected_files = {"package.json", "included.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_build_in_source_with_download_dependencies_local_dependency(self, runtime):
+        source_dir = os.path.join(self.temp_testdata_dir, "with-local-dependency")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+        )
+
+        # dependencies installed in source folder
+        source_node_modules = os.path.join(source_dir, "node_modules")
+        self.assertTrue(os.path.isdir(source_node_modules))
+        expected_node_modules_contents = {"local-dependency", "minimal-request-promise", ".package-lock.json"}
+        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+
+        # source dependencies are symlinked to artifacts dir
+        artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
+        self.assertTrue(os.path.islink(artifacts_node_modules))
+        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+
+        # expected output
+        expected_files = {"package.json", "included.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_build_in_source_with_download_dependencies_and_dependencies_dir(self, runtime):
+        source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+        )
+
+        # dependencies installed in source folder
+        source_node_modules = os.path.join(source_dir, "node_modules")
+        self.assertTrue(os.path.isdir(source_node_modules))
+        expected_node_modules_contents = {"minimal-request-promise", ".package-lock.json"}
+        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+
+        # source dependencies are symlinked to artifacts dir
+        artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
+        self.assertTrue(os.path.islink(artifacts_node_modules))
+        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+
+        # source dependencies are symlinked to dependencies dir
+        dependencies_dir_node_modules = os.path.join(self.dependencies_dir, "node_modules")
+        self.assertTrue(os.path.islink(dependencies_dir_node_modules))
+        self.assertEqual(os.readlink(dependencies_dir_node_modules), source_node_modules)
+
+        # expected output
+        expected_files = {"package.json", "included.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_build_in_source_with_download_dependencies_and_dependencies_dir_without_combine_dependencies(
+        self, runtime
+    ):
+        source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+            combine_dependencies=False,
+        )
+
+        # dependencies installed in source folder
+        source_node_modules = os.path.join(source_dir, "node_modules")
+        self.assertTrue(os.path.isdir(source_node_modules))
+        expected_node_modules_contents = {"minimal-request-promise", ".package-lock.json"}
+        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+
+        # source dependencies are symlinked to dependencies dir
+        dependencies_dir_node_modules = os.path.join(self.dependencies_dir, "node_modules")
+        self.assertTrue(os.path.islink(dependencies_dir_node_modules))
+        self.assertEqual(os.readlink(dependencies_dir_node_modules), source_node_modules)
+
+        # expected output
+        expected_files = {"package.json", "included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_build_in_source_reuse_saved_dependencies_dir(self, runtime):
+        source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
+
+        # first build to save to dependencies_dir
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+        )
+
+        # cleanup artifacts_dir to make sure we use dependencies from dependencies_dir
+        for filename in os.listdir(self.artifacts_dir):
+            file_path = os.path.join(self.artifacts_dir, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.remove(file_path)
+            else:
+                shutil.rmtree(file_path)
+
+        # build again without downloading dependencies
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime="nodejs16.x",
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=False,
+        )
+
+        # dependencies installed in source folder
+        source_node_modules = os.path.join(source_dir, "node_modules")
+        self.assertTrue(os.path.isdir(source_node_modules))
+        expected_node_modules_contents = {"minimal-request-promise", ".package-lock.json"}
+        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+
+        # source dependencies are symlinked to artifacts dir
+        artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
+        self.assertTrue(os.path.islink(artifacts_node_modules))
+        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+
+        # source dependencies are symlinked to dependencies dir
+        dependencies_dir_node_modules = os.path.join(self.dependencies_dir, "node_modules")
+        self.assertTrue(os.path.islink(dependencies_dir_node_modules))
+        self.assertEqual(os.readlink(dependencies_dir_node_modules), source_node_modules)
+
+        # expected output
+        expected_files = {"package.json", "included.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
