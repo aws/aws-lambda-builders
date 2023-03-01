@@ -7,36 +7,40 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Union
+from typing import Callable, List, Optional, Set, Union
 
 from aws_lambda_builders.architecture import ARM64
 
 LOG = logging.getLogger(__name__)
 
 
-def copytree(source, destination, ignore=None, include=None, maintain_symlinks=False):
+def copytree(
+    source: str,
+    destination: str,
+    ignore: Optional[Callable[[str, List[str]], Set[str]]] = None,
+    include: Optional[Callable[[str], bool]] = None,
+    maintain_symlinks: bool = False,
+) -> None:
     """
     Similar to shutil.copytree except that it removes the limitation that the destination directory should
     be present.
 
-    :type source: str
-    :param source:
-        Path to the source folder to copy
-
-    :type destination: str
-    :param destination:
-        Path to destination folder
-
-    :type ignore: function
-    :param ignore:
+    Parameters
+    ----------
+    source : str
+        Path to the source folder to copy.
+    destination : str
+        Path to destination folder.
+    ignore : Optional[Callable[[str, List[str]], Set[str]]]
         A function that returns a set of file names to ignore, given a list of available file names. Similar to the
-        ``ignore`` property of ``shutils.copytree`` method
-
-    :type include: Callable[[str], bool]
-    :param include:
+        ``ignore`` property of ``shutils.copytree`` method. By default None.
+    include : Optional[Callable[[str], bool]]
         A function that will decide whether a file should be copied or skipped it. It accepts file name as parameter
         and return True or False. Returning True will continue copy operation, returning False will skip copy operation
-        for that file
+        for that file. By default None.
+    maintain_symlinks : bool, optional
+        If True, symbolic links in the source are represented as symbolic links in the destination.
+        If False, the contents are copied over. By default False.
     """
 
     if not os.path.exists(source):

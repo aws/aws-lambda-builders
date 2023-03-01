@@ -7,6 +7,7 @@ from parameterized import parameterized
 
 from aws_lambda_builders.actions import CopyDependenciesAction, LinkSinglePathAction, MoveDependenciesAction
 from aws_lambda_builders.utils import copytree
+from tests.testing_utils import read_link_without_junction_prefix
 
 
 class TestCopyDependenciesAction(TestCase):
@@ -116,12 +117,3 @@ class TestMoveDependenciesAction(TestCase):
             move_dependencies_action.execute()
 
             self.assertEqual(os.listdir(test_folder), os.listdir(target))
-
-
-def read_link_without_junction_prefix(path: str):
-    # When our tests run on CI on Windows, it seems to use junctions, which causes symlink targets
-    # have a prefix. This function reads a symlink and returns the target without the prefix (if any).
-    target = os.readlink(path)
-    if target.startswith("\\\\?\\"):  # \\?\, with escaped slashes
-        target = target[4:]
-    return target
