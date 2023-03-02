@@ -147,7 +147,7 @@ class LinkSourceAction(BaseAction):
 class LinkSinglePathAction(BaseAction):
     NAME = "LinkSource"
 
-    DESCRIPTION = "Creates symbolic link at dest, pointing to source"
+    DESCRIPTION = "Creates symbolic link at destination, pointing to source"
 
     PURPOSE = Purpose.LINK_SOURCE
 
