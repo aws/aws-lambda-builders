@@ -1,6 +1,6 @@
+import os
 from unittest import TestCase
 from unittest.mock import patch, call
-from parameterized import parameterized
 
 from aws_lambda_builders.actions import (
     CopySourceAction,
@@ -273,8 +273,8 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
         self.assertEqual(workflow.actions[3].install_dir, source_dir)
         self.assertIsInstance(workflow.actions[4], LinkSinglePathAction)
-        self.assertEqual(workflow.actions[4]._source, f"{source_dir}/node_modules")
-        self.assertEqual(workflow.actions[4]._dest, f"{artifacts_dir}/node_modules")
+        self.assertEqual(workflow.actions[4]._source, os.path.join(source_dir, "node_modules"))
+        self.assertEqual(workflow.actions[4]._dest, os.path.join(artifacts_dir, "node_modules"))
         self.assertIsInstance(workflow.actions[5], NodejsNpmrcCleanUpAction)
 
     def test_build_in_source_with_download_dependencies_and_dependencies_dir(self):
@@ -297,8 +297,8 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
         self.assertEqual(workflow.actions[3].install_dir, source_dir)
         self.assertIsInstance(workflow.actions[4], LinkSinglePathAction)
-        self.assertEqual(workflow.actions[4]._source, f"{source_dir}/node_modules")
-        self.assertEqual(workflow.actions[4]._dest, f"{artifacts_dir}/node_modules")
+        self.assertEqual(workflow.actions[4]._source, os.path.join(source_dir, "node_modules"))
+        self.assertEqual(workflow.actions[4]._dest, os.path.join(artifacts_dir, "node_modules"))
         self.assertIsInstance(workflow.actions[5], CleanUpAction)
         self.assertIsInstance(workflow.actions[6], CopyDependenciesAction)
         self.assertIsInstance(workflow.actions[7], NodejsNpmrcCleanUpAction)

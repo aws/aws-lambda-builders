@@ -9,6 +9,7 @@ from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from tests.testing_utils import read_link_without_junction_prefix
 
 logger = logging.getLogger("aws_lambda_builders.workflows.nodejs_npm.workflow")
 
@@ -304,7 +305,7 @@ class TestNodejsNpmWorkflow(TestCase):
         # source dependencies are symlinked to artifacts dir
         artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
         self.assertTrue(os.path.islink(artifacts_node_modules))
-        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+        self.assertEqual(read_link_without_junction_prefix(artifacts_node_modules), source_node_modules)
 
         # expected output
         expected_files = {"package.json", "included.js", "node_modules"}
@@ -333,7 +334,7 @@ class TestNodejsNpmWorkflow(TestCase):
         # source dependencies are symlinked to artifacts dir
         artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
         self.assertTrue(os.path.islink(artifacts_node_modules))
-        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+        self.assertEqual(read_link_without_junction_prefix(artifacts_node_modules), source_node_modules)
 
         # expected output
         expected_files = {"package.json", "included.js", "node_modules"}
@@ -363,12 +364,12 @@ class TestNodejsNpmWorkflow(TestCase):
         # source dependencies are symlinked to artifacts dir
         artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
         self.assertTrue(os.path.islink(artifacts_node_modules))
-        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+        self.assertEqual(read_link_without_junction_prefix(artifacts_node_modules), source_node_modules)
 
         # source dependencies are symlinked to dependencies dir
         dependencies_dir_node_modules = os.path.join(self.dependencies_dir, "node_modules")
         self.assertTrue(os.path.islink(dependencies_dir_node_modules))
-        self.assertEqual(os.readlink(dependencies_dir_node_modules), source_node_modules)
+        self.assertEqual(read_link_without_junction_prefix(dependencies_dir_node_modules), source_node_modules)
 
         # expected output
         expected_files = {"package.json", "included.js", "node_modules"}
@@ -401,7 +402,7 @@ class TestNodejsNpmWorkflow(TestCase):
         # source dependencies are symlinked to dependencies dir
         dependencies_dir_node_modules = os.path.join(self.dependencies_dir, "node_modules")
         self.assertTrue(os.path.islink(dependencies_dir_node_modules))
-        self.assertEqual(os.readlink(dependencies_dir_node_modules), source_node_modules)
+        self.assertEqual(read_link_without_junction_prefix(dependencies_dir_node_modules), source_node_modules)
 
         # expected output
         expected_files = {"package.json", "included.js"}
@@ -452,12 +453,12 @@ class TestNodejsNpmWorkflow(TestCase):
         # source dependencies are symlinked to artifacts dir
         artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
         self.assertTrue(os.path.islink(artifacts_node_modules))
-        self.assertEqual(os.readlink(artifacts_node_modules), source_node_modules)
+        self.assertEqual(read_link_without_junction_prefix(artifacts_node_modules), source_node_modules)
 
         # source dependencies are symlinked to dependencies dir
         dependencies_dir_node_modules = os.path.join(self.dependencies_dir, "node_modules")
         self.assertTrue(os.path.islink(dependencies_dir_node_modules))
-        self.assertEqual(os.readlink(dependencies_dir_node_modules), source_node_modules)
+        self.assertEqual(read_link_without_junction_prefix(dependencies_dir_node_modules), source_node_modules)
 
         # expected output
         expected_files = {"package.json", "included.js", "node_modules"}
