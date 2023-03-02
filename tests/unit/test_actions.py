@@ -60,7 +60,7 @@ class TestCopySourceAction_execute(TestCase):
         action = CopySourceAction(source_dir, dest_dir, excludes=excludes)
         action.execute()
 
-        copytree_mock.assert_called_with(source_dir, dest_dir, ignore=ANY)
+        copytree_mock.assert_called_with(source_dir, dest_dir, ignore=ANY, maintain_symlinks=False)
 
 
 class TestCopyDependenciesAction_execute(TestCase):
@@ -87,7 +87,7 @@ class TestCopyDependenciesAction_execute(TestCase):
 
         listdir_mock.assert_any_call(source_dir)
         listdir_mock.assert_any_call(artifact_dir)
-        copytree_mock.assert_called_once_with("dir1", "dir2")
+        copytree_mock.assert_called_once_with("dir1", "dir2", maintain_symlinks=False)
         copy2_mock.assert_called_once_with("file1", "file2")
         makedirs_mock.assert_called_once_with("parent_dir_1", exist_ok=True)
 
@@ -118,7 +118,7 @@ class TestCleanUpAction_execute(TestCase):
     @patch("aws_lambda_builders.actions.os.path.isdir")
     @patch("aws_lambda_builders.actions.os.listdir")
     @patch("aws_lambda_builders.actions.os.path.join")
-    def test_must_copy(self, path_mock, listdir_mock, isdir_mock, rmtree_mock, rm_mock):
+    def test_removes_directories_and_files(self, path_mock, listdir_mock, isdir_mock, rmtree_mock, rm_mock):
         target_dir = "target"
 
         listdir_mock.side_effect = [[1, 2]]
@@ -130,6 +130,23 @@ class TestCleanUpAction_execute(TestCase):
         listdir_mock.assert_any_call(target_dir)
         rmtree_mock.assert_any_call("dir")
         rm_mock.assert_any_call("file")
+
+    @patch("aws_lambda_builders.actions.os.unlink")
+    @patch("aws_lambda_builders.actions.os.path.islink")
+    @patch("aws_lambda_builders.actions.os.path.isdir")
+    @patch("aws_lambda_builders.actions.os.listdir")
+    @patch("aws_lambda_builders.actions.os.path.join")
+    def test_can_handle_symlinks(self, join_mock, listdir_mock, isdir_mock, islink_mock, unlink_mock):
+        target_dir = "target"
+
+        isdir_mock.side_effect = [True]
+        listdir_mock.side_effect = [["link"]]
+        join_mock.side_effect = ["target/link"]
+        islink_mock.side_effect = [True]
+        action = CleanUpAction(target_dir)
+        action.execute()
+
+        unlink_mock.assert_called_once_with("target/link")
 
 
 class TestDependencyManager(TestCase):
