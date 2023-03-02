@@ -3,11 +3,14 @@ NodeJS NPM Workflow
 """
 
 import logging
+import os
+from typing import Optional
 
 from aws_lambda_builders.actions import (
     CleanUpAction,
     CopyDependenciesAction,
     CopySourceAction,
+    LinkSinglePathAction,
     MoveDependenciesAction,
 )
 from aws_lambda_builders.path_resolver import PathResolver
@@ -43,7 +46,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
     CONFIG_PROPERTY = "aws_sam"
 
     DEFAULT_BUILD_DIR = BuildDirectory.ARTIFACTS
-    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
         super(NodejsNpmWorkflow, self).__init__(
@@ -52,6 +55,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         if osutils is None:
             osutils = OSUtils()
+        self.osutils = osutils
 
         if not osutils.file_exists(manifest_path):
             LOG.warning("package.json file not found. Continuing the build without dependencies.")
@@ -62,6 +66,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
+        # TODO: we should probably unpack straight into artifacts dir, rather than unpacking into tar_dest_dir and
+        # then copying into artifacts. Just make sure EXCLUDED_FILES are not included, or remove them.
         npm_pack = NodejsNpmPackAction(
             tar_dest_dir, scratch_dir, manifest_path, osutils=osutils, subprocess_npm=subprocess_npm
         )
@@ -75,39 +81,82 @@ class NodejsNpmWorkflow(BaseWorkflow):
         ]
 
         if self.download_dependencies:
-            # install the dependencies into artifact folder
             self.actions.append(
-                NodejsNpmWorkflow.get_install_action(source_dir, artifacts_dir, subprocess_npm, osutils, self.options)
+                NodejsNpmWorkflow.get_install_action(
+                    source_dir=source_dir,
+                    install_dir=self.build_dir,
+                    subprocess_npm=subprocess_npm,
+                    osutils=osutils,
+                    build_options=self.options,
+                    install_links=self.build_dir == self.source_dir,
+                )
             )
 
-        artifacts_cleanup_actions = [
-            NodejsNpmrcCleanUpAction(artifacts_dir, osutils=osutils),
-            NodejsNpmLockFileCleanUpAction(artifacts_dir, osutils=osutils),
-        ]
+        if self.download_dependencies and self.build_dir == self.source_dir:
+            self.actions += self._actions_for_linking_source_dependencies_to_artifacts
 
         # if no dependencies dir, just cleanup artifacts and we're done
         if not self.dependencies_dir:
-            self.actions += artifacts_cleanup_actions
+            self.actions += self._actions_for_cleanup
             return
 
         # if we downloaded dependencies, update dependencies_dir
         if self.download_dependencies:
-            # clean up the dependencies folder first
-            self.actions.append(CleanUpAction(self.dependencies_dir))
-            # if combine_dependencies is set, we should keep dependencies and source code in the artifact folder
-            # while copying the dependencies. Otherwise we should separate the dependencies and source code
-            dependencies_dir_update_action = (
-                CopyDependenciesAction if self.combine_dependencies else MoveDependenciesAction
-            )
-            self.actions.append(dependencies_dir_update_action(source_dir, artifacts_dir, self.dependencies_dir))
+            self.actions += self._actions_for_updating_dependencies_dir
         # otherwise if we want to use the dependencies from dependencies_dir and we want to combine them,
         # then copy them into the artifacts dir
         elif self.combine_dependencies:
-            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+            self.actions.append(
+                CopySourceAction(
+                    self.dependencies_dir, artifacts_dir, maintain_symlinks=self.build_dir == self.source_dir
+                )
+            )
 
-        # cleanup
-        self.actions += artifacts_cleanup_actions
-        self.actions.append(NodejsNpmLockFileCleanUpAction(self.dependencies_dir, osutils=osutils))
+        self.actions += self._actions_for_cleanup
+
+    @property
+    def _actions_for_cleanup(self):
+        actions = [NodejsNpmrcCleanUpAction(self.artifacts_dir, osutils=self.osutils)]
+
+        # we don't want to cleanup the lockfile in the source code's symlinked node_modules
+        if self.build_dir != self.source_dir:
+            actions.append(NodejsNpmLockFileCleanUpAction(self.artifacts_dir, osutils=self.osutils))
+        if self.build_dir != self.source_dir and self.dependencies_dir:
+            actions.append(NodejsNpmLockFileCleanUpAction(self.dependencies_dir, osutils=self.osutils))
+
+        return actions
+
+    @property
+    def _actions_for_linking_source_dependencies_to_artifacts(self):
+        source_dependencies_path = os.path.join(self.source_dir, "node_modules")
+        artifact_dependencies_path = os.path.join(self.artifacts_dir, "node_modules")
+        return [LinkSinglePathAction(source=source_dependencies_path, dest=artifact_dependencies_path)]
+
+    @property
+    def _actions_for_updating_dependencies_dir(self):
+        # clean up the dependencies folder first
+        actions = [CleanUpAction(self.dependencies_dir)]
+        # if combine_dependencies is set, we should keep dependencies and source code in the artifact folder
+        # while copying the dependencies. Otherwise we should separate the dependencies and source code
+        if self.combine_dependencies:
+            actions.append(
+                CopyDependenciesAction(
+                    source_dir=self.source_dir,
+                    artifact_dir=self.artifacts_dir,
+                    destination_dir=self.dependencies_dir,
+                    maintain_symlinks=self.build_dir == self.source_dir,
+                )
+            )
+        else:
+            actions.append(
+                MoveDependenciesAction(
+                    source_dir=self.source_dir,
+                    artifact_dir=self.artifacts_dir,
+                    destination_dir=self.dependencies_dir,
+                )
+            )
+
+        return actions
 
     def get_resolvers(self):
         """
@@ -116,30 +165,36 @@ class NodejsNpmWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     @staticmethod
-    def get_install_action(source_dir, install_dir, subprocess_npm, osutils, build_options):
+    def get_install_action(
+        source_dir: str,
+        install_dir: str,
+        subprocess_npm: SubprocessNpm,
+        osutils: OSUtils,
+        build_options: Optional[dict],
+        install_links: Optional[bool] = False,
+    ):
         """
-        Get the install action used to install dependencies at artifacts_dir
+        Get the install action used to install dependencies.
 
-        :type source_dir: str
-        :param source_dir: an existing (readable) directory containing source files
+        Parameters
+        ----------
+        source_dir : str
+            an existing (readable) directory containing source files
+        install_dir : str
+            Dependencies will be installed in this directory
+        subprocess_npm : SubprocessNpm
+            An instance of the NPM process wrapper
+        osutils : OSUtils
+            An instance of OS Utilities for file manipulation
+        build_options : Optional[dict]
+            Object containing build options configurations
+        install_links : Optional[bool]
+            Uses the --install-links npm option if True, by default False
 
-        :type install_dir: str
-        :param install_dir: Dependencies will be installed in this directory.
-
-        :type osutils: aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
-        :param osutils: An instance of OS Utilities for file manipulation
-
-        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
-        :param subprocess_npm: An instance of the NPM process wrapper
-
-        :type build_options: Dict
-        :param build_options: Object containing build options configurations
-
-        :type is_production: bool
-        :param is_production: NPM installation mode is production (eg --production=false to force dev dependencies)
-
-        :rtype: BaseAction
-        :return: Install action to use
+        Returns
+        -------
+        BaseAction
+            Install action to use
         """
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
@@ -149,6 +204,10 @@ class NodejsNpmWorkflow(BaseWorkflow):
             npm_ci_option = build_options.get("use_npm_ci", False)
 
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
-            return NodejsNpmCIAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
+            return NodejsNpmCIAction(
+                install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
+            )
 
-        return NodejsNpmInstallAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
+        return NodejsNpmInstallAction(
+            install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
+        )
