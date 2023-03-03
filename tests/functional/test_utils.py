@@ -7,6 +7,7 @@ from tarfile import ExtractError
 from unittest import TestCase
 
 from aws_lambda_builders.utils import copytree, get_goarch, extract_tarfile
+from tests.testing_utils import read_link_without_junction_prefix
 
 
 class TestCopyTree(TestCase):
@@ -64,6 +65,58 @@ class TestCopyTree(TestCase):
         self.assertEqual(get_goarch("x86_64"), "amd64")
         self.assertEqual(get_goarch(""), "amd64")
 
+    def test_must_maintain_symlinks_if_enabled(self):
+        # set up symlinked file and directory
+        source_target_file_path = file(self.source, "targetfile.txt")
+        source_symlink_file_path = os.path.join(self.source, "symlinkfile.txt")
+        os.symlink(source_target_file_path, source_symlink_file_path)
+
+        source_target_dir_path = os.path.join(self.source, "targetdir")
+        os.makedirs(source_target_dir_path)
+        source_symlink_dir_path = os.path.join(self.source, "symlinkdir")
+        os.symlink(source_target_dir_path, source_symlink_dir_path)
+
+        # call copytree
+        copytree(self.source, self.dest, maintain_symlinks=True)
+
+        # assert
+        self.assertEqual(set(os.listdir(self.dest)), {"targetfile.txt", "symlinkfile.txt", "targetdir", "symlinkdir"})
+
+        dest_symlink_file_path = os.path.join(self.dest, "symlinkfile.txt")
+        self.assertTrue(os.path.islink(dest_symlink_file_path))
+        dest_symlink_file_target = read_link_without_junction_prefix(dest_symlink_file_path)
+        self.assertEqual(dest_symlink_file_target, source_target_file_path)
+
+        dest_symlink_dir_path = os.path.join(self.dest, "symlinkdir")
+        self.assertTrue(os.path.islink(dest_symlink_dir_path))
+        dest_symlink_dir_target = read_link_without_junction_prefix(dest_symlink_file_path)
+        self.assertEqual(dest_symlink_dir_target, source_target_file_path)
+
+    def test_must_not_maintain_symlinks_by_default(self):
+        # set up symlinked file and directory
+        source_target_file_path = file(self.source, "targetfile.txt")
+        source_symlink_file_path = os.path.join(self.source, "symlinkfile.txt")
+        os.symlink(source_target_file_path, source_symlink_file_path)
+
+        source_target_dir_path = os.path.join(self.source, "targetdir")
+        os.makedirs(source_target_dir_path)
+        file(source_target_dir_path, "file_in_dir.txt")
+        source_symlink_dir_path = os.path.join(self.source, "symlinkdir")
+        os.symlink(source_target_dir_path, source_symlink_dir_path)
+
+        # call copytree
+        copytree(self.source, self.dest)
+
+        # assert
+        self.assertEqual(set(os.listdir(self.dest)), {"targetfile.txt", "symlinkfile.txt", "targetdir", "symlinkdir"})
+
+        dest_symlink_file_path = os.path.join(self.dest, "symlinkfile.txt")
+        self.assertFalse(os.path.islink(dest_symlink_file_path))
+
+        dest_symlink_dir_path = os.path.join(self.dest, "symlinkdir")
+        self.assertFalse(os.path.islink(dest_symlink_dir_path))
+        self.assertEqual(os.listdir(dest_symlink_dir_path), os.listdir(source_target_dir_path))
+
 
 class TestExtractTarFile(TestCase):
     def test_extract_tarfile_unpacks_a_tar(self):
@@ -91,3 +144,5 @@ def file(*args):
 
     # empty file
     open(path, "a").close()
+
+    return path
