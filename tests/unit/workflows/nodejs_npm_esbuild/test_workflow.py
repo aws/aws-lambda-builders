@@ -304,7 +304,12 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
         get_workflow_mock.get_install_action.assert_called_with(
-            source_dir="source", install_dir="scratch_dir", subprocess_npm=ANY, osutils=ANY, build_options=None
+            source_dir="source",
+            install_dir="scratch_dir",
+            subprocess_npm=ANY,
+            osutils=ANY,
+            build_options=None,
+            install_links=False,
         )
 
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow._get_esbuild_subprocess")

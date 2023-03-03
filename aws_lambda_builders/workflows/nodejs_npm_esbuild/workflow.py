@@ -92,6 +92,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     subprocess_npm=self.subprocess_npm,
                     osutils=self.osutils,
                     build_options=self.options,
+                    install_links=self.build_dir == self.source_dir,
                 )
             )
 
