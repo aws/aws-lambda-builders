@@ -52,13 +52,12 @@ class RubyBundlerWorkflow(BaseWorkflow):
                 # clean up the dependencies first
                 self.actions.append(CleanUpAction(self.dependencies_dir))
                 self.actions.append(CopyDependenciesAction(source_dir, artifacts_dir, self.dependencies_dir))
-        else:
+        elif self.dependencies_dir:
             # if dependencies folder exists and not download dependencies, simply copy the dependencies from the
             # dependencies folder to artifact folder
-            if self.dependencies_dir:
-                self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
-            else:
-                LOG.info(
-                    "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
-                    "artifacts directory. "
-                )
+            self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+        else:
+            LOG.info(
+                "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
+                "artifacts directory. "
+            )
