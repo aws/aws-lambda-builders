@@ -266,8 +266,8 @@ class DependencyBuilder(object):
             # actually being specified, but those aren't common
             # cases.
             for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
+                stripped_line = line.strip()
+                if stripped_line and not stripped_line.startswith("#"):
                     return True
         return False
 
@@ -296,11 +296,10 @@ class DependencyBuilder(object):
         for package in deps:
             if package.dist_type == "sdist":
                 sdists.add(package)
+            elif self._is_compatible_wheel_filename(package.filename):
+                compatible_wheels.add(package)
             else:
-                if self._is_compatible_wheel_filename(package.filename):
-                    compatible_wheels.add(package)
-                else:
-                    incompatible_wheels.add(package)
+                incompatible_wheels.add(package)
         LOG.debug("initial compatible: %s", compatible_wheels)
         LOG.debug("initial incompatible: %s", incompatible_wheels | sdists)
 
