@@ -226,7 +226,7 @@ class TestEsbuildCommandBuilder(TestCase):
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
     def test_combined_builder_with_dependencies(self, osutils_mock):
-        bundler_config = {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"], "format": "esm"}
+        bundler_config = {"entry_points": ["x.js"], "loader": [".proto=text", ".json=js"], "format": "esm", "banner": ["js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\""]}
         args = (
             EsbuildCommandBuilder("scratch", "artifacts", bundler_config, osutils_mock, "")
             .build_entry_points()
@@ -246,6 +246,7 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--format=esm",
                 "--loader:.proto=text",
                 "--loader:.json=js",
+                "--banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
             ],
         )
 

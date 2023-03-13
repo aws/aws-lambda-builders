@@ -120,6 +120,7 @@ SUPPORTED_ESBUILD_APIS_MULTI_VALUE = [
     "external",
     "loader",
     "out_extension",
+    "banner"
 ]
 
 
