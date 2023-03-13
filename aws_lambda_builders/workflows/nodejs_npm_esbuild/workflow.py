@@ -5,8 +5,10 @@ NodeJS NPM Workflow using the esbuild bundler
 import json
 import logging
 from pathlib import Path
+from typing import List
 
 from aws_lambda_builders.actions import (
+    BaseAction,
     CleanUpAction,
     CopySourceAction,
     LinkSourceAction,
@@ -78,13 +80,15 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             )
 
         # if we're building in the source directory, we don't have to copy the source code
-        self.actions = (
+        self.actions: List[BaseAction] = (
             []
             if self.build_dir == self.source_dir
             else [CopySourceAction(source_dir=self.source_dir, dest_dir=self.build_dir, excludes=self.EXCLUDED_FILES)]
         )
 
         if self.download_dependencies:
+            # Manifest is different from the one in the project directory
+            specify_manifest = str(Path(manifest_path).parent) != source_dir
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
@@ -93,6 +97,8 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     osutils=self.osutils,
                     build_options=self.options,
                     install_links=self.build_dir == self.source_dir,
+                    manifest_path=self.manifest_path,
+                    specify_manifest=specify_manifest,
                 )
             )
 

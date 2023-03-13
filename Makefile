@@ -31,3 +31,6 @@ black-check:
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
+
+format: black
+	ruff aws_lambda_builders --fix

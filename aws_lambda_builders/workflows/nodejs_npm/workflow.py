@@ -172,6 +172,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
         osutils: OSUtils,
         build_options: Optional[dict],
         install_links: Optional[bool] = False,
+        manifest_path: Optional[str] = None,
+        specify_manifest: Optional[bool] = False,
     ):
         """
         Get the install action used to install dependencies.
@@ -190,6 +192,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
             Object containing build options configurations
         install_links : Optional[bool]
             Uses the --install-links npm option if True, by default False
+        manifest_path: Optional[str]
+            Path to the manifest file
 
         Returns
         -------
@@ -209,5 +213,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
             )
 
         return NodejsNpmInstallAction(
-            install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
+            install_dir=install_dir,
+            subprocess_npm=subprocess_npm,
+            install_links=install_links,
+            manifest_path=manifest_path,
+            specify_manifest=specify_manifest,
         )

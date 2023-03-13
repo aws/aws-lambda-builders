@@ -491,3 +491,24 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_manifest_separate_directory(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-manifest-outside-root")
+
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package_dir", "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)

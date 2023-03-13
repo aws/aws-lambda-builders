@@ -3,6 +3,7 @@ Action to resolve NodeJS dependencies using NPM
 """
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
@@ -83,7 +84,14 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, install_links: Optional[bool] = False):
+    def __init__(
+        self,
+        install_dir: str,
+        subprocess_npm: SubprocessNpm,
+        install_links: Optional[bool] = False,
+        manifest_path: Optional[str] = None,
+        specify_manifest: Optional[bool] = False,
+    ):
         """
         Parameters
         ----------
@@ -98,7 +106,9 @@ class NodejsNpmInstallAction(BaseAction):
         super(NodejsNpmInstallAction, self).__init__()
         self.install_dir = install_dir
         self.subprocess_npm = subprocess_npm
+        self.manifest_path = manifest_path
         self.install_links = install_links
+        self.specify_manifest = specify_manifest
 
     def execute(self):
         """
@@ -106,15 +116,18 @@ class NodejsNpmInstallAction(BaseAction):
 
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
+        LOG.debug("NODEJS installing in: %s", self.install_dir)
+
+        command = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"]
+
+        if self.install_links:
+            command.append("--install-links")
+
+        if self.specify_manifest and self.manifest_path:
+            command.append(str(Path(self.manifest_path).parent))
+
         try:
-            LOG.debug("NODEJS installing in: %s", self.install_dir)
-
-            command = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"]
-            if self.install_links:
-                command.append("--install-links")
-
             self.subprocess_npm.run(command, cwd=self.install_dir)
-
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
 

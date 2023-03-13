@@ -310,6 +310,8 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             osutils=ANY,
             build_options=None,
             install_links=False,
+            manifest_path="manifest",
+            specify_manifest=True,
         )
 
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow._get_esbuild_subprocess")
