@@ -116,12 +116,7 @@ SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
 ]
 
 # Multi-value types (--external:axios --external:aws-sdk)
-SUPPORTED_ESBUILD_APIS_MULTI_VALUE = [
-    "external",
-    "loader",
-    "out_extension",
-    "banner"
-]
+SUPPORTED_ESBUILD_APIS_MULTI_VALUE = ["external", "loader", "out_extension", "banner"]
 
 
 class EsbuildCommandBuilder:
