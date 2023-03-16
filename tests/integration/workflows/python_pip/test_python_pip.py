@@ -18,7 +18,7 @@ from aws_lambda_builders.workflows.python_pip.utils import EXPERIMENTAL_FLAG_BUI
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
 NOT_ARM = platform.processor() != "aarch64"
-ARM_RUNTIMES = {"python3.8", "python3.9"}
+ARM_RUNTIMES = {"python3.8", "python3.9", "python3.10"}
 
 
 @parameterized_class(("experimental_flags",), [([]), ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE])])
@@ -61,6 +61,7 @@ class TestPythonPipWorkflow(TestCase):
             "python3.7": "python3.8",
             "python3.8": "python3.9",
             "python3.9": "python3.7",
+            "python3.10": "python3.9",
         }
 
     def tearDown(self):
@@ -96,6 +97,9 @@ class TestPythonPipWorkflow(TestCase):
         if self.runtime == "python3.6":
             self.check_architecture_in("numpy-1.17.4.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.17.4.dist-info"})
+        elif self.runtime == "python3.10":
+            self.check_architecture_in("numpy-1.23.5.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.23.5.dist-info", "numpy.libs"})
         else:
             self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
