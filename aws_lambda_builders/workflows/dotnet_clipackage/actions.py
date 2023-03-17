@@ -2,15 +2,16 @@
 Actions for .NET dependency resolution with CLI Package
 """
 
-import threading
-import os
 import logging
+import os
+import threading
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
-from aws_lambda_builders.workflow import BuildMode
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import ARM64
-from .utils import OSUtils
+from aws_lambda_builders.workflow import BuildMode
+
 from .dotnetcli import DotnetCLIExecutionError
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class GlobalToolInstallAction(BaseAction):
                 LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
                 self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
                 GlobalToolInstallAction.__tools_installed = True
-            except DotnetCLIExecutionError as ex:
+            except DotnetCLIExecutionError:
                 LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
                 try:
                     self.subprocess_dotnet.run(

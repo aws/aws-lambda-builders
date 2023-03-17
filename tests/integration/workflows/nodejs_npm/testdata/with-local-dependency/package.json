@@ -1,0 +1,13 @@
+{
+  "name": "with-local-dependency",
+  "version": "1.0.0",
+  "description": "",
+  "files": ["included.js"],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "main": "included.js",
+  "dependencies": {
+    "local-dependency": "file:../npm-deps"
+  }
+}

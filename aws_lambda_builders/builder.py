@@ -3,11 +3,11 @@ Entrypoint for the AWS Lambda Builder library
 """
 
 import importlib
-import os
 import logging
+import os
 
-from aws_lambda_builders.architecture import X86_64, ARM64
-from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
+from aws_lambda_builders.architecture import X86_64
+from aws_lambda_builders.registry import DEFAULT_REGISTRY, get_workflow
 from aws_lambda_builders.workflow import Capability
 
 LOG = logging.getLogger(__name__)
@@ -21,7 +21,6 @@ class LambdaBuilder(object):
     """
 
     def __init__(self, language, dependency_manager, application_framework, supported_workflows=None):
-
         """
         Initialize the builder.
         :type supported_workflows: list
@@ -71,6 +70,7 @@ class LambdaBuilder(object):
         architecture=X86_64,
         is_building_layer=False,
         experimental_flags=None,
+        build_in_source=None,
     ):
         # pylint: disable-msg=too-many-locals
         """
@@ -138,6 +138,11 @@ class LambdaBuilder(object):
         :type experimental_flags: list
         :param experimental_flags:
             List of strings, which will indicate enabled experimental flags for the current build session
+
+        :type build_in_source: Optional[bool]
+        :param build_in_source:
+            Optional, will execute the build operation in the source directory if True.
+
         """
 
         if not os.path.exists(scratch_dir):
@@ -159,6 +164,7 @@ class LambdaBuilder(object):
             architecture=architecture,
             is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
+            build_in_source=build_in_source,
         )
 
         return workflow.run()

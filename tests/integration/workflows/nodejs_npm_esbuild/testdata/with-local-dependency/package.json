@@ -1,0 +1,15 @@
+{
+  "name": "with-local-dependency",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "main": "included.js",
+  "dependencies": {
+    "local-dependency": "file:../no-deps-esbuild"
+  },
+  "devDependencies": {
+    "esbuild": "^0.11.23"
+  }
+}

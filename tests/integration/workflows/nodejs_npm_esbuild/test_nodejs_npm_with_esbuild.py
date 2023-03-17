@@ -1,9 +1,9 @@
+import json
 import os
 import shutil
 import tempfile
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -21,6 +21,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
 
     def setUp(self):
+        self.source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.dependencies_dir = tempfile.mkdtemp()
@@ -32,13 +33,18 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def _set_esbuild_binary_path(self):
         npm = SubprocessNpm(self.osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
-        npm.run(["ci"], cwd=esbuild_dir)
+        npm.run(["install"], cwd=esbuild_dir)
         self.root_path = npm.run(["root"], cwd=esbuild_dir)
         self.binpath = Path(self.root_path, ".bin")
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
+
+        # clean up dependencies that were installed in source dir
+        source_dependencies = os.path.join(self.source_dir, "node_modules")
+        if os.path.exists(source_dependencies):
+            shutil.rmtree(source_dependencies)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
     def test_builds_javascript_project_with_dependencies(self, runtime):
@@ -169,7 +175,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         osutils = OSUtils()
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
-        npm.run(["ci"], cwd=esbuild_dir)
+        npm.run(["install"], cwd=esbuild_dir)
         binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
@@ -195,7 +201,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         osutils = OSUtils()
         npm = SubprocessNpm(osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
-        npm.run(["ci"], cwd=esbuild_dir)
+        npm.run(["install"], cwd=esbuild_dir)
         binpath = Path(npm.run(["root"], cwd=esbuild_dir), ".bin")
 
         self.builder.build(
@@ -266,8 +272,8 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.assertEqual(
             str(context.exception),
-            "Esbuild Failed: Lambda Builders encountered an invalid workflow. A"
-            " workflow can't include a dependencies directory without installing dependencies.",
+            "Esbuild Failed: Lambda Builders was unable to find the location of the dependencies since a "
+            "dependencies directory was not provided and downloading dependencies is disabled.",
         )
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
@@ -386,5 +392,102 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         )
 
         expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_produces_mjs_output_files(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+        options = {"entry_points": ["included.js"], "sourcemap": True, "out_extension": [".js=.mjs"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.mjs", "included.mjs.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_produces_sourcemap_without_source_contents(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+        options = {"entry_points": ["included.js"], "sourcemap": True, "sources_content": "false"}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.js", "included.js.map"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        with open(Path(self.artifacts_dir, "included.js.map")) as f:
+            sourcemap = json.load(f)
+        self.assertNotIn("sourcesContent", sourcemap)
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_can_build_in_source(self, runtime):
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(self.source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            executable_search_paths=[self.binpath],
+            build_in_source=True,
+        )
+
+        # dependencies installed in source folder
+        self.assertIn("node_modules", os.listdir(self.source_dir))
+
+        # dependencies not in scratch
+        self.assertNotIn("node_modules", os.listdir(self.scratch_dir))
+
+        # bundle is in artifacts
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_esbuild_can_build_in_source_with_local_dependency(self, runtime):
+        self.source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-local-dependency")
+
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(self.source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            executable_search_paths=[self.binpath],
+            build_in_source=True,
+        )
+
+        # dependencies installed in source folder
+        self.assertIn("node_modules", os.listdir(self.source_dir))
+
+        # dependencies not in scratch
+        self.assertNotIn("node_modules", os.listdir(self.scratch_dir))
+
+        # bundle is in artifacts
+        expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)

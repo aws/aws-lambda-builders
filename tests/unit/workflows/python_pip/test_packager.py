@@ -1,8 +1,7 @@
 import sys
 from collections import namedtuple
-from unittest import TestCase
+from unittest import TestCase, mock
 
-import mock
 import pytest
 
 from aws_lambda_builders.architecture import ARM64, X86_64
@@ -90,9 +89,6 @@ class FakePopenOSUtils(OSUtils):
 
 
 class TestGetLambdaAbi(object):
-    def test_get_lambda_abi_python36(self):
-        assert "cp36m" == get_lambda_abi("python3.6")
-
     def test_get_lambda_abi_python37(self):
         assert "cp37m" == get_lambda_abi("python3.7")
 
@@ -160,7 +156,7 @@ class TestPackage(object):
 
     def test_pkg_is_eq_to_similar_pkg(self):
         pure_pkg = Package("", "foobar-1.0-py3-none-any.whl")
-        plat_pkg = Package("", "foobar-1.0-py3-py36m-manylinux1_x86_64.whl")
+        plat_pkg = Package("", "foobar-1.0-py3-py39-manylinux1_x86_64.whl")
         assert pure_pkg == plat_pkg
 
     def test_pkg_is_not_equal_to_different_type(self):

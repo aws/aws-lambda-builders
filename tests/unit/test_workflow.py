@@ -1,17 +1,15 @@
 import os
 import sys
 from unittest import TestCase
+from unittest.mock import Mock, MagicMock, call
 
-from mock import Mock, MagicMock, call
+from parameterized import parameterized
 
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.validator import RuntimeValidator
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.registry import get_workflow, DEFAULT_REGISTRY
 from aws_lambda_builders.exceptions import (
     WorkflowFailedError,
@@ -24,7 +22,6 @@ from aws_lambda_builders.actions import ActionFailedError
 
 
 class TestRegisteringWorkflows(TestCase):
-
     CAPABILITY1 = Capability(language="test", dependency_manager="testframework", application_framework="appframework")
 
     CAPABILITY2 = Capability(
@@ -35,11 +32,12 @@ class TestRegisteringWorkflows(TestCase):
         DEFAULT_REGISTRY.clear()
 
     def test_must_register_one_workflow(self):
-
         # Just loading the classes will register them to default registry
         class TestWorkflow(BaseWorkflow):
             NAME = "TestWorkflow"
             CAPABILITY = self.CAPABILITY1
+            DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+            BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         result_cls = get_workflow(self.CAPABILITY1)
         self.assertEqual(len(DEFAULT_REGISTRY), 1)
@@ -49,45 +47,86 @@ class TestRegisteringWorkflows(TestCase):
         class TestWorkflow1(BaseWorkflow):
             NAME = "TestWorkflow"
             CAPABILITY = self.CAPABILITY1
+            DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+            BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         class TestWorkflow2(BaseWorkflow):
             NAME = "TestWorkflow2"
             CAPABILITY = self.CAPABILITY2
+            DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+            BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         self.assertEqual(len(DEFAULT_REGISTRY), 2)
         self.assertEqual(get_workflow(self.CAPABILITY1), TestWorkflow1)
         self.assertEqual(get_workflow(self.CAPABILITY2), TestWorkflow2)
 
     def test_must_fail_if_name_not_present(self):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):
                 CAPABILITY = self.CAPABILITY1
+                DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+                BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         self.assertEqual(len(DEFAULT_REGISTRY), 0)
         self.assertEqual(str(ctx.exception), "Workflow must provide a valid name")
 
     def test_must_fail_if_capabilities_not_present(self):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
+                DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+                BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         self.assertEqual(len(DEFAULT_REGISTRY), 0)
         self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
 
     def test_must_fail_if_capabilities_is_wrong_type(self):
-
         with self.assertRaises(ValueError) as ctx:
 
             class TestWorkflow1(BaseWorkflow):
                 NAME = "somename"
                 CAPABILITY = "wrong data type"
+                DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+                BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
         self.assertEqual(len(DEFAULT_REGISTRY), 0)
         self.assertEqual(str(ctx.exception), "Workflow 'somename' must register valid capabilities")
+
+    @parameterized.expand(
+        [
+            (None,),  # support not defined
+            (False,),  # support not instance of enum
+        ]
+    )
+    def test_must_fail_if_build_in_source_support_invalid(self, build_in_source_support):
+        with self.assertRaises(ValueError) as ctx:
+
+            class TestWorkflow1(BaseWorkflow):
+                NAME = "somename"
+                CAPABILITY = self.CAPABILITY1
+                DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+                BUILD_IN_SOURCE_SUPPORT = build_in_source_support
+
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
+
+    @parameterized.expand(
+        [
+            (None,),  # default build dir not defined
+            ("some_dir",),  # default build dir not instance of enum
+        ]
+    )
+    def test_must_fail_if_default_build_dir_invalid(self, default_build_dir):
+        with self.assertRaises(ValueError) as ctx:
+
+            class TestWorkflow1(BaseWorkflow):
+                NAME = "somename"
+                CAPABILITY = self.CAPABILITY1
+                DEFAULT_BUILD_DIR = default_build_dir
+                BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
+
+        self.assertEqual(len(DEFAULT_REGISTRY), 0)
 
 
 class TestBaseWorkflow_init(TestCase):
@@ -97,6 +136,8 @@ class TestBaseWorkflow_init(TestCase):
         CAPABILITY = Capability(
             language="test", dependency_manager="testframework", application_framework="appframework"
         )
+        DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+        BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def test_must_initialize_variables(self):
         self.work = self.MyWorkflow(
@@ -128,6 +169,8 @@ class TestBaseWorkflow_is_supported(TestCase):
         CAPABILITY = Capability(
             language="test", dependency_manager="testframework", application_framework="appframework"
         )
+        DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+        BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def setUp(self):
         self.work = self.MyWorkflow(
@@ -174,6 +217,8 @@ class TestBaseWorkflow_run(TestCase):
         CAPABILITY = Capability(
             language="test", dependency_manager="testframework", application_framework="appframework"
         )
+        DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+        BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def setUp(self):
         self.work = self.MyWorkflow(
@@ -359,6 +404,8 @@ class TestBaseWorkflow_repr(TestCase):
         CAPABILITY = Capability(
             language="test", dependency_manager="testframework", application_framework="appframework"
         )
+        DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+        BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def setUp(self):
         self.action1 = Mock()
@@ -394,3 +441,109 @@ Actions=
 \tName=Action3, Purpose=COMPILE_SOURCE, Description=Compiles code"""
 
         self.assertEqual(result, expected)
+
+
+class TestBaseWorkflow_build_in_source(TestCase):
+    def test_must_use_source_directory_if_building_in_source(self):
+        class MyWorkflow(BaseWorkflow):
+            __TESTING__ = True
+            NAME = "MyWorkflow"
+            CAPABILITY = Capability(
+                language="test", dependency_manager="testframework", application_framework="appframework"
+            )
+            DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+            BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
+
+        source_dir = "source_dir"
+
+        self.work = MyWorkflow(
+            source_dir,
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[str(sys.executable)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+            build_in_source=True,
+        )
+
+        self.assertEqual(self.work.build_dir, source_dir)
+
+    @parameterized.expand(
+        [
+            (BuildDirectory.SCRATCH, "scratch_dir"),
+            (BuildDirectory.SOURCE, "source_dir"),
+            (BuildDirectory.ARTIFACTS, "artifacts_dir"),
+        ]
+    )
+    def test_must_use_correct_default_value(self, default_build_dir, expected_build_dir):
+        class MyWorkflow(BaseWorkflow):
+            __TESTING__ = True
+            NAME = "MyWorkflow"
+            CAPABILITY = Capability(
+                language="test", dependency_manager="testframework", application_framework="appframework"
+            )
+            DEFAULT_BUILD_DIR = default_build_dir
+            BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
+
+        self.work = MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[str(sys.executable)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+        )
+
+        self.assertEqual(self.work.build_dir, expected_build_dir)
+
+    @parameterized.expand(
+        [
+            (
+                True,
+                BuildInSourceSupport.NOT_SUPPORTED,
+                BuildDirectory.SCRATCH,
+                "scratch_dir",
+            ),  # want to build in source but it's not supported
+            (
+                False,
+                BuildInSourceSupport.EXCLUSIVELY_SUPPORTED,
+                BuildDirectory.SOURCE,
+                "source_dir",
+            ),  # don't want to build in source but workflow requires it
+            (
+                "unsupported",
+                BuildInSourceSupport.OPTIONALLY_SUPPORTED,
+                BuildDirectory.ARTIFACTS,
+                "artifacts_dir",
+            ),  # unsupported value passed in
+        ]
+    )
+    def test_must_use_default_if_unsupported_value_is_provided(
+        self, build_in_source_value, build_in_source_support, default_build_dir, expected_build_dir
+    ):
+        class MyWorkflow(BaseWorkflow):
+            __TESTING__ = True
+            NAME = "MyWorkflow"
+            CAPABILITY = Capability(
+                language="test", dependency_manager="testframework", application_framework="appframework"
+            )
+            DEFAULT_BUILD_DIR = default_build_dir
+            BUILD_IN_SOURCE_SUPPORT = build_in_source_support
+
+        self.work = MyWorkflow(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="runtime",
+            executable_search_paths=[str(sys.executable)],
+            optimizations={"a": "b"},
+            options={"c": "d"},
+            build_in_source=build_in_source_value,
+        )
+
+        self.assertEqual(self.work.build_dir, expected_build_dir)

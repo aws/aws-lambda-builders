@@ -3,10 +3,10 @@ Python PIP Workflow
 """
 import logging
 
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction
-from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
+from aws_lambda_builders.actions import CleanUpAction, CopySourceAction, LinkSourceAction
 from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
+from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
 from .actions import PythonPipBuildAction
 from .utils import OSUtils, is_experimental_build_improvements_enabled
@@ -15,7 +15,6 @@ LOG = logging.getLogger(__name__)
 
 
 class PythonPipWorkflow(BaseWorkflow):
-
     NAME = "PythonPipBuilder"
 
     CAPABILITY = Capability(language="python", dependency_manager="pip", application_framework=None)
@@ -67,8 +66,10 @@ class PythonPipWorkflow(BaseWorkflow):
 
     PYTHON_VERSION_THREE = "3"
 
-    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
+    DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
+    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
         super(PythonPipWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )

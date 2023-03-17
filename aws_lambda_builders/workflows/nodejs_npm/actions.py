@@ -3,10 +3,12 @@ Action to resolve NodeJS dependencies using NPM
 """
 
 import logging
+from typing import Optional
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.utils import extract_tarfile
-from .npm import NpmExecutionError
+
+from .npm import NpmExecutionError, SubprocessNpm
 
 LOG = logging.getLogger(__name__)
 
@@ -81,22 +83,22 @@ class NodejsNpmInstallAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm):
+    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, install_links: Optional[bool] = False):
         """
-        :type artifacts_dir: str
-        :param artifacts_dir: an existing (writable) directory with project source files.
+        Parameters
+        ----------
+        install_dir : str
             Dependencies will be installed in this directory.
-
-        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
-        :param subprocess_npm: An instance of the NPM process wrapper
-
-        :type is_production: bool
-        :param is_production: NPM installation mode is production (eg --production=false to force dev dependencies)
+        subprocess_npm : SubprocessNpm
+            An instance of the NPM process wrapper
+        install_links : Optional[bool]
+            Uses the --install-links npm option if True, by default False
         """
 
         super(NodejsNpmInstallAction, self).__init__()
-        self.artifacts_dir = artifacts_dir
+        self.install_dir = install_dir
         self.subprocess_npm = subprocess_npm
+        self.install_links = install_links
 
     def execute(self):
         """
@@ -105,11 +107,13 @@ class NodejsNpmInstallAction(BaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS installing in: %s", self.artifacts_dir)
+            LOG.debug("NODEJS installing in: %s", self.install_dir)
 
-            self.subprocess_npm.run(
-                ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"], cwd=self.artifacts_dir
-            )
+            command = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"]
+            if self.install_links:
+                command.append("--install-links")
+
+            self.subprocess_npm.run(command, cwd=self.install_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
@@ -128,19 +132,22 @@ class NodejsNpmCIAction(BaseAction):
     DESCRIPTION = "Installing dependencies from NPM using the CI method"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, artifacts_dir, subprocess_npm):
+    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, install_links: Optional[bool] = False):
         """
-        :type artifacts_dir: str
-        :param artifacts_dir: an existing (writable) directory with project source files.
+        Parameters
+        ----------
+        install_dir : str
             Dependencies will be installed in this directory.
-
-        :type subprocess_npm: aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
-        :param subprocess_npm: An instance of the NPM process wrapper
+        subprocess_npm : SubprocessNpm
+            An instance of the NPM process wrapper
+        install_links : Optional[bool]
+            Uses the --install-links npm option if True, by default False
         """
 
         super(NodejsNpmCIAction, self).__init__()
-        self.artifacts_dir = artifacts_dir
+        self.install_dir = install_dir
         self.subprocess_npm = subprocess_npm
+        self.install_links = install_links
 
     def execute(self):
         """
@@ -150,9 +157,13 @@ class NodejsNpmCIAction(BaseAction):
         """
 
         try:
-            LOG.debug("NODEJS installing ci in: %s", self.artifacts_dir)
+            LOG.debug("NODEJS installing ci in: %s", self.install_dir)
 
-            self.subprocess_npm.run(["ci"], cwd=self.artifacts_dir)
+            command = ["ci"]
+            if self.install_links:
+                command.append("--install-links")
+
+            self.subprocess_npm.run(command, cwd=self.install_dir)
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))

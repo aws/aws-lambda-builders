@@ -1,6 +1,5 @@
-from unittest import TestCase
+from unittest import TestCase, mock
 
-import mock
 from parameterized import parameterized
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
@@ -35,7 +34,7 @@ class TestPythonRuntimeValidator(TestCase):
         with mock.patch("subprocess.Popen") as mock_subprocess:
             mock_subprocess.return_value = MockSubProcess(1)
             with self.assertRaises(MisMatchRuntimeError):
-                self.validator.validate(runtime_path="/usr/bin/python3.6")
+                self.validator.validate(runtime_path="/usr/bin/python3.9")
                 self.assertTrue(mock_subprocess.call_count, 1)
 
     def test_python_command(self):
@@ -46,7 +45,6 @@ class TestPythonRuntimeValidator(TestCase):
 
     @parameterized.expand(
         [
-            ("python3.6", "arm64"),
             ("python3.7", "arm64"),
         ]
     )

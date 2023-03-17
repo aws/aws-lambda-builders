@@ -2,41 +2,45 @@
 Common utilities for the library
 """
 
+import logging
+import os
 import shutil
 import sys
-import os
-import logging
 from pathlib import Path
-from typing import Union
+from typing import Callable, List, Optional, Set, Union
 
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import ARM64
 
 LOG = logging.getLogger(__name__)
 
 
-def copytree(source, destination, ignore=None, include=None):
+def copytree(
+    source: str,
+    destination: str,
+    ignore: Optional[Callable[[str, List[str]], Set[str]]] = None,
+    include: Optional[Callable[[str], bool]] = None,
+    maintain_symlinks: bool = False,
+) -> None:
     """
     Similar to shutil.copytree except that it removes the limitation that the destination directory should
     be present.
 
-    :type source: str
-    :param source:
-        Path to the source folder to copy
-
-    :type destination: str
-    :param destination:
-        Path to destination folder
-
-    :type ignore: function
-    :param ignore:
+    Parameters
+    ----------
+    source : str
+        Path to the source folder to copy.
+    destination : str
+        Path to destination folder.
+    ignore : Optional[Callable[[str, List[str]], Set[str]]]
         A function that returns a set of file names to ignore, given a list of available file names. Similar to the
-        ``ignore`` property of ``shutils.copytree`` method
-
-    :type include: Callable[[str], bool]
-    :param include:
+        ``ignore`` property of ``shutils.copytree`` method. By default None.
+    include : Optional[Callable[[str], bool]]
         A function that will decide whether a file should be copied or skipped it. It accepts file name as parameter
         and return True or False. Returning True will continue copy operation, returning False will skip copy operation
-        for that file
+        for that file. By default None.
+    maintain_symlinks : bool, optional
+        If True, symbolic links in the source are represented as symbolic links in the destination.
+        If False, the contents are copied over. By default False.
     """
 
     if not os.path.exists(source):
@@ -74,8 +78,12 @@ def copytree(source, destination, ignore=None, include=None):
             LOG.debug("File (%s) doesn't satisfy the include rule, skipping it", name)
             continue
 
-        if os.path.isdir(new_source):
-            copytree(new_source, new_destination, ignore=ignore, include=include)
+        if os.path.islink(new_source) and maintain_symlinks:
+            linkto = os.readlink(new_source)
+            create_symlink_or_copy(linkto, new_destination)
+            shutil.copystat(new_source, new_destination, follow_symlinks=False)
+        elif os.path.isdir(new_source):
+            copytree(new_source, new_destination, ignore=ignore, include=include, maintain_symlinks=maintain_symlinks)
         else:
             LOG.debug("Copying source file (%s) to destination (%s)", new_source, new_destination)
             shutil.copy2(new_source, new_destination)
@@ -193,7 +201,8 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
         os.symlink(Path(source).absolute(), Path(destination).absolute())
     except OSError as ex:
         LOG.warning(
-            "Symlink operation is failed, falling back to copying files",
+            "Symbolic link creation failed, falling back to copying files instead. To optimize speed, "
+            "consider enabling the necessary settings or privileges on your system to support symbolic links.",
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
         copytree(source, destination)

@@ -6,16 +6,16 @@ a JSON-RPC interface over stdin/stdout to invoke the builder and get response.
 Read the design document for explanation of the JSON-RPC interface
 """
 
-import sys
 import json
-import os
 import logging
+import os
 import re
+import sys
 
+from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.exceptions import WorkflowNotFoundError, WorkflowUnknownError, WorkflowFailedError
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+from aws_lambda_builders.exceptions import WorkflowFailedError, WorkflowNotFoundError, WorkflowUnknownError
 
 log_level = int(os.environ.get("LAMBDA_BUILDERS_LOG_LEVEL", logging.INFO))
 
@@ -36,7 +36,6 @@ def _error_response(request_id, http_status_code, message):
 
 
 def _parse_version(version_string):
-
     if VERSION_REGEX.match(version_string):
         return float(version_string)
     else:
@@ -131,6 +130,7 @@ def main():  # pylint: disable=too-many-statements
             architecture=params.get("architecture", X86_64),
             is_building_layer=params.get("is_building_layer", False),
             experimental_flags=params.get("experimental_flags", []),
+            build_in_source=params.get("build_in_source", None),
         )
 
         # Return a success response

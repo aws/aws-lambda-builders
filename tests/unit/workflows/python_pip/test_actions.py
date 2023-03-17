@@ -1,7 +1,7 @@
 import sys
 
 from unittest import TestCase
-from mock import patch, Mock, ANY
+from unittest.mock import patch, Mock, ANY
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.architecture import ARM64, X86_64

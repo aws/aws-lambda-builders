@@ -6,8 +6,9 @@ import logging
 import os
 import subprocess
 
-from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
+from aws_lambda_builders.validator import RuntimeValidator
+
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ class PythonRuntimeValidator(RuntimeValidator):
         Returns
         -------
         str
-            runtime_path, runtime to check eg: /usr/bin/python3.6
+            runtime_path, runtime to check eg: /usr/bin/python3.9
 
         Raises
         ------

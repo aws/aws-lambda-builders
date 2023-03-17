@@ -6,10 +6,10 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Set, Iterator, Tuple
+from typing import Iterator, Set, Tuple, Union
 
 from aws_lambda_builders import utils
-from aws_lambda_builders.utils import copytree
+from aws_lambda_builders.utils import copytree, create_symlink_or_copy
 
 LOG = logging.getLogger(__name__)
 
@@ -55,7 +55,6 @@ class Purpose(object):
 
 class _ActionMetaClass(type):
     def __new__(mcs, name, bases, class_dict):
-
         cls = type.__new__(mcs, name, bases, class_dict)
 
         if cls.__name__ == "BaseAction":
@@ -100,24 +99,28 @@ class BaseAction(object, metaclass=_ActionMetaClass):
 
 
 class CopySourceAction(BaseAction):
-
     NAME = "CopySource"
 
     DESCRIPTION = "Copying source code while skipping certain commonly excluded files"
 
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self, source_dir, dest_dir, excludes=None):
+    def __init__(self, source_dir, dest_dir, excludes=None, maintain_symlinks=False):
         self.source_dir = source_dir
         self.dest_dir = dest_dir
         self.excludes = excludes or []
+        self.maintain_symlinks = maintain_symlinks
 
     def execute(self):
-        copytree(self.source_dir, self.dest_dir, ignore=shutil.ignore_patterns(*self.excludes))
+        copytree(
+            self.source_dir,
+            self.dest_dir,
+            ignore=shutil.ignore_patterns(*self.excludes),
+            maintain_symlinks=self.maintain_symlinks,
+        )
 
 
 class LinkSourceAction(BaseAction):
-
     NAME = "LinkSource"
 
     DESCRIPTION = "Linking source code to the target folder"
@@ -141,32 +144,54 @@ class LinkSourceAction(BaseAction):
             utils.create_symlink_or_copy(str(source_path), str(destination_path))
 
 
-class CopyDependenciesAction(BaseAction):
+class LinkSinglePathAction(BaseAction):
+    NAME = "LinkSource"
 
+    DESCRIPTION = "Creates symbolic link at destination, pointing to source"
+
+    PURPOSE = Purpose.LINK_SOURCE
+
+    def __init__(self, source: Union[str, os.PathLike], dest: Union[str, os.PathLike]):
+        self._source = source
+        self._dest = dest
+
+    def execute(self):
+        destination_path = Path(self._dest)
+        if not destination_path.exists():
+            os.makedirs(destination_path.parent, exist_ok=True)
+        utils.create_symlink_or_copy(str(self._source), str(destination_path))
+
+
+class CopyDependenciesAction(BaseAction):
     NAME = "CopyDependencies"
 
     DESCRIPTION = "Copying dependencies while skipping source file"
 
     PURPOSE = Purpose.COPY_DEPENDENCIES
 
-    def __init__(self, source_dir, artifact_dir, destination_dir):
+    def __init__(self, source_dir, artifact_dir, destination_dir, maintain_symlinks=False):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
+        self.maintain_symlinks = maintain_symlinks
 
     def execute(self):
         deps_manager = DependencyManager(self.source_dir, self.artifact_dir, self.dest_dir)
 
         for dependencies_source, new_destination in deps_manager.yield_source_dest():
-            if os.path.isdir(dependencies_source):
-                copytree(dependencies_source, new_destination)
+            if os.path.islink(dependencies_source) and self.maintain_symlinks:
+                os.makedirs(os.path.dirname(new_destination), exist_ok=True)
+                linkto = os.readlink(dependencies_source)
+                create_symlink_or_copy(linkto, new_destination)
+                shutil.copystat(dependencies_source, new_destination, follow_symlinks=False)
+            elif os.path.isdir(dependencies_source):
+                copytree(dependencies_source, new_destination, maintain_symlinks=self.maintain_symlinks)
             else:
                 os.makedirs(os.path.dirname(new_destination), exist_ok=True)
                 shutil.copy2(dependencies_source, new_destination)
 
 
 class MoveDependenciesAction(BaseAction):
-
     NAME = "MoveDependencies"
 
     DESCRIPTION = "Moving dependencies while skipping source file"
@@ -214,7 +239,9 @@ class CleanUpAction(BaseAction):
             target_path = os.path.join(self.target_dir, name)
             LOG.debug("Clean up action: %s is deleted", str(target_path))
 
-            if os.path.isdir(target_path):
+            if os.path.islink(target_path):
+                os.unlink(target_path)
+            elif os.path.isdir(target_path):
                 shutil.rmtree(target_path)
             else:
                 os.remove(target_path)

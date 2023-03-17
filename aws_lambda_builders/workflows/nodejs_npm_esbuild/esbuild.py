@@ -1,10 +1,9 @@
 """
 Wrapper around calling esbuild through a subprocess.
 """
-from pathlib import Path
-
 import logging
-from typing import Dict, Any, List
+from pathlib import Path
+from typing import Any, Dict, List
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
@@ -61,7 +60,6 @@ class SubprocessEsbuild(object):
             )
 
     def run(self, args, cwd=None):
-
         """
         Runs the action.
 
@@ -114,12 +112,14 @@ SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
     "target",
     "format",
     "main_fields",
+    "sources_content",
 ]
 
 # Multi-value types (--external:axios --external:aws-sdk)
 SUPPORTED_ESBUILD_APIS_MULTI_VALUE = [
     "external",
     "loader",
+    "out_extension",
 ]
 
 

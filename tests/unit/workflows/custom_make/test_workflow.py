@@ -1,7 +1,6 @@
 from unittest import TestCase
-from unittest.mock import patch
 
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.custom_make.workflow import CustomMakeWorkflow
@@ -16,7 +15,6 @@ class TestProvidedMakeWorkflow(TestCase):
     """
 
     def test_workflow_sets_up_make_actions(self):
-
         workflow = CustomMakeWorkflow(
             "source", "artifacts", "scratch_dir", "manifest", options={"build_logical_id": "hello"}
         )
@@ -28,7 +26,6 @@ class TestProvidedMakeWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[1], CustomMakeAction)
 
     def test_workflow_sets_up_make_actions_no_options(self):
-
         with self.assertRaises(WorkflowFailedError):
             CustomMakeWorkflow("source", "artifacts", "scratch_dir", "manifest")
 
@@ -64,3 +61,35 @@ class TestProvidedMakeWorkflow(TestCase):
         )
 
         self.assertEqual(workflow.actions[1].working_directory, "working/dir/path")
+
+    def test_build_in_source(self):
+        source_dir = "source"
+
+        workflow = CustomMakeWorkflow(
+            source_dir,
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            options={"build_logical_id": "hello"},
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], CustomMakeAction)
+        self.assertEqual(workflow.actions[0].working_directory, source_dir)
+
+    def test_build_in_source_with_custom_working_directory(self):
+        working_dir = "working/dir/path"
+
+        workflow = CustomMakeWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            options={"build_logical_id": "hello", "working_directory": working_dir},
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], CustomMakeAction)
+        self.assertEqual(workflow.actions[0].working_directory, working_dir)

@@ -1,15 +1,15 @@
 import itertools
 from unittest import TestCase
-from mock import patch, call, Mock
-from parameterized import parameterized, param
+from unittest.mock import patch, call, Mock
+
+from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.workflow import Capability, BaseWorkflow
+from aws_lambda_builders.workflow import BuildDirectory, BuildInSourceSupport, Capability, BaseWorkflow
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
 
 
 class TesetLambdaBuilder_init(TestCase):
-
     DEFAULT_WORKFLOW_MODULE = "aws_lambda_builders.workflows"
 
     def setUp(self):
@@ -20,7 +20,6 @@ class TesetLambdaBuilder_init(TestCase):
     @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
     def test_must_load_all_default_workflows(self, get_workflow_mock, importlib_mock):
-
         # instantiate
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework)
 
@@ -39,7 +38,6 @@ class TesetLambdaBuilder_init(TestCase):
     @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
     def test_must_support_loading_custom_workflows(self, get_workflow_mock, importlib_mock):
-
         modules = ["a.b.c", "c.d", "e.f", "z.k"]
 
         # instantiate
@@ -53,7 +51,6 @@ class TesetLambdaBuilder_init(TestCase):
     @patch("aws_lambda_builders.builder.importlib")
     @patch("aws_lambda_builders.builder.get_workflow")
     def test_must_not_load_any_workflows(self, get_workflow_mock, importlib_mock):
-
         modules = []  # Load no modules
         builder = LambdaBuilder(self.lang, self.lang_framework, self.app_framework, supported_workflows=modules)
 
@@ -71,6 +68,8 @@ class TesetLambdaBuilder_init(TestCase):
             CAPABILITY = Capability(
                 language=self.lang, dependency_manager=self.lang_framework, application_framework=self.app_framework
             )
+            DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+            BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
             def __init__(
                 self,
@@ -127,6 +126,7 @@ class TestLambdaBuilder_build(TestCase):
             [True, False],  # combine_dependencies
             [True, False],  # is_building_layer
             [None, [], ["a", "b"]],  # experimental flags
+            [True, False],  # build_in_source
         )
     )
     @patch("aws_lambda_builders.builder.os")
@@ -139,6 +139,7 @@ class TestLambdaBuilder_build(TestCase):
         combine_dependencies,
         is_building_layer,
         experimental_flags,
+        build_in_source,
         get_workflow_mock,
         os_mock,
     ):
@@ -167,6 +168,7 @@ class TestLambdaBuilder_build(TestCase):
             combine_dependencies=combine_dependencies,
             is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
+            build_in_source=build_in_source,
         )
 
         workflow_cls.assert_called_with(
@@ -185,6 +187,7 @@ class TestLambdaBuilder_build(TestCase):
             combine_dependencies=combine_dependencies,
             is_building_layer=is_building_layer,
             experimental_flags=experimental_flags,
+            build_in_source=build_in_source,
         )
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")

@@ -6,7 +6,8 @@ import os
 import platform
 import shutil
 import subprocess
-from aws_lambda_builders.utils import which, copytree
+
+from aws_lambda_builders.utils import copytree, which
 
 
 class OSUtils(object):

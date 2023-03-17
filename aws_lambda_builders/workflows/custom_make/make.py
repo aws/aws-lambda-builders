@@ -3,7 +3,6 @@ Wrapper around calling make through a subprocess.
 """
 import io
 import logging
-import subprocess
 import shutil
 import threading
 
@@ -50,7 +49,6 @@ class SubProcessMake(object):
         self.make_exe = make_exe
 
     def run(self, args, env=None, cwd=None):
-
         """
         Runs the action.
 

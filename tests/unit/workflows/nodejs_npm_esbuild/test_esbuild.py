@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
@@ -33,7 +33,6 @@ class TestSubprocessEsbuild(TestCase):
         self.under_test = SubprocessEsbuild(self.osutils, ["/a/b", "/c/d"], which)
 
     def test_run_executes_binary_found_in_exec_paths(self):
-
         self.under_test.run(["arg-a", "arg-b"])
 
         self.osutils.popen.assert_called_with(
@@ -64,7 +63,6 @@ class TestSubprocessEsbuild(TestCase):
         self.assertEqual(raised.exception.args[0], "Esbuild Failed: some error text")
 
     def test_raises_EsbuildExecutionError_if_which_returns_no_results(self):
-
         which = lambda cmd, executable_search_paths: []
         self.under_test = SubprocessEsbuild(self.osutils, ["/a/b", "/c/d"], which)
         with self.assertRaises(EsbuildExecutionError) as raised:
@@ -196,10 +194,12 @@ class TestEsbuildCommandBuilder(TestCase):
         bundler_config = {
             "minify": True,
             "sourcemap": False,
+            "sources_content": "false",
             "format": "esm",
             "target": "node14",
             "loader": [".proto=text", ".json=js"],
             "external": ["aws-sdk", "axios"],
+            "out_extension": [".js=.mjs"],
             "main_fields": "module,main",
         }
 
@@ -215,10 +215,12 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--target=node14",
                 "--format=esm",
                 "--main-fields=module,main",
+                "--sources-content=false",
                 "--external:aws-sdk",
                 "--external:axios",
                 "--loader:.proto=text",
                 "--loader:.json=js",
+                "--out-extension:.js=.mjs",
             ],
         )
 

@@ -1,14 +1,15 @@
 """
 ProvidedMakeWorkflow
 """
-from aws_lambda_builders.workflows.custom_make.validator import CustomMakeRuntimeValidator
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.path_resolver import PathResolver
-from .actions import CustomMakeAction
-from .utils import OSUtils
-from .make import SubProcessMake
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
+from aws_lambda_builders.workflows.custom_make.validator import CustomMakeRuntimeValidator
+
 from ...exceptions import WorkflowFailedError
+from .actions import CustomMakeAction
+from .make import SubProcessMake
+from .utils import OSUtils
 
 
 class CustomMakeWorkflow(BaseWorkflow):
@@ -23,19 +24,19 @@ class CustomMakeWorkflow(BaseWorkflow):
 
     EXCLUDED_FILES = (".aws-sam", ".git")
 
-    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
+    DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
+    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
         super(CustomMakeWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
 
         self.os_utils = OSUtils()
 
-        # Find the logical id of the function to be built.
         options = kwargs.get("options") or {}
-        build_logical_id = options.get("build_logical_id", None)
-        working_directory = options.get("working_directory", scratch_dir)
 
+        build_logical_id = options.get("build_logical_id", None)
         if not build_logical_id:
             raise WorkflowFailedError(
                 workflow_name=self.NAME,
@@ -45,9 +46,11 @@ class CustomMakeWorkflow(BaseWorkflow):
 
         subprocess_make = SubProcessMake(make_exe=self.binaries["make"].binary_path, osutils=self.os_utils)
 
+        # an explicitly defined working directory should take precedence
+        working_directory = options.get("working_directory") or self.build_dir
+
         make_action = CustomMakeAction(
             artifacts_dir,
-            scratch_dir,
             manifest_path,
             osutils=self.os_utils,
             subprocess_make=subprocess_make,
@@ -55,7 +58,13 @@ class CustomMakeWorkflow(BaseWorkflow):
             working_directory=working_directory,
         )
 
-        self.actions = [CopySourceAction(source_dir, scratch_dir, excludes=self.EXCLUDED_FILES), make_action]
+        self.actions = []
+
+        if self.build_dir != source_dir:
+            # if we're not building in the source directory, we have to first copy the source
+            self.actions.append(CopySourceAction(source_dir, self.build_dir, excludes=self.EXCLUDED_FILES))
+
+        self.actions.append(make_action)
 
     def get_resolvers(self):
         return [PathResolver(runtime="provided", binary="make", executable_search_paths=self.executable_search_paths)]

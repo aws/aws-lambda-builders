@@ -2,16 +2,15 @@
 Commonly used utilities
 """
 
+import contextlib
 import io
 import os
-import zipfile
-import contextlib
-import tempfile
 import shutil
-import tarfile
 import subprocess
 import sys
-from typing import Optional, List
+import tempfile
+import zipfile
+from typing import List, Optional
 
 EXPERIMENTAL_FLAG_BUILD_PERFORMANCE = "experimentalBuildPerformance"
 

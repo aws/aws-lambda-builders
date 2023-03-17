@@ -1,11 +1,14 @@
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from mock import patch
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
-from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction, EsbuildCheckVersionAction
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import (
+    EsbuildBundleAction,
+    check_minimum_esbuild_version,
+    MINIMUM_VERSION_FOR_EXTERNAL,
+)
 
 
 class TestEsbuildBundleAction(TestCase):
@@ -14,6 +17,7 @@ class TestEsbuildBundleAction(TestCase):
     def setUp(self, OSUtilMock, SubprocessEsbuildMock):
         self.osutils = OSUtilMock.return_value
         self.subprocess_esbuild = SubprocessEsbuildMock.return_value
+        self.subprocess_esbuild.run.return_value = MINIMUM_VERSION_FOR_EXTERNAL
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
         self.osutils.file_exists.side_effect = [True, True]
 
@@ -134,7 +138,6 @@ class TestEsbuildBundleAction(TestCase):
         )
 
     def test_checks_if_single_entrypoint_exists(self):
-
         action = EsbuildBundleAction(
             "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild, "package.json"
         )
@@ -148,7 +151,6 @@ class TestEsbuildBundleAction(TestCase):
         self.assertEqual(raised.exception.args[0], "entry point source/x.js does not exist")
 
     def test_checks_if_multiple_entrypoints_exist(self):
-
         self.osutils.file_exists.side_effect = [True, False]
         action = EsbuildBundleAction(
             "source",
@@ -292,15 +294,51 @@ class TestEsbuildBundleAction(TestCase):
             cwd="source",
         )
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
+    def test_building_with_external_dependencies_in_bundler_config_fails_if_esbuild_version_less_than_minimum(
+        self, osutils_mock, subprocess_esbuild_mock
+    ):
+        subprocess_esbuild_mock.run.return_value = "0.14.12"
+        action = EsbuildBundleAction(
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js", "y.js"], "target": "node14", "external": "./node_modules/*"},
+            osutils_mock,
+            subprocess_esbuild_mock,
+            "package.json",
+        )
+        with self.assertRaises(ActionFailedError):
+            action.execute()
 
-class TestEsbuildVersionCheckerAction(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild.SubprocessEsbuild")
+    def test_building_with_skip_deps_fails_if_esbuild_version_less_than_minimum(
+        self, osutils_mock, subprocess_esbuild_mock
+    ):
+        subprocess_esbuild_mock.run.return_value = "0.14.12"
+        action = EsbuildBundleAction(
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"]},
+            osutils_mock,
+            subprocess_esbuild_mock,
+            "package.json",
+            True,
+        )
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
+
+class TestEsbuildVersionChecker(TestCase):
     @parameterized.expand(["0.14.0", "0.0.0", "0.14.12"])
     def test_outdated_esbuild_versions(self, version):
         subprocess_esbuild = Mock()
         subprocess_esbuild.run.return_value = version
-        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
         with self.assertRaises(ActionFailedError) as content:
-            action.execute()
+            check_minimum_esbuild_version(
+                minimum_version_required="0.14.13", working_directory="scratch", subprocess_esbuild=subprocess_esbuild
+            )
         self.assertEqual(
             str(content.exception),
             f"Unsupported esbuild version. To use a dependency layer, the esbuild version "
@@ -311,9 +349,10 @@ class TestEsbuildVersionCheckerAction(TestCase):
     def test_invalid_esbuild_versions(self, version):
         subprocess_esbuild = Mock()
         subprocess_esbuild.run.return_value = version
-        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
         with self.assertRaises(ActionFailedError) as content:
-            action.execute()
+            check_minimum_esbuild_version(
+                minimum_version_required="0.14.13", working_directory="scratch", subprocess_esbuild=subprocess_esbuild
+            )
         self.assertEqual(
             str(content.exception), "Unable to parse esbuild version: invalid literal for int() with base 10: 'a'"
         )
@@ -322,8 +361,9 @@ class TestEsbuildVersionCheckerAction(TestCase):
     def test_valid_esbuild_versions(self, version):
         subprocess_esbuild = Mock()
         subprocess_esbuild.run.return_value = version
-        action = EsbuildCheckVersionAction("scratch", subprocess_esbuild)
         try:
-            action.execute()
+            check_minimum_esbuild_version(
+                minimum_version_required="0.14.13", working_directory="scratch", subprocess_esbuild=subprocess_esbuild
+            )
         except ActionFailedError:
             self.fail("Encountered an unexpected exception.")

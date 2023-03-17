@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 from pathlib import Path
 
 from aws_lambda_builders.binary_path import BinaryPath

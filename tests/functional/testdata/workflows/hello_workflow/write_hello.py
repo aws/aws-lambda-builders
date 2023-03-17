@@ -4,7 +4,7 @@ Provides a test workflow and action that writes a file to artifacts called hello
 
 import os
 
-from aws_lambda_builders.workflow import BaseWorkflow, Capability
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.actions import BaseAction, Purpose
 
 
@@ -31,9 +31,10 @@ class WriteHelloAction(BaseAction):
 
 
 class WriteHelloWorkflow(BaseWorkflow):
-
     NAME = "WriteHelloWorkflow"
     CAPABILITY = Capability(language="python", dependency_manager="test", application_framework="test")
+    DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
+    BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, *args, **kwargs):
         super(WriteHelloWorkflow, self).__init__(source_dir, artifacts_dir, *args, **kwargs)

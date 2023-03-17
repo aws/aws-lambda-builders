@@ -2,12 +2,12 @@
 Action to build a Go project using standard Go tooling
 """
 
-from aws_lambda_builders.actions import BaseAction, Purpose, ActionFailedError
+from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
+
 from .builder import BuilderError
 
 
 class GoModulesBuildAction(BaseAction):
-
     NAME = "Build"
     DESCRIPTION = "Building Go package with Go Modules"
     PURPOSE = Purpose.COMPILE_SOURCE

@@ -13,7 +13,6 @@ from aws_lambda_builders.builder import LambdaBuilder
 
 
 class TestBuilderWithHelloWorkflow(TestCase):
-
     HELLO_WORKFLOW_MODULE = "hello_workflow.write_hello"
     TEST_WORKFLOWS_FOLDER = os.path.join(os.path.dirname(__file__), "testdata", "workflows")
 
@@ -45,7 +44,6 @@ class TestBuilderWithHelloWorkflow(TestCase):
         sys.path.remove(self.TEST_WORKFLOWS_FOLDER)
 
     def test_run_hello_workflow_with_exec_paths(self):
-
         self.hello_builder.build(
             self.source_dir,
             self.artifacts_dir,

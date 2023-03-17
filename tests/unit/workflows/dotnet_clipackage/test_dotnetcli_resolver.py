@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli_resolver import DotnetCliResolver
 

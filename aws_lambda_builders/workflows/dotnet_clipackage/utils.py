@@ -6,6 +6,7 @@ import os
 import platform
 import subprocess
 import zipfile
+
 from aws_lambda_builders.utils import which
 
 LOG = logging.getLogger(__name__)
@@ -43,7 +44,6 @@ class OSUtils(object):
         """
 
         with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-
             # For each item in the zip file, extract the file and set permissions if available
             for file_info in zip_ref.infolist():
                 extracted_path = self._extract(file_info, output_dir, zip_ref)
@@ -72,8 +72,8 @@ class OSUtils(object):
         bool
             A response regarding whether the ZipInfo defines a symlink or not.
         """
-
-        return (file_info.external_attr >> 28) == 0xA
+        symlink = 0xA
+        return (file_info.external_attr >> 28) == symlink
 
     def _extract(self, file_info, output_dir, zip_ref):
         """

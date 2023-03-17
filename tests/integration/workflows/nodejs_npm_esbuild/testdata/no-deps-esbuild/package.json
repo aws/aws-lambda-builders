@@ -5,6 +5,7 @@
   "keywords": [],
   "author": "",
   "license": "APACHE2.0",
+  "main": "included.js",
   "devDependencies": {
     "esbuild": "^0.14.36"
   }
