@@ -15,7 +15,6 @@ LOG = logging.getLogger(__name__)
 
 
 class PythonPipWorkflow(BaseWorkflow):
-
     NAME = "PythonPipBuilder"
 
     CAPABILITY = Capability(language="python", dependency_manager="pip", application_framework=None)
@@ -71,7 +70,6 @@ class PythonPipWorkflow(BaseWorkflow):
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
-
         super(PythonPipWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )

@@ -1,8 +1,6 @@
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import ANY
-
-from mock import patch, call
+from unittest.mock import ANY, patch, call
 
 from aws_lambda_builders.actions import (
     CopySourceAction,
@@ -45,7 +43,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
     def test_workflow_sets_up_npm_actions_with_bundler_if_manifest_requests_it(self):
-
         self.osutils.file_exists.side_effect = [True, False, False]
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -66,7 +63,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         )
 
     def test_sets_up_esbuild_search_path_from_npm_bin(self):
-
         self.popen.out = b"project/"
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -85,7 +81,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEqual(esbuild.executable_search_paths, [str(Path("project/.bin"))])
 
     def test_sets_up_esbuild_search_path_with_workflow_executable_search_paths_after_npm_bin(self):
-
         self.popen.out = b"project"
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -104,7 +99,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEqual(esbuild.executable_search_paths, [str(Path("project/.bin")), "other/bin"])
 
     def test_workflow_uses_npm_ci_if_lockfile_exists(self):
-
         self.osutils.file_exists.side_effect = [True, True]
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -124,7 +118,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.osutils.file_exists.assert_has_calls([call("source/package-lock.json")])
 
     def test_workflow_uses_npm_ci_if_shrinkwrap_exists(self):
-
         self.osutils.file_exists.side_effect = [True, False, True]
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -146,7 +139,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         )
 
     def test_workflow_doesnt_use_npm_ci_no_options_config(self):
-
         self.osutils.file_exists.side_effect = [True, False, True]
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -251,7 +243,6 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
     def test_workflow_sets_up_esbuild_actions_with_download_dependencies_and_dependencies_dir(self):
-
         self.osutils.file_exists.return_value = True
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -313,12 +304,18 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
 
         get_workflow_mock.get_install_action.assert_called_with(
-            source_dir="source", install_dir="scratch_dir", subprocess_npm=ANY, osutils=ANY, build_options=None
+            source_dir="source",
+            install_dir="scratch_dir",
+            subprocess_npm=ANY,
+            osutils=ANY,
+            build_options=None,
+            install_links=False,
         )
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow._get_esbuild_subprocess")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.SubprocessNpm")
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.OSUtils")
-    def test_manifest_not_found(self, osutils_mock, subprocess_npm_mock):
+    def test_manifest_not_found(self, osutils_mock, subprocess_npm_mock, get_esbuild_subprocess_mock):
         osutils_mock.file_exists.return_value = False
 
         workflow = NodejsNpmEsbuildWorkflow(

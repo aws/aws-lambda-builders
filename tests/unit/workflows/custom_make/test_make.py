@@ -1,6 +1,6 @@
 import io
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from aws_lambda_builders.workflows.custom_make.make import MakeExecutionError, SubProcessMake
 

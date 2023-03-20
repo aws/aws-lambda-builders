@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
-from aws_lambda_builders.architecture import X86_64, ARM64
+from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.ruby_bundler.workflow import RubyBundlerWorkflow
 from aws_lambda_builders.workflows.ruby_bundler.actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 

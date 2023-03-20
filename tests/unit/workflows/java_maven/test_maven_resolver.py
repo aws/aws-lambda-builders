@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import patch
+from unittest.mock import patch
 from aws_lambda_builders.workflows.java_maven.maven_resolver import MavenResolver
 
 

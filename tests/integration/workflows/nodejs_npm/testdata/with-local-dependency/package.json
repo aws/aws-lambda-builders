@@ -1,12 +1,13 @@
 {
-  "name": "nodeps-esbuild",
+  "name": "with-local-dependency",
   "version": "1.0.0",
   "description": "",
+  "files": ["included.js"],
   "keywords": [],
   "author": "",
   "license": "APACHE2.0",
   "main": "included.js",
-  "devDependencies": {
-    "esbuild": "^0.14.36"
+  "dependencies": {
+    "local-dependency": "file:../npm-deps"
   }
 }

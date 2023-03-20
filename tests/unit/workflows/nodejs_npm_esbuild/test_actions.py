@@ -1,7 +1,6 @@
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from mock import patch
 from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
@@ -139,7 +138,6 @@ class TestEsbuildBundleAction(TestCase):
         )
 
     def test_checks_if_single_entrypoint_exists(self):
-
         action = EsbuildBundleAction(
             "source", "artifacts", {"entry_points": ["x.js"]}, self.osutils, self.subprocess_esbuild, "package.json"
         )
@@ -153,7 +151,6 @@ class TestEsbuildBundleAction(TestCase):
         self.assertEqual(raised.exception.args[0], "entry point source/x.js does not exist")
 
     def test_checks_if_multiple_entrypoints_exist(self):
-
         self.osutils.file_exists.side_effect = [True, False]
         action = EsbuildBundleAction(
             "source",

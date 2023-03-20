@@ -6,6 +6,7 @@
   "keywords": [],
   "author": "",
   "license": "APACHE2.0",
+  "main": "included.js",
   "dependencies": {
     "minimal-request-promise": "*" 
   }

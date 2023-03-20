@@ -84,6 +84,7 @@ def get_lambda_abi(runtime):
         "python3.7": "cp37m",
         "python3.8": "cp38",
         "python3.9": "cp39",
+        "python3.10": "cp310",
     }
 
     if runtime not in supported:
@@ -98,7 +99,7 @@ class PythonPipDependencyBuilder(object):
 
         :type runtime: str
         :param runtime: Python version to build dependencies for. This can
-            either be python3.7, python3.8 or python3.9. These are currently the
+            either be python3.7, python3.8, python3.9 or python3.10. These are currently the
             only supported values.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -266,8 +267,8 @@ class DependencyBuilder(object):
             # actually being specified, but those aren't common
             # cases.
             for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
+                stripped_line = line.strip()
+                if stripped_line and not stripped_line.startswith("#"):
                     return True
         return False
 
@@ -296,11 +297,10 @@ class DependencyBuilder(object):
         for package in deps:
             if package.dist_type == "sdist":
                 sdists.add(package)
+            elif self._is_compatible_wheel_filename(package.filename):
+                compatible_wheels.add(package)
             else:
-                if self._is_compatible_wheel_filename(package.filename):
-                    compatible_wheels.add(package)
-                else:
-                    incompatible_wheels.add(package)
+                incompatible_wheels.add(package)
         LOG.debug("initial compatible: %s", compatible_wheels)
         LOG.debug("initial incompatible: %s", incompatible_wheels | sdists)
 

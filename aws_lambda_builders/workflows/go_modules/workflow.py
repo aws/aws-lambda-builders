@@ -10,7 +10,6 @@ from .validator import GoRuntimeValidator
 
 
 class GoModulesWorkflow(BaseWorkflow):
-
     NAME = "GoModulesBuilder"
 
     CAPABILITY = Capability(language="go", dependency_manager="modules", application_framework=None)
@@ -21,7 +20,6 @@ class GoModulesWorkflow(BaseWorkflow):
     def __init__(
         self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, mode=None, **kwargs
     ):
-
         super(GoModulesWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )

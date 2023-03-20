@@ -2,12 +2,11 @@ import os
 import shutil
 import tempfile
 
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 
-import mock
 import logging
 
 logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.bundler")

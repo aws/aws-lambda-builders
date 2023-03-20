@@ -1,8 +1,7 @@
 import sys
 from collections import namedtuple
-from unittest import TestCase
+from unittest import TestCase, mock
 
-import mock
 import pytest
 
 from aws_lambda_builders.architecture import ARM64, X86_64
@@ -98,6 +97,9 @@ class TestGetLambdaAbi(object):
 
     def test_get_lambda_abi_python39(self):
         assert "cp39" == get_lambda_abi("python3.9")
+
+    def test_get_lambda_abi_python310(self):
+        assert "cp310" == get_lambda_abi("python3.10")
 
 
 class TestPythonPipDependencyBuilder(object):

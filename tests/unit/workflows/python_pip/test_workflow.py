@@ -1,6 +1,5 @@
-import mock
-from mock import patch, ANY, Mock
 from unittest import TestCase
+from unittest.mock import patch, ANY, Mock
 
 from parameterized import parameterized_class
 
@@ -139,7 +138,7 @@ class TestPythonPipWorkflow(TestCase):
         self.assertIsInstance(self.workflow.actions[0], CopySourceAction)
 
     def test_workflow_sets_up_actions_without_combine_dependencies(self):
-        osutils_mock = mock.Mock(spec=self.osutils)
+        osutils_mock = Mock(spec=self.osutils)
         osutils_mock.file_exists.return_value = True
         self.workflow = PythonPipWorkflow(
             "source",

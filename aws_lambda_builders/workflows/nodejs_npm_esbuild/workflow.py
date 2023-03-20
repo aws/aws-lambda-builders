@@ -46,7 +46,6 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.OPTIONALLY_SUPPORTED
 
     def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, osutils=None, **kwargs):
-
         super(NodejsNpmEsbuildWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
@@ -93,6 +92,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     subprocess_npm=self.subprocess_npm,
                     osutils=self.osutils,
                     build_options=self.options,
+                    install_links=self.build_dir == self.source_dir,
                 )
             )
 

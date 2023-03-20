@@ -19,12 +19,10 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 
 
 class TestCliWithHelloWorkflow(TestCase):
-
     HELLO_WORKFLOW_MODULE = "hello_workflow.write_hello"
     TEST_WORKFLOWS_FOLDER = os.path.join(os.path.dirname(__file__), "testdata", "workflows")
 
     def setUp(self):
-
         self.source_dir = tempfile.mkdtemp()
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = os.path.join(tempfile.mkdtemp(), "scratch")
@@ -57,7 +55,6 @@ class TestCliWithHelloWorkflow(TestCase):
         ]
     )
     def test_run_hello_workflow_with_backcompat(self, flavor, protocol_version):
-
         request = {
             "jsonschema": "2.0",
             "id": 1234,
@@ -123,7 +120,6 @@ class TestCliWithHelloWorkflow(TestCase):
 
     @parameterized.expand([("request_through_stdin"), ("request_through_argument")])
     def test_run_hello_workflow_incompatible(self, flavor):
-
         request_json = json.dumps(
             {
                 "jsonschema": "2.0",

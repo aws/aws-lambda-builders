@@ -10,11 +10,9 @@ from aws_lambda_builders.workflows.nodejs_npm import utils
 
 class TestOSUtils(TestCase):
     def setUp(self):
-
         self.osutils = utils.OSUtils()
 
     def test_copy_file_copies_existing_file_into_a_dir(self):
-
         test_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
 
         test_dir = tempfile.mkdtemp()
@@ -28,7 +26,6 @@ class TestOSUtils(TestCase):
         self.assertEqual({"test.tgz"}, output_files)
 
     def test_copy_file_copies_existing_file_into_a_file(self):
-
         test_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
 
         test_dir = tempfile.mkdtemp()
@@ -42,7 +39,6 @@ class TestOSUtils(TestCase):
         self.assertEqual({"copied_test.tgz"}, output_files)
 
     def test_remove_file_removes_existing_file(self):
-
         test_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
 
         test_dir = tempfile.mkdtemp()
@@ -56,7 +52,6 @@ class TestOSUtils(TestCase):
         self.assertFalse(os.path.isfile(copied_file))
 
     def test_file_exists_checking_if_file_exists_in_a_dir(self):
-
         existing_file = os.path.join(os.path.dirname(__file__), "test_data", "test.tgz")
 
         nonexisting_file = os.path.join(os.path.dirname(__file__), "test_data", "nonexisting.tgz")
@@ -71,7 +66,6 @@ class TestOSUtils(TestCase):
         self.assertEqual(dirname, os.path.dirname(sys.executable))
 
     def test_abspath_returns_absolute_path(self):
-
         result = self.osutils.abspath(".")
 
         self.assertTrue(os.path.isabs(result))
@@ -79,13 +73,11 @@ class TestOSUtils(TestCase):
         self.assertEqual(result, os.path.abspath("."))
 
     def test_joinpath_joins_path_components(self):
-
         result = self.osutils.joinpath("a", "b", "c")
 
         self.assertEqual(result, os.path.join("a", "b", "c"))
 
     def test_popen_runs_a_process_and_returns_outcome(self):
-
         cwd_py = os.path.join(os.path.dirname(__file__), "..", "..", "testdata", "cwd.py")
 
         p = self.osutils.popen([sys.executable, cwd_py], stdout=self.osutils.pipe, stderr=self.osutils.pipe)
@@ -97,7 +89,6 @@ class TestOSUtils(TestCase):
         self.assertEqual(out.decode("utf8").strip(), os.getcwd())
 
     def test_popen_can_accept_cwd(self):
-
         testdata_dir = os.path.join(os.path.dirname(__file__), "..", "..", "testdata")
 
         p = self.osutils.popen(
@@ -111,7 +102,6 @@ class TestOSUtils(TestCase):
         self.assertEqual(out.decode("utf8").strip(), os.path.abspath(testdata_dir))
 
     def test_parse_json_reads_json_contents_into_memory(self):
-
         json_file = os.path.join(os.path.dirname(__file__), "test_data", "test.json")
         json_contents = self.osutils.parse_json(json_file)
         self.assertEqual(json_contents["a"], 1)

@@ -1,5 +1,6 @@
 from unittest import TestCase
-from mock import Mock, call
+from unittest.mock import Mock, call
+
 from parameterized import parameterized
 
 from aws_lambda_builders.registry import Registry, DEFAULT_REGISTRY, get_workflow
@@ -29,7 +30,6 @@ class TestRegistryEndToEnd(TestCase):
         ]
     )
     def test_must_add_item_with_optional_capabilities(self, capability):
-
         self.registry[capability] = self.workflow_data
         self.assertEqual(self.workflow_data, self.registry[capability])
 
@@ -140,7 +140,6 @@ class TestGetWorkflow(TestCase):
         self.assertEqual(result, self.workflow_data)
 
     def test_must_raise_if_workflow_not_found(self):
-
         # Don't register any workflow, and try querying
 
         with self.assertRaises(WorkflowNotFoundError):

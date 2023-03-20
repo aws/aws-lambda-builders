@@ -21,7 +21,6 @@ class LambdaBuilder(object):
     """
 
     def __init__(self, language, dependency_manager, application_framework, supported_workflows=None):
-
         """
         Initialize the builder.
         :type supported_workflows: list
