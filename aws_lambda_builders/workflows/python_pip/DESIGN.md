@@ -49,7 +49,7 @@ def build_dependencies(artifacts_dir_path,
 
     :type runtime: str
     :param runtime: Python version to build dependencies for. This can
-        either be python3.6, python3.7, python3.8 or python3.9. These are 
+        either be python3.7, python3.8, python3.9 or python3.10. These are
         currently the only supported values.
 
     :type ui: :class:`lambda_builders.actions.python_pip.utils.UI`

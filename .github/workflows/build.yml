@@ -58,6 +58,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -82,6 +83,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.10"
         npm:
           - 8
           - 9
@@ -113,6 +115,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.10"
         npm:
           - 8
           - 9
@@ -144,6 +147,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -166,9 +170,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.8"
           - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -194,9 +199,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.8"
           - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -220,9 +226,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.8"
           - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -242,9 +249,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.8"
           - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -264,9 +272,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.8"
           - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
         ruby:
           - "3.1"
           - "2.7"
@@ -292,9 +301,10 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.8"
           - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
