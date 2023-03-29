@@ -37,6 +37,7 @@ class TestPythonPipWorkflow(TestCase):
         self.dependencies_dir = tempfile.mkdtemp()
 
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
+        self.manifest_path_legacy = os.path.join(self.TEST_DATA_FOLDER, "requirements-legacy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
         self.manifest_path_sdist = os.path.join(self.TEST_DATA_FOLDER, "requirements-wrapt.txt")
 
@@ -44,6 +45,7 @@ class TestPythonPipWorkflow(TestCase):
             "__init__.py",
             "main.py",
             "requirements-invalid.txt",
+            "requirements-legacy.txt",
             "requirements-numpy.txt",
             "requirements-wrapt.txt",
             "local-dependencies",
@@ -100,6 +102,20 @@ class TestPythonPipWorkflow(TestCase):
             self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
 
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    def test_must_build_python_project_for_legacy_platforms(self):
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_legacy,
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
+        )
+
+        expected_files = self.test_data_files.union({"inflate64", "inflate64.libs", "inflate64-0.1.4.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -174,6 +190,25 @@ class TestPythonPipWorkflow(TestCase):
             self.check_architecture_in("numpy-1.23.5.dist-info", ["manylinux2014_aarch64"])
         else:
             self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
+
+    def test_must_build_python_project_with_arm_architecture_for_legacy_platforms(self):
+        if self.runtime not in ARM_RUNTIMES:
+            self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
+        ### Check the wheels
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_legacy,
+            runtime=self.runtime,
+            architecture="arm64",
+            experimental_flags=self.experimental_flags,
+        )
+        expected_files = self.test_data_files.union({"inflate64", "inflate64-0.1.4.dist-info"})
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        self.check_architecture_in("inflate64-0.1.4.dist-info", ["manylinux2014_aarch64"])
 
     def test_mismatch_runtime_python_project(self):
         # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python3.7

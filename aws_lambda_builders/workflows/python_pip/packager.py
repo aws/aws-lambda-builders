@@ -192,6 +192,9 @@ class DependencyBuilder(object):
         "manylinux1_x86_64": "manylinux_2_5_x86_64",
         "manylinux2010_x86_64": "manylinux_2_12_x86_64",
         "manylinux2014_x86_64": "manylinux_2_17_x86_64",
+        "manylinux1_aarch64": "manylinux_2_5_aarch64",
+        "manylinux2010_aarch64": "manylinux_2_12_aarch64",
+        "manylinux2014_aarch64": "manylinux_2_17_aarch64",
     }
 
     _COMPATIBLE_PACKAGE_ALLOWLIST = {"sqlalchemy"}
