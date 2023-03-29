@@ -116,18 +116,28 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
 
-        expected_files = self.test_data_files.union(
-            {
-                "inflate64",
-                "inflate64-0.1.4.dist-info",
-                "typing_extensions.py",
-                "importlib_metadata-6.1.0.dist-info",
-                "typing_extensions-4.5.0.dist-info",
-                "zipp-3.15.0.dist-info",
-                "importlib_metadata",
-                "zipp",
-            }
-        )
+        if self.runtime == "python3.7":
+            expected_files = self.test_data_files.union(
+                {
+                    "inflate64",
+                    "inflate64.libs",
+                    "inflate64-0.1.4.dist-info",
+                    "typing_extensions.py",
+                    "importlib_metadata-6.1.0.dist-info",
+                    "typing_extensions-4.5.0.dist-info",
+                    "zipp-3.15.0.dist-info",
+                    "importlib_metadata",
+                    "zipp",
+                }
+            )
+        else:
+            expected_files = self.test_data_files.union(
+                {
+                    "inflate64",
+                    "inflate64.libs",
+                    "inflate64-0.1.4.dist-info",
+                }
+            )
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
