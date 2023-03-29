@@ -424,6 +424,7 @@ class DependencyBuilder(object):
 
         In addition to checking the tag pattern, we also need to verify the glibc version
         """
+        print(f">>>>>> expected_abi {expected_abi}, {platform}")
         if platform in self._COMPATIBLE_PLATFORMS[self.architecture]:
             return True
 
