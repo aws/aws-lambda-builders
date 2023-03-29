@@ -432,6 +432,7 @@ class DependencyBuilder(object):
         # Verify the tag pattern
         # Try to get the matching value for legacy values or keep the current
         perennial_tag = self._MANYLINUX_LEGACY_MAP.get(platform, platform)
+        print(f">>>>>> {platform}, {perennial_tag}")
 
         match = re.match("manylinux_([0-9]+)_([0-9]+)_" + arch, perennial_tag)
         if match is None:
