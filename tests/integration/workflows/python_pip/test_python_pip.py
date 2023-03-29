@@ -105,7 +105,7 @@ class TestPythonPipWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @skipIf(IS_WINDOWS or NOT_ARM, "Skip in windows tests")
+    @skipIf(NOT_ARM, "Skip in windows tests")
     def test_must_build_python_project_for_legacy_platforms(self):
         self.builder.build(
             self.source_dir,
@@ -213,7 +213,7 @@ class TestPythonPipWorkflow(TestCase):
         else:
             self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
 
-    @skipIf(IS_WINDOWS or NOT_ARM, "Skip in windows tests")
+    @skipIf(NOT_ARM, "Skip in windows tests")
     def test_must_build_python_project_with_arm_architecture_for_legacy_platforms(self):
         if self.runtime not in ARM_RUNTIMES:
             self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
