@@ -298,6 +298,7 @@ class DependencyBuilder(object):
         incompatible_wheels = set()
         sdists = set()
         for package in deps:
+            print(f">>>>> package.filename {package.filename}")
             if package.dist_type == "sdist":
                 sdists.add(package)
             elif self._is_compatible_wheel_filename(package.filename):
@@ -424,7 +425,6 @@ class DependencyBuilder(object):
 
         In addition to checking the tag pattern, we also need to verify the glibc version
         """
-        print(f">>>>>> expected_abi {expected_abi}, {platform}")
         if platform in self._COMPATIBLE_PLATFORMS[self.architecture]:
             return True
 
