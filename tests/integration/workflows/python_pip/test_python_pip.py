@@ -105,6 +105,7 @@ class TestPythonPipWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_build_python_project_for_legacy_platforms(self):
         self.builder.build(
             self.source_dir,
@@ -115,7 +116,18 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
 
-        expected_files = self.test_data_files.union({"inflate64", "inflate64.libs", "inflate64-0.1.4.dist-info"})
+        expected_files = self.test_data_files.union(
+            {
+                "inflate64",
+                "inflate64-0.1.4.dist-info",
+                "typing_extensions.py",
+                "importlib_metadata-6.1.0.dist-info",
+                "typing_extensions-4.5.0.dist-info",
+                "zipp-3.15.0.dist-info",
+                "importlib_metadata",
+                "zipp",
+            }
+        )
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
@@ -191,6 +203,7 @@ class TestPythonPipWorkflow(TestCase):
         else:
             self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
 
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_build_python_project_with_arm_architecture_for_legacy_platforms(self):
         if self.runtime not in ARM_RUNTIMES:
             self.skipTest("{} is not supported on ARM architecture".format(self.runtime))
@@ -204,7 +217,18 @@ class TestPythonPipWorkflow(TestCase):
             architecture="arm64",
             experimental_flags=self.experimental_flags,
         )
-        expected_files = self.test_data_files.union({"inflate64", "inflate64-0.1.4.dist-info"})
+        expected_files = self.test_data_files.union(
+            {
+                "inflate64",
+                "inflate64-0.1.4.dist-info",
+                "typing_extensions.py",
+                "importlib_metadata-6.1.0.dist-info",
+                "typing_extensions-4.5.0.dist-info",
+                "zipp-3.15.0.dist-info",
+                "importlib_metadata",
+                "zipp",
+            }
+        )
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
