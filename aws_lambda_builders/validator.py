@@ -21,6 +21,7 @@ SUPPORTED_RUNTIMES = {
     "ruby2.7": [ARM64, X86_64],
     "java8": [ARM64, X86_64],
     "java11": [ARM64, X86_64],
+    "java17": [ARM64, X86_64],
     "go1.x": [ARM64, X86_64],
     "dotnetcore3.1": [ARM64, X86_64],
     "dotnet6": [ARM64, X86_64],
