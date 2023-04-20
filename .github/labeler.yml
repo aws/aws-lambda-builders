@@ -1,6 +1,6 @@
 area/workflow/dotnet_clipackage:
-- aws_lambda_builders/workflows/dotnet_clipacakge/*
-- aws_lambda_builders/workflows/dotnet_clipacakge/**/*
+- aws_lambda_builders/workflows/dotnet_clipackage/*
+- aws_lambda_builders/workflows/dotnet_clipackage/**/*
 
 area/workflow/go_modules:
 - aws_lambda_builders/workflows/go_modules/*
