@@ -41,7 +41,7 @@ package:
       <ZIP-FILE> The name of the zip file to package the project into
    Options:
       -c     | --configuration                Configuration to build with, for example Release or Debug.
-      -f     | --framework                    Target framework to compile, for example netcoreapp2.1.
+      -f     | --framework                    Target framework to compile, for example dotnet6.0.
       --msbuild-parameters                    Additional msbuild parameters passed to the 'dotnet publish' command. Add quotes around the value if the value contains spaces.
       -pl    | --project-location             The location of the project, if not set the current directory will be assumed.
       -cfg   | --config-file                  Configuration file storing default values for command line arguments.
