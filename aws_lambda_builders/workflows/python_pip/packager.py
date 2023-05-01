@@ -661,7 +661,11 @@ class PipRunner(object):
     # Update regex pattern to correspond with the updated output from pip
     # Specific commit:
     # https://github.com/pypa/pip/commit/b28e2c4928cc62d90b738a4613886fb1e2ad6a81#diff-5225c8e359020adb25dfc8c7a505950fd649c6c5775789c6f6517f7913f94542L529
-    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)\n"]
+    #
+    # Commit that adds extra info to the end:
+    # https://github.com/pypa/pip/commit/c546c99480875cfe4cdeaefa6d16bad9998d0f70#diff-5225c8e359020adb25dfc8c7a505950fd649c6c5775789c6f6517f7913f94542R275-R281
+    # eg. Processing ./package_a (from 123==1.1.1->-r requirements.txt (line 1))
+    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)[ ,\n]"]
 
     def __init__(self, python_exe, pip, osutils=None):
         if osutils is None:
