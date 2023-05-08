@@ -84,6 +84,7 @@ def get_lambda_abi(runtime):
         "python3.7": "cp37m",
         "python3.8": "cp38",
         "python3.9": "cp39",
+        "python3.10": "cp310",
     }
 
     if runtime not in supported:
@@ -98,7 +99,7 @@ class PythonPipDependencyBuilder(object):
 
         :type runtime: str
         :param runtime: Python version to build dependencies for. This can
-            either be python3.7, python3.8 or python3.9. These are currently the
+            either be python3.7, python3.8, python3.9 or python3.10. These are currently the
             only supported values.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`
@@ -660,7 +661,11 @@ class PipRunner(object):
     # Update regex pattern to correspond with the updated output from pip
     # Specific commit:
     # https://github.com/pypa/pip/commit/b28e2c4928cc62d90b738a4613886fb1e2ad6a81#diff-5225c8e359020adb25dfc8c7a505950fd649c6c5775789c6f6517f7913f94542L529
-    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)\n"]
+    #
+    # Commit that adds extra info to the end:
+    # https://github.com/pypa/pip/commit/c546c99480875cfe4cdeaefa6d16bad9998d0f70#diff-5225c8e359020adb25dfc8c7a505950fd649c6c5775789c6f6517f7913f94542R275-R281
+    # eg. Processing ./package_a (from 123==1.1.1->-r requirements.txt (line 1))
+    _LINK_IS_DIR_PATTERNS = ["Processing (.+?)[ ,\n]"]
 
     def __init__(self, python_exe, pip, osutils=None):
         if osutils is None:
