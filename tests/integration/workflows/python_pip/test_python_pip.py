@@ -18,7 +18,7 @@ from aws_lambda_builders.workflows.python_pip.utils import EXPERIMENTAL_FLAG_BUI
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
 NOT_ARM = platform.processor() != "aarch64"
-ARM_RUNTIMES = {"python3.8", "python3.9"}
+ARM_RUNTIMES = {"python3.8", "python3.9", "python3.10"}
 
 
 @parameterized_class(("experimental_flags",), [([]), ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE])])
@@ -60,6 +60,7 @@ class TestPythonPipWorkflow(TestCase):
             "python3.7": "python3.8",
             "python3.8": "python3.9",
             "python3.9": "python3.7",
+            "python3.10": "python3.9",
         }
 
     def tearDown(self):
@@ -92,33 +93,43 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
 
-        self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
-        expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
+        if self.runtime == "python3.10":
+            self.check_architecture_in("numpy-1.23.5.dist-info", ["manylinux2014_x86_64", "manylinux1_x86_64"])
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.23.5.dist-info", "numpy.libs"})
+        else:
+            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+            expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
 
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
     def test_must_build_python_project_python3_binary(self):
         python_paths = which("python")
-        executable_dir = pathlib.Path(tempfile.gettempdir())
-        new_python_path = executable_dir.joinpath("python3")
-        os.symlink(python_paths[0], new_python_path)
-        # Build with access to the newly symlinked python3 binary.
-        self.builder.build(
-            self.source_dir,
-            self.artifacts_dir,
-            self.scratch_dir,
-            self.manifest_path_valid,
-            runtime=self.runtime,
-            experimental_flags=self.experimental_flags,
-            executable_search_paths=[executable_dir],
-        )
-        self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
-        expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
+        with tempfile.TemporaryDirectory() as executable_dir_str:
+            executable_dir = pathlib.Path(executable_dir_str)
+            new_python_path = executable_dir.joinpath("python3")
+            os.symlink(python_paths[0], new_python_path)
+            # Build with access to the newly symlinked python3 binary.
+            self.builder.build(
+                self.source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                self.manifest_path_valid,
+                runtime=self.runtime,
+                experimental_flags=self.experimental_flags,
+                executable_search_paths=[executable_dir],
+            )
 
-        output_files = set(os.listdir(self.artifacts_dir))
-        self.assertEqual(expected_files, output_files)
-        os.unlink(new_python_path)
+            if self.runtime == "python3.10":
+                self.check_architecture_in("numpy-1.23.5.dist-info", ["manylinux2014_x86_64", "manylinux1_x86_64"])
+                expected_files = self.test_data_files.union({"numpy", "numpy-1.23.5.dist-info", "numpy.libs"})
+            else:
+                self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+                expected_files = self.test_data_files.union({"numpy", "numpy-1.20.3.dist-info", "numpy.libs"})
+
+            output_files = set(os.listdir(self.artifacts_dir))
+            self.assertEqual(expected_files, output_files)
+            os.unlink(new_python_path)
 
     @skipIf(NOT_ARM, "Skip if not running on ARM64")
     def test_must_build_python_project_from_sdist_with_arm(self):
@@ -154,10 +165,15 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
         expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-1.20.3.dist-info"})
+        if self.runtime == "python3.10":
+            expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-1.23.5.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-        self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
+        if self.runtime == "python3.10":
+            self.check_architecture_in("numpy-1.23.5.dist-info", ["manylinux2014_aarch64"])
+        else:
+            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2014_aarch64"])
 
     def test_mismatch_runtime_python_project(self):
         # NOTE : Build still works if other versions of python are accessible on the path. eg: /usr/bin/python3.7
