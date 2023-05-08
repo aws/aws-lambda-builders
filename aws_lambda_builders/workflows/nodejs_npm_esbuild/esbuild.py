@@ -3,7 +3,7 @@ Wrapper around calling esbuild through a subprocess.
 """
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Callable, Union
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
@@ -99,28 +99,7 @@ class SubprocessEsbuild(object):
         return out.decode("utf8").strip()
 
 
-# The esbuild API flags are broken up into three forms (https://esbuild.github.io/api/):
-# Multi-word arguments are expected to be passed down using snake case e.g. entry_points
-# Boolean types (--minify)
-SUPPORTED_ESBUILD_APIS_BOOLEAN = [
-    "minify",
-    "sourcemap",
-]
-
-# single value types (--target=es2020)
-SUPPORTED_ESBUILD_APIS_SINGLE_VALUE = [
-    "target",
-    "format",
-    "main_fields",
-    "sources_content",
-]
-
-# Multi-value types (--external:axios --external:aws-sdk)
-SUPPORTED_ESBUILD_APIS_MULTI_VALUE = [
-    "external",
-    "loader",
-    "out_extension",
-]
+NON_CONFIGURABLE_VALUES = ["bundle", "platform", "outdir", "entry_points"]
 
 
 class EsbuildCommandBuilder:
@@ -154,14 +133,85 @@ class EsbuildCommandBuilder:
         """
         args = []
 
-        args.extend(self._get_boolean_args())
-        args.extend(self._get_single_value_args())
-        args.extend(self._get_multi_value_args())
+        for config_key, config_value in self._bundler_config.items():
+            if config_key in NON_CONFIGURABLE_VALUES:
+                continue
+            configuration_type_callback = self._get_config_type_callback(config_value)
+            args.extend(configuration_type_callback(config_key, config_value))
 
         LOG.debug("Found the following args in the config: %s", str(args))
 
         self._command.extend(args)
         return self
+
+    def _get_config_type_callback(
+        self, config_value: Union[bool, str, list]
+    ) -> Callable[[str, Union[bool, str, list]], List[str]]:
+        """
+        Determines the type of the command and returns the corresponding
+        function to build out that command line argument type
+
+        :param config_value: Union[bool, str, list]
+            The configuration value configured through the options. The configuration should be one
+            of the supported types as defined by the esbuild API  (https://esbuild.github.io/api/).
+        :return: Callable[[str, Union[bool, str, list]], List[str]]
+            Returns a function that the caller can use to turn the relevant
+            configuration into the correctly formatted command line argument.
+        """
+        if isinstance(config_value, bool):
+            return self._create_boolean_config
+        elif isinstance(config_value, str):
+            return self._create_str_config
+        elif isinstance(config_value, list):
+            return self._create_list_config
+        raise EsbuildCommandError("Failed to determine the type of the configuration: %s", config_value)
+
+    def _create_boolean_config(self, config_key: str, config_value: bool) -> List[str]:
+        """
+        Given boolean-type configuration, convert it to a string representation suitable for the esbuild API
+        Should be created in the form ([--config-key])
+
+        :param config_key: str
+            The configuration key to be used
+        :param config_value: bool
+            The configuration value to be used
+        :return: List[str]
+            List of resolved command line arguments to be appended to the builder
+        """
+        if config_value is True:
+            return [f"--{self._convert_snake_to_kebab_case(config_key)}"]
+        return []
+
+    def _create_str_config(self, config_key: str, config_value: str) -> List[str]:
+        """
+        Given string-type configuration, convert it to a string representation suitable for the esbuild API
+        Should be created in the form ([--config-key=config_value])
+
+        :param config_key: str
+            The configuration key to be used
+        :param config_value: List[str]
+            The configuration value to be used
+        :return: List[str]
+            List of resolved command line arguments to be appended to the builder
+        """
+        return [f"--{self._convert_snake_to_kebab_case(config_key)}={config_value}"]
+
+    def _create_list_config(self, config_key: str, config_value: List[str]) -> List[str]:
+        """
+        Given list-type configuration, convert it to a string representation suitable for the esbuild API
+        Should be created in the form ([--config-key:config_value_a, --config_key:config_value_b])
+
+        :param config_key: str
+            The configuration key to be used
+        :param config_value: List[str]
+            The configuration value to be used
+        :return: List[str]
+            List of resolved command line arguments to be appended to the builder
+        """
+        args = []
+        for config_item in config_value:
+            args.append(f"--{self._convert_snake_to_kebab_case(config_key)}:{config_item}")
+        return args
 
     def build_entry_points(self) -> "EsbuildCommandBuilder":
         """
@@ -226,50 +276,6 @@ class EsbuildCommandBuilder:
         args = ["--external:{}".format(dep) for dep in dependencies]
         self._command.extend(args)
         return self
-
-    def _get_boolean_args(self) -> List[str]:
-        """
-        Get a list of all the boolean value flag types (e.g. --minify)
-
-        :rtype: List[str]
-        :return: Arguments to be appended to the command list
-        """
-        args = []
-        for param in SUPPORTED_ESBUILD_APIS_BOOLEAN:
-            if param in self._bundler_config and self._bundler_config[param] is True:
-                args.append(f"--{self._convert_snake_to_kebab_case(param)}")
-        return args
-
-    def _get_single_value_args(self) -> List[str]:
-        """
-        Get a list of all the single value flag types (e.g. --target=es2020)
-
-        :rtype: List[str]
-        :return: Arguments to be appended to the command list
-        """
-        args = []
-        for param in SUPPORTED_ESBUILD_APIS_SINGLE_VALUE:
-            if param in self._bundler_config:
-                value = self._bundler_config.get(param)
-                args.append(f"--{self._convert_snake_to_kebab_case(param)}={value}")
-        return args
-
-    def _get_multi_value_args(self) -> List[str]:
-        """
-        Get a list of all the multi-value flag types (e.g. --external:aws-sdk)
-
-        :rtype: List[str]
-        :return: Arguments to be appended to the command list
-        """
-        args = []
-        for param in SUPPORTED_ESBUILD_APIS_MULTI_VALUE:
-            if param in self._bundler_config:
-                values = self._bundler_config.get(param)
-                if not isinstance(values, list):
-                    raise EsbuildCommandError(f"Invalid type for property {param}, must be a dict.")
-                for param_item in values:
-                    args.append(f"--{self._convert_snake_to_kebab_case(param)}:{param_item}")
-        return args
 
     def _get_explicit_file_type(self, entry_point, entry_path):
         """
