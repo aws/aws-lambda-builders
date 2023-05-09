@@ -20,9 +20,6 @@ lint:
 	# Liner performs static analysis to catch latent bugs
 	ruff aws_lambda_builders
 
-lint-fix:
-	ruff aws_lambda_builders --fix
-
 # Command to run everytime you make changes to verify everything works
 dev: lint test
 
@@ -34,5 +31,3 @@ black-check:
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
-
-format: lint-fix black
