@@ -99,7 +99,7 @@ class SubprocessEsbuild(object):
         return out.decode("utf8").strip()
 
 
-NON_CONFIGURABLE_VALUES = ["bundle", "platform", "outdir", "entry_points"]
+NON_CONFIGURABLE_VALUES = ["bundle", "platform", "outdir"]
 
 
 class EsbuildCommandBuilder:
@@ -135,8 +135,18 @@ class EsbuildCommandBuilder:
 
         for config_key, config_value in self._bundler_config.items():
             if config_key in NON_CONFIGURABLE_VALUES:
+                LOG.debug(
+                    "'%s=%s' was not a used configuration since AWS Lambda Builders "
+                    "sets these values for the code to be correctly consumed by AWS Lambda",
+                    config_key,
+                    config_value,
+                )
+                continue
+            if config_key == "entry_points":
+                # Entry points are a required parameter and are handled by the build_entry_points() method
                 continue
             configuration_type_callback = self._get_config_type_callback(config_value)
+            LOG.debug("Configuring the parameter '%s=%s'", config_key, config_value)
             args.extend(configuration_type_callback(config_key, config_value))
 
         LOG.debug("Found the following args in the config: %s", str(args))
