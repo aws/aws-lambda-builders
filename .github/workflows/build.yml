@@ -11,6 +11,10 @@ on:
       - develop
       - "feat*"
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-workflow:
     name: PR Workflow
@@ -264,7 +268,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/python_pip
 
   ruby-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby-${{ matrix.ruby }}
+    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -278,9 +282,6 @@ jobs:
           - "3.8"
           - "3.9"
           - "3.10"
-        ruby:
-          - "3.1"
-          - "2.7"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -288,7 +289,10 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
+          ruby-version: "3.2"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "2.7"
       - run: make init
       - run: pytest -vv tests/integration/workflows/ruby_bundler
 
