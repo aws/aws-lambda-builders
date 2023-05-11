@@ -7,7 +7,7 @@ import os
 import threading
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
-from aws_lambda_builders.architecture import ARM64, X86_64
+from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflow import BuildMode
 
 from .dotnetcli import DotnetCLIExecutionError
@@ -62,35 +62,13 @@ class GlobalToolInstallAction(BaseAction):
 class RunPackageAction(BaseAction):
     """
     A Lambda Builder Action which builds the .NET Core project using the Amazon.Lambda.Tools .NET Core Global Tool
-
-    :param source_dir: str
-        Path to a folder containing the source code
-
-    :param subprocess_dotnet:
-        An instance of the dotnet process wrapper
-
-    :param artifacts_dir: str
-        Path to a folder where the built artifacts should be placed
-
-    :param options:
-        Dictionary of options ot pass to build action
-
-    :param mode: str
-        Mode the build should produce
-
-    :param architecture: str
-        Architecture to build for. Default value is X86_64 which is consistent with Amazon Lambda Tools
-
-    :param os_utils:
-        Optional, OS utils
-
     """
 
     NAME = "RunPackageAction"
     DESCRIPTION = "Execute the `dotnet lambda package` command."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options, mode, architecture=X86_64, os_utils=None):
+    def __init__(self, source_dir, subprocess_dotnet, artifacts_dir, options, mode, architecture=None, os_utils=None):
         super(RunPackageAction, self).__init__()
         self.source_dir = source_dir
         self.subprocess_dotnet = subprocess_dotnet
@@ -112,9 +90,9 @@ class RunPackageAction(BaseAction):
                 "package",
                 "--output-package",
                 zipfullpath,
-                # pass function architecture to Amazon Lambda Tools.
-                "--function-architecture",
-                self.architecture,
+                # Specify the architecture with the --runtime MSBuild parameter
+                "--msbuild-parameters",
+                "--runtime " + self._get_runtime(),
             ]
 
             if self.mode and self.mode.lower() == BuildMode.DEBUG:
