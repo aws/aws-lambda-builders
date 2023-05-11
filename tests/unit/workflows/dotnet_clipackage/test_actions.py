@@ -89,7 +89,16 @@ class TestRunPackageAction(TestCase):
         zip_path = os.path.join(self.artifacts_dir, "source_dir.zip")
 
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["lambda", "package", "--output-package", zip_path, "--msbuild-parameters", "--runtime linux-x64"],
+            [
+                "lambda",
+                "package",
+                "--output-package",
+                zip_path,
+                "--function-architecture",
+                X86_64,
+                "--msbuild-parameters",
+                "--runtime linux-x64",
+            ],
             cwd="/source_dir",
         )
 
@@ -106,7 +115,16 @@ class TestRunPackageAction(TestCase):
         zip_path = os.path.join(self.artifacts_dir, "source_dir.zip")
 
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["lambda", "package", "--output-package", zip_path, "--msbuild-parameters", "--runtime linux-x64"],
+            [
+                "lambda",
+                "package",
+                "--output-package",
+                zip_path,
+                "--function-architecture",
+                X86_64,
+                "--msbuild-parameters",
+                "--runtime linux-x64",
+            ],
             cwd="/source_dir",
         )
 
@@ -123,7 +141,16 @@ class TestRunPackageAction(TestCase):
         zip_path = os.path.join(self.artifacts_dir, "source_dir.zip")
 
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["lambda", "package", "--output-package", zip_path, "--msbuild-parameters", "--runtime linux-arm64"],
+            [
+                "lambda",
+                "package",
+                "--output-package",
+                zip_path,
+                "--function-architecture",
+                ARM64,
+                "--msbuild-parameters",
+                "--runtime linux-arm64",
+            ],
             cwd="/source_dir",
         )
 
@@ -144,6 +171,8 @@ class TestRunPackageAction(TestCase):
                 "package",
                 "--output-package",
                 zip_path,
+                "--function-architecture",
+                X86_64,
                 "--msbuild-parameters",
                 "--runtime linux-x64",
                 "--framework",
@@ -180,6 +209,8 @@ class TestRunPackageAction(TestCase):
                 "package",
                 "--output-package",
                 zip_path,
+                "--function-architecture",
+                X86_64,
                 "--msbuild-parameters",
                 "--runtime linux-x64",
                 "--configuration",
