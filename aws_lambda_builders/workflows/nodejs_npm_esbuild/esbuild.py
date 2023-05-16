@@ -99,7 +99,7 @@ class SubprocessEsbuild(object):
         return out.decode("utf8").strip()
 
 
-NON_CONFIGURABLE_VALUES = ["bundle", "platform", "outdir"]
+NON_CONFIGURABLE_VALUES = {"bundle", "platform", "outdir"}
 
 
 class EsbuildCommandBuilder:
