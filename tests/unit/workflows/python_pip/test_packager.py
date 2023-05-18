@@ -270,6 +270,13 @@ class TestPipRunner(object):
         assert len(pip.calls) == 2
         assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-dir"]
 
+    def test_does_find_local_nested_directory(self, pip_factory):
+        pip, runner = pip_factory()
+        pip.add_return((0, b"Processing ../local-nested-dir (from xyz==123 and other info here)\n", b""))
+        runner.download_all_dependencies("requirements.txt", "directory")
+        assert len(pip.calls) == 2
+        assert pip.calls[1].args == ["wheel", "--no-deps", "--wheel-dir", "directory", "../local-nested-dir"]
+
     def test_does_find_multiple_local_directories(self, pip_factory):
         pip, runner = pip_factory()
         pip.add_return(

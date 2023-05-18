@@ -87,6 +87,15 @@ class TestGradleBinaryValidator(TestCase):
         self.assertTrue(validator.validate(runtime_path=self.runtime_path))
         self.assertEqual(validator.validated_binary_path, self.runtime_path)
 
+    def test_no_warning_when_jvm_mv_17_and_java17_runtime(self):
+        version_string = "JVM:          17.0.0".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string)]
+        validator = GradleValidator(
+            runtime="java17", architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+        )
+        self.assertTrue(validator.validate(runtime_path=self.runtime_path))
+        self.assertEqual(validator.validated_binary_path, self.runtime_path)
+
     def test_runtime_validate_unsupported_language_fail_open(self):
         validator = GradleValidator(runtime="java2.0", architecture="arm64")
         with self.assertRaises(UnsupportedRuntimeError):
