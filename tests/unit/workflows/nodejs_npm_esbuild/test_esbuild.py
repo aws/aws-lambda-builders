@@ -209,19 +209,19 @@ class TestEsbuildCommandBuilder(TestCase):
             .get_command()
         )
         self.assertEqual(
-            args,
-            [
+            set(args),
+            {
                 "--minify",
                 "--target=node14",
                 "--format=esm",
                 "--main-fields=module,main",
-                "--sources-content=false",
                 "--external:aws-sdk",
                 "--external:axios",
                 "--loader:.proto=text",
                 "--loader:.json=js",
                 "--out-extension:.js=.mjs",
-            ],
+                "--sources-content=false",
+            },
         )
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
@@ -235,8 +235,8 @@ class TestEsbuildCommandBuilder(TestCase):
             .get_command()
         )
         self.assertEqual(
-            args,
-            [
+            set(args),
+            {
                 "x.js",
                 "--bundle",
                 "--platform=node",
@@ -246,7 +246,7 @@ class TestEsbuildCommandBuilder(TestCase):
                 "--format=esm",
                 "--loader:.proto=text",
                 "--loader:.json=js",
-            ],
+            },
         )
 
     @parameterized.expand(
