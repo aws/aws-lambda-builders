@@ -101,6 +101,10 @@ class SubprocessEsbuild(object):
 
 NON_CONFIGURABLE_VALUES = {"bundle", "platform", "outdir"}
 
+# Ignore the values below. These are options that Lambda Builders accepts for
+# Node.js related workflows, but are not relevant to esbuild itself.
+ESBUILD_IGNORE_VALUES = {"use_npm_ci", "entry_points"}
+
 
 class EsbuildCommandBuilder:
     ENTRY_POINTS = "entry_points"
@@ -142,8 +146,7 @@ class EsbuildCommandBuilder:
                     config_value,
                 )
                 continue
-            if config_key == "entry_points":
-                # Entry points are a required parameter and are handled by the build_entry_points() method
+            if config_key in ESBUILD_IGNORE_VALUES:
                 continue
             configuration_type_callback = self._get_config_type_callback(config_value)
             LOG.debug("Configuring the parameter '%s=%s'", config_key, config_value)
