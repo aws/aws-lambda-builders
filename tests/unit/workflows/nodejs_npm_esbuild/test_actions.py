@@ -329,6 +329,30 @@ class TestEsbuildBundleAction(TestCase):
         with self.assertRaises(ActionFailedError):
             action.execute()
 
+    def test_packages_javascript_ignoring_non_relevant_flags(self):
+        action = EsbuildBundleAction(
+            "source",
+            "artifacts",
+            {"entry_points": ["x.js"], "use_npm_ci": True},
+            self.osutils,
+            self.subprocess_esbuild,
+            "package.json",
+        )
+        action.execute()
+
+        self.subprocess_esbuild.run.assert_called_with(
+            [
+                "x.js",
+                "--bundle",
+                "--platform=node",
+                "--outdir=artifacts",
+                "--target=es2020",
+                "--format=cjs",
+                "--minify",
+            ],
+            cwd="source",
+        )
+
 
 class TestEsbuildVersionChecker(TestCase):
     @parameterized.expand(["0.14.0", "0.0.0", "0.14.12"])
