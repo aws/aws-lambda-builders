@@ -464,3 +464,278 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_files = {"package.json", "included.js", "node_modules"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root(self, runtime):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
+        source_dir = os.path.join(base_dir, "src")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies
+        expected_modules = {"minimal-request-promise"}
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertEqual(expected_modules, output_modules)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root_with_reuse_saved_dependencies_dir(self, runtime):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
+        source_dir = os.path.join(base_dir, "src")
+        expected_modules = {"minimal-request-promise"}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            dependencies_dir=self.dependencies_dir,
+        )
+
+        # expected dependencies in dependencies directory
+        dependencies_dir_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertEqual(expected_modules, dependencies_dir_modules)
+
+        # cleanup artifacts_dir to make sure we use dependencies from dependencies_dir
+        for filename in os.listdir(self.artifacts_dir):
+            file_path = os.path.join(self.artifacts_dir, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.remove(file_path)
+            else:
+                shutil.rmtree(file_path)
+
+        # build again without downloading dependencies
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=False,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertEqual(expected_modules, output_modules)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root_with_dependencies_dir_and_not_combine(self, runtime):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
+        source_dir = os.path.join(base_dir, "src")
+        expected_modules = {"minimal-request-promise"}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            dependencies_dir=self.dependencies_dir,
+            combine_dependencies=False,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies in dependencies directory
+        dependencies_dir_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertEqual(expected_modules, dependencies_dir_modules)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root_with_dependencies_dir_and_combine(self, runtime):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
+        source_dir = os.path.join(base_dir, "src")
+        expected_modules = {"minimal-request-promise"}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            dependencies_dir=self.dependencies_dir,
+            combine_dependencies=True,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies in dependencies directory
+        artifacts_dir_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertEqual(expected_modules, artifacts_dir_modules)
+
+        # expected dependencies in dependencies directory
+        dependencies_dir_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertEqual(expected_modules, dependencies_dir_modules)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root_and_local_dependencies(self, runtime):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root-with-local-dependency")
+        source_dir = os.path.join(base_dir, "src")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies in artifact directory
+        expected_modules = {"minimal-request-promise", "local-dependency", "axios"}
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertTrue(all(expected_module in output_modules for expected_module in expected_modules))
+
+        # expected dependencies in source directory
+        source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
+        self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root_and_local_dependencies_with_reuse_saved_dependencies_dir(
+        self, runtime
+    ):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root-with-local-dependency")
+        source_dir = os.path.join(base_dir, "src")
+        expected_modules = {"minimal-request-promise", "local-dependency", "axios"}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+        )
+
+        # expected dependencies in dependencies directory
+        dependencies_dir_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertTrue(all(expected_module in dependencies_dir_modules for expected_module in expected_modules))
+
+        # cleanup artifacts_dir to make sure we use dependencies from dependencies_dir
+        for filename in os.listdir(self.artifacts_dir):
+            file_path = os.path.join(self.artifacts_dir, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.remove(file_path)
+            else:
+                shutil.rmtree(file_path)
+
+        # build again without downloading dependencies
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=False,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies in artifacts directory
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertTrue(all(expected_module in output_modules for expected_module in expected_modules))
+
+        # expected dependencies in source directory
+        source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
+        self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root_and_local_dependencies_with_dependencies_dir_and_not_combine(
+        self, runtime
+    ):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root-with-local-dependency")
+        source_dir = os.path.join(base_dir, "src")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+            combine_dependencies=False,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies in dependencies directory
+        expected_modules = {"minimal-request-promise", "local-dependency", "axios"}
+        output_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertTrue(all(expected_module in output_modules for expected_module in expected_modules))
+
+        # expected dependencies in source directory
+        source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
+        self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_project_with_manifest_outside_root_and_local_dependencies_with_dependencies_dir_and_combine(
+        self, runtime
+    ):
+        base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root-with-local-dependency")
+        source_dir = os.path.join(base_dir, "src")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            dependencies_dir=self.dependencies_dir,
+            combine_dependencies=True,
+        )
+
+        # expected output
+        expected_files = {"package.json", "included.js", "excluded.js", "node_modules"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # expected dependencies in dependencies directory
+        expected_modules = {"minimal-request-promise", "local-dependency", "axios"}
+        dependencies_dir_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertTrue(all(expected_module in dependencies_dir_modules for expected_module in expected_modules))
+
+        # expected dependencies in artifacts directory
+        output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
+        self.assertTrue(all(expected_module in output_modules for expected_module in expected_modules))
+
+        # expected dependencies in source directory
+        source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
+        self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))

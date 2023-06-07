@@ -6,7 +6,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Iterator, Set, Tuple, Union
+from typing import Iterator, Optional, Set, Tuple, Union
 
 from aws_lambda_builders import utils
 from aws_lambda_builders.utils import copytree, create_symlink_or_copy
@@ -169,14 +169,15 @@ class CopyDependenciesAction(BaseAction):
 
     PURPOSE = Purpose.COPY_DEPENDENCIES
 
-    def __init__(self, source_dir, artifact_dir, destination_dir, maintain_symlinks=False):
+    def __init__(self, source_dir, artifact_dir, destination_dir, maintain_symlinks=False, manifest_dir=None):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
+        self.manifest_dir = manifest_dir
         self.maintain_symlinks = maintain_symlinks
 
     def execute(self):
-        deps_manager = DependencyManager(self.source_dir, self.artifact_dir, self.dest_dir)
+        deps_manager = DependencyManager(self.source_dir, self.artifact_dir, self.dest_dir, self.manifest_dir)
 
         for dependencies_source, new_destination in deps_manager.yield_source_dest():
             if os.path.islink(dependencies_source) and self.maintain_symlinks:
@@ -198,13 +199,14 @@ class MoveDependenciesAction(BaseAction):
 
     PURPOSE = Purpose.MOVE_DEPENDENCIES
 
-    def __init__(self, source_dir, artifact_dir, destination_dir):
+    def __init__(self, source_dir, artifact_dir, destination_dir, manifest_dir=None):
         self.source_dir = source_dir
         self.artifact_dir = artifact_dir
         self.dest_dir = destination_dir
+        self.manifest_dir = manifest_dir
 
     def execute(self):
-        deps_manager = DependencyManager(self.source_dir, self.artifact_dir, self.dest_dir)
+        deps_manager = DependencyManager(self.source_dir, self.artifact_dir, self.dest_dir, self.manifest_dir)
 
         for dependencies_source, new_destination in deps_manager.yield_source_dest():
             # shutil.move can't create subfolders if this is the first file in that folder
@@ -256,10 +258,11 @@ class DependencyManager:
     # This allows for the installation of dependencies in the source directory
     IGNORE_LIST = ["node_modules"]
 
-    def __init__(self, source_dir, artifact_dir, destination_dir) -> None:
+    def __init__(self, source_dir, artifact_dir, destination_dir, manifest_dir=None) -> None:
         self._source_dir: str = source_dir
         self._artifact_dir: str = artifact_dir
         self._dest_dir: str = destination_dir
+        self._manifest_dir: Optional[str] = manifest_dir
         self._dependencies: Set[str] = set()
 
     def yield_source_dest(self) -> Iterator[Tuple[str, str]]:
@@ -268,12 +271,13 @@ class DependencyManager:
             yield os.path.join(self._artifact_dir, dep), os.path.join(self._dest_dir, dep)
 
     def _set_dependencies(self) -> None:
-        source = self._get_source_files_exclude_deps()
+        source = self._get_source_files_exclude_deps(self._source_dir)
+        manifest = self._get_source_files_exclude_deps(self._manifest_dir) if self._manifest_dir else set()
         artifact = set(os.listdir(self._artifact_dir))
-        self._dependencies = artifact - source
+        self._dependencies = artifact - (source.union(manifest))
 
-    def _get_source_files_exclude_deps(self) -> Set[str]:
-        source_files = set(os.listdir(self._source_dir))
+    def _get_source_files_exclude_deps(self, dir_path: str) -> Set[str]:
+        source_files = set(os.listdir(dir_path))
         for item in self.IGNORE_LIST:
             if item in source_files:
                 source_files.remove(item)
