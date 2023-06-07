@@ -1,0 +1,16 @@
+{
+  "name": "with-deps-esbuild-typescript",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "dependencies": {
+    "@types/aws-lambda": "^8.10.76",
+    "axios": "*",
+    "local-dependency": "file:../../with-deps-esbuild"
+  },
+  "devDependencies": {
+    "esbuild": "^0.11.23"
+  }
+}
