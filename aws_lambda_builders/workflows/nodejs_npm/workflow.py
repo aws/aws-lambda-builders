@@ -135,7 +135,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
             )
 
         self.actions += self._actions_for_cleanup
-        print(self.actions)
 
     @property
     def _actions_for_cleanup(self):
