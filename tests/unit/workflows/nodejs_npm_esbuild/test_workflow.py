@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch, call
@@ -7,6 +8,7 @@ from aws_lambda_builders.actions import (
     CleanUpAction,
     MoveDependenciesAction,
     LinkSourceAction,
+    LinkSinglePathAction,
 )
 from aws_lambda_builders.architecture import ARM64
 from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAction, NodejsNpmCIAction
@@ -39,6 +41,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.osutils.pipe = "PIPE"
         self.popen = FakePopen()
         self.osutils.popen.side_effect = [self.popen]
+        self.osutils.dirname.return_value = "source"
         self.osutils.is_windows.side_effect = [False]
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)
 
@@ -49,7 +52,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=self.osutils,
             experimental_flags=[],
         )
@@ -69,7 +72,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=self.osutils,
             experimental_flags=[],
         )
@@ -87,7 +90,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=self.osutils,
             executable_search_paths=["other/bin"],
             experimental_flags=[],
@@ -105,7 +108,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=self.osutils,
             experimental_flags=[],
             options={"use_npm_ci": True},
@@ -124,7 +127,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=self.osutils,
             experimental_flags=[],
             options={"use_npm_ci": True},
@@ -145,7 +148,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=self.osutils,
             experimental_flags=[],
         )
@@ -166,7 +169,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch",
-            "manifest",
+            "source/manifest",
             options={"artifact_executable_name": "foo"},
             osutils=self.osutils,
             experimental_flags=[],
@@ -176,7 +179,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch",
-            "manifest",
+            "source/manifest",
             architecture=ARM64,
             osutils=self.osutils,
             experimental_flags=[],
@@ -192,7 +195,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=self.osutils,
             experimental_flags=[],
         )
@@ -209,7 +212,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             dependencies_dir="dep",
             download_dependencies=False,
             combine_dependencies=True,
@@ -229,7 +232,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             dependencies_dir="dep",
             download_dependencies=False,
             combine_dependencies=False,
@@ -249,7 +252,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             dependencies_dir="dep",
             download_dependencies=True,
             osutils=self.osutils,
@@ -269,7 +272,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             dependencies_dir="dep",
             download_dependencies=True,
             combine_dependencies=False,
@@ -291,7 +294,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             dependencies_dir=None,
             download_dependencies=True,
             combine_dependencies=False,
@@ -322,7 +325,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             "source",
             "artifacts",
             "scratch_dir",
-            "manifest",
+            "source/manifest",
             osutils=osutils_mock,
         )
 
@@ -335,7 +338,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
                 "source",
                 "artifacts",
                 "scratch_dir",
-                "manifest",
+                "source/manifest",
                 osutils=self.osutils,
                 download_dependencies=False,
             )
@@ -346,7 +349,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             source_dir=source_dir,
             artifacts_dir="artifacts",
             scratch_dir="scratch_dir",
-            manifest_path="manifest",
+            manifest_path="source/manifest",
             osutils=self.osutils,
             build_in_source=True,
         )
@@ -357,3 +360,47 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEqual(workflow.actions[0].install_dir, source_dir)
         self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
         self.assertEqual(workflow.actions[1]._working_directory, source_dir)
+
+    def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest(self):
+        self.osutils.dirname.return_value = "not_source"
+
+        workflow = NodejsNpmEsbuildWorkflow(
+            source_dir="source",
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path="not_source/manifest",
+            osutils=self.osutils,
+        )
+
+        self.assertEqual(len(workflow.actions), 4)
+
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertIsInstance(workflow.actions[1], CopySourceAction)
+        self.assertEquals(workflow.actions[1].source_dir, "not_source")
+        self.assertEquals(workflow.actions[1].dest_dir, "scratch_dir")
+        self.assertIsInstance(workflow.actions[2], NodejsNpmInstallAction)
+        self.assertEquals(workflow.actions[2].install_dir, "scratch_dir")
+        self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
+
+    def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest_and_build_in_source(
+        self,
+    ):
+        self.osutils.dirname.return_value = "not_source"
+
+        workflow = NodejsNpmEsbuildWorkflow(
+            source_dir="source",
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path="not_source/manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 3)
+
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertEquals(workflow.actions[0].install_dir, "not_source")
+        self.assertIsInstance(workflow.actions[1], LinkSinglePathAction)
+        self.assertEquals(workflow.actions[1]._source, os.path.join("not_source", "node_modules"))
+        self.assertEquals(workflow.actions[1]._dest, os.path.join("source", "node_modules"))
+        self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)

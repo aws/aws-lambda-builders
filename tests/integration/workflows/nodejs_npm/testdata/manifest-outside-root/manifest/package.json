@@ -1,0 +1,14 @@
+{
+  "name": "manifest-outside-root",
+  "version": "1.0.0",
+  "description": "",
+  "files": [
+    "../src/included.js"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "dependencies": {
+    "minimal-request-promise": "*"
+  }
+}
