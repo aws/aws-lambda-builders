@@ -4,11 +4,13 @@ NodeJS NPM Workflow using the esbuild bundler
 
 import json
 import logging
+import os
 from pathlib import Path
 
 from aws_lambda_builders.actions import (
     CleanUpAction,
     CopySourceAction,
+    LinkSinglePathAction,
     LinkSourceAction,
     MoveDependenciesAction,
 )
@@ -53,6 +55,10 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         self.osutils = osutils or OSUtils()
         self.subprocess_npm = SubprocessNpm(self.osutils)
         self.subprocess_esbuild = self._get_esbuild_subprocess()
+        self.manifest_dir = self.osutils.dirname(self.manifest_path)
+
+        is_building_in_source = self.build_dir == self.source_dir
+        is_external_manifest = self.manifest_dir != self.source_dir
 
         bundler_config = self.get_build_properties()
 
@@ -80,21 +86,44 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         # if we're building in the source directory, we don't have to copy the source code
         self.actions = (
             []
-            if self.build_dir == self.source_dir
+            if is_building_in_source
             else [CopySourceAction(source_dir=self.source_dir, dest_dir=self.build_dir, excludes=self.EXCLUDED_FILES)]
         )
+
+        if is_external_manifest and not is_building_in_source:
+            # copy the manifest file (package.json) to the build directory in case if the manifest file is not in the
+            # same directory as the source code, and customer is not building in source.
+            self.actions.append(
+                CopySourceAction(source_dir=self.manifest_dir, dest_dir=self.build_dir, excludes=self.EXCLUDED_FILES)
+            )
 
         if self.download_dependencies:
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
-                    install_dir=self.build_dir,
+                    # run npm install in the directory where the manifest (package.json) exists if customer is building
+                    # in source, and manifest directory is different from source.
+                    # This will let NPM find the local dependencies that are defined in the manifest file (they are
+                    # usually defined as relative to the manifest location, and that is why we run `npm install` in the
+                    # manifest directory instead of source directory).
+                    # If customer is not building in source, so it is ok to run `npm install` in the build
+                    # directory (the artifacts directory in this case), as the local dependencies are not supported.
+                    install_dir=self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir,
                     subprocess_npm=self.subprocess_npm,
                     osutils=self.osutils,
                     build_options=self.options,
-                    install_links=self.build_dir == self.source_dir,
+                    install_links=is_building_in_source,
                 )
             )
+
+            if is_building_in_source and is_external_manifest:
+                # Since we run `npm install` in the manifest directory, so we need to link the node_modules directory in
+                # the source directory.
+                source_dependencies_path = os.path.join(self.source_dir, "node_modules")
+                manifest_dependencies_path = os.path.join(self.manifest_dir, "node_modules")
+                self.actions.append(
+                    LinkSinglePathAction(source=manifest_dependencies_path, dest=source_dependencies_path)
+                )
 
         bundle_action = EsbuildBundleAction(
             working_directory=self.build_dir,
@@ -109,7 +138,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         # If there's no dependencies_dir, just bundle and we're done.
         # Same thing if we're building in the source directory (since the dependencies persist in
         # the source directory, we don't want to move them or symlink them back to the source)
-        if not self.dependencies_dir or self.build_dir == self.source_dir:
+        if not self.dependencies_dir or is_building_in_source:
             self.actions.append(bundle_action)
             return
 
@@ -118,7 +147,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             self.actions += [
                 bundle_action,
                 CleanUpAction(self.dependencies_dir),
-                MoveDependenciesAction(self.source_dir, self.scratch_dir, self.dependencies_dir),
+                MoveDependenciesAction(self.source_dir, self.scratch_dir, self.dependencies_dir, self.manifest_dir),
             ]
         else:
             # if we're reusing dependencies, then we need to symlink them before bundling
