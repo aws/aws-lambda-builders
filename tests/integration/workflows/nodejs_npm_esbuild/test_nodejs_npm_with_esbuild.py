@@ -30,6 +30,11 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         self.osutils = OSUtils()
         self._set_esbuild_binary_path()
 
+        # use this so tests don't modify actual testdata, and we can parallelize
+        self.temp_dir = tempfile.mkdtemp()
+        self.temp_testdata_dir = os.path.join(self.temp_dir, "testdata")
+        shutil.copytree(self.TEST_DATA_FOLDER, self.temp_testdata_dir)
+
     def _set_esbuild_binary_path(self):
         npm = SubprocessNpm(self.osutils)
         esbuild_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-binary")
@@ -40,6 +45,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
+        shutil.rmtree(self.temp_dir)
 
         # clean up dependencies that were installed in source dir
         source_dependencies = os.path.join(self.source_dir, "node_modules")
@@ -491,3 +497,141 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_javascript_project_ignoring_relevant_flags(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
+
+        options = {"entry_points": ["included.js"], "use_npm_ci": True}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_typescript_projects_with_external_manifest(self, runtime):
+        base_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-manifest-outside-root")
+        source_dir = os.path.join(base_dir, "src")
+
+        options = {"entry_points": ["included.ts"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+        )
+
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_typescript_projects_with_external_manifest_with_dependencies_dir_without_combine(self, runtime):
+        base_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-manifest-outside-root")
+        source_dir = os.path.join(base_dir, "src")
+
+        options = {"entry_points": ["included.ts"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=True,
+            combine_dependencies=False,
+        )
+
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        expected_modules = "minimal-request-promise"
+        output_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertIn(expected_modules, output_modules)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_typescript_projects_with_external_manifest_with_dependencies_dir_with_combine(self, runtime):
+        base_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-manifest-outside-root")
+        source_dir = os.path.join(base_dir, "src")
+
+        options = {"entry_points": ["included.ts"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+            dependencies_dir=self.dependencies_dir,
+            download_dependencies=True,
+            combine_dependencies=True,
+        )
+
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        expected_modules = "minimal-request-promise"
+        output_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
+        self.assertIn(expected_modules, output_modules)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",)])
+    def test_builds_typescript_projects_with_external_manifest_and_local_depends(self, runtime):
+        base_dir = os.path.join(self.temp_testdata_dir, "esbuild-manifest-outside-root-with-local-depends")
+        source_dir = os.path.join(base_dir, "src")
+
+        options = {"entry_points": ["included.ts"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(base_dir, "manifest", "package.json"),
+            runtime=runtime,
+            options=options,
+            experimental_flags=[],
+            executable_search_paths=[self.binpath],
+            build_in_source=True,
+        )
+
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # dependencies installed in source folder
+        self.assertIn("node_modules", os.listdir(source_dir))
+        self.assertIn("node_modules", os.listdir(os.path.join(base_dir, "manifest")))
+
+        expected_modules = ["minimal-request-promise", "axios"]
+        output_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
+        self.assertTrue(all(expected_module in output_modules for expected_module in expected_modules))
+
+        output_modules = set(os.listdir(os.path.join(os.path.join(base_dir, "manifest"), "node_modules")))
+        self.assertTrue(all(expected_module in output_modules for expected_module in expected_modules))
+
+        # dependencies not in scratch
+        self.assertNotIn("node_modules", os.listdir(self.scratch_dir))

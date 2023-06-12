@@ -91,6 +91,35 @@ class TestCopyDependenciesAction_execute(TestCase):
         copy2_mock.assert_called_once_with("file1", "file2")
         makedirs_mock.assert_called_once_with("parent_dir_1", exist_ok=True)
 
+    @patch("aws_lambda_builders.actions.os.makedirs")
+    @patch("aws_lambda_builders.actions.os.path.dirname")
+    @patch("aws_lambda_builders.actions.shutil.copy2")
+    @patch("aws_lambda_builders.actions.copytree")
+    @patch("aws_lambda_builders.actions.os.path.isdir")
+    @patch("aws_lambda_builders.actions.os.listdir")
+    @patch("aws_lambda_builders.actions.os.path.join")
+    def test_must_copy_with_external_manifest(
+        self, path_mock, listdir_mock, isdir_mock, copytree_mock, copy2_mock, dirname_mock, makedirs_mock
+    ):
+        source_dir = "source"
+        artifact_dir = "artifact"
+        dest_dir = "dest"
+        manifest_dir = "manifest"
+
+        listdir_mock.side_effect = [[1], [2], [1, 2, 3, 4]]
+        path_mock.side_effect = ["dir1", "dir2", "file1", "file2"]
+        isdir_mock.side_effect = [True, False]
+        dirname_mock.side_effect = ["parent_dir_1"]
+        action = CopyDependenciesAction(source_dir, artifact_dir, dest_dir, manifest_dir=manifest_dir)
+        action.execute()
+
+        listdir_mock.assert_any_call(source_dir)
+        listdir_mock.assert_any_call(manifest_dir)
+        listdir_mock.assert_any_call(artifact_dir)
+        copytree_mock.assert_called_once_with("dir1", "dir2", maintain_symlinks=False)
+        copy2_mock.assert_called_once_with("file1", "file2")
+        makedirs_mock.assert_called_once_with("parent_dir_1", exist_ok=True)
+
 
 class TestMoveDependenciesAction_execute(TestCase):
     @patch("aws_lambda_builders.actions.shutil.move")
@@ -110,6 +139,25 @@ class TestMoveDependenciesAction_execute(TestCase):
         listdir_mock.assert_any_call(artifact_dir)
         move_mock.assert_any_call("dir1", "dir2")
         move_mock.assert_any_call("file1", "file2")
+
+    @patch("aws_lambda_builders.actions.shutil.move")
+    @patch("aws_lambda_builders.actions.os.listdir")
+    @patch("aws_lambda_builders.actions.os.path.join")
+    def test_must_copy_with_manifest(self, path_mock, listdir_mock, move_mock):
+        source_dir = "source"
+        artifact_dir = "artifact"
+        dest_dir = "dest"
+        manifest_dir = "manifest"
+
+        listdir_mock.side_effect = [[1], [2], [1, 2, 3]]
+        path_mock.side_effect = ["dir1", "dir2", "file1", "file2"]
+        action = MoveDependenciesAction(source_dir, artifact_dir, dest_dir, manifest_dir=manifest_dir)
+        action.execute()
+
+        listdir_mock.assert_any_call(source_dir)
+        listdir_mock.assert_any_call(manifest_dir)
+        listdir_mock.assert_any_call(artifact_dir)
+        move_mock.assert_any_call("dir1", "dir2")
 
 
 class TestCleanUpAction_execute(TestCase):
@@ -155,32 +203,55 @@ class TestDependencyManager(TestCase):
             (
                 ["app.js", "package.js", "libs", "node_modules"],
                 ["app.js", "package.js", "libs", "node_modules"],
+                None,
                 [("artifacts/node_modules", "dest/node_modules")],
                 None,
+                None,
+            ),
+            (
+                ["app.js", "libs", "node_modules"],
+                ["app.js", "package.js", "libs", "node_modules"],
+                ["package.js"],
+                [("artifacts/node_modules", "dest/node_modules")],
+                None,
+                "manifest",
             ),
             (
                 ["file1, file2", "dep1", "dep2"],
                 ["file1, file2", "dep1", "dep2"],
+                None,
                 [("artifacts/dep1", "dest/dep1"), ("artifacts/dep2", "dest/dep2")],
                 ["dep1", "dep2"],
+                None,
             ),
             (
                 ["file1, file2"],
                 ["file1, file2", "dep1", "dep2"],
+                None,
                 [("artifacts/dep1", "dest/dep1"), ("artifacts/dep2", "dest/dep2")],
                 ["dep1", "dep2"],
+                None,
             ),
         ]
     )
     @patch("aws_lambda_builders.actions.os.listdir")
     def test_excludes_dependencies_from_source(
-        self, source_files, artifact_files, expected, mock_dependencies, patched_list_dir
+        self,
+        source_files,
+        artifact_files,
+        manifest_files,
+        expected,
+        mock_dependencies,
+        manifest_dir,
+        patched_list_dir,
     ):
-        dependency_manager = DependencyManager("source", "artifacts", "dest")
+        dependency_manager = DependencyManager("source", "artifacts", "dest", manifest_dir)
         dependency_manager.IGNORE_LIST = (
             dependency_manager.IGNORE_LIST if mock_dependencies is None else mock_dependencies
         )
-        patched_list_dir.side_effect = [source_files, artifact_files]
+        patched_list_dir.side_effect = (
+            [source_files, manifest_files, artifact_files] if manifest_dir else [source_files, artifact_files]
+        )
         source_destinations = list(
             TestDependencyManager._convert_strings_to_paths(list(dependency_manager.yield_source_dest()))
         )
