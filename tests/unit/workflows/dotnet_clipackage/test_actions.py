@@ -156,7 +156,7 @@ class TestRunPackageAction(TestCase):
 
     def test_build_package_arguments(self):
         mode = "Release"
-        options = {"--framework": "netcoreapp2.1"}
+        options = {"--framework": "net6.0"}
         action = RunPackageAction(
             self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, os_utils=self.os_utils
         )
@@ -176,7 +176,7 @@ class TestRunPackageAction(TestCase):
                 "--msbuild-parameters",
                 "--runtime linux-x64",
                 "--framework",
-                "netcoreapp2.1",
+                "net6.0",
             ],
             cwd="/source_dir",
         )
