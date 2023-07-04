@@ -40,7 +40,7 @@ class PythonPipBuildAction(BaseAction):
             pip_runner=pip_runner,
             runtime=self.runtime,
             python_exe=python_path,
-            architecture=self.architecture
+            architecture=self.architecture,
         )
 
         package_builder = PythonPipDependencyBuilder(
