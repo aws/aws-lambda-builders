@@ -36,7 +36,7 @@ class PythonPipBuildAction(BaseAction):
             raise ActionFailedError(str(ex))
         pip_runner = PipRunner(python_exe=python_path, pip=pip)
         dependency_builder = DependencyBuilder(
-            osutils=os_utils, pip_runner=pip_runner, runtime=self.runtime, architecture=self.architecture
+            osutils=os_utils, pip_runner=pip_runner, runtime=self.runtime, python_exe=python_path, architecture=self.architecture
         )
 
         package_builder = PythonPipDependencyBuilder(
