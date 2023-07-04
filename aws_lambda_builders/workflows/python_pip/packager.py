@@ -5,7 +5,6 @@ Installs packages using PIP
 import logging
 import re
 import subprocess
-import sys
 from email.parser import FeedParser
 
 from aws_lambda_builders.architecture import ARM64, X86_64
@@ -361,7 +360,10 @@ class DependencyBuilder(object):
         # which will serve as the primary list of dependencies needed to deploy
         # successfully.
         self._pip.download_all_dependencies(requirements_filename, directory)
-        deps = {Package(directory, filename, self.python_exe) for filename in self._osutils.get_directory_contents(directory)}
+        deps = {
+            Package(directory, filename, self.python_exe)
+            for filename in self._osutils.get_directory_contents(directory)
+        }
         LOG.debug("Full dependency closure: %s", deps)
         return deps
 
