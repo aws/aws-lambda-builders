@@ -18,17 +18,24 @@ class TestPythonPipBuildAction(TestCase):
     def test_action_must_call_builder(self, DependencyBuilderMock, PythonPipDependencyBuilderMock):
         builder_instance = PythonPipDependencyBuilderMock.return_value
 
+        python_binary_path = BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)
         action = PythonPipBuildAction(
             "artifacts",
             "scratch_dir",
             "manifest",
             "runtime",
             None,
-            {"python": BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)},
+            {"python": python_binary_path},
         )
         action.execute()
 
-        DependencyBuilderMock.assert_called_with(osutils=ANY, pip_runner=ANY, runtime="runtime", architecture=X86_64)
+        DependencyBuilderMock.assert_called_with(
+            osutils=ANY,
+            pip_runner=ANY,
+            runtime="runtime",
+            python_exe=python_binary_path.binary_path,
+            architecture=X86_64,
+        )
 
         builder_instance.build_dependencies.assert_called_with(
             artifacts_dir_path="artifacts", scratch_dir_path="scratch_dir", requirements_path="manifest"
@@ -39,18 +46,21 @@ class TestPythonPipBuildAction(TestCase):
     def test_action_must_call_builder_with_architecture(self, DependencyBuilderMock, PythonPipDependencyBuilderMock):
         builder_instance = PythonPipDependencyBuilderMock.return_value
 
+        python_path = BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)
         action = PythonPipBuildAction(
             "artifacts",
             "scratch_dir",
             "manifest",
             "runtime",
             None,
-            {"python": BinaryPath(resolver=Mock(), validator=Mock(), binary="python", binary_path=sys.executable)},
+            {"python": python_path},
             ARM64,
         )
         action.execute()
 
-        DependencyBuilderMock.assert_called_with(osutils=ANY, pip_runner=ANY, runtime="runtime", architecture=ARM64)
+        DependencyBuilderMock.assert_called_with(
+            osutils=ANY, pip_runner=ANY, runtime="runtime", python_exe=python_path.binary_path, architecture=ARM64
+        )
 
         builder_instance.build_dependencies.assert_called_with(
             artifacts_dir_path="artifacts", scratch_dir_path="scratch_dir", requirements_path="manifest"

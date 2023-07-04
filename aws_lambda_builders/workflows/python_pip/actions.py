@@ -44,7 +44,7 @@ class PythonPipBuildAction(BaseAction):
         )
 
         package_builder = PythonPipDependencyBuilder(
-            osutils=os_utils, runtime=self.runtime, dependency_builder=dependency_builder
+            osutils=os_utils, runtime=self.runtime, python_exe=python_path, dependency_builder=dependency_builder
         )
         try:
             target_artifact_dir = self.artifacts_dir
