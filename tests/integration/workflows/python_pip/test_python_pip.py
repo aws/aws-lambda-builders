@@ -47,6 +47,7 @@ class TestPythonPipWorkflow(TestCase):
             "requirements-invalid.txt",
             "requirements-numpy.txt",
             "requirements-wrapt.txt",
+            "requirements-inflate.txt",
             "local-dependencies",
         }
 
