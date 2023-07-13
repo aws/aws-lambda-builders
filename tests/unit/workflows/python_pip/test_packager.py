@@ -1,14 +1,16 @@
 import sys
 from collections import namedtuple
 from unittest import TestCase, mock
+from unittest.mock import patch
 
 import pytest
+from parameterized import parameterized
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_env_vars
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_shim
-from aws_lambda_builders.workflows.python_pip.packager import DependencyBuilder
+from aws_lambda_builders.workflows.python_pip.packager import DependencyBuilder, SDistMetadataFetcher
 from aws_lambda_builders.workflows.python_pip.packager import PythonPipDependencyBuilder
 from aws_lambda_builders.workflows.python_pip.packager import Package
 from aws_lambda_builders.workflows.python_pip.packager import PipRunner
@@ -340,3 +342,114 @@ class TestSubprocessPip(TestCase):
 
         pip_runner_string = fake_osutils.popens[0][0][0][2].split(";")[-1:][0]
         self.assertIn("main", pip_runner_string)
+
+
+class TestSDistMetadataFetcher(TestCase):
+    @parameterized.expand(
+        [
+            (False,),
+            (True,),
+        ]
+    )
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._unpack_sdist_into_dir")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_pkg_info_filepath")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_name_version")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_fallback_pkg_info_filepath")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._is_default_setuptools_values")
+    @patch("aws_lambda_builders.workflows.python_pip.utils.OSUtils.file_exists")
+    @patch("aws_lambda_builders.workflows.python_pip.utils.OSUtils.tempdir")
+    def test_get_package_name_version_fails_fallback(
+        self,
+        fallback_file_exists,
+        tempdir_mock,
+        file_exists_mock,
+        is_default_values_mock,
+        get_fallback_mock,
+        get_name_ver_mock,
+        get_pkg_mock,
+        unpack_mock,
+    ):
+        """
+        Tests if both our generated PKG-INFO and PKG-INFO are missing/invalid
+        """
+        file_exists_mock.return_value = fallback_file_exists
+        is_default_values_mock.return_value = True
+
+        original_name = "UNKNOWN"
+        original_version = "5.5.0"
+
+        get_name_ver_mock.side_effect = [(original_name, original_version), ("UNKNOWN", "0.0.0")]
+
+        sdist = SDistMetadataFetcher(OSUtils)
+        name, version = sdist.get_package_name_and_version(mock.Mock())
+
+        self.assertEqual(name, original_name)
+        self.assertEqual(version, original_version)
+
+    @parameterized.expand(
+        [
+            (("UNKNOWN", "1.2.3"),),
+            (("foobar", "0.0.0"),),
+        ]
+    )
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._unpack_sdist_into_dir")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_pkg_info_filepath")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_name_version")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_fallback_pkg_info_filepath")
+    @patch("aws_lambda_builders.workflows.python_pip.utils.OSUtils.file_exists")
+    @patch("aws_lambda_builders.workflows.python_pip.utils.OSUtils.tempdir")
+    def test_get_package_name_version_fallback(
+        self,
+        name_version,
+        tempdir_mock,
+        file_exists_mock,
+        get_fallback_mock,
+        get_name_ver_mock,
+        get_pkg_mock,
+        unpack_mock,
+    ):
+        """
+        Tests if we have UNKNOWN and if we use the fall back values
+        """
+        fallback_name = "fallback"
+        fallback_version = "1.0.0"
+
+        get_name_ver_mock.side_effect = [name_version, (fallback_name, fallback_version)]
+
+        sdist = SDistMetadataFetcher(OSUtils)
+        name, version = sdist.get_package_name_and_version(mock.Mock())
+
+        self.assertEqual(name, fallback_name)
+        self.assertEqual(version, fallback_version)
+
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._unpack_sdist_into_dir")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_pkg_info_filepath")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_name_version")
+    @patch("aws_lambda_builders.workflows.python_pip.packager.SDistMetadataFetcher._get_fallback_pkg_info_filepath")
+    @patch("aws_lambda_builders.workflows.python_pip.utils.OSUtils.file_exists")
+    @patch("aws_lambda_builders.workflows.python_pip.utils.OSUtils.tempdir")
+    def test_get_package_name_version(
+        self,
+        tempdir_mock,
+        file_exists_mock,
+        get_fallback_mock,
+        get_name_ver_mock,
+        get_pkg_mock,
+        unpack_mock,
+    ):
+        """
+        Tests return original results
+        """
+        not_default_name = "real"
+        not_default_version = "1.2.3"
+
+        fallback_name = "fallback"
+        fallback_version = "1.0.0"
+
+        get_name_ver_mock.side_effect = [(not_default_name, not_default_version), (fallback_name, fallback_version)]
+
+        sdist = SDistMetadataFetcher(OSUtils)
+        name, version = sdist.get_package_name_and_version(mock.Mock())
+
+        self.assertEqual(name, not_default_name)
+        self.assertEqual(version, not_default_version)
