@@ -18,6 +18,7 @@ SUPPORTED_RUNTIMES = {
     "python3.8": [ARM64, X86_64],
     "python3.9": [ARM64, X86_64],
     "python3.10": [ARM64, X86_64],
+    "python3.11": [ARM64, X86_64],
     "ruby2.7": [ARM64, X86_64],
     "ruby3.2": [ARM64, X86_64],
     "java8": [ARM64, X86_64],
