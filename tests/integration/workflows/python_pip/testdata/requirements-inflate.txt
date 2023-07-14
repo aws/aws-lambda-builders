@@ -1,1 +1,1 @@
-inflate64==0.1.4 --no-binary=:all:
+inflate64==0.1.4 --no-binary=:inflate64:

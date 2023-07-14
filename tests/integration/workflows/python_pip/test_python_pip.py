@@ -236,7 +236,6 @@ class TestPythonPipWorkflow(TestCase):
         for f in expected_files:
             self.assertIn(f, output_files)
 
-    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_resolve_unknown_package_name(self):
         self.builder.build(
             self.source_dir,
