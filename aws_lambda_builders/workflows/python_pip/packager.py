@@ -658,7 +658,7 @@ class SDistMetadataFetcher(object):
 
     def _is_default_setuptools_values(self, name: str, version: str) -> bool:
         """
-        Checks if the name and the version are the default values that are assigned by setuptools
+        Checks if the name or the version are the default values that are assigned by setuptools
 
         Parameters
         ----------
