@@ -997,6 +997,23 @@ class TestSdistMetadataFetcher(object):
             with pytest.raises(UnsupportedPackageError):
                 sdist_reader.get_package_name_and_version(filepath)
 
+    def test_pkg_info_uses_fallback(self, osutils, sdist_reader):
+        # similar to test_cant_get_egg_info_filename
+        # but checks for UNKNOWN and/or 0.0.0 before
+        # using fallback
+        fallback_name = "mypkg"
+        fallback_version = "1.0.0"
+
+        setup_py = self._SETUP_PY % ("", "UNKNOWN", "0.0.0")
+        fallback_pkg_info = "Name: %s\nVersion: %s\n" % (fallback_name, fallback_version)
+
+        with osutils.tempdir() as tempdir:
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz", fallback_pkg_info)
+            name, version = sdist_reader.get_package_name_and_version(filepath)
+
+            assert name == fallback_name
+            assert version == fallback_version
+
 
 class TestPackage(object):
     def test_same_pkg_sdist_and_wheel_collide(self, osutils, sdist_builder):
