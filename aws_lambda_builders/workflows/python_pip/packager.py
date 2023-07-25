@@ -674,7 +674,7 @@ class SDistMetadataFetcher(object):
         """
         # default values logic:
         # https://github.com/pypa/setuptools/blob/6083e18f4afc40316c0112134c205c336afbcdfd/setuptools/_distutils/dist.py#L1185-L1189
-        return name == "UNKNOWN" or version == "0.0.0"
+        return name.lower() == "unknown" or version == "0.0.0"
 
     def get_package_name_and_version(self, sdist_path: str) -> Tuple[str, str]:
         """

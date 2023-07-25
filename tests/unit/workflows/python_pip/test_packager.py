@@ -392,6 +392,7 @@ class TestSDistMetadataFetcher(TestCase):
     @parameterized.expand(
         [
             (("UNKNOWN", "1.2.3"),),
+            (("unknown", "1.2.3"),),
             (("foobar", "0.0.0"),),
         ]
     )
