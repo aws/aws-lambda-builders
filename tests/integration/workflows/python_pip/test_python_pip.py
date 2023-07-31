@@ -39,6 +39,7 @@ class TestPythonPipWorkflow(TestCase):
         self.manifest_path_valid = os.path.join(self.TEST_DATA_FOLDER, "requirements-numpy.txt")
         self.manifest_path_invalid = os.path.join(self.TEST_DATA_FOLDER, "requirements-invalid.txt")
         self.manifest_path_sdist = os.path.join(self.TEST_DATA_FOLDER, "requirements-wrapt.txt")
+        self.manifest_path_inflate = os.path.join(self.TEST_DATA_FOLDER, "requirements-inflate.txt")
 
         self.test_data_files = {
             "__init__.py",
@@ -46,6 +47,7 @@ class TestPythonPipWorkflow(TestCase):
             "requirements-invalid.txt",
             "requirements-numpy.txt",
             "requirements-wrapt.txt",
+            "requirements-inflate.txt",
             "local-dependencies",
         }
 
@@ -230,6 +232,20 @@ class TestPythonPipWorkflow(TestCase):
             "setup.py",
             "requirements.txt",
         }
+        output_files = set(os.listdir(self.artifacts_dir))
+        for f in expected_files:
+            self.assertIn(f, output_files)
+
+    def test_must_resolve_unknown_package_name(self):
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_inflate,
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
+        )
+        expected_files = self.test_data_files.union(["inflate64", "inflate64.libs", "inflate64-0.1.4.dist-info"])
         output_files = set(os.listdir(self.artifacts_dir))
         for f in expected_files:
             self.assertIn(f, output_files)
