@@ -362,8 +362,8 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
         for action in self.actions:
             action_info = "{}:{}".format(self.NAME, action.NAME)
-
-            LOG.info("%s: Running %s", self.options["function_name"], action_info)
+            function_name = "" if  "function_name" not in self.options else self.options["function_name"] + ": "
+            LOG.info("%sRunning %s", function_name, action_info)
 
             try:
                 action.execute()
