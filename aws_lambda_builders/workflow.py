@@ -362,10 +362,9 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
         for action in self.actions:
             action_info = "{}:{}".format(self.NAME, action.NAME)
-            self.options = None
             function_name = ""
-            if self.options is not None and "function_name" in self.options:
-                function_name = "{}: ".format(self.options["function_name"])
+            if self.options is not None and "build_logical_id" in self.options:
+                function_name = "{}: ".format(self.options["build_logical_id"])
             LOG.info("%sRunning %s", function_name, action_info)
 
             try:
