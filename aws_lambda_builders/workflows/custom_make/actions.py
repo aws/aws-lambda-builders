@@ -92,7 +92,7 @@ class CustomMakeAction(BaseAction):
 
         try:
             current_env = self.osutils.environ()
-            LOG.info("Current Artifacts Directory : %s", self.artifact_dir_path)
+            LOG.info("%s: Current Artifacts Directory : %s", self.build_logical_id, self.artifact_dir_path)
             current_env.update({"ARTIFACTS_DIR": self.artifact_dir_path})
             # Export environmental variables that might be needed by other binaries used
             # within the Makefile and also specify the makefile to be used as well.

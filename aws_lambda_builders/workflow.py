@@ -362,8 +362,10 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
         for action in self.actions:
             action_info = "{}:{}".format(self.NAME, action.NAME)
-
-            LOG.info("Running %s", action_info)
+            function_name = ""
+            if self.options and "build_logical_id" in self.options:
+                function_name = "{}:".format(self.options["build_logical_id"])
+            LOG.info("%s Running %s", function_name, action_info)
 
             try:
                 action.execute()
