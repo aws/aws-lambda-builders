@@ -3,7 +3,6 @@ Wrapper around calling make through a subprocess.
 """
 import io
 import logging
-import os
 import shutil
 import sys
 import threading
@@ -100,7 +99,7 @@ class SubProcessMake(object):
             #
             # stderr is used since stdout appears to be reserved
             # for command responses
-            sys.stderr.buffer.write(line.strip() + os.linesep.encode())
+            sys.stderr.buffer.write(line)
             sys.stderr.flush()
 
             # Gather total stdout
