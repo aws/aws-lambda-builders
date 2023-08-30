@@ -411,7 +411,7 @@ class DependencyBuilder(object):
                 # Deploying python 3 function which means we need cp37m abi
                 # We can also accept abi3 which is the CPython 3 Stable ABI and
                 # will work on any version of python 3.
-                if abi == lambda_runtime_abi or abi == "abi3":
+                if abi in (lambda_runtime_abi, "abi3"):
                     return True
         # Don't know what we have but it didn't pass compatibility tests.
         return False
