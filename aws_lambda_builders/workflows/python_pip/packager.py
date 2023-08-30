@@ -193,6 +193,7 @@ class DependencyBuilder(object):
     _MANYLINUX_LEGACY_MAP = {
         "manylinux1_x86_64": "manylinux_2_5_x86_64",
         "manylinux2010_x86_64": "manylinux_2_12_x86_64",
+        "manylinux2014_aarch64": "manylinux_2_17_aarch64",
         "manylinux2014_x86_64": "manylinux_2_17_x86_64",
     }
 
