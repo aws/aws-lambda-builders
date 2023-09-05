@@ -66,7 +66,7 @@ jobs:
           - "3.9"
           - "3.10"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -94,7 +94,7 @@ jobs:
           - 8
           - 9
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -127,7 +127,7 @@ jobs:
           - 8
           - 9
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -157,7 +157,7 @@ jobs:
           - "3.10"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -184,7 +184,7 @@ jobs:
           - "3.10"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -214,7 +214,7 @@ jobs:
           - "3.10"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -242,7 +242,7 @@ jobs:
           - "3.10"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -266,7 +266,7 @@ jobs:
           - "3.10"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -290,7 +290,7 @@ jobs:
           - "3.10"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -320,7 +320,7 @@ jobs:
           - "3.10"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -349,7 +349,7 @@ jobs:
         rust:
           - stable
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
