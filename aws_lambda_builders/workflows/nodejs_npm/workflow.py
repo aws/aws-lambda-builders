@@ -24,10 +24,14 @@ from .actions import (
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
 )
+from .exceptions import OldNpmVersionError
 from .npm import SubprocessNpm
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
+
+# npm>=8.8.0 supports --install-links
+MINIMUM_NPM_VERSION_INSTALL_LINKS = (8, 8)
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -64,6 +68,13 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         subprocess_npm = SubprocessNpm(osutils)
 
+        is_building_in_source = self.build_dir == self.source_dir
+
+        if is_building_in_source and not self._can_use_install_links(subprocess_npm):
+            raise OldNpmVersionError(
+                message="Building in source uses npm --install-links, which requires npm version of at least 8.8.0."
+            )
+
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
         # TODO: we should probably unpack straight into artifacts dir, rather than unpacking into tar_dest_dir and
@@ -75,7 +86,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
         npm_copy_npmrc_and_lockfile = NodejsNpmrcAndLockfileCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
         self.manifest_dir = self.osutils.dirname(self.manifest_path)
-        is_building_in_source = self.build_dir == self.source_dir
         is_external_manifest = self.manifest_dir != self.source_dir
         self.actions = [
             npm_pack,
@@ -235,3 +245,35 @@ class NodejsNpmWorkflow(BaseWorkflow):
         return NodejsNpmInstallAction(
             install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
         )
+
+    def _can_use_install_links(self, npm_process: SubprocessNpm) -> bool:
+        """
+        Checks the version of npm that is currently installed to determine
+        whether or not --install-links can be used
+
+        Parameters
+        ----------
+        npm_process: SubprocessNpm
+            Object containing helper methods to call the npm process
+
+        Returns
+        -------
+        bool
+            True if the current npm version meets the minimum for --install-links
+        """
+        try:
+            current_version = npm_process.run(["--version"]).split(".", 2)
+
+            major_version = int(current_version[0])
+            minor_version = int(current_version[1])
+        except (ValueError, IndexError):
+            LOG.debug(f"Failed to parse {current_version} output from npm for --install-links validation")
+            return False
+
+        is_older_major_version = major_version < MINIMUM_NPM_VERSION_INSTALL_LINKS[0]
+        is_older_patch_version = (
+            major_version == MINIMUM_NPM_VERSION_INSTALL_LINKS[0]
+            and minor_version < MINIMUM_NPM_VERSION_INSTALL_LINKS[1]
+        )
+
+        return not (is_older_major_version or is_older_patch_version)

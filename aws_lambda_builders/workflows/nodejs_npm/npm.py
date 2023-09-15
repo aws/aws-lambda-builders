@@ -4,20 +4,9 @@ Wrapper around calling npm through a subprocess.
 
 import logging
 
+from .exceptions import NpmExecutionError
+
 LOG = logging.getLogger(__name__)
-
-
-class NpmExecutionError(Exception):
-
-    """
-    Exception raised in case NPM execution fails.
-    It will pass on the standard error output from the NPM console.
-    """
-
-    MESSAGE = "NPM Failed: {message}"
-
-    def __init__(self, **kwargs):
-        Exception.__init__(self, self.MESSAGE.format(**kwargs))
 
 
 class SubprocessNpm(object):
@@ -59,7 +48,7 @@ class SubprocessNpm(object):
         :rtype: str
         :return: text of the standard output from the command
 
-        :raises aws_lambda_builders.workflows.nodejs_npm.npm.NpmExecutionError:
+        :raises aws_lambda_builders.workflows.nodejs_npm.exceptions.NpmExecutionError:
             when the command executes with a non-zero return code. The exception will
             contain the text of the standard error output from the command.
 
