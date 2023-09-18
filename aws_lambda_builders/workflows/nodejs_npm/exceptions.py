@@ -1,5 +1,5 @@
 """
-Description
+Exceptions for the Node.js workflow
 """
 
 
