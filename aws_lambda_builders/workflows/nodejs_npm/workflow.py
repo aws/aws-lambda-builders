@@ -262,7 +262,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
             True if the current npm version meets the minimum for --install-links
         """
         try:
-            current_version = npm_process.run(["--version"]).split(".", 2)
+            current_version = npm_process.run(["--version"]).split(".")
 
             major_version = int(current_version[0])
             minor_version = int(current_version[1])

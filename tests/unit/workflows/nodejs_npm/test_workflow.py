@@ -400,8 +400,9 @@ class TestNodejsNpmWorkflow(TestCase):
             ("7.9.0", False),
             ("9.9.0", True),
             ("1.2", False),
-            ("8.8", False),
+            ("8.8", True),
             ("foo", False),
+            ("foo.bar", False),
             ("", False),
         ]
     )
