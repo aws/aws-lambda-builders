@@ -68,13 +68,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         subprocess_npm = SubprocessNpm(osutils)
 
-        is_building_in_source = self.build_dir == self.source_dir
-
-        if is_building_in_source and not self._can_use_install_links(subprocess_npm):
-            raise OldNpmVersionError(
-                message="Building in source uses npm --install-links, which requires npm version of at least 8.8.0."
-            )
-
         tar_dest_dir = osutils.joinpath(scratch_dir, "unpacked")
         tar_package_dir = osutils.joinpath(tar_dest_dir, "package")
         # TODO: we should probably unpack straight into artifacts dir, rather than unpacking into tar_dest_dir and
@@ -86,6 +79,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         npm_copy_npmrc_and_lockfile = NodejsNpmrcAndLockfileCopyAction(tar_package_dir, source_dir, osutils=osutils)
 
         self.manifest_dir = self.osutils.dirname(self.manifest_path)
+        is_building_in_source = self.build_dir == self.source_dir
         is_external_manifest = self.manifest_dir != self.source_dir
         self.actions = [
             npm_pack,
@@ -230,6 +224,11 @@ class NodejsNpmWorkflow(BaseWorkflow):
         BaseAction
             Install action to use
         """
+        if install_links and not NodejsNpmWorkflow.can_use_install_links(subprocess_npm):
+            raise OldNpmVersionError(
+                message="Building in source uses npm --install-links, which requires npm version of at least 8.8.0."
+            )
+
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
 
@@ -246,7 +245,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
             install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
         )
 
-    def _can_use_install_links(self, npm_process: SubprocessNpm) -> bool:
+    @staticmethod
+    def can_use_install_links(npm_process: SubprocessNpm) -> bool:
         """
         Checks the version of npm that is currently installed to determine
         whether or not --install-links can be used

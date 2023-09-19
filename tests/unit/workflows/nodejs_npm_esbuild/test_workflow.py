@@ -343,7 +343,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
                 download_dependencies=False,
             )
 
-    def test_build_in_source(self):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_build_in_source(self, install_links_mock):
+        install_links_mock.return_value = True
+
         source_dir = "source"
         workflow = NodejsNpmEsbuildWorkflow(
             source_dir=source_dir,
@@ -382,9 +385,12 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEquals(workflow.actions[2].install_dir, "scratch_dir")
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
     def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest_and_build_in_source(
-        self,
+        self, install_links_mock
     ):
+        install_links_mock.return_value = True
+
         self.osutils.dirname.return_value = "not_source"
 
         workflow = NodejsNpmEsbuildWorkflow(
