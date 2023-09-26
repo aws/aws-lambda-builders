@@ -9,6 +9,7 @@ import subprocess
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.python_pip.compat import pip_import_string
+from aws_lambda_builders.workflows.python_pip.exceptions import MissingPipError
 
 from .utils import OSUtils
 
@@ -38,7 +39,8 @@ class PythonRuntimeValidator(RuntimeValidator):
         Raises
         ------
         MisMatchRuntimeError
-            Raise runtime is not support or runtime does not support architecture.
+            Raise runtime is not support or runtime does not support architecture or
+            if the Python runtime does not contain `pip`.
         """
 
         runtime_path = super(PythonRuntimeValidator, self).validate(runtime_path)
@@ -50,16 +52,23 @@ class PythonRuntimeValidator(RuntimeValidator):
         )
         p.communicate()
 
-        try:
-            pip_import_string(cmd[0])
-        except Exception:
-            raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)
-
         if p.returncode != 0:
             raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)
-        else:
-            self._valid_runtime_path = runtime_path
-            return self._valid_runtime_path
+
+        try:
+            # call method to import `pip`
+            # ignoring method return values since we only want to check
+            # if `pip` is imported successfully
+            pip_import_string(runtime_path)
+        except MissingPipError as ex:
+            LOG.debug(f"Invalid Python runtime {runtime_path}, runtime does not contain pip")
+
+            raise MisMatchRuntimeError(
+                language=self.language, required_runtime=self.runtime, runtime_path=runtime_path
+            ) from ex
+
+        self._valid_runtime_path = runtime_path
+        return self._valid_runtime_path
 
     def _validate_python_cmd(self, runtime_path):
         major, minor = self.runtime.replace(self.language, "").split(".")
