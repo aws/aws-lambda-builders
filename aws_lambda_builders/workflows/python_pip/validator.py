@@ -8,9 +8,8 @@ import subprocess
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
 from aws_lambda_builders.validator import RuntimeValidator
-from aws_lambda_builders.workflows.python_pip.compat import pip_import_string
-from aws_lambda_builders.workflows.python_pip.exceptions import MissingPipError
-from aws_lambda_builders.workflows.python_pip.utils import OSUtils
+
+from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ class PythonRuntimeValidator(RuntimeValidator):
         self.language = "python"
         self._valid_runtime_path = None
 
-    def validate(self, runtime_path: str) -> str:
+    def validate(self, runtime_path):
         """
         Checks if the language supplied matches the required lambda runtime
 
@@ -38,8 +37,7 @@ class PythonRuntimeValidator(RuntimeValidator):
         Raises
         ------
         MisMatchRuntimeError
-            Raise runtime is not support or runtime does not support architecture or
-            if the Python runtime does not contain `pip`.
+            Raise runtime is not support or runtime does not support architecture.
         """
 
         runtime_path = super(PythonRuntimeValidator, self).validate(runtime_path)
@@ -50,24 +48,11 @@ class PythonRuntimeValidator(RuntimeValidator):
             cmd, cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=OSUtils().original_environ()
         )
         p.communicate()
-
         if p.returncode != 0:
             raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)
-
-        try:
-            # call method to import `pip`
-            # ignoring method return values since we only want to check
-            # if `pip` is imported successfully
-            pip_import_string(runtime_path)
-        except MissingPipError as ex:
-            LOG.debug(f"Invalid Python runtime {runtime_path}, runtime does not contain pip")
-
-            raise MisMatchRuntimeError(
-                language=self.language, required_runtime=self.runtime, runtime_path=runtime_path
-            ) from ex
-
-        self._valid_runtime_path = runtime_path
-        return self._valid_runtime_path
+        else:
+            self._valid_runtime_path = runtime_path
+            return self._valid_runtime_path
 
     def _validate_python_cmd(self, runtime_path):
         major, minor = self.runtime.replace(self.language, "").split(".")
