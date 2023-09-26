@@ -2,16 +2,24 @@
 Action to resolve Python dependencies using PIP
 """
 
+import logging
 from typing import Optional, Tuple
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.exceptions import MisMatchRuntimeError, RuntimeValidatorError
+from aws_lambda_builders.workflows.python_pip.exceptions import MissingPipError
+from aws_lambda_builders.workflows.python_pip.packager import (
+    DependencyBuilder,
+    PackagerError,
+    PipRunner,
+    PythonPipDependencyBuilder,
+    SubprocessPip,
+)
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
-from .exceptions import MissingPipError
-from .packager import DependencyBuilder, PackagerError, PipRunner, PythonPipDependencyBuilder, SubprocessPip
+LOG = logging.getLogger(__name__)
 
 
 class PythonPipBuildAction(BaseAction):
@@ -33,13 +41,13 @@ class PythonPipBuildAction(BaseAction):
 
         self._os_utils = OSUtils()
 
-    def execute(self):
-        try:
-            pip, python_with_pip = self._find_runtime_with_pip()
-            python_path = self.binaries[self.LANGUAGE].binary_path = python_with_pip
-        except MissingPipError as ex:
-            raise ActionFailedError(str(ex))
-        pip_runner = PipRunner(python_exe=python_path, pip=pip)
+    def execute(self) -> None:
+        """
+        Executes the build action for Python `pip` workflows.
+        """
+        pip, python_with_pip = self._find_runtime_with_pip()
+        pip_runner = PipRunner(python_exe=python_with_pip, pip=pip)
+
         dependency_builder = DependencyBuilder(
             osutils=self._os_utils, pip_runner=pip_runner, runtime=self.runtime, architecture=self.architecture
         )
@@ -61,9 +69,21 @@ class PythonPipBuildAction(BaseAction):
         except PackagerError as ex:
             raise ActionFailedError(str(ex))
 
-    def _find_runtime_with_pip(self) -> Tuple[str, str]:
+    def _find_runtime_with_pip(self) -> Tuple[SubprocessPip, str]:
         """
-        foo bar
+        Finds a Python runtime that also contains `pip`.
+
+        Returns
+        -------
+        Tuple[SubprocessPip, str]
+            Returns a tuple of the SubprocessPip object created from
+            a valid Python runtime and the runtime path itself
+
+        Raises
+        ------
+        ActionFailedError
+            Raised if the method is not able to find a valid runtime
+            that has the correct Python and pip installed
         """
         binary_object: Optional[BinaryPath] = self.binaries.get(self.LANGUAGE)
 
@@ -78,11 +98,13 @@ class PythonPipBuildAction(BaseAction):
                     pip = SubprocessPip(osutils=self._os_utils, python_exe=valid_python_path)
 
                     return (pip, valid_python_path)
-            except (MissingPipError, MisMatchRuntimeError, RuntimeValidatorError):
+            except (MisMatchRuntimeError, RuntimeValidatorError):
                 # runtime and mismatch exceptions should have been caught
                 # during the init phase
 
                 # we can ignore these and let the action fail at the end
-                pass
+                LOG.debug(f"Python runtime path '{valid_python_path}' does not match the workflow")
+            except MissingPipError:
+                LOG.debug(f"Python runtime path '{valid_python_path}' does not contain pip")
 
         raise ActionFailedError("Failed to find a Python runtime containing pip on the PATH.")
