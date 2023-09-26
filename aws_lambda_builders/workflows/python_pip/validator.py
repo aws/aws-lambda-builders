@@ -10,8 +10,7 @@ from aws_lambda_builders.exceptions import MisMatchRuntimeError
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.python_pip.compat import pip_import_string
 from aws_lambda_builders.workflows.python_pip.exceptions import MissingPipError
-
-from .utils import OSUtils
+from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
