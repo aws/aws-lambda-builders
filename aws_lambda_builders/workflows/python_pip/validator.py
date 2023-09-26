@@ -21,7 +21,7 @@ class PythonRuntimeValidator(RuntimeValidator):
         self.language = "python"
         self._valid_runtime_path = None
 
-    def validate(self, runtime_path):
+    def validate(self, runtime_path: str) -> str:
         """
         Checks if the language supplied matches the required lambda runtime
 
