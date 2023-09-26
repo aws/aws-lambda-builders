@@ -52,7 +52,7 @@ class PythonRuntimeValidator(RuntimeValidator):
 
         try:
             pip_import_string(cmd[0])
-        except:
+        except Exception:
             raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)
 
         if p.returncode != 0:
@@ -60,7 +60,7 @@ class PythonRuntimeValidator(RuntimeValidator):
         else:
             self._valid_runtime_path = runtime_path
             return self._valid_runtime_path
-        
+
     def _validate_python_cmd(self, runtime_path):
         major, minor = self.runtime.replace(self.language, "").split(".")
         cmd = [
