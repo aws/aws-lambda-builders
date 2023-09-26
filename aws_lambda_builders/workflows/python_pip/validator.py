@@ -8,6 +8,7 @@ import subprocess
 
 from aws_lambda_builders.exceptions import MisMatchRuntimeError
 from aws_lambda_builders.validator import RuntimeValidator
+from aws_lambda_builders.workflows.python_pip.compat import pip_import_string
 
 from .utils import OSUtils
 
@@ -48,12 +49,18 @@ class PythonRuntimeValidator(RuntimeValidator):
             cmd, cwd=os.getcwd(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=OSUtils().original_environ()
         )
         p.communicate()
+
+        try:
+            pip_import_string(cmd[0])
+        except:
+            raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)
+
         if p.returncode != 0:
             raise MisMatchRuntimeError(language=self.language, required_runtime=self.runtime, runtime_path=runtime_path)
         else:
             self._valid_runtime_path = runtime_path
             return self._valid_runtime_path
-
+        
     def _validate_python_cmd(self, runtime_path):
         major, minor = self.runtime.replace(self.language, "").split(".")
         cmd = [
