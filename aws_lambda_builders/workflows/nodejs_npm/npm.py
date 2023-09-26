@@ -4,7 +4,7 @@ Wrapper around calling npm through a subprocess.
 
 import logging
 
-from .exceptions import NpmExecutionError
+from aws_lambda_builders.workflows.nodejs_npm.exceptions import NpmExecutionError
 
 LOG = logging.getLogger(__name__)
 

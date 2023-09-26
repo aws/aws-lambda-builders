@@ -15,8 +15,7 @@ from aws_lambda_builders.actions import (
 )
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
-
-from .actions import (
+from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmCIAction,
     NodejsNpmInstallAction,
     NodejsNpmLockFileCleanUpAction,
@@ -24,9 +23,9 @@ from .actions import (
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
 )
-from .exceptions import OldNpmVersionError
-from .npm import SubprocessNpm
-from .utils import OSUtils
+from aws_lambda_builders.workflows.nodejs_npm.exceptions import OldNpmVersionError
+from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
