@@ -30,6 +30,13 @@ LOG = logging.getLogger(__name__)
 
 # npm>=8.8.0 supports --install-links
 MINIMUM_NPM_VERSION_INSTALL_LINKS = (8, 8)
+UNSUPPORTED_NPM_VERSION_MESSAGE = (
+    "Building in source was enabled, however the "
+    "currently installed npm version does not support "
+    "--install-links. Please ensure that the npm "
+    "version is at least 8.8.0. Switching to build "
+    "in a scratch directory."
+)
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -92,13 +99,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         if self.download_dependencies:
             if is_building_in_source and not self.can_use_install_links(subprocess_npm):
-                LOG.warning(
-                    "Building in source was enabled, however the "
-                    "currently installed npm version does not support "
-                    "--install-links. Please ensure that the npm "
-                    "version is at least 8.8.0. Switching to build "
-                    "in a scratch directory."
-                )
+                LOG.warning(UNSUPPORTED_NPM_VERSION_MESSAGE)
 
                 is_building_in_source = False
                 self.build_dir = self._select_build_dir(build_in_source=False)
