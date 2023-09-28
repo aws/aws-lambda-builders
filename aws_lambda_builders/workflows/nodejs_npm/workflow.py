@@ -35,7 +35,8 @@ UNSUPPORTED_NPM_VERSION_MESSAGE = (
     "currently installed npm version does not support "
     "--install-links. Please ensure that the npm "
     "version is at least 8.8.0. Switching to build "
-    "in a scratch directory."
+    f"in outside of the source directory.{os.linesep}"
+    "https://docs.npmjs.com/cli/v8/using-npm/changelog#v880-2022-04-27"
 )
 
 
