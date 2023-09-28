@@ -23,7 +23,6 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
 )
-from aws_lambda_builders.workflows.nodejs_npm.exceptions import OldNpmVersionError
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 
@@ -92,6 +91,18 @@ class NodejsNpmWorkflow(BaseWorkflow):
             self.actions.append(CopySourceAction(self.source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
         if self.download_dependencies:
+            if is_building_in_source and not self.can_use_install_links(subprocess_npm):
+                LOG.warning(
+                    "Building in source was enabled, however the "
+                    "currently installed npm version does not support "
+                    "--install-links. Please ensure that the npm "
+                    "version is at least 8.8.0. Switching to build "
+                    "in a scratch directory."
+                )
+
+                is_building_in_source = False
+                self.build_dir = self._select_build_dir(build_in_source=False)
+
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
@@ -223,11 +234,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
         BaseAction
             Install action to use
         """
-        if install_links and not NodejsNpmWorkflow.can_use_install_links(subprocess_npm):
-            raise OldNpmVersionError(
-                message="Building in source uses npm --install-links, which requires npm version of at least 8.8.0."
-            )
-
         lockfile_path = osutils.joinpath(source_dir, "package-lock.json")
         shrinkwrap_path = osutils.joinpath(source_dir, "npm-shrinkwrap.json")
 

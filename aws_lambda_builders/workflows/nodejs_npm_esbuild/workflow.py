@@ -98,6 +98,18 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             )
 
         if self.download_dependencies:
+            if is_building_in_source and not NodejsNpmWorkflow.can_use_install_links(self.subprocess_npm):
+                LOG.warning(
+                    "Building in source was enabled, however the "
+                    "currently installed npm version does not support "
+                    "--install-links. Please ensure that the npm "
+                    "version is at least 8.8.0. Switching to build "
+                    "in a scratch directory."
+                )
+
+                is_building_in_source = False
+                self.build_dir = self._select_build_dir(build_in_source=False)
+
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,

@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, call, Mock
+from unittest.mock import ANY, patch, call, Mock
 
 from parameterized import parameterized
 
@@ -12,7 +12,6 @@ from aws_lambda_builders.actions import (
     MoveDependenciesAction,
 )
 from aws_lambda_builders.architecture import ARM64
-from aws_lambda_builders.workflows.nodejs_npm.exceptions import OldNpmVersionError
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
@@ -417,10 +416,31 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(result, expected_result)
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
-    def test_build_in_source_old_npm_raises_exception(self, install_links_mock):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_install_action")
+    def test_workflow_revert_build_in_source(self, install_action_mock, install_links_mock):
+        # fake having bad npm version
         install_links_mock.return_value = False
 
-        with self.assertRaises(OldNpmVersionError):
-            NodejsNpmWorkflow(
-                "source", "artifacts", "scratch_dir", "source/manifest", osutils=self.osutils, build_in_source=True
-            )
+        source_dir = "source"
+        artifacts_dir = "artifacts"
+        scratch_dir = "scratch_dir"
+        NodejsNpmWorkflow(
+            source_dir=source_dir,
+            artifacts_dir=artifacts_dir,
+            scratch_dir=scratch_dir,
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+            dependencies_dir="dep",
+        )
+
+        # expect no build in source and install dir is
+        # artifacts, not the source
+        install_action_mock.assert_called_with(
+            source_dir=source_dir,
+            install_dir=artifacts_dir,
+            subprocess_npm=ANY,
+            osutils=ANY,
+            build_options=ANY,
+            install_links=False,
+        )

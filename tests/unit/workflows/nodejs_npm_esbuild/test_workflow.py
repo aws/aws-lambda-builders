@@ -410,3 +410,33 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEquals(workflow.actions[1]._source, os.path.join("not_source", "node_modules"))
         self.assertEquals(workflow.actions[1]._dest, os.path.join("source", "node_modules"))
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_install_action")
+    def test_workflow_revert_build_in_source(self, install_action_mock, install_links_mock):
+        # fake having bad npm version
+        install_links_mock.return_value = False
+
+        source_dir = "source"
+        artifacts_dir = "artifacts"
+        scratch_dir = "scratch_dir"
+        NodejsNpmEsbuildWorkflow(
+            source_dir=source_dir,
+            artifacts_dir=artifacts_dir,
+            scratch_dir=scratch_dir,
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+            dependencies_dir="dep",
+        )
+
+        # expect no build in source and install dir is
+        # scratch, not the source
+        install_action_mock.assert_called_with(
+            source_dir=source_dir,
+            install_dir=scratch_dir,
+            subprocess_npm=ANY,
+            osutils=ANY,
+            build_options=ANY,
+            install_links=False,
+        )

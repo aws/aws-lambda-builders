@@ -16,10 +16,3 @@ class NpmExecutionError(LambdaBuilderError):
 
     def __init__(self, **kwargs):
         Exception.__init__(self, self.MESSAGE.format(**kwargs))
-
-
-class OldNpmVersionError(NpmExecutionError):
-    """
-    Exception raised when trying to build in source using --install-links
-    with an older version of npm that does not support the option.
-    """
