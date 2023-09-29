@@ -1,6 +1,8 @@
 import os
 from unittest import TestCase
-from unittest.mock import patch, call
+from unittest.mock import ANY, patch, call, Mock
+
+from parameterized import parameterized
 
 from aws_lambda_builders.actions import (
     CopySourceAction,
@@ -83,9 +85,12 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[5], NodejsNpmrcCleanUpAction)
         self.assertIsInstance(workflow.actions[6], NodejsNpmLockFileCleanUpAction)
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
     def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest_and_build_in_source(
-        self,
+        self, can_use_links_mock
     ):
+        can_use_links_mock.return_value = True
+
         self.osutils.dirname.return_value = "not_source"
         self.osutils.file_exists.return_value = True
 
@@ -285,7 +290,10 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[5], NodejsNpmLockFileCleanUpAction)
         self.osutils.file_exists.assert_has_calls([call("source/package-lock.json")])
 
-    def test_build_in_source_without_download_dependencies_and_without_dependencies_dir(self):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_build_in_source_without_download_dependencies_and_without_dependencies_dir(self, can_use_links_mock):
+        can_use_links_mock.return_value = True
+
         source_dir = "source"
         artifacts_dir = "artifacts"
         workflow = NodejsNpmWorkflow(
@@ -304,7 +312,10 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
         self.assertIsInstance(workflow.actions[3], NodejsNpmrcCleanUpAction)
 
-    def test_build_in_source_with_download_dependencies(self):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_build_in_source_with_download_dependencies(self, can_use_links_mock):
+        can_use_links_mock.return_value = True
+
         source_dir = "source"
         artifacts_dir = "artifacts"
         workflow = NodejsNpmWorkflow(
@@ -327,7 +338,10 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(workflow.actions[4]._dest, os.path.join(artifacts_dir, "node_modules"))
         self.assertIsInstance(workflow.actions[5], NodejsNpmrcCleanUpAction)
 
-    def test_build_in_source_with_download_dependencies_and_dependencies_dir(self):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_build_in_source_with_download_dependencies_and_dependencies_dir(self, can_use_links_mock):
+        can_use_links_mock.return_value = True
+
         source_dir = "source"
         artifacts_dir = "artifacts"
         workflow = NodejsNpmWorkflow(
@@ -353,7 +367,10 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[6], CopyDependenciesAction)
         self.assertIsInstance(workflow.actions[7], NodejsNpmrcCleanUpAction)
 
-    def test_build_in_source_with_dependencies_dir(self):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_build_in_source_with_dependencies_dir(self, can_use_links_mock):
+        can_use_links_mock.return_value = True
+
         source_dir = "source"
         artifacts_dir = "artifacts"
         workflow = NodejsNpmWorkflow(
@@ -373,3 +390,57 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
         self.assertIsInstance(workflow.actions[3], CopySourceAction)
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+
+    @parameterized.expand(
+        [
+            ("8.8.0", True),
+            ("8.9.0", True),
+            ("8.7.0", False),
+            ("7.9.0", False),
+            ("9.9.0", True),
+            ("1.2", False),
+            ("8.8", True),
+            ("foo", False),
+            ("foo.bar", False),
+            ("", False),
+        ]
+    )
+    def test_npm_version_validation(self, returned_npm_version, expected_result):
+        workflow = NodejsNpmWorkflow("source", "artifacts", "scratch_dir", "source/manifest")
+
+        npm_subprocess = Mock()
+        npm_subprocess.run = Mock(return_value=returned_npm_version)
+
+        result = workflow.can_use_install_links(npm_subprocess)
+
+        self.assertEqual(result, expected_result)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_install_action")
+    def test_workflow_revert_build_in_source(self, install_action_mock, install_links_mock):
+        # fake having bad npm version
+        install_links_mock.return_value = False
+
+        source_dir = "source"
+        artifacts_dir = "artifacts"
+        scratch_dir = "scratch_dir"
+        NodejsNpmWorkflow(
+            source_dir=source_dir,
+            artifacts_dir=artifacts_dir,
+            scratch_dir=scratch_dir,
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+            dependencies_dir="dep",
+        )
+
+        # expect no build in source and install dir is
+        # artifacts, not the source
+        install_action_mock.assert_called_with(
+            source_dir=source_dir,
+            install_dir=artifacts_dir,
+            subprocess_npm=ANY,
+            osutils=ANY,
+            build_options=ANY,
+            install_links=False,
+        )

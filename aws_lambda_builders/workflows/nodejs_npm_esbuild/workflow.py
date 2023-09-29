@@ -14,17 +14,17 @@ from aws_lambda_builders.actions import (
     LinkSourceAction,
     MoveDependenciesAction,
 )
+from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.utils import which
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
-
-from ...path_resolver import PathResolver
-from ..nodejs_npm import NodejsNpmWorkflow
-from ..nodejs_npm.npm import SubprocessNpm
-from ..nodejs_npm.utils import OSUtils
-from .actions import (
+from aws_lambda_builders.workflows.nodejs_npm import NodejsNpmWorkflow
+from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
+from aws_lambda_builders.workflows.nodejs_npm.workflow import UNSUPPORTED_NPM_VERSION_MESSAGE
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import (
     EsbuildBundleAction,
 )
-from .esbuild import EsbuildExecutionError, SubprocessEsbuild
+from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildExecutionError, SubprocessEsbuild
 
 LOG = logging.getLogger(__name__)
 
@@ -98,6 +98,12 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
             )
 
         if self.download_dependencies:
+            if is_building_in_source and not NodejsNpmWorkflow.can_use_install_links(self.subprocess_npm):
+                LOG.warning(UNSUPPORTED_NPM_VERSION_MESSAGE)
+
+                is_building_in_source = False
+                self.build_dir = self._select_build_dir(build_in_source=False)
+
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
