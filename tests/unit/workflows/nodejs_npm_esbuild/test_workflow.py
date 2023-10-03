@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch, call
 
+from parameterized import parameterized
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
@@ -440,3 +441,27 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             build_options=ANY,
             install_links=False,
         )
+
+    @parameterized.expand(
+        [
+            (True, "source"),
+            (False, "scratch_dir"),
+        ]
+    )
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.SubprocessNpm.run")
+    def test_finds_correct_esbuild_binary(
+        self, is_building_in_source, expected_dir, subprocess_run_mock, install_links_mock
+    ):
+        install_links_mock.return_value = True
+
+        NodejsNpmEsbuildWorkflow(
+            source_dir="source",
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=is_building_in_source,
+        )
+
+        subprocess_run_mock.assert_called_with(ANY, cwd=expected_dir)
