@@ -183,8 +183,16 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
         return [PathResolver(runtime=self.runtime, binary="npm")]
 
     def _get_esbuild_subprocess(self) -> SubprocessEsbuild:
+        """
+        Creates a subprocess object that is able to invoke the esbuild executable.
+
+        Returns
+        -------
+        SubprocessEsbuild
+            An esbuild specific subprocess object
+        """
         try:
-            npm_bin_path_root = self.subprocess_npm.run(["root"], cwd=self.scratch_dir)
+            npm_bin_path_root = self.subprocess_npm.run(["root"], cwd=self.build_dir)
             npm_bin_path = str(Path(npm_bin_path_root, ".bin"))
         except FileNotFoundError:
             raise EsbuildExecutionError(message="The esbuild workflow couldn't find npm installed on your system.")
