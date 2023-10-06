@@ -96,8 +96,7 @@ class OSUtils(object):
         if not self._is_symlink(file_info):
             return zip_ref.extract(file_info, output_dir)
 
-        source = zip_ref.read(file_info.filename)
-        source = decode(source)
+        source = decode(zip_ref.read(file_info.filename))
         link_name = os.path.normpath(os.path.join(output_dir, file_info.filename))
 
         # make leading dirs if needed
