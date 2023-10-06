@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from aws_lambda_builders import utils
+from aws_lambda_builders.utils import decode
 
 
 class Test_create_symlink_or_copy(TestCase):
@@ -30,3 +31,27 @@ class Test_create_symlink_or_copy(TestCase):
 
         pathced_os.symlink.assert_called_once()
         patched_copy_tree.assert_called_with(source_path, destination_path)
+
+
+class TestDecode(TestCase):
+    def test_does_not_crash_non_utf8_encoding(self):
+        message = "hello\n\n ß".encode("iso-8859-1")
+        response = decode(message)
+        self.assertEqual(response, "")
+
+    def test_is_able_to_decode_non_utf8_encoding(self):
+        message = "hello\n\n ß".encode("iso-8859-1")
+        response = decode(message, "iso-8859-1")
+        self.assertEqual(response, "hello\n\n ß")
+
+    @patch("aws_lambda_builders.utils.locale")
+    def test_isa_able_to_decode_non_utf8_locale(self, mock_locale):
+        mock_locale.getpreferredencoding.return_value = "iso-8859-1"
+        message = "hello\n\n ß".encode("iso-8859-1")
+        response = decode(message)
+        self.assertEqual(response, "hello\n\n ß")
+
+    def test_succeeds_with_utf8_encoding(self):
+        message = "hello".encode("utf-8")
+        response = decode(message)
+        self.assertEqual(response, "hello")

@@ -2,9 +2,9 @@
 Wrapper around calls to dotent CLI through a subprocess.
 """
 
-import locale
 import logging
 
+from ...utils import decode
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
@@ -52,7 +52,6 @@ class SubprocessDotnetCLI(object):
         # DotNet output is in system locale dependent encoding
         # https://learn.microsoft.com/en-us/dotnet/api/system.console.outputencoding?view=net-6.0#remarks
         # "The default code page that the console uses is determined by the system locale."
-        encoding = locale.getpreferredencoding()
         p = self.os_utils.popen(invoke_dotnet, stdout=self.os_utils.pipe, stderr=self.os_utils.pipe, cwd=cwd)
 
         out, err = p.communicate()
@@ -60,7 +59,7 @@ class SubprocessDotnetCLI(object):
         # The package command contains lots of useful information on how the package was created and
         # information when the package command was not successful. For that reason the output is
         # always written to the output to help developers diagnose issues.
-        LOG.info(out.decode(encoding).strip())
+        LOG.info(decode(out))
 
         if p.returncode != 0:
-            raise DotnetCLIExecutionError(message=err.decode(encoding).strip())
+            raise DotnetCLIExecutionError(message=decode(err))

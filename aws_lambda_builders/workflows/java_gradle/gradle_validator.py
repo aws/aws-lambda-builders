@@ -5,6 +5,7 @@ Gradle Binary Validation
 import logging
 import re
 
+from aws_lambda_builders.utils import decode
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.java.utils import OSUtils
 
@@ -81,6 +82,6 @@ class GradleValidator(RuntimeValidator):
             return None
 
         for line in stdout.splitlines():
-            l_dec = line.decode()
+            l_dec = decode(line)
             if l_dec.startswith("JVM"):
                 return l_dec

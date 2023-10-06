@@ -7,7 +7,7 @@ import platform
 import subprocess
 import zipfile
 
-from aws_lambda_builders.utils import which
+from aws_lambda_builders.utils import decode, which
 
 LOG = logging.getLogger(__name__)
 
@@ -96,7 +96,8 @@ class OSUtils(object):
         if not self._is_symlink(file_info):
             return zip_ref.extract(file_info, output_dir)
 
-        source = zip_ref.read(file_info.filename).decode("utf8")
+        source = zip_ref.read(file_info.filename)
+        source = decode(source)
         link_name = os.path.normpath(os.path.join(output_dir, file_info.filename))
 
         # make leading dirs if needed
