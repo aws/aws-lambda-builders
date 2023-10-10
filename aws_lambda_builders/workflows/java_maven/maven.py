@@ -5,6 +5,8 @@ Wrapper around calls to Maven through a subprocess.
 import logging
 import subprocess
 
+from aws_lambda_builders.utils import decode
+
 LOG = logging.getLogger(__name__)
 
 
@@ -28,10 +30,10 @@ class SubprocessMaven(object):
         args = ["clean", "install"]
         ret_code, stdout, _ = self._run(args, scratch_dir)
 
-        LOG.debug("Maven logs: %s", stdout.decode("utf8").strip())
+        LOG.debug("Maven logs: %s", decode(stdout))
 
         if ret_code != 0:
-            raise MavenExecutionError(message=stdout.decode("utf8").strip())
+            raise MavenExecutionError(message=decode(stdout))
 
     def copy_dependency(self, scratch_dir):
         include_scope = "runtime"
@@ -40,7 +42,7 @@ class SubprocessMaven(object):
         ret_code, stdout, _ = self._run(args, scratch_dir)
 
         if ret_code != 0:
-            raise MavenExecutionError(message=stdout.decode("utf8").strip())
+            raise MavenExecutionError(message=decode(stdout))
 
     def _run(self, args, cwd=None):
         p = self.os_utils.popen(
