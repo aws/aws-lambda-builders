@@ -4,8 +4,8 @@ Wrapper around calls to dotent CLI through a subprocess.
 
 import logging
 
-from ...utils import decode
-from .utils import OSUtils
+from aws_lambda_builders.utils import decode
+from aws_lambda_builders.workflows.dotnet_clipackage.utils import OSUtils
 
 LOG = logging.getLogger(__name__)
 
