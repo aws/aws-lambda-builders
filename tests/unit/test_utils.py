@@ -1,3 +1,5 @@
+import platform
+
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -36,8 +38,9 @@ class Test_create_symlink_or_copy(TestCase):
 class TestDecode(TestCase):
     def test_does_not_crash_non_utf8_encoding(self):
         message = "hello\n\n ß".encode("iso-8859-1")
+        expected_message = "hello\n\n ß" if platform.system().lower() == "windows" else ""
         response = decode(message)
-        self.assertEqual(response, "")
+        self.assertEqual(response, expected_message)
 
     def test_is_able_to_decode_non_utf8_encoding(self):
         message = "hello\n\n ß".encode("iso-8859-1")
