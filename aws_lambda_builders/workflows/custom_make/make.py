@@ -4,6 +4,7 @@ Wrapper around calling make through a subprocess.
 import io
 import logging
 import shutil
+import sys
 import threading
 
 LOG = logging.getLogger(__name__)
@@ -92,9 +93,17 @@ class SubProcessMake(object):
 
         # Log every stdout line by iterating
         for line in p.stdout:
-            decoded_line = line.decode("utf-8").strip()
-            LOG.info(decoded_line)
+            # Writing to stderr instead of using LOG.info
+            # since the logger library does not include ANSI
+            # formatting characters in the output
+            #
+            # stderr is used since stdout appears to be reserved
+            # for command responses
+            sys.stderr.buffer.write(line)
+            sys.stderr.flush()
+
             # Gather total stdout
+            decoded_line = line.decode("utf-8").strip()
             stdout += decoded_line
 
         # Wait for the process to exit and stderr thread to end.
