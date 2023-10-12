@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch, call
 
+from parameterized import parameterized
 from aws_lambda_builders.actions import (
     CopySourceAction,
     CleanUpAction,
@@ -343,7 +344,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
                 download_dependencies=False,
             )
 
-    def test_build_in_source(self):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_build_in_source(self, install_links_mock):
+        install_links_mock.return_value = True
+
         source_dir = "source"
         workflow = NodejsNpmEsbuildWorkflow(
             source_dir=source_dir,
@@ -376,15 +380,18 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
         self.assertIsInstance(workflow.actions[1], CopySourceAction)
-        self.assertEquals(workflow.actions[1].source_dir, "not_source")
-        self.assertEquals(workflow.actions[1].dest_dir, "scratch_dir")
+        self.assertEqual(workflow.actions[1].source_dir, "not_source")
+        self.assertEqual(workflow.actions[1].dest_dir, "scratch_dir")
         self.assertIsInstance(workflow.actions[2], NodejsNpmInstallAction)
-        self.assertEquals(workflow.actions[2].install_dir, "scratch_dir")
+        self.assertEqual(workflow.actions[2].install_dir, "scratch_dir")
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
     def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest_and_build_in_source(
-        self,
+        self, install_links_mock
     ):
+        install_links_mock.return_value = True
+
         self.osutils.dirname.return_value = "not_source"
 
         workflow = NodejsNpmEsbuildWorkflow(
@@ -399,8 +406,63 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEqual(len(workflow.actions), 3)
 
         self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
-        self.assertEquals(workflow.actions[0].install_dir, "not_source")
+        self.assertEqual(workflow.actions[0].install_dir, "not_source")
         self.assertIsInstance(workflow.actions[1], LinkSinglePathAction)
-        self.assertEquals(workflow.actions[1]._source, os.path.join("not_source", "node_modules"))
-        self.assertEquals(workflow.actions[1]._dest, os.path.join("source", "node_modules"))
+        self.assertEqual(workflow.actions[1]._source, os.path.join("not_source", "node_modules"))
+        self.assertEqual(workflow.actions[1]._dest, os.path.join("source", "node_modules"))
         self.assertIsInstance(workflow.actions[2], EsbuildBundleAction)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_install_action")
+    def test_workflow_revert_build_in_source(self, install_action_mock, install_links_mock):
+        # fake having bad npm version
+        install_links_mock.return_value = False
+
+        source_dir = "source"
+        artifacts_dir = "artifacts"
+        scratch_dir = "scratch_dir"
+        NodejsNpmEsbuildWorkflow(
+            source_dir=source_dir,
+            artifacts_dir=artifacts_dir,
+            scratch_dir=scratch_dir,
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+            dependencies_dir="dep",
+        )
+
+        # expect no build in source and install dir is
+        # scratch, not the source
+        install_action_mock.assert_called_with(
+            source_dir=source_dir,
+            install_dir=scratch_dir,
+            subprocess_npm=ANY,
+            osutils=ANY,
+            build_options=ANY,
+            install_links=False,
+        )
+
+    @parameterized.expand(
+        [
+            (True, "source"),
+            (False, "scratch_dir"),
+        ]
+    )
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.SubprocessNpm.run")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.Path")
+    def test_finds_correct_esbuild_binary(
+        self, is_building_in_source, expected_dir, path_mock, subprocess_run_mock, install_links_mock
+    ):
+        install_links_mock.return_value = True
+
+        NodejsNpmEsbuildWorkflow(
+            source_dir="source",
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=is_building_in_source,
+        )
+
+        subprocess_run_mock.assert_called_with(ANY, cwd=expected_dir)

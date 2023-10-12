@@ -2,12 +2,24 @@
 Action to resolve Python dependencies using PIP
 """
 
+import logging
+from typing import Optional, Tuple
+
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64
+from aws_lambda_builders.binary_path import BinaryPath
+from aws_lambda_builders.exceptions import MisMatchRuntimeError, RuntimeValidatorError
+from aws_lambda_builders.workflows.python_pip.exceptions import MissingPipError
+from aws_lambda_builders.workflows.python_pip.packager import (
+    DependencyBuilder,
+    PackagerError,
+    PipRunner,
+    PythonPipDependencyBuilder,
+    SubprocessPip,
+)
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
-from .exceptions import MissingPipError
-from .packager import DependencyBuilder, PackagerError, PipRunner, PythonPipDependencyBuilder, SubprocessPip
+LOG = logging.getLogger(__name__)
 
 
 class PythonPipBuildAction(BaseAction):
@@ -27,20 +39,21 @@ class PythonPipBuildAction(BaseAction):
         self.binaries = binaries
         self.architecture = architecture
 
-    def execute(self):
-        os_utils = OSUtils()
-        python_path = self.binaries[self.LANGUAGE].binary_path
-        try:
-            pip = SubprocessPip(osutils=os_utils, python_exe=python_path)
-        except MissingPipError as ex:
-            raise ActionFailedError(str(ex))
-        pip_runner = PipRunner(python_exe=python_path, pip=pip)
+        self._os_utils = OSUtils()
+
+    def execute(self) -> None:
+        """
+        Executes the build action for Python `pip` workflows.
+        """
+        pip, python_with_pip = self._find_runtime_with_pip()
+        pip_runner = PipRunner(python_exe=python_with_pip, pip=pip)
+
         dependency_builder = DependencyBuilder(
-            osutils=os_utils, pip_runner=pip_runner, runtime=self.runtime, architecture=self.architecture
+            osutils=self._os_utils, pip_runner=pip_runner, runtime=self.runtime, architecture=self.architecture
         )
 
         package_builder = PythonPipDependencyBuilder(
-            osutils=os_utils, runtime=self.runtime, dependency_builder=dependency_builder
+            osutils=self._os_utils, runtime=self.runtime, dependency_builder=dependency_builder
         )
         try:
             target_artifact_dir = self.artifacts_dir
@@ -55,3 +68,43 @@ class PythonPipBuildAction(BaseAction):
             )
         except PackagerError as ex:
             raise ActionFailedError(str(ex))
+
+    def _find_runtime_with_pip(self) -> Tuple[SubprocessPip, str]:
+        """
+        Finds a Python runtime that also contains `pip`.
+
+        Returns
+        -------
+        Tuple[SubprocessPip, str]
+            Returns a tuple of the SubprocessPip object created from
+            a valid Python runtime and the runtime path itself
+
+        Raises
+        ------
+        ActionFailedError
+            Raised if the method is not able to find a valid runtime
+            that has the correct Python and pip installed
+        """
+        binary_object: Optional[BinaryPath] = self.binaries.get(self.LANGUAGE)
+
+        if not binary_object:
+            raise ActionFailedError("Failed to fetch Python binaries from the PATH.")
+
+        for python_path in binary_object.resolver.exec_paths:
+            try:
+                valid_python_path = binary_object.validator.validate(python_path)
+
+                if valid_python_path:
+                    pip = SubprocessPip(osutils=self._os_utils, python_exe=valid_python_path)
+
+                    return (pip, valid_python_path)
+            except (MisMatchRuntimeError, RuntimeValidatorError):
+                # runtime and mismatch exceptions should have been caught
+                # during the init phase
+
+                # we can ignore these and let the action fail at the end
+                LOG.debug(f"Python runtime path '{valid_python_path}' does not match the workflow")
+            except MissingPipError:
+                LOG.debug(f"Python runtime path '{valid_python_path}' does not contain pip")
+
+        raise ActionFailedError("Failed to find a Python runtime containing pip on the PATH.")

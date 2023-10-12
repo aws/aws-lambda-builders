@@ -1,7 +1,7 @@
 """
 Common utilities for the library
 """
-
+import locale
 import logging
 import os
 import shutil
@@ -231,3 +231,27 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
 
         tar.extractall(unpack_dir)
+
+
+def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
+    """
+    Perform a "safe" decoding of a series of bytes. Attempts to find the localized encoding
+    if not provided, and avoids raising an exception, instead, if an unrecognized character
+    is found, replaces it with a replacement character.
+
+    https://docs.python.org/3/library/codecs.html#codec-base-classes
+
+    Parameters
+    ----------
+    to_decode: bytes
+        Series of bytes to be decoded
+    encoding: Optional[str]
+        Encoding type. If None, will attempt to find the correct encoding based on locale.
+
+    Returns
+    -------
+    str
+       Decoded string with unrecognized characters replaced with a replacement character
+    """
+    encoding = encoding or locale.getpreferredencoding()
+    return to_decode.decode(encoding, errors="replace").strip()
