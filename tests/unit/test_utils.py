@@ -39,7 +39,7 @@ class TestDecode(TestCase):
     def test_does_not_crash_non_utf8_encoding(self):
         message = "hello\n\n ß".encode("iso-8859-1")
         # Windows will decode this string as expected, *nix systems won't
-        expected_message = "hello\n\n ß" if platform.system().lower() == "windows" else ""
+        expected_message = "hello\n\n ß" if platform.system().lower() == "windows" else "hello\n\n �"
         response = decode(message)
         self.assertEqual(response, expected_message)
 
@@ -49,7 +49,7 @@ class TestDecode(TestCase):
         self.assertEqual(response, "hello\n\n ß")
 
     @patch("aws_lambda_builders.utils.locale")
-    def test_isa_able_to_decode_non_utf8_locale(self, mock_locale):
+    def test_is_able_to_decode_non_utf8_locale(self, mock_locale):
         mock_locale.getpreferredencoding.return_value = "iso-8859-1"
         message = "hello\n\n ß".encode("iso-8859-1")
         response = decode(message)

@@ -235,8 +235,11 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
 
 def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
     """
-    Perform a "safe" decoding of a series of bytes. If the decoding works, returns the decoded bytes.
-    If the decoding fails, returns an empty string instead of throwing an exception.
+    Perform a "safe" decoding of a series of bytes. Attempts to find the localized encoding
+    if not provided, and avoids raising an exception, instead, if an unrecognized character
+    is found, replaces it with a replacement character.
+
+    https://docs.python.org/3/library/codecs.html#codec-base-classes
 
     Parameters
     ----------
@@ -248,11 +251,7 @@ def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
     Returns
     -------
     str
-       Decoded string if decoding succeeds, empty string if decoding fails
+       Decoded string with unrecognized characters replaced with a replacement character
     """
-    encoding = encoding if encoding else locale.getpreferredencoding()
-    try:
-        return to_decode.decode(encoding).strip()
-    except UnicodeDecodeError:
-        LOG.debug(f"Unable to decode bytes: {to_decode} with encoding: {encoding}")
-    return ""
+    encoding = encoding or locale.getpreferredencoding()
+    return to_decode.decode(encoding, errors="replace").strip()
