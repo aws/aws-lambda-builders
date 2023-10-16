@@ -103,8 +103,8 @@ class PythonPipBuildAction(BaseAction):
                 # during the init phase
 
                 # we can ignore these and let the action fail at the end
-                LOG.debug(f"Python runtime path '{valid_python_path}' does not match the workflow")
+                LOG.debug(f"Python runtime path '{python_path}' does not match the workflow")
             except MissingPipError:
-                LOG.debug(f"Python runtime path '{valid_python_path}' does not contain pip")
+                LOG.debug(f"Python runtime path '{python_path}' does not contain pip")
 
         raise ActionFailedError("Failed to find a Python runtime containing pip on the PATH.")
