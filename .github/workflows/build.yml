@@ -191,7 +191,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'corretto'
-          java-version: '17'
+          java-version: '21'
       - run: make init
       - run: pytest -vv tests/integration/workflows/java_maven
 
@@ -221,7 +221,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
       - run: make init
       - run: pytest -vv tests/integration/workflows/java_gradle
 
