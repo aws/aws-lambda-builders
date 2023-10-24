@@ -73,12 +73,31 @@ class TestSubprocessBundler(TestCase):
         self.osutils.get_bundle_dir.assert_called_once()
         self.osutils.remove_directory.assert_called_once()
 
-    def test_raises_BundlerExecutionError_with_err_text_if_retcode_is_not_0(self):
+    def test_raises_BundlerExecutionError_with_stdout_text_if_retcode_is_not_0(self):
         self.popen.returncode = 1
         self.popen.out = b"some error text\n\n"
+        self.popen.err = b""
         with self.assertRaises(BundlerExecutionError) as raised:
             self.under_test.run(["install", "--without", "development", "test"])
         self.assertEqual(raised.exception.args[0], "Bundler Failed: some error text")
+
+    def test_raises_BundlerExecutionError_with_stderr_text_if_retcode_is_not_0(self):
+        self.popen.returncode = 1
+        self.popen.err = b"some error text\n\n"
+        self.popen.out = b""
+        with self.assertRaises(BundlerExecutionError) as raised:
+            self.under_test.run(["install", "--without", "development", "test"])
+        self.assertEqual(raised.exception.args[0], "Bundler Failed: some error text")
+
+    def test_raises_BundlerExecutionError_with_both_stderr_and_stdout_text_if_retcode_is_not_0(self):
+        self.popen.returncode = 1
+        self.popen.err = b"some error text from stderr\n\n"
+        self.popen.out = b"some error text from stdout\n\n"
+        with self.assertRaises(BundlerExecutionError) as raised:
+            self.under_test.run(["install", "--without", "development", "test"])
+        self.assertEqual(
+            raised.exception.args[0], "Bundler Failed: some error text from stdout\nsome error text from stderr"
+        )
 
     def test_raises_ValueError_if_args_not_a_list(self):
         with self.assertRaises(ValueError) as raised:
