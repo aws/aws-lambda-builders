@@ -3,7 +3,7 @@ Wrapper around calls to bundler through a subprocess.
 """
 
 import logging
-import os
+from os import linesep
 
 LOG = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class SubprocessBundler(object):
                 err_str = err.decode("utf8").strip()
                 out_str = out.decode("utf8").strip()
                 if out and err:
-                    message_out = f"{out_str}{os.linesep}{err_str}"
+                    message_out = f"{out_str}{linesep}{err_str}"
                     LOG.debug(f"Bundler output: {out_str}")
                     LOG.debug(f"Bundler error: {err_str}")
                 elif out:

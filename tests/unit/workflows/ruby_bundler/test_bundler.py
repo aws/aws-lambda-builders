@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch
+from os import linesep
 
 from aws_lambda_builders.workflows.ruby_bundler.bundler import SubprocessBundler, BundlerExecutionError
 
@@ -96,7 +97,7 @@ class TestSubprocessBundler(TestCase):
         with self.assertRaises(BundlerExecutionError) as raised:
             self.under_test.run(["install", "--without", "development", "test"])
         self.assertEqual(
-            raised.exception.args[0], "Bundler Failed: some error text from stdout\nsome error text from stderr"
+            raised.exception.args[0], f"Bundler Failed: some error text from stdout{linesep}some error text from stderr"
         )
 
     def test_raises_ValueError_if_args_not_a_list(self):
