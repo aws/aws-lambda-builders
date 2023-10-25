@@ -3,6 +3,7 @@ Wrapper around calls to bundler through a subprocess.
 """
 
 import logging
+import os
 
 LOG = logging.getLogger(__name__)
 
@@ -65,13 +66,19 @@ class SubprocessBundler(object):
                 if self.osutils.directory_exists(check_dir):
                     self.osutils.remove_directory(check_dir)
             else:
-                # Bundler has relevant information in stdout, not stderr.
+                # Bundler can contain information in both stdout and stderr so we check and log both
+                err_str = err.decode("utf8").strip()
+                out_str = out.decode("utf8").strip()
                 if out and err:
-                    message_out = out.strip() + b"\n" + err
+                    message_out = f"{out_str}{os.linesep}{err_str}"
+                    LOG.debug(f"Bundler output: {out_str}")
+                    LOG.debug(f"Bundler error: {err_str}")
                 elif out:
-                    message_out = out
+                    message_out = out_str
+                    LOG.debug(f"Bundler output: {out_str}")
                 else:
-                    message_out = err
-                raise BundlerExecutionError(message=message_out.decode("utf8").strip())
+                    message_out = err_str
+                    LOG.debug(f"Bundler error: {err_str}")
+                raise BundlerExecutionError(message=message_out)
 
         return out.decode("utf8").strip()
