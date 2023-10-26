@@ -69,11 +69,11 @@ class SubprocessBundler(object):
                 # Bundler can contain information in both stdout and stderr so we check and log both
                 err_str = err.decode("utf8").strip()
                 out_str = out.decode("utf8").strip()
-                if out and err:
+                if out_str and err_str:
                     message_out = f"{out_str}{linesep}{err_str}"
                     LOG.debug(f"Bundler output: {out_str}")
                     LOG.debug(f"Bundler error: {err_str}")
-                elif out:
+                elif out_str:
                     message_out = out_str
                     LOG.debug(f"Bundler output: {out_str}")
                 else:
