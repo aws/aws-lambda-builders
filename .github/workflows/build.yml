@@ -102,7 +102,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - if: ${{ matrix.npm }}
         run: npm install -g npm@${{ matrix.npm }}
       - run: npm --version
@@ -135,7 +135,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - if: ${{ matrix.npm }}
         run: npm install -g npm@${{ matrix.npm }}
       - run: npm --version
