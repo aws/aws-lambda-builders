@@ -15,8 +15,7 @@ from aws_lambda_builders.actions import (
 )
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
-
-from .actions import (
+from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmCIAction,
     NodejsNpmInstallAction,
     NodejsNpmLockFileCleanUpAction,
@@ -24,10 +23,21 @@ from .actions import (
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
 )
-from .npm import SubprocessNpm
-from .utils import OSUtils
+from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 
 LOG = logging.getLogger(__name__)
+
+# npm>=8.8.0 supports --install-links
+MINIMUM_NPM_VERSION_INSTALL_LINKS = (8, 8)
+UNSUPPORTED_NPM_VERSION_MESSAGE = (
+    "Building in source was enabled, however the "
+    "currently installed npm version does not support "
+    "--install-links. Please ensure that the npm "
+    "version is at least 8.8.0. Switching to build "
+    f"in outside of the source directory.{os.linesep}"
+    "https://docs.npmjs.com/cli/v8/using-npm/changelog#v880-2022-04-27"
+)
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
@@ -89,6 +99,12 @@ class NodejsNpmWorkflow(BaseWorkflow):
             self.actions.append(CopySourceAction(self.source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
 
         if self.download_dependencies:
+            if is_building_in_source and not self.can_use_install_links(subprocess_npm):
+                LOG.warning(UNSUPPORTED_NPM_VERSION_MESSAGE)
+
+                is_building_in_source = False
+                self.build_dir = self._select_build_dir(build_in_source=False)
+
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
@@ -235,3 +251,40 @@ class NodejsNpmWorkflow(BaseWorkflow):
         return NodejsNpmInstallAction(
             install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
         )
+
+    @staticmethod
+    def can_use_install_links(npm_process: SubprocessNpm) -> bool:
+        """
+        Checks the version of npm that is currently installed to determine
+        whether or not --install-links can be used
+
+        Parameters
+        ----------
+        npm_process: SubprocessNpm
+            Object containing helper methods to call the npm process
+
+        Returns
+        -------
+        bool
+            True if the current npm version meets the minimum for --install-links
+        """
+        try:
+            current_version = npm_process.run(["--version"])
+
+            LOG.debug(f"Currently installed version of npm is: {current_version}")
+
+            current_version = current_version.split(".")
+
+            major_version = int(current_version[0])
+            minor_version = int(current_version[1])
+        except (ValueError, IndexError):
+            LOG.debug(f"Failed to parse {current_version} output from npm for --install-links validation")
+            return False
+
+        is_older_major_version = major_version < MINIMUM_NPM_VERSION_INSTALL_LINKS[0]
+        is_older_patch_version = (
+            major_version == MINIMUM_NPM_VERSION_INSTALL_LINKS[0]
+            and minor_version < MINIMUM_NPM_VERSION_INSTALL_LINKS[1]
+        )
+
+        return not (is_older_major_version or is_older_patch_version)

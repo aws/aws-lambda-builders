@@ -3,6 +3,7 @@ Wrapper around calls to bundler through a subprocess.
 """
 
 import logging
+from os import linesep
 
 LOG = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class SubprocessBundler(object):
 
         p = self.osutils.popen(invoke_bundler, stdout=self.osutils.pipe, stderr=self.osutils.pipe, cwd=cwd)
 
-        out, _ = p.communicate()
+        out, err = p.communicate()
 
         if p.returncode != 0:
             if p.returncode == GEMFILE_NOT_FOUND:
@@ -65,7 +66,19 @@ class SubprocessBundler(object):
                 if self.osutils.directory_exists(check_dir):
                     self.osutils.remove_directory(check_dir)
             else:
-                # Bundler has relevant information in stdout, not stderr.
-                raise BundlerExecutionError(message=out.decode("utf8").strip())
+                # Bundler can contain information in both stdout and stderr so we check and log both
+                err_str = err.decode("utf8").strip()
+                out_str = out.decode("utf8").strip()
+                if out_str and err_str:
+                    message_out = f"{out_str}{linesep}{err_str}"
+                    LOG.debug(f"Bundler output: {out_str}")
+                    LOG.debug(f"Bundler error: {err_str}")
+                elif out_str:
+                    message_out = out_str
+                    LOG.debug(f"Bundler output: {out_str}")
+                else:
+                    message_out = err_str
+                    LOG.debug(f"Bundler error: {err_str}")
+                raise BundlerExecutionError(message=message_out)
 
         return out.decode("utf8").strip()

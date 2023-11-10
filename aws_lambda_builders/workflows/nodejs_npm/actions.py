@@ -7,8 +7,7 @@ from typing import Optional
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.utils import extract_tarfile
-
-from .npm import NpmExecutionError, SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError, SubprocessNpm
 
 LOG = logging.getLogger(__name__)
 

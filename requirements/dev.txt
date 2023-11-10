@@ -1,5 +1,5 @@
 coverage==7.2.7; python_version < '3.8'
-coverage==7.3.1; python_version >= '3.8'
+coverage==7.3.2; python_version >= '3.8'
 flake8==3.3.0; python_version < '3.8'
 flake8==3.8.4; python_version >= '3.8'
 pytest-cov==4.1.0
@@ -13,5 +13,5 @@ pyelftools~=0.30 # Used to verify the generated Go binary architecture in integr
 
 # formatter
 black==22.6.0; python_version < "3.8"
-black==23.9.1; python_version >= "3.8"
-ruff==0.0.290
+black==23.10.1; python_version >= "3.8"
+ruff==0.1.4
