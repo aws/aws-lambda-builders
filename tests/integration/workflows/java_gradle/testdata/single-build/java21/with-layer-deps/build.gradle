@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'java-library'
     id 'maven-publish'
 }
 
@@ -12,16 +11,14 @@ repositories {
 }
 
 dependencies {
-    api 'com.amazonaws:aws-lambda-java-core:1.2.0'
+    compileOnly 'aws.lambdabuilders:common-layer-gradle:1.0'
 }
 
-group = 'aws.lambdabuilders'
+group = 'helloworld'
 version = '1.0'
-description = 'common-layer-gradle'
-java.sourceCompatibility = JavaVersion.VERSION_17
-java.targetCompatibility = JavaVersion.VERSION_17
-
-build.finalizedBy publishToMavenLocal
+description = 'A sample Hello World created for SAM CLI.'
+java.sourceCompatibility = JavaVersion.VERSION_21
+java.targetCompatibility = JavaVersion.VERSION_21
 
 publishing {
     publications {
