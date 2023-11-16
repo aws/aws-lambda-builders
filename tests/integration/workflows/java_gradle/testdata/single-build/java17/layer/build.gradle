@@ -18,8 +18,8 @@ dependencies {
 group = 'aws.lambdabuilders'
 version = '1.0'
 description = 'common-layer-gradle'
-java.sourceCompatibility = JavaVersion.VERSION_11
-java.targetCompatibility = JavaVersion.VERSION_11
+java.sourceCompatibility = JavaVersion.VERSION_17
+java.targetCompatibility = JavaVersion.VERSION_17
 
 build.finalizedBy publishToMavenLocal
 

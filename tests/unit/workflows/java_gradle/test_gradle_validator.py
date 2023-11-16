@@ -78,23 +78,22 @@ class TestGradleBinaryValidator(TestCase):
         validator.validate(runtime_path=self.runtime_path)
         self.mock_log.warning.assert_called_with(GradleValidator.VERSION_STRING_WARNING, self.runtime_path)
 
-    def test_no_warning_when_jvm_mv_11_and_java11_runtime(self):
-        version_string = "JVM:          11.0.0".encode()
+    @parameterized.expand(
+        [
+            ("11.0.0", "java11"),
+            ("17.0.0", "java17"),
+            ("21.0.0", "java21"),
+        ]
+    )
+    def test_no_warning_when_jvm_mv_matches_runtime(self, version, runtime):
+        version_string = f"JVM:          {version}".encode()
         self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string)]
         validator = GradleValidator(
-            runtime="java11", architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+            runtime=runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
         )
         self.assertTrue(validator.validate(runtime_path=self.runtime_path))
         self.assertEqual(validator.validated_binary_path, self.runtime_path)
-
-    def test_no_warning_when_jvm_mv_17_and_java17_runtime(self):
-        version_string = "JVM:          17.0.0".encode()
-        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string)]
-        validator = GradleValidator(
-            runtime="java17", architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
-        )
-        self.assertTrue(validator.validate(runtime_path=self.runtime_path))
-        self.assertEqual(validator.validated_binary_path, self.runtime_path)
+        self.mock_log.warning.assert_not_called()
 
     def test_runtime_validate_unsupported_language_fail_open(self):
         validator = GradleValidator(runtime="java2.0", architecture="arm64")
