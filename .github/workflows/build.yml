@@ -125,6 +125,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
         npm:
           - 8
           - 9
@@ -158,6 +159,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -185,6 +187,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -193,7 +196,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'corretto'
-          java-version: '17'
+          java-version: '21'
       - run: make init
       - run: pytest -vv tests/integration/workflows/java_maven
 
@@ -215,6 +218,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -223,7 +227,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
       - run: make init
       - run: pytest -vv tests/integration/workflows/java_gradle
 
@@ -243,6 +247,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -267,11 +272,16 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+      - run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade setuptools
+        if: ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.python }} == '3.12'
       - run: make init
       - run: pytest -vv tests/integration/workflows/python_pip
 
@@ -291,6 +301,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -321,6 +332,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
