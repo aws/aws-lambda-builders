@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'maven-publish'
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url = uri('https://repo.maven.apache.org/maven2/')
+    }
+}
+
+dependencies {
+    api 'com.amazonaws:aws-lambda-java-core:1.2.0'
+}
+
+group = 'aws.lambdabuilders'
+version = '1.0'
+description = 'common-layer-gradle'
+java.sourceCompatibility = JavaVersion.VERSION_21
+java.targetCompatibility = JavaVersion.VERSION_21
+
+build.finalizedBy publishToMavenLocal
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
