@@ -24,6 +24,7 @@ from tests.integration.workflows.common_test_utils import (
         ["java8"],
         ["java11"],
         ["java17"],
+        ["java21"],
     ],
 )
 class TestJavaGradle(TestCase):
