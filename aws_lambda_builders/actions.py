@@ -160,7 +160,7 @@ class LinkSinglePathAction(BaseAction):
         destination_path = Path(self._dest)
         if not source_path.exists():
             # Source path doesn't exist, nothing to symlink
-            LOG.debug("Source path %s does not exist, skipping generating symlink")
+            LOG.debug("Source path %s does not exist, skipping generating symlink", source_path)
             return
         if not destination_path.exists():
             os.makedirs(destination_path.parent, exist_ok=True)
