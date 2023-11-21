@@ -12,6 +12,7 @@ from aws_lambda_builders.actions import (
     MoveDependenciesAction,
     CleanUpAction,
     DependencyManager,
+    LinkSinglePathAction,
 )
 
 
@@ -262,3 +263,15 @@ class TestDependencyManager(TestCase):
     @staticmethod
     def _convert_strings_to_paths(source_dest_list):
         return map(lambda item: (Path(item[0]), Path(item[1])), source_dest_list)
+
+
+class TestLinkSinglePathAction(TestCase):
+    @patch("aws_lambda_builders.actions.os.makedirs")
+    @patch("aws_lambda_builders.utils.create_symlink_or_copy")
+    def test_skips_non_existent_source(self, mock_create_symlink_or_copy, mock_makedirs):
+        src = "src/path"
+        dest = "dest/path"
+
+        LinkSinglePathAction(source=src, dest=dest).execute()
+        mock_create_symlink_or_copy.assert_not_called()
+        mock_makedirs.assert_not_called()
