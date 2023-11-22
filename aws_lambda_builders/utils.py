@@ -198,6 +198,10 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
     """Tries to create symlink, if it fails it will copy source into destination"""
     LOG.debug("Creating symlink; source: %s, destination: %s", source, destination)
     try:
+        if Path(destination).exists() and Path(destination).is_symlink():
+            # The symlink is already in place, don't try re-creating it
+            LOG.debug("Symlink between %s and %s already exists, skipping generating symlink", source, destination)
+            return
         os.symlink(Path(source).absolute(), Path(destination).absolute())
     except OSError as ex:
         LOG.warning(
