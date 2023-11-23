@@ -57,7 +57,7 @@ class _ActionMetaClass(type):
     def __new__(mcs, name, bases, class_dict):
         cls = type.__new__(mcs, name, bases, class_dict)
 
-        if cls.__name__ == "BaseAction":
+        if cls.__name__ in ["BaseAction", "NodejsNpmInstallOrUpdateBaseAction"]:
             return cls
 
         # Validate class variables

@@ -72,17 +72,14 @@ class NodejsNpmPackAction(BaseAction):
             raise ActionFailedError(str(ex))
 
 
-class NodejsNpmInstallAction(BaseAction):
-
+class NodejsNpmInstallOrUpdateBaseAction(BaseAction):
     """
-    A Lambda Builder Action that installs NPM project dependencies
+    A base Lambda Builder Action that is used for installs or updating NPM project dependencies
     """
 
-    NAME = "NpmInstall"
-    DESCRIPTION = "Installing dependencies from NPM"
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, install_links: Optional[bool] = False):
+    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm):
         """
         Parameters
         ----------
@@ -90,14 +87,20 @@ class NodejsNpmInstallAction(BaseAction):
             Dependencies will be installed in this directory.
         subprocess_npm : SubprocessNpm
             An instance of the NPM process wrapper
-        install_links : Optional[bool]
-            Uses the --install-links npm option if True, by default False
         """
 
-        super(NodejsNpmInstallAction, self).__init__()
+        super().__init__()
         self.install_dir = install_dir
         self.subprocess_npm = subprocess_npm
-        self.install_links = install_links
+
+
+class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
+    """
+    A Lambda Builder Action that installs NPM project dependencies
+    """
+
+    NAME = "NpmInstall"
+    DESCRIPTION = "Installing dependencies from NPM"
 
     def execute(self):
         """
@@ -109,9 +112,38 @@ class NodejsNpmInstallAction(BaseAction):
             LOG.debug("NODEJS installing in: %s", self.install_dir)
 
             command = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"]
-            if self.install_links:
-                command.append("--install-links")
+            self.subprocess_npm.run(command, cwd=self.install_dir)
 
+        except NpmExecutionError as ex:
+            raise ActionFailedError(str(ex))
+
+
+class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
+    """
+    A Lambda Builder Action that installs NPM project dependencies
+    """
+
+    NAME = "NpmUpdate"
+    DESCRIPTION = "Updating dependencies from NPM"
+
+    def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
+        """
+        try:
+            LOG.debug("NODEJS updating in: %s", self.install_dir)
+
+            command = [
+                "update",
+                "--no-audit",
+                "--no-save",
+                "--unsafe-perm",
+                "--production",
+                "--no-package-lock",
+                "--install-links",
+            ]
             self.subprocess_npm.run(command, cwd=self.install_dir)
 
         except NpmExecutionError as ex:
