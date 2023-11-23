@@ -316,6 +316,46 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(expected_files, output_files)
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    def test_build_in_source_with_removed_dependencies(self, runtime):
+        # run a build with default requirements and confirm dependencies are downloaded
+        source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+        )
+
+        # dependencies installed in source folder
+        source_node_modules = os.path.join(source_dir, "node_modules")
+        self.assertTrue(os.path.isdir(source_node_modules))
+        expected_node_modules_contents = {"minimal-request-promise", ".package-lock.json"}
+        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+
+        # update package.json with empty one and re-run the build then confirm node_modules are cleared up
+        shutil.copy2(
+            os.path.join(self.temp_testdata_dir, "no-deps", "package.json"),
+            os.path.join(self.temp_testdata_dir, "npm-deps", "package.json")
+        )
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+        )
+        # dependencies installed in source folder
+        source_node_modules = os.path.join(source_dir, "node_modules")
+        self.assertTrue(os.path.isdir(source_node_modules))
+        expected_node_modules_contents = {"minimal-request-promise", ".package-lock.json"}
+        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+
+    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
     def test_build_in_source_with_download_dependencies_local_dependency(self, runtime):
         source_dir = os.path.join(self.temp_testdata_dir, "with-local-dependency")
 
