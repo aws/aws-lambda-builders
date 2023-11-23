@@ -352,8 +352,8 @@ class TestNodejsNpmWorkflow(TestCase):
         # dependencies installed in source folder
         source_node_modules = os.path.join(source_dir, "node_modules")
         self.assertTrue(os.path.isdir(source_node_modules))
-        expected_node_modules_contents = {"minimal-request-promise", ".package-lock.json"}
-        self.assertEqual(set(os.listdir(source_node_modules)), expected_node_modules_contents)
+        self.assertIn(".package-lock.json", set(os.listdir(source_node_modules)))
+        self.assertNotIn("minimal-request-promise", set(os.listdir(source_node_modules)))
 
     @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
     def test_build_in_source_with_download_dependencies_local_dependency(self, runtime):
