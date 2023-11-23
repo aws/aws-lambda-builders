@@ -338,7 +338,7 @@ class TestNodejsNpmWorkflow(TestCase):
         # update package.json with empty one and re-run the build then confirm node_modules are cleared up
         shutil.copy2(
             os.path.join(self.temp_testdata_dir, "no-deps", "package.json"),
-            os.path.join(self.temp_testdata_dir, "npm-deps", "package.json")
+            os.path.join(self.temp_testdata_dir, "npm-deps", "package.json"),
         )
 
         self.builder.build(
