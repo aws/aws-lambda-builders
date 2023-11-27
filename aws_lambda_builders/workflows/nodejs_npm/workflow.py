@@ -22,6 +22,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
+    NodejsNpmUpdateAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
@@ -119,7 +120,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
                     subprocess_npm=subprocess_npm,
                     osutils=osutils,
                     build_options=self.options,
-                    install_links=is_building_in_source,
+                    is_building_in_source=is_building_in_source,
                 )
             )
 
@@ -211,7 +212,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         subprocess_npm: SubprocessNpm,
         osutils: OSUtils,
         build_options: Optional[dict],
-        install_links: Optional[bool] = False,
+        is_building_in_source: Optional[bool] = False,
     ):
         """
         Get the install action used to install dependencies.
@@ -228,8 +229,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
             An instance of OS Utilities for file manipulation
         build_options : Optional[dict]
             Object containing build options configurations
-        install_links : Optional[bool]
-            Uses the --install-links npm option if True, by default False
+        is_building_in_source : Optional[bool]
+            States whether --build-in-source flag is set or not
 
         Returns
         -------
@@ -245,12 +246,13 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
             return NodejsNpmCIAction(
-                install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
+                install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=is_building_in_source
             )
 
-        return NodejsNpmInstallAction(
-            install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=install_links
-        )
+        if is_building_in_source:
+            return NodejsNpmUpdateAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
+
+        return NodejsNpmInstallAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
 
     @staticmethod
     def can_use_install_links(npm_process: SubprocessNpm) -> bool:
