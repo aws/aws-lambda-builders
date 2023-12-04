@@ -57,7 +57,7 @@ class _ActionMetaClass(type):
     def __new__(mcs, name, bases, class_dict):
         cls = type.__new__(mcs, name, bases, class_dict)
 
-        if cls.__name__ == "BaseAction":
+        if cls.__name__ in ["BaseAction", "NodejsNpmInstallOrUpdateBaseAction"]:
             return cls
 
         # Validate class variables
@@ -156,7 +156,12 @@ class LinkSinglePathAction(BaseAction):
         self._dest = dest
 
     def execute(self):
+        source_path = Path(self._source)
         destination_path = Path(self._dest)
+        if not source_path.exists():
+            # Source path doesn't exist, nothing to symlink
+            LOG.debug("Source path %s does not exist, skipping generating symlink", source_path)
+            return
         if not destination_path.exists():
             os.makedirs(destination_path.parent, exist_ok=True)
         utils.create_symlink_or_copy(str(self._source), str(destination_path))

@@ -12,7 +12,11 @@ from aws_lambda_builders.actions import (
     LinkSinglePathAction,
 )
 from aws_lambda_builders.architecture import ARM64
-from aws_lambda_builders.workflows.nodejs_npm.actions import NodejsNpmInstallAction, NodejsNpmCIAction
+from aws_lambda_builders.workflows.nodejs_npm.actions import (
+    NodejsNpmInstallAction,
+    NodejsNpmCIAction,
+    NodejsNpmUpdateAction,
+)
 from aws_lambda_builders.workflows.nodejs_npm_esbuild import NodejsNpmEsbuildWorkflow
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.actions import EsbuildBundleAction
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import SubprocessEsbuild
@@ -313,7 +317,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             subprocess_npm=ANY,
             osutils=ANY,
             build_options=None,
-            install_links=False,
+            is_building_in_source=False,
         )
 
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow._get_esbuild_subprocess")
@@ -360,7 +364,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 2)
 
-        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmUpdateAction)
         self.assertEqual(workflow.actions[0].install_dir, source_dir)
         self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
         self.assertEqual(workflow.actions[1]._working_directory, source_dir)
@@ -405,7 +409,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 3)
 
-        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmUpdateAction)
         self.assertEqual(workflow.actions[0].install_dir, "not_source")
         self.assertIsInstance(workflow.actions[1], LinkSinglePathAction)
         self.assertEqual(workflow.actions[1]._source, os.path.join("not_source", "node_modules"))
@@ -439,7 +443,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             subprocess_npm=ANY,
             osutils=ANY,
             build_options=ANY,
-            install_links=False,
+            is_building_in_source=False,
         )
 
     @parameterized.expand(
