@@ -33,6 +33,7 @@ def _create_app_structure(tmpdir):
 
 @pytest.fixture
 def sdist_reader():
+    # We are removing references to sys.executable from the business logic but are using it here for testing purposes
     return SDistMetadataFetcher(python_exe=sys.executable)
 
 
