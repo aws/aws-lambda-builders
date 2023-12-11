@@ -26,6 +26,7 @@ SUPPORTED_RUNTIMES = {
     "java21": [ARM64, X86_64],
     "go1.x": [ARM64, X86_64],
     "dotnet6": [ARM64, X86_64],
+    "dotnet8": [ARM64, X86_64],
     "provided": [ARM64, X86_64],
 }
 
