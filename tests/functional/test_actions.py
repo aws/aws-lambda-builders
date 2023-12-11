@@ -1,4 +1,4 @@
-import os
+import os, collections
 from pathlib import Path
 import tempfile
 from unittest import TestCase
@@ -30,7 +30,7 @@ class TestCopyDependenciesAction(TestCase):
             copy_dependencies_action = CopyDependenciesAction(empty_source, test_folder, target)
             copy_dependencies_action.execute()
 
-            self.assertEqual(os.listdir(test_folder), os.listdir(target))
+            self.assertEqual(collections.Counter(os.listdir(test_folder)), collections.Counter(os.listdir(target)))
 
     def test_must_maintain_symlinks_if_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -116,4 +116,4 @@ class TestMoveDependenciesAction(TestCase):
             move_dependencies_action = MoveDependenciesAction(empty_source, test_source, target)
             move_dependencies_action.execute()
 
-            self.assertEqual(os.listdir(test_folder), os.listdir(target))
+            self.assertEqual(collections.Counter(os.listdir(test_folder)), collections.Counter(os.listdir(target)))
