@@ -1,27 +1,41 @@
 area/workflow/dotnet_clipackage:
-- aws_lambda_builders/workflows/dotnet_clipackage/*
-- aws_lambda_builders/workflows/dotnet_clipackage/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - aws_lambda_builders/workflows/dotnet_clipackage/*
+      - aws_lambda_builders/workflows/dotnet_clipackage/**/*
 
 area/workflow/go_modules:
-- aws_lambda_builders/workflows/go_modules/*
-- aws_lambda_builders/workflows/go_modules/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - aws_lambda_builders/workflows/go_modules/*
+      - aws_lambda_builders/workflows/go_modules/**/*
 
 area/workflow/java_gradle:
-- aws_lambda_builders/workflows/java_gradle/*
-- aws_lambda_builders/workflows/java_gradle/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - aws_lambda_builders/workflows/java_gradle/*
+      - aws_lambda_builders/workflows/java_gradle/**/*
 
 area/workflow/java_maven:
-- aws_lambda_builders/workflows/java_maven/*
-- aws_lambda_builders/workflows/java_maven/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - aws_lambda_builders/workflows/java_maven/*
+      - aws_lambda_builders/workflows/java_maven/**/*
 
 area/workflow/node_npm:
-- aws_lambda_builders/workflows/nodejs_npm/*
-- aws_lambda_builders/workflows/nodejs_npm/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - aws_lambda_builders/workflows/nodejs_npm/*
+      - aws_lambda_builders/workflows/nodejs_npm/**/*
 
 area/workflow/python_pip:
-- aws_lambda_builders/workflows/python_pip/*
-- aws_lambda_builders/workflows/python_pip/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - aws_lambda_builders/workflows/python_pip/*
+      - aws_lambda_builders/workflows/python_pip/**/*
 
 area/workflow/ruby_bundler:
-- aws_lambda_builders/workflows/ruby_bundler/*
-- aws_lambda_builders/workflows/ruby_bundler/**/*
+  - changed-files:
+    - any-glob-to-any-file:
+      - aws_lambda_builders/workflows/ruby_bundler/*
+      - aws_lambda_builders/workflows/ruby_bundler/**/*
