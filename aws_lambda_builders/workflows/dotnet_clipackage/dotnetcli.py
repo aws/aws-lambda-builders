@@ -8,6 +8,7 @@ from aws_lambda_builders.utils import decode
 from aws_lambda_builders.workflows.dotnet_clipackage.utils import OSUtils
 
 LOG = logging.getLogger(__name__)
+print(__name__)
 
 
 class DotnetCLIExecutionError(Exception):
@@ -60,6 +61,8 @@ class SubprocessDotnetCLI(object):
         # information when the package command was not successful. For that reason the output is
         # always written to the output to help developers diagnose issues.
         LOG.info(decode(out))
+        print(out.decode())
+        print(err.decode())
 
         if p.returncode != 0:
-            raise DotnetCLIExecutionError(message=decode(err))
+            raise DotnetCLIExecutionError(message=err.decode())
