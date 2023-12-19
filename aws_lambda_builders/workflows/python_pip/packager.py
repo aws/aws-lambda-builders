@@ -772,6 +772,9 @@ class PipRunner(object):
         main_args = [command] + args
         LOG.debug("calling pip %s", " ".join(main_args))
         rc, out, err = self._wrapped_pip.main(main_args, env_vars=env_vars, shim=shim)
+        LOG.debug("Return code: %s", rc)
+        LOG.debug("Out: %s", out)
+        LOG.debug("Err: %s", err)
         return rc, out, err
 
     def build_wheel(self, wheel, directory, compile_c=True):

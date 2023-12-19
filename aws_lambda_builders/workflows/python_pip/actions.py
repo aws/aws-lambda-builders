@@ -102,6 +102,7 @@ class PythonPipBuildAction(BaseAction):
                 valid_python_path = binary_object.validator.validate(python_path)
 
                 if valid_python_path:
+                    LOG.debug("Found python executable with pip %s", valid_python_path)
                     pip = SubprocessPip(osutils=self._os_utils, python_exe=valid_python_path)
 
                     return (pip, valid_python_path)
