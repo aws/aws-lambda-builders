@@ -746,6 +746,7 @@ class SubprocessPip(object):
         # exec_string = "%s%s" % (shim, run_pip)
         invoke_pip = [self.python_exe, "-m", "pip"]
         invoke_pip.extend(args)
+        invoke_pip.extend(["--python", self.python_exe])
         LOG.debug("Running pip: {}", invoke_pip)
         if os.environ.get('SAM_CLI_CLEAN_PIP'):
             p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe)
