@@ -91,7 +91,7 @@ class OSUtils(object):
             shutil.rmtree(tempdir)
 
     def popen(self, command, stdout=None, stderr=None, env=None):
-        p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env)
+        p = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=env, shell=True)
         return p
 
     def mtime(self, path):
