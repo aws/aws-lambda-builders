@@ -3,6 +3,7 @@ Action to resolve Python dependencies using PIP
 """
 
 import logging
+import subprocess
 from typing import Optional, Tuple
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
@@ -75,6 +76,12 @@ class PythonPipBuildAction(BaseAction):
             )
         except PackagerError as ex:
             raise ActionFailedError(str(ex))
+    
+    def _debug(self, args):
+        try:
+            subprocess.run(args)
+        except:
+            pass
 
     def _find_runtime_with_pip(self) -> Tuple[SubprocessPip, str]:
         """
@@ -104,6 +111,19 @@ class PythonPipBuildAction(BaseAction):
                 if valid_python_path:
                     LOG.debug("Found python executable with pip %s", valid_python_path)
                     pip = SubprocessPip(osutils=self._os_utils, python_exe=valid_python_path)
+
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.version)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.api_version)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.version_info)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.path)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.modules)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.implementation)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.flags)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.executable)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.exec_prefix)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.base_prefix)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.base_exec_prefix)"])
+                    self._debug([valid_python_path, "-c", "import sys; print(sys.abiflags)"])
 
                     return (pip, valid_python_path)
             except (MisMatchRuntimeError, RuntimeValidatorError):
