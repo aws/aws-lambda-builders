@@ -7,6 +7,7 @@ import re
 import subprocess
 from email.parser import FeedParser
 from typing import Tuple
+import os
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.utils import extract_tarfile
@@ -746,7 +747,10 @@ class SubprocessPip(object):
         invoke_pip = [self.python_exe, "-m"]
         invoke_pip.extend(args)
         LOG.debug("Running pip: {}", invoke_pip)
-        p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe, env=env_vars)
+        if os.environ.get('SAM_CLI_CLEAN_PIP'):
+            p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe)
+        else:
+            p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe, env=env_vars)
         out, err = p.communicate()
         rc = p.returncode
         return rc, out, err
