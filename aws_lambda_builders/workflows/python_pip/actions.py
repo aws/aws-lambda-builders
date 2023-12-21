@@ -78,21 +78,21 @@ class PythonPipBuildAction(BaseAction):
             raise ActionFailedError(str(ex))
     
     def _debug(self, args):
-        LOG.debug(f"Running: {args}")
-        try:
-            subprocess.run(args)
-        except Exception as ex:
-            LOG.error("Failed execution", exc_info=ex)
-        
+        LOG.debug(f"Running: {args}")        
         try:
             subprocess.run(args, executable=args[0])
         except Exception as ex:
             LOG.error("Failed execution", exc_info=ex)
+            try:
+                subprocess.run(" ".join(args), shell=True)
+            except Exception as ex:
+                LOG.error("Failed execution", exc_info=ex)
+                try:
+                    subprocess.run(args)
+                except Exception as ex:
+                    LOG.error("Failed execution", exc_info=ex)
 
-        try:
-            subprocess.run(" ".join(args), shell=True)
-        except Exception as ex:
-            LOG.error("Failed execution", exc_info=ex)
+       
 
     def _find_runtime_with_pip(self) -> Tuple[SubprocessPip, str]:
         """
