@@ -739,9 +739,13 @@ class SubprocessPip(object):
             env_vars = self._osutils.original_environ()
         if shim is None:
             shim = ""
-        run_pip = ("import sys; %s; sys.exit(main(%s))") % (self._import_string, args)
-        exec_string = "%s%s" % (shim, run_pip)
-        invoke_pip = [self.python_exe, "-c", exec_string]
+        LOG.debug("Env vars: {}", env_vars)
+        LOG.debug("Shim: {}", shim)
+        # run_pip = ("import sys; %s; sys.exit(main(%s))") % (self._import_string, args)
+        # exec_string = "%s%s" % (shim, run_pip)
+        invoke_pip = [self.python_exe, "-m"]
+        invoke_pip.extend(args)
+        LOG.debug("Running pip: {}", invoke_pip)
         p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe, env=env_vars)
         out, err = p.communicate()
         rc = p.returncode
