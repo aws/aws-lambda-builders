@@ -757,7 +757,7 @@ class SubprocessPip(object):
         
         if os.environ.get('SAM_CLI_CLEAN_PIP'):
             p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe)
-        else
+        else:
             p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe, env=env_vars)
         
         out, err = p.communicate()
