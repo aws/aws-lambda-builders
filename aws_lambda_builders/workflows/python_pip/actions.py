@@ -79,7 +79,10 @@ class PythonPipBuildAction(BaseAction):
     
     def _debug(self, args):
         try:
+            LOG.debug(f"Running: {args}")
             subprocess.run(args)
+            subprocess.run(args, executable=args[0])
+            subprocess.run(" ".join(args), shell=True)
         except:
             pass
 
@@ -112,18 +115,18 @@ class PythonPipBuildAction(BaseAction):
                     LOG.debug("Found python executable with pip %s", valid_python_path)
                     pip = SubprocessPip(osutils=self._os_utils, python_exe=valid_python_path)
 
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.version)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.api_version)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.version_info)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.path)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.modules)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.implementation)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.flags)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.executable)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.exec_prefix)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.base_prefix)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.base_exec_prefix)"])
-                    self._debug([valid_python_path, "-c", "import sys; print(sys.abiflags)"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.version)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.api_version)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.version_info)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.path)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.modules)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.implementation)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.flags)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.executable)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.exec_prefix)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.base_prefix)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.base_exec_prefix)'"])
+                    self._debug([valid_python_path, "-c", "'import sys; print(sys.abiflags)'"])
 
                     return (pip, valid_python_path)
             except (MisMatchRuntimeError, RuntimeValidatorError):
