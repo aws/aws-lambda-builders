@@ -749,9 +749,15 @@ class SubprocessPip(object):
             invoke_pip.extend(["--isolated"])
         if os.environ.get('SAM_CLI_VERBOSE_PIP'):
             invoke_pip.extend(["-vvv"])
+        
         invoke_pip.extend(args)
         LOG.debug(f"Running pip: {invoke_pip}")
-        p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe, env=env_vars)
+        
+        if os.environ.get('SAM_CLI_CLEAN_PIP'):
+            p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe)
+        else
+            p = self._osutils.popen(invoke_pip, stdout=self._osutils.pipe, stderr=self._osutils.pipe, env=env_vars)
+        
         out, err = p.communicate()
         rc = p.returncode
         return rc, out, err
