@@ -797,7 +797,7 @@ class PipRunner(object):
     def build_wheel(self, wheel, directory, compile_c=True):
         """Build an sdist into a wheel file."""
         arguments = ["--no-deps", "--wheel-dir", directory, wheel]
-        env_vars = self._osutils.environ()
+        env_vars = self._osutils.original_environ()
         shim = ""
         if not compile_c:
             env_vars.update(pip_no_compile_c_env_vars)
