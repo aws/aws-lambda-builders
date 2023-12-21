@@ -744,7 +744,9 @@ class SubprocessPip(object):
         LOG.debug(f"Shim: {shim}")
         # run_pip = ("import sys; %s; sys.exit(main(%s))") % (self._import_string, args)
         # exec_string = "%s%s" % (shim, run_pip)
-        invoke_pip = [self.python_exe, "-m", "pip", "--python", self.python_exe]
+        invoke_pip = [self.python_exe, "-m", "pip"]
+        if os.environ.get('SAM_CLI_SET_PYTHON'):
+            invoke_pip.extend(["--python", self.python_exe])
         if os.environ.get('SAM_CLI_ISOLATED_PIP'):
             invoke_pip.extend(["--isolated"])
         if os.environ.get('SAM_CLI_VERBOSE_PIP'):
