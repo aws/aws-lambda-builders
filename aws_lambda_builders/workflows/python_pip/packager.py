@@ -741,10 +741,10 @@ class SubprocessPip(object):
         if shim is None:
             shim = ""
         LOG.debug("Env vars: {}", env_vars)
-        LOG.debug("Shim: {}", shim)
+        LOG.debug("Shim: {}", str(shim))
         # run_pip = ("import sys; %s; sys.exit(main(%s))") % (self._import_string, args)
         # exec_string = "%s%s" % (shim, run_pip)
-        invoke_pip = [self.python_exe, "-m"]
+        invoke_pip = [self.python_exe, "-m", "pip"]
         invoke_pip.extend(args)
         LOG.debug("Running pip: {}", invoke_pip)
         if os.environ.get('SAM_CLI_CLEAN_PIP'):
