@@ -61,7 +61,7 @@ class CustomEnv(OSUtils):
     def __init__(self, env):
         self._env = env
 
-    def environ(self):
+    def original_environ(self):
         return self._env
 
 

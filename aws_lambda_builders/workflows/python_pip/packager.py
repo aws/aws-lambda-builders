@@ -767,12 +767,14 @@ class PipRunner(object):
         main_args = [command] + args
         LOG.debug("calling pip %s", " ".join(main_args))
         rc, out, err = self._wrapped_pip.main(main_args, env_vars=env_vars, shim=shim)
+        LOG.debug("pip stdout: %s", out)
+        LOG.debug("pip stderr: %s", err)
         return rc, out, err
 
     def build_wheel(self, wheel, directory, compile_c=True):
         """Build an sdist into a wheel file."""
         arguments = ["--no-deps", "--wheel-dir", directory, wheel]
-        env_vars = self._osutils.environ()
+        env_vars = self._osutils.original_environ()
         shim = ""
         if not compile_c:
             env_vars.update(pip_no_compile_c_env_vars)
