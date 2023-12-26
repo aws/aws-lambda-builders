@@ -33,7 +33,8 @@ def _create_app_structure(tmpdir):
 
 @pytest.fixture
 def sdist_reader():
-    return SDistMetadataFetcher()
+    # We are removing references to sys.executable from the business logic but are using it here for testing purposes
+    return SDistMetadataFetcher(python_exe=sys.executable)
 
 
 @pytest.fixture
@@ -141,7 +142,7 @@ class PipSideEffect(object):
     def _build_fake_whl(self, directory, filename):
         filepath = os.path.join(directory, filename)
         if not os.path.isfile(filepath):
-            package = Package(directory, filename)
+            package = Package(directory, filename, python_exe=sys.executable)
             with zipfile.ZipFile(filepath, "w") as z:
                 for content_path in self._whl_contents:
                     z.writestr(content_path.format(package_name=self._package_name, data_dir=package.data_dir), b"")
@@ -204,7 +205,7 @@ class TestDependencyBuilder(object):
     def _make_appdir_and_dependency_builder(self, reqs, tmpdir, runner, **kwargs):
         appdir = str(_create_app_structure(tmpdir))
         self._write_requirements_txt(reqs, appdir)
-        builder = DependencyBuilder(OSUtils(), "python3.9", runner, **kwargs)
+        builder = DependencyBuilder(OSUtils(), "python3.9", sys.executable, runner, **kwargs)
         return appdir, builder
 
     def test_can_build_local_dir_as_whl(self, tmpdir, pip_runner, osutils):
@@ -1031,22 +1032,22 @@ class TestPackage(object):
         with osutils.tempdir() as tempdir:
             sdist_builder.write_fake_sdist(tempdir, "foobar", "1.0")
             pkgs = set()
-            pkgs.add(Package("", "foobar-1.0-py3-none-any.whl"))
-            pkgs.add(Package(tempdir, "foobar-1.0.zip"))
+            pkgs.add(Package("", "foobar-1.0-py3-none-any.whl", python_exe=sys.executable))
+            pkgs.add(Package(tempdir, "foobar-1.0.zip", python_exe=sys.executable))
             assert len(pkgs) == 1
 
     def test_ensure_sdist_name_normalized_for_comparison(self, osutils, sdist_builder):
         with osutils.tempdir() as tempdir:
             sdist_builder.write_fake_sdist(tempdir, "Foobar", "1.0")
             pkgs = set()
-            pkgs.add(Package("", "foobar-1.0-py3-none-any.whl"))
-            pkgs.add(Package(tempdir, "Foobar-1.0.zip"))
+            pkgs.add(Package("", "foobar-1.0-py3-none-any.whl", python_exe=sys.executable))
+            pkgs.add(Package(tempdir, "Foobar-1.0.zip", python_exe=sys.executable))
             assert len(pkgs) == 1
 
     def test_ensure_wheel_name_normalized_for_comparison(self, osutils, sdist_builder):
         with osutils.tempdir() as tempdir:
             sdist_builder.write_fake_sdist(tempdir, "foobar", "1.0")
             pkgs = set()
-            pkgs.add(Package("", "Foobar-1.0-py3-none-any.whl"))
-            pkgs.add(Package(tempdir, "foobar-1.0.zip"))
+            pkgs.add(Package("", "Foobar-1.0-py3-none-any.whl", python_exe=sys.executable))
+            pkgs.add(Package(tempdir, "foobar-1.0.zip", python_exe=sys.executable))
             assert len(pkgs) == 1

@@ -1,7 +1,7 @@
 import sys
 from collections import namedtuple
 from unittest import TestCase, mock
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from parameterized import parameterized
@@ -115,7 +115,7 @@ class TestPythonPipDependencyBuilder(object):
         mock_dep_builder = mock.Mock(spec=DependencyBuilder)
         osutils_mock = mock.Mock(spec=osutils)
         builder = PythonPipDependencyBuilder(
-            osutils=osutils_mock, dependency_builder=mock_dep_builder, runtime="runtime"
+            osutils=osutils_mock, dependency_builder=mock_dep_builder, runtime="runtime", python_exe=sys.executable
         )
         builder.build_dependencies("artifacts/path/", "scratch_dir/path/", "path/to/requirements.txt")
         mock_dep_builder.build_site_packages.assert_called_once_with(
@@ -125,24 +125,26 @@ class TestPythonPipDependencyBuilder(object):
     @mock.patch("aws_lambda_builders.workflows.python_pip.packager.DependencyBuilder")
     def test_can_create_new_dependency_builder(self, DependencyBuilderMock, osutils):
         osutils_mock = mock.Mock(spec=osutils)
-        builder = PythonPipDependencyBuilder(osutils=osutils_mock, runtime="runtime")
-        DependencyBuilderMock.assert_called_with(osutils_mock, "runtime", architecture=X86_64)
+        builder = PythonPipDependencyBuilder(osutils=osutils_mock, runtime="runtime", python_exe=sys.executable)
+        DependencyBuilderMock.assert_called_with(osutils_mock, ANY, "runtime", architecture=X86_64)
 
     @mock.patch("aws_lambda_builders.workflows.python_pip.packager.DependencyBuilder")
     def test_can_call_dependency_builder_with_architecture(self, DependencyBuilderMock, osutils):
         osutils_mock = mock.Mock(spec=osutils)
-        builder = PythonPipDependencyBuilder(osutils=osutils_mock, runtime="runtime", architecture=ARM64)
-        DependencyBuilderMock.assert_called_with(osutils_mock, "runtime", architecture=ARM64)
+        builder = PythonPipDependencyBuilder(
+            osutils=osutils_mock, runtime="runtime", architecture=ARM64, python_exe=sys.executable
+        )
+        DependencyBuilderMock.assert_called_with(osutils_mock, ANY, "runtime", architecture=ARM64)
 
 
 class TestPackage(object):
     def test_can_create_package_with_custom_osutils(self, osutils):
-        pkg = Package("", "foobar-1.0-py3-none-any.whl", osutils)
+        pkg = Package("", "foobar-1.0-py3-none-any.whl", sys.executable, osutils)
         assert pkg._osutils == osutils
 
     def test_wheel_package(self):
         filename = "foobar-1.0-py3-none-any.whl"
-        pkg = Package("", filename)
+        pkg = Package("", filename, python_exe=sys.executable)
         assert pkg.dist_type == "wheel"
         assert pkg.filename == filename
         assert pkg.identifier == "foobar==1.0"
@@ -150,42 +152,42 @@ class TestPackage(object):
 
     def test_invalid_package(self):
         with pytest.raises(InvalidSourceDistributionNameError):
-            Package("", "foobar.jpg")
+            Package("", "foobar.jpg", python_exe=sys.executable)
 
     def test_diff_pkg_sdist_and_whl_do_not_collide(self):
         pkgs = set()
-        pkgs.add(Package("", "foobar-1.0-py3-none-any.whl"))
-        pkgs.add(Package("", "badbaz-1.0-py3-none-any.whl"))
+        pkgs.add(Package("", "foobar-1.0-py3-none-any.whl", python_exe=sys.executable))
+        pkgs.add(Package("", "badbaz-1.0-py3-none-any.whl", python_exe=sys.executable))
         assert len(pkgs) == 2
 
     def test_same_pkg_is_eq(self):
-        pkg = Package("", "foobar-1.0-py3-none-any.whl")
+        pkg = Package("", "foobar-1.0-py3-none-any.whl", python_exe=sys.executable)
         assert pkg == pkg
 
     def test_pkg_is_eq_to_similar_pkg(self):
-        pure_pkg = Package("", "foobar-1.0-py3-none-any.whl")
-        plat_pkg = Package("", "foobar-1.0-py3-py39-manylinux1_x86_64.whl")
+        pure_pkg = Package("", "foobar-1.0-py3-none-any.whl", python_exe=sys.executable)
+        plat_pkg = Package("", "foobar-1.0-py3-py39-manylinux1_x86_64.whl", python_exe=sys.executable)
         assert pure_pkg == plat_pkg
 
     def test_pkg_is_not_equal_to_different_type(self):
-        pkg = Package("", "foobar-1.0-py3-none-any.whl")
+        pkg = Package("", "foobar-1.0-py3-none-any.whl", python_exe=sys.executable)
         non_package_type = 1
         assert not (pkg == non_package_type)
 
     def test_pkg_repr(self):
-        pkg = Package("", "foobar-1.0-py3-none-any.whl")
+        pkg = Package("", "foobar-1.0-py3-none-any.whl", python_exe=sys.executable)
         assert repr(pkg) == "foobar==1.0(wheel)"
 
     def test_wheel_data_dir(self):
-        pkg = Package("", "foobar-2.0-py3-none-any.whl")
+        pkg = Package("", "foobar-2.0-py3-none-any.whl", python_exe=sys.executable)
         assert pkg.data_dir == "foobar-2.0.data"
 
     def test_can_read_packages_with_underscore_in_name(self):
-        pkg = Package("", "foo_bar-2.0-py3-none-any.whl")
+        pkg = Package("", "foo_bar-2.0-py3-none-any.whl", python_exe=sys.executable)
         assert pkg.identifier == "foo-bar==2.0"
 
     def test_can_read_packages_with_period_in_name(self):
-        pkg = Package("", "foo.bar-2.0-py3-none-any.whl")
+        pkg = Package("", "foo.bar-2.0-py3-none-any.whl", python_exe=sys.executable)
         assert pkg.identifier == "foo-bar==2.0"
 
 

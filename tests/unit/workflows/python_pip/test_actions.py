@@ -30,7 +30,9 @@ class TestPythonPipBuildAction(TestCase):
         )
         action.execute()
 
-        dependency_builder_mock.assert_called_with(osutils=ANY, pip_runner=ANY, runtime="runtime", architecture=X86_64)
+        dependency_builder_mock.assert_called_with(
+            osutils=ANY, pip_runner=ANY, runtime="runtime", architecture=X86_64, python_exe=ANY
+        )
 
         builder_instance.build_dependencies.assert_called_with(
             artifacts_dir_path="artifacts", scratch_dir_path="scratch_dir", requirements_path="manifest"
@@ -56,7 +58,9 @@ class TestPythonPipBuildAction(TestCase):
         )
         action.execute()
 
-        dependency_builder_mock.assert_called_with(osutils=ANY, pip_runner=ANY, runtime="runtime", architecture=ARM64)
+        dependency_builder_mock.assert_called_with(
+            osutils=ANY, pip_runner=ANY, runtime="runtime", architecture=ARM64, python_exe=ANY
+        )
 
         builder_instance.build_dependencies.assert_called_with(
             artifacts_dir_path="artifacts", scratch_dir_path="scratch_dir", requirements_path="manifest"

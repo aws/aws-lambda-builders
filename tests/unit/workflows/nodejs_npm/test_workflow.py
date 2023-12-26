@@ -20,6 +20,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmrcCleanUpAction,
     NodejsNpmLockFileCleanUpAction,
     NodejsNpmCIAction,
+    NodejsNpmUpdateAction,
 )
 
 
@@ -107,7 +108,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[3], CopySourceAction)
         self.assertEqual(workflow.actions[3].source_dir, "source")
         self.assertEqual(workflow.actions[3].dest_dir, "artifacts")
-        self.assertIsInstance(workflow.actions[4], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[4], NodejsNpmUpdateAction)
         self.assertEqual(workflow.actions[4].install_dir, "not_source")
         self.assertIsInstance(workflow.actions[5], LinkSinglePathAction)
         self.assertEqual(workflow.actions[5]._source, os.path.join("not_source", "node_modules"))
@@ -331,7 +332,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcAndLockfileCopyAction)
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
-        self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmUpdateAction)
         self.assertEqual(workflow.actions[3].install_dir, source_dir)
         self.assertIsInstance(workflow.actions[4], LinkSinglePathAction)
         self.assertEqual(workflow.actions[4]._source, os.path.join(source_dir, "node_modules"))
@@ -358,7 +359,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcAndLockfileCopyAction)
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
-        self.assertIsInstance(workflow.actions[3], NodejsNpmInstallAction)
+        self.assertIsInstance(workflow.actions[3], NodejsNpmUpdateAction)
         self.assertEqual(workflow.actions[3].install_dir, source_dir)
         self.assertIsInstance(workflow.actions[4], LinkSinglePathAction)
         self.assertEqual(workflow.actions[4]._source, os.path.join(source_dir, "node_modules"))
@@ -442,5 +443,5 @@ class TestNodejsNpmWorkflow(TestCase):
             subprocess_npm=ANY,
             osutils=ANY,
             build_options=ANY,
-            install_links=False,
+            is_building_in_source=False,
         )
