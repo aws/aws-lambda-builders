@@ -831,7 +831,6 @@ class TestDependencyBuilder(object):
 
 
 class TestPipRunner(TestCase):
-
     def test_build_wheel_calls_pip_without_ld_library_path(self):
         pip_mock = mock.Mock()
         pip_mock.main.return_value = (0, "out", "err")

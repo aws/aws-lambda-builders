@@ -16,7 +16,6 @@ EXPERIMENTAL_FLAG_BUILD_PERFORMANCE = "experimentalBuildPerformance"
 
 
 class OSUtils(object):
-
     def original_environ(self):
         # https://pyinstaller.readthedocs.io/en/stable/runtime-information.html#ld-library-path-libpath-considerations
         env = dict(os.environ)
