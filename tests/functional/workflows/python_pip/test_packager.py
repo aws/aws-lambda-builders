@@ -4,7 +4,7 @@ import zipfile
 import tarfile
 import io
 from collections import defaultdict, namedtuple
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
 
@@ -182,7 +182,7 @@ def osutils():
 @pytest.fixture
 def empty_env_osutils():
     class EmptyEnv(object):
-        def environ(self):
+        def original_environ(self):
             return {}
 
     return EmptyEnv()
@@ -828,6 +828,16 @@ class TestDependencyBuilder(object):
         assert len(missing_packages) == 1
         assert missing_packages[0].identifier == "foo==1.2"
         assert installed_packages == ["bar"]
+
+
+class TestPipRunner(TestCase):
+    def test_build_wheel_calls_pip_without_ld_library_path(self):
+        pip_mock = mock.Mock()
+        pip_mock.main.return_value = (0, "out", "err")
+        os_utils_mock = mock.Mock()
+        pip_runner = PipRunner(mock.Mock(), pip_mock, os_utils_mock)
+        pip_runner.build_wheel("wheel", "dir")
+        os_utils_mock.original_environ.assert_called_once()
 
 
 class TestSubprocessPip(object):
