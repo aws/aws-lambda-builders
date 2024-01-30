@@ -9,7 +9,6 @@ import subprocess
 
 
 class OSUtils(object):
-
     """
     Wrapper around file system functions, to make it easy to
     unit test actions in memory

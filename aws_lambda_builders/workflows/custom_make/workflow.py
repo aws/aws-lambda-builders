@@ -1,6 +1,7 @@
 """
 ProvidedMakeWorkflow
 """
+
 from aws_lambda_builders.actions import CopySourceAction
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
@@ -13,7 +14,6 @@ from .utils import OSUtils
 
 
 class CustomMakeWorkflow(BaseWorkflow):
-
     """
     A Lambda builder workflow for provided runtimes based on make.
     """

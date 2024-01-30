@@ -13,7 +13,6 @@ LOG = logging.getLogger(__name__)
 
 
 class NodejsNpmPackAction(BaseAction):
-
     """
     A Lambda Builder Action that packages a Node.js package using NPM to extract the source and remove test resources
     """
@@ -151,7 +150,6 @@ class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
 
 
 class NodejsNpmCIAction(BaseAction):
-
     """
     A Lambda Builder Action that installs NPM project dependencies
     using the CI method - which is faster and better reproducible
@@ -201,7 +199,6 @@ class NodejsNpmCIAction(BaseAction):
 
 
 class NodejsNpmrcAndLockfileCopyAction(BaseAction):
-
     """
     A Lambda Builder Action that copies lockfile and NPM config file .npmrc
     """
@@ -247,7 +244,6 @@ class NodejsNpmrcAndLockfileCopyAction(BaseAction):
 
 
 class NodejsNpmrcCleanUpAction(BaseAction):
-
     """
     A Lambda Builder Action that cleans NPM config file .npmrc
     """
@@ -288,7 +284,6 @@ class NodejsNpmrcCleanUpAction(BaseAction):
 
 
 class NodejsNpmLockFileCleanUpAction(BaseAction):
-
     """
     A Lambda Builder Action that cleans up garbage lockfile left by 7 in node_modules
     """

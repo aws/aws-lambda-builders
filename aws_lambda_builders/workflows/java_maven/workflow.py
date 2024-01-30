@@ -1,6 +1,7 @@
 """
 Java Maven Workflow
 """
+
 from aws_lambda_builders.actions import CleanUpAction, CopySourceAction
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.workflows.java.actions import JavaCopyDependenciesAction, JavaMoveDependenciesAction

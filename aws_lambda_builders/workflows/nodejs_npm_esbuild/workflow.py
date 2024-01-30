@@ -30,7 +30,6 @@ LOG = logging.getLogger(__name__)
 
 
 class NodejsNpmEsbuildWorkflow(BaseWorkflow):
-
     """
     A Lambda builder workflow that uses esbuild to bundle Node.js and transpile TS
     NodeJS projects using NPM with esbuild.

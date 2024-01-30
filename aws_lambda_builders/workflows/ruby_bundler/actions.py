@@ -12,7 +12,6 @@ LOG = logging.getLogger(__name__)
 
 
 class RubyBundlerInstallAction(BaseAction):
-
     """
     A Lambda Builder Action which runs bundle install in order to build a full Gemfile.lock
     """

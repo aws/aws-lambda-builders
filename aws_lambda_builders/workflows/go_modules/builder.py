@@ -1,6 +1,7 @@
 """
 Build a Go project using standard Go tooling
 """
+
 import logging
 from pathlib import Path
 

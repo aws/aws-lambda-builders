@@ -34,7 +34,6 @@ class FakePopen:
 
 
 class TestNodejsNpmEsbuildWorkflow(TestCase):
-
     """
     the workflow requires an external utility (npm) to run, so it is extensively tested in integration tests.
     this is just a quick wiring test to provide fast feedback if things are badly broken

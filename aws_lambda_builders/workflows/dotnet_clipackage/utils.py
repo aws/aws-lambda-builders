@@ -1,6 +1,7 @@
 """
 Commonly used utilities
 """
+
 import logging
 import os
 import platform

@@ -1,6 +1,7 @@
 """
 .NET Core CLI Package Workflow
 """
+
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import GlobalToolInstallAction, RunPackageAction
@@ -10,7 +11,6 @@ from .utils import OSUtils
 
 
 class DotnetCliPackageWorkflow(BaseWorkflow):
-
     """
     A Lambda builder workflow that knows to build and package .NET Core Lambda functions
     """
