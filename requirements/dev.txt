@@ -1,5 +1,5 @@
 coverage==7.2.7; python_version < '3.8'
-coverage==7.4.0; python_version >= '3.8'
+coverage==7.4.1; python_version >= '3.8'
 flake8==3.3.0; python_version < '3.8'
 flake8==3.8.4; python_version >= '3.8'
 pytest-cov==4.1.0
