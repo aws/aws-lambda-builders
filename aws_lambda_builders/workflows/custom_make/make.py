@@ -1,6 +1,7 @@
 """
 Wrapper around calling make through a subprocess.
 """
+
 import io
 import logging
 import shutil
@@ -11,7 +12,6 @@ LOG = logging.getLogger(__name__)
 
 
 class MakeExecutionError(Exception):
-
     """
     Exception raised in case Make execution fails.
     It will pass on the standard error output from the Make console.
@@ -24,7 +24,6 @@ class MakeExecutionError(Exception):
 
 
 class SubProcessMake(object):
-
     """
     Wrapper around the Make command line utility, making it
     easy to consume execution results.

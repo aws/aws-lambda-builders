@@ -42,7 +42,6 @@ UNSUPPORTED_NPM_VERSION_MESSAGE = (
 
 
 class NodejsNpmWorkflow(BaseWorkflow):
-
     """
     A Lambda builder workflow that knows how to pack
     NodeJS projects using NPM.

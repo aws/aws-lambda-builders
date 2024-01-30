@@ -10,7 +10,6 @@ LOG = logging.getLogger(__name__)
 
 
 class SubprocessNpm(object):
-
     """
     Wrapper around the NPM command line utility, making it
     easy to consume execution results.

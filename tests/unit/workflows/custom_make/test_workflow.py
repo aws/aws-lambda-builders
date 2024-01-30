@@ -8,7 +8,6 @@ from aws_lambda_builders.workflows.custom_make.actions import CustomMakeAction
 
 
 class TestProvidedMakeWorkflow(TestCase):
-
     """
     the workflow requires an external utility (make) to run, so it is extensively tested in integration tests.
     this is just a quick wiring test to provide fast feedback if things are badly broken

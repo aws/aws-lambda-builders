@@ -1,6 +1,7 @@
 """
 Common utilities for the library
 """
+
 import locale
 import logging
 import os

@@ -1,6 +1,7 @@
 """
 Python pip specific workflow exceptions.
 """
+
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
 

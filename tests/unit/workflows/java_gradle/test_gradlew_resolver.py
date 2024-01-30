@@ -20,8 +20,8 @@ class TestGradleResolver(TestCase):
 
     def test_gradlew_not_exists_returns_gradle_on_path(self):
         gradle_path = "/path/to/gradle"
-        self.mock_os_utils.which.side_effect = (
-            lambda executable, executable_search_paths: [] if executable == "gradlew" else [gradle_path]
+        self.mock_os_utils.which.side_effect = lambda executable, executable_search_paths: (
+            [] if executable == "gradlew" else [gradle_path]
         )
 
         resolver = GradleResolver(os_utils=self.mock_os_utils)
