@@ -219,7 +219,7 @@ class TestEsbuildBundleAction(TestCase):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
-            {"entry_points": ["x.js"], "target": "node14"},
+            {"entry_points": ["x.js"], "target": "node20"},
             self.osutils,
             self.subprocess_esbuild,
             "package.json",
@@ -233,7 +233,7 @@ class TestEsbuildBundleAction(TestCase):
                 "--outdir=artifacts",
                 "--format=cjs",
                 "--minify",
-                "--target=node14",
+                "--target=node20",
             ],
             cwd="source",
         )
@@ -242,7 +242,7 @@ class TestEsbuildBundleAction(TestCase):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
-            {"entry_points": ["x.js", "y.js"], "target": "node14"},
+            {"entry_points": ["x.js", "y.js"], "target": "node20"},
             self.osutils,
             self.subprocess_esbuild,
             "package.json",
@@ -257,7 +257,7 @@ class TestEsbuildBundleAction(TestCase):
                 "--outdir=artifacts",
                 "--format=cjs",
                 "--minify",
-                "--target=node14",
+                "--target=node20",
             ],
             cwd="source",
         )
@@ -270,7 +270,7 @@ class TestEsbuildBundleAction(TestCase):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
-            {"entry_points": ["x.js", "y.js"], "target": "node14", "external": "./node_modules/*"},
+            {"entry_points": ["x.js", "y.js"], "target": "node20", "external": "./node_modules/*"},
             osutils_mock,
             self.subprocess_esbuild,
             "package.json",
@@ -289,7 +289,7 @@ class TestEsbuildBundleAction(TestCase):
                 "--outdir=artifacts",
                 "--format=cjs",
                 "--minify",
-                "--target=node14",
+                "--target=node20",
             ],
             cwd="source",
         )
@@ -303,7 +303,7 @@ class TestEsbuildBundleAction(TestCase):
         action = EsbuildBundleAction(
             "source",
             "artifacts",
-            {"entry_points": ["x.js", "y.js"], "target": "node14", "external": "./node_modules/*"},
+            {"entry_points": ["x.js", "y.js"], "target": "node20", "external": "./node_modules/*"},
             osutils_mock,
             subprocess_esbuild_mock,
             "package.json",
