@@ -18,7 +18,6 @@ workflow_logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.
 @parameterized_class(
     ("runtime",),
     [
-        ("ruby2.7",),
         ("ruby3.2",),
     ],
 )
