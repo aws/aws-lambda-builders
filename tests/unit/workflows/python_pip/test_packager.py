@@ -91,9 +91,6 @@ class FakePopenOSUtils(OSUtils):
 
 
 class TestGetLambdaAbi(object):
-    def test_get_lambda_abi_python37(self):
-        assert "cp37m" == get_lambda_abi("python3.7")
-
     def test_get_lambda_abi_python38(self):
         assert "cp38" == get_lambda_abi("python3.8")
 

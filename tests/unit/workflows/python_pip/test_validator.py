@@ -17,7 +17,7 @@ class MockSubProcess(object):
 
 class TestPythonRuntimeValidator(TestCase):
     def setUp(self):
-        self.validator = PythonRuntimeValidator(runtime="python3.7", architecture="x86_64")
+        self.validator = PythonRuntimeValidator(runtime="python3.12", architecture="x86_64")
 
     def test_runtime_validate_unsupported_language_fail_open(self):
         validator = PythonRuntimeValidator(runtime="python2.6", architecture="arm64")
@@ -27,7 +27,7 @@ class TestPythonRuntimeValidator(TestCase):
     def test_runtime_validate_supported_version_runtime(self):
         with mock.patch("subprocess.Popen") as mock_subprocess:
             mock_subprocess.return_value = MockSubProcess(0)
-            self.validator.validate(runtime_path="/usr/bin/python3.7")
+            self.validator.validate(runtime_path="/usr/bin/python3.12")
             self.assertTrue(mock_subprocess.call_count, 1)
 
     def test_runtime_validate_mismatch_version_runtime(self):
@@ -38,14 +38,14 @@ class TestPythonRuntimeValidator(TestCase):
                 self.assertTrue(mock_subprocess.call_count, 1)
 
     def test_python_command(self):
-        cmd = self.validator._validate_python_cmd(runtime_path="/usr/bin/python3.7")
-        version_strings = ["sys.version_info.major == 3", "sys.version_info.minor == 7"]
+        cmd = self.validator._validate_python_cmd(runtime_path="/usr/bin/python3.12")
+        version_strings = ["sys.version_info.major == 3", "sys.version_info.minor == 12"]
         for version_string in version_strings:
             self.assertTrue(all([part for part in cmd if version_string in part]))
 
     @parameterized.expand(
         [
-            ("python3.7", "arm64"),
+            ("python3.12", "invalid_arch"),
         ]
     )
     def test_runtime_validate_with_incompatible_architecture(self, runtime, architecture):

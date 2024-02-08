@@ -43,8 +43,8 @@ setup(
     license="Apache License 2.0",
     packages=find_packages(exclude=["tests.*", "tests"]),
     keywords="AWS Lambda Functions Building",
-    # Support 3.7 or greater
-    python_requires=(">=3.7"),
+    # Support 3.8 or greater
+    python_requires=(">=3.8"),
     entry_points={"console_scripts": ["{}=aws_lambda_builders.__main__:main".format(cmd_name)]},
     install_requires=read_requirements("base.txt") + read_requirements("python_pip.txt"),
     extras_require={"dev": read_requirements("dev.txt")},
@@ -58,7 +58,6 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
