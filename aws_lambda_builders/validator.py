@@ -10,8 +10,6 @@ from aws_lambda_builders.exceptions import UnsupportedArchitectureError, Unsuppo
 LOG = logging.getLogger(__name__)
 
 SUPPORTED_RUNTIMES = {
-    "nodejs12.x": [ARM64, X86_64],
-    "nodejs14.x": [ARM64, X86_64],
     "nodejs16.x": [ARM64, X86_64],
     "nodejs18.x": [ARM64, X86_64],
     "nodejs20.x": [ARM64, X86_64],
@@ -20,7 +18,6 @@ SUPPORTED_RUNTIMES = {
     "python3.10": [ARM64, X86_64],
     "python3.11": [ARM64, X86_64],
     "python3.12": [ARM64, X86_64],
-    "ruby2.7": [ARM64, X86_64],
     "ruby3.2": [ARM64, X86_64],
     "java8": [ARM64, X86_64],
     "java11": [ARM64, X86_64],
