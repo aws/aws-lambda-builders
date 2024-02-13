@@ -22,8 +22,8 @@ class TestRuntimeValidator(TestCase):
             validator.validate("/usr/bin/unknown_runtime")
 
     def test_validate_with_runtime_and_incompatible_architecture(self):
-        runtime_list = ["python3.7"]
+        runtime_list = ["python3.12"]
         for runtime in runtime_list:
-            validator = RuntimeValidator(runtime=runtime, architecture="arm64")
+            validator = RuntimeValidator(runtime=runtime, architecture="invalid_arch")
             with self.assertRaises(UnsupportedArchitectureError):
                 validator.validate("/usr/bin/{}".format(runtime))
