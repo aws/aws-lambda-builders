@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import json
+from parameterized import parameterized
 
 try:
     import pathlib
@@ -25,13 +26,12 @@ class TestDotnetBase(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.builder = LambdaBuilder(language="dotnet", dependency_manager="cli-package", application_framework=None)
-        self.runtime = "dotnet6"
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
         shutil.rmtree(self.scratch_dir)
 
-    def verify_architecture(self, deps_file_name, expected_architecture, version=None):
+    def verify_architecture(self, deps_file_name, expected_architecture, version):
         deps_file = pathlib.Path(self.artifacts_dir, deps_file_name)
 
         if not deps_file.exists():
@@ -39,7 +39,6 @@ class TestDotnetBase(TestCase):
 
         with open(str(deps_file)) as f:
             deps_json = json.loads(f.read())
-        version = version or self.runtime[-3:]
         target_name = ".NETCoreApp,Version=v{}/{}".format(version, expected_architecture)
         target = deps_json.get("runtimeTarget").get("name")
 
@@ -50,41 +49,24 @@ class TestDotnetBase(TestCase):
         self.assertTrue(os.access(entrypoint_file_path, os.X_OK))
 
 
-class TestDotnet6(TestDotnetBase):
+class TestDotnet(TestDotnetBase):
     """
-    Tests for dotnet 6
+    Tests for dotnet
     """
 
     def setUp(self):
-        super(TestDotnet6, self).setUp()
-        self.runtime = "dotnet6"
+        super(TestDotnet, self).setUp()
 
-    def test_with_defaults_file(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "WithDefaultsFile6")
+    @parameterized.expand(
+        [
+            ("dotnet6", "6.0", "WithDefaultsFile6"),
+            ("dotnet8", "8.0", "WithDefaultsFile8"),
+        ]
+    )
+    def test_with_defaults_file(self, runtime, version, test_project):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
 
-        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime)
-
-        expected_files = {
-            "Amazon.Lambda.Core.dll",
-            "Amazon.Lambda.Serialization.Json.dll",
-            "Newtonsoft.Json.dll",
-            "WithDefaultsFile.deps.json",
-            "WithDefaultsFile.dll",
-            "WithDefaultsFile.pdb",
-            "WithDefaultsFile.runtimeconfig.json",
-        }
-
-        output_files = set(os.listdir(self.artifacts_dir))
-
-        self.assertEqual(expected_files, output_files)
-        self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version="6.0")
-
-    def test_with_defaults_file_x86(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "WithDefaultsFile6")
-
-        self.builder.build(
-            source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime, architecture=X86_64
-        )
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime)
 
         expected_files = {
             "Amazon.Lambda.Core.dll",
@@ -99,14 +81,18 @@ class TestDotnet6(TestDotnetBase):
         output_files = set(os.listdir(self.artifacts_dir))
 
         self.assertEqual(expected_files, output_files)
-        self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version="6.0")
+        self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version)
 
-    def test_with_defaults_file_arm64(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "WithDefaultsFile6")
+    @parameterized.expand(
+        [
+            ("dotnet6", "6.0", "WithDefaultsFile6"),
+            ("dotnet8", "8.0", "WithDefaultsFile8"),
+        ]
+    )
+    def test_with_defaults_file_x86(self, runtime, version, test_project):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
 
-        self.builder.build(
-            source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime, architecture=ARM64
-        )
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime, architecture=X86_64)
 
         expected_files = {
             "Amazon.Lambda.Core.dll",
@@ -121,14 +107,44 @@ class TestDotnet6(TestDotnetBase):
         output_files = set(os.listdir(self.artifacts_dir))
 
         self.assertEqual(expected_files, output_files)
-        self.verify_architecture("WithDefaultsFile.deps.json", "linux-arm64", version="6.0")
+        self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version)
 
-    def test_with_custom_runtime(self):
-        source_dir = os.path.join(self.TEST_DATA_FOLDER, "CustomRuntime6")
+    @parameterized.expand(
+        [
+            ("dotnet6", "6.0", "WithDefaultsFile6"),
+            ("dotnet8", "8.0", "WithDefaultsFile8"),
+        ]
+    )
+    def test_with_defaults_file_arm64(self, runtime, version, test_project):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
 
-        self.builder.build(
-            source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime=self.runtime, architecture=X86_64
-        )
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime, architecture=ARM64)
+
+        expected_files = {
+            "Amazon.Lambda.Core.dll",
+            "Amazon.Lambda.Serialization.Json.dll",
+            "Newtonsoft.Json.dll",
+            "WithDefaultsFile.deps.json",
+            "WithDefaultsFile.dll",
+            "WithDefaultsFile.pdb",
+            "WithDefaultsFile.runtimeconfig.json",
+        }
+
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+        self.verify_architecture("WithDefaultsFile.deps.json", "linux-arm64", version)
+
+    @parameterized.expand(
+        [
+            ("dotnet6", "6.0", "CustomRuntime6"),
+            ("dotnet8", "8.0", "CustomRuntime8"),
+        ]
+    )
+    def test_with_custom_runtime(self, runtime, version, test_project):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
+
+        self.builder.build(source_dir, self.artifacts_dir, self.scratch_dir, source_dir, runtime, architecture=X86_64)
 
         expected_files = {
             "Amazon.Lambda.Core.dll",
@@ -144,7 +160,7 @@ class TestDotnet6(TestDotnetBase):
         output_files = set(os.listdir(self.artifacts_dir))
 
         self.assertEqual(expected_files, output_files)
-        self.verify_architecture("bootstrap.deps.json", "linux-x64", version="6.0")
+        self.verify_architecture("bootstrap.deps.json", "linux-x64", version)
         # Execute permissions are required for custom runtimes which bootstrap themselves, otherwise `sam local invoke`
         # won't have permission to run the file
         self.verify_execute_permissions("bootstrap")

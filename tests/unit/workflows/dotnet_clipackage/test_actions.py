@@ -4,6 +4,7 @@ import os
 import platform
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
+from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.architecture import ARM64, X86_64
@@ -154,9 +155,15 @@ class TestRunPackageAction(TestCase):
             cwd="/source_dir",
         )
 
-    def test_build_package_arguments(self):
+    @parameterized.expand(
+        [
+            ("net6.0"),
+            ("net8.0"),
+        ]
+    )
+    def test_build_package_arguments(self, dotnet_version):
         mode = "Release"
-        options = {"--framework": "net6.0"}
+        options = {"--framework": dotnet_version}
         action = RunPackageAction(
             self.source_dir, self.subprocess_dotnet, self.artifacts_dir, options, mode, os_utils=self.os_utils
         )
@@ -176,7 +183,7 @@ class TestRunPackageAction(TestCase):
                 "--msbuild-parameters",
                 "--runtime linux-x64",
                 "--framework",
-                "net6.0",
+                dotnet_version,
             ],
             cwd="/source_dir",
         )
