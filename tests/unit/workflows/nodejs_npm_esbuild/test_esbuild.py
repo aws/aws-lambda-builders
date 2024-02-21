@@ -196,7 +196,7 @@ class TestEsbuildCommandBuilder(TestCase):
             "sourcemap": False,
             "sources_content": "false",
             "format": "esm",
-            "target": "node14",
+            "target": "node20",
             "loader": [".proto=text", ".json=js"],
             "external": ["aws-sdk", "axios"],
             "out_extension": [".js=.mjs"],
@@ -212,7 +212,7 @@ class TestEsbuildCommandBuilder(TestCase):
             set(args),
             {
                 "--minify",
-                "--target=node14",
+                "--target=node20",
                 "--format=esm",
                 "--main-fields=module,main",
                 "--external:aws-sdk",

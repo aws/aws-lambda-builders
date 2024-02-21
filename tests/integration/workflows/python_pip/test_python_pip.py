@@ -59,9 +59,8 @@ class TestPythonPipWorkflow(TestCase):
             language=self.builder.capability.language, major=sys.version_info.major, minor=sys.version_info.minor
         )
         self.runtime_mismatch = {
-            "python3.7": "python3.8",
             "python3.8": "python3.9",
-            "python3.9": "python3.7",
+            "python3.9": "python3.10",
             "python3.10": "python3.9",
             "python3.11": "python3.10",
             "python3.12": "python3.11",
@@ -256,10 +255,7 @@ class TestPythonPipWorkflow(TestCase):
             runtime=self.runtime,
             experimental_flags=self.experimental_flags,
         )
-        if self.runtime in ("python3.7"):
-            expected_files = self.test_data_files.union(["inflate64", "inflate64-0.3.1.dist-info"])
-        else:
-            expected_files = self.test_data_files.union(["inflate64", "inflate64-1.0.0.dist-info"])
+        expected_files = self.test_data_files.union(["inflate64", "inflate64-1.0.0.dist-info"])
         output_files = set(os.listdir(self.artifacts_dir))
         for f in expected_files:
             self.assertIn(f, output_files)

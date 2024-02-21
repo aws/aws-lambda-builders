@@ -1,6 +1,7 @@
 """
 Actions specific to the esbuild bundler
 """
+
 import logging
 from typing import Any, Dict
 
@@ -17,7 +18,6 @@ MINIMUM_VERSION_FOR_EXTERNAL = "0.14.13"
 
 
 class EsbuildBundleAction(BaseAction):
-
     """
     A Lambda Builder Action that packages a Node.js package using esbuild into a single file
     optionally transpiling TypeScript

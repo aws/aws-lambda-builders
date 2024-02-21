@@ -1,6 +1,7 @@
 """
 Implementation of a base workflow
 """
+
 import functools
 import logging
 import os

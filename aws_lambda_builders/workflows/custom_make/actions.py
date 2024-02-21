@@ -14,7 +14,6 @@ LOG = logging.getLogger(__name__)
 
 
 class CustomMakeAction(BaseAction):
-
     """
     A Lambda Builder Action that builds and packages a provided runtime project using Make.
     """

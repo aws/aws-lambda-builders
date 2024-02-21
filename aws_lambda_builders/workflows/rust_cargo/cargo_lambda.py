@@ -1,6 +1,7 @@
 """
 Wrapper around calling Cargo Lambda through a subprocess.
 """
+
 import io
 import logging
 import os

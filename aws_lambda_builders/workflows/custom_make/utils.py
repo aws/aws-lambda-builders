@@ -10,7 +10,6 @@ from aws_lambda_builders.utils import which
 
 
 class OSUtils(object):
-
     """
     Wrapper around file system functions, to make it easy to
     unit test actions in memory

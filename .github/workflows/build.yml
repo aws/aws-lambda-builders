@@ -63,7 +63,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -88,7 +87,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -120,7 +118,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -154,7 +151,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -182,7 +178,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -213,7 +208,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -242,7 +236,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -267,7 +260,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -296,7 +288,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -310,9 +301,6 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.2"
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "2.7"
       - run: make init
       - run: pytest -vv tests/integration/workflows/ruby_bundler
 
@@ -327,7 +315,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -359,7 +346,6 @@ jobs:
         python:
           - "3.9"
           - "3.8"
-          - "3.7"
         rust:
           - stable
     steps:

@@ -2,7 +2,6 @@
 Exceptions for the Node.js workflow
 """
 
-
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
 

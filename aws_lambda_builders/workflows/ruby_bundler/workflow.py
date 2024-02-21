@@ -1,6 +1,7 @@
 """
 Ruby Bundler Workflow
 """
+
 import logging
 
 from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
@@ -14,7 +15,6 @@ LOG = logging.getLogger(__name__)
 
 
 class RubyBundlerWorkflow(BaseWorkflow):
-
     """
     A Lambda builder workflow that knows how to build
     Ruby projects using Bundler.

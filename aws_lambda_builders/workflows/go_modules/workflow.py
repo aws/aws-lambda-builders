@@ -1,6 +1,7 @@
 """
 Go Modules Workflow
 """
+
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import GoModulesBuildAction

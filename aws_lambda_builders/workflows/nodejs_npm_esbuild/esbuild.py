@@ -1,6 +1,7 @@
 """
 Wrapper around calling esbuild through a subprocess.
 """
+
 import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Union
