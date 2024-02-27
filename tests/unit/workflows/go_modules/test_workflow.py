@@ -1,4 +1,5 @@
 from unittest import TestCase
+from pathlib import Path
 
 from aws_lambda_builders.workflows.go_modules.workflow import GoModulesWorkflow
 from aws_lambda_builders.workflows.go_modules.actions import GoModulesBuildAction
@@ -36,7 +37,7 @@ class TestGoModulesWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 1)
         self.assertIsInstance(workflow.actions[0], GoModulesBuildAction)
-        self.assertEqual(workflow.actions[0].output_path, "artifacts/bootstrap")
+        self.assertEqual(workflow.actions[0].output_path, str(Path("artifacts", "bootstrap")))
 
     def test_must_validate_architecture(self):
         workflow = GoModulesWorkflow(
