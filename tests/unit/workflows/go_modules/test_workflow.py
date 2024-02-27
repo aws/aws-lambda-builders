@@ -23,7 +23,7 @@ class TestGoModulesWorkflow(TestCase):
 
         self.assertEqual(len(workflow.actions), 1)
         self.assertIsInstance(workflow.actions[0], GoModulesBuildAction)
-        
+
     def test_workflow_sets_up_builder_actions_provided(self):
         workflow = GoModulesWorkflow(
             "source",
