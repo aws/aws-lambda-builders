@@ -32,7 +32,12 @@ class GoModulesWorkflow(BaseWorkflow):
         handler = options.get("artifact_executable_name", None)
         trim_go_path = options.get("trim_go_path", False)
 
-        output_path = osutils.joinpath(artifacts_dir, handler)
+        # For provided runtimes, the binary must be named "bootstrap"
+        output_path = (
+            osutils.joinpath(artifacts_dir, handler)
+            if runtime != "provided"
+            else osutils.joinpath(artifacts_dir, "bootstrap")
+        )
 
         builder = GoModulesBuilder(
             osutils,

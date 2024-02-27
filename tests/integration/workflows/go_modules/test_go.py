@@ -8,6 +8,8 @@ except ImportError:
     from pathlib2 import Path
 
 from unittest import TestCase
+from parameterized import parameterized
+
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -194,5 +196,20 @@ class TestGoWorkflow(TestCase):
             options={"artifact_executable_name": "helloWorld"},
         )
         expected_files = {"helloWorld"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("provided", "bootstrap"), ("go1.x", "helloWorld")])
+    def test_binary_named_bootstrap_for_provided_runtime(self, runtime, expected_binary):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "go.mod"),
+            runtime=runtime,
+            options={"artifact_executable_name": "helloWorld"},
+        )
+        expected_files = {expected_binary}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
