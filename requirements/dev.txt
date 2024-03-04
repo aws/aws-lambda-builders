@@ -1,4 +1,4 @@
-coverage==7.4.1
+coverage==7.4.3
 flake8==3.8.4
 pytest-cov==4.1.0
 
@@ -9,4 +9,4 @@ pyelftools~=0.30 # Used to verify the generated Go binary architecture in integr
 
 # formatter
 black==24.2.0
-ruff==0.2.1
+ruff==0.2.2
