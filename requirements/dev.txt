@@ -1,6 +1,6 @@
 coverage==7.4.4
 flake8==3.8.4
-pytest-cov==4.1.0
+pytest-cov==5.0.0
 
 # Test requirements
 pytest>=6.1.1
