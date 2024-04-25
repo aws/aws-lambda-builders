@@ -43,9 +43,33 @@ class TestBuildAction(TestCase):
         proc = SubprocessCargoLambda(which=which, osutils=self.osutils)
         self.subprocess_cargo_lambda = proc
 
+    def test_release_build_cargo_command_for_provided_al2(self):
+        cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, "provided.al2", self.subprocess_cargo_lambda)
+        self.assertEqual(
+            action.build_command(),
+            ["path/to/cargo", "lambda", "build", "--release", "--target", "x86_64-unknown-linux-gnu.2.26"],
+        )
+
+    def test_release_build_cargo_command_for_provided_al2_arm64(self):
+        cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, "provided.al2", self.subprocess_cargo_lambda, "arm64")
+        self.assertEqual(
+            action.build_command(),
+            ["path/to/cargo", "lambda", "build", "--release", "--target", "aarch64-unknown-linux-gnu.2.26"],
+        )
+
+    def test_release_build_cargo_command_for_provided_al2023(self):
+        cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, "provided.al2023", self.subprocess_cargo_lambda)
+        self.assertEqual(
+            action.build_command(),
+            ["path/to/cargo", "lambda", "build", "--release"],
+        )
+
     def test_release_build_cargo_command_without_release_mode(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, self.subprocess_cargo_lambda)
+        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, None, self.subprocess_cargo_lambda)
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--release"],
@@ -54,7 +78,7 @@ class TestBuildAction(TestCase):
     def test_release_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, self.subprocess_cargo_lambda
+            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, None, self.subprocess_cargo_lambda
         )
         self.assertEqual(
             action.build_command(),
@@ -64,7 +88,7 @@ class TestBuildAction(TestCase):
     def test_release_build_cargo_command_with_target(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, self.subprocess_cargo_lambda, "arm64"
+            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, None, self.subprocess_cargo_lambda, "arm64"
         )
         self.assertEqual(
             action.build_command(),
@@ -74,7 +98,7 @@ class TestBuildAction(TestCase):
     def test_debug_build_cargo_command(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, self.subprocess_cargo_lambda
+            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, None, self.subprocess_cargo_lambda
         )
         self.assertEqual(
             action.build_command(),
@@ -84,7 +108,7 @@ class TestBuildAction(TestCase):
     def test_debug_build_cargo_command_with_architecture(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, self.subprocess_cargo_lambda, "arm64"
+            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, None, self.subprocess_cargo_lambda, "arm64"
         )
         self.assertEqual(
             action.build_command(),
@@ -95,7 +119,7 @@ class TestBuildAction(TestCase):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         flags = ["--package", "package-in-workspace"]
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, self.subprocess_cargo_lambda, "arm64", flags=flags
+            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, None, self.subprocess_cargo_lambda, "arm64", flags=flags
         )
         self.assertEqual(
             action.build_command(),
@@ -105,7 +129,7 @@ class TestBuildAction(TestCase):
     def test_debug_build_cargo_command_with_handler(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, self.subprocess_cargo_lambda, "arm64", handler="foo"
+            "source_dir", {"cargo": cargo}, BuildMode.DEBUG, None, self.subprocess_cargo_lambda, "arm64", handler="foo"
         )
         self.assertEqual(
             action.build_command(),
@@ -115,7 +139,7 @@ class TestBuildAction(TestCase):
     def test_execute_happy_path(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, self.subprocess_cargo_lambda
+            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, None, self.subprocess_cargo_lambda
         )
         action.execute()
 
@@ -125,7 +149,7 @@ class TestBuildAction(TestCase):
 
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
         action = RustCargoLambdaBuildAction(
-            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, self.subprocess_cargo_lambda
+            "source_dir", {"cargo": cargo}, BuildMode.RELEASE, None, self.subprocess_cargo_lambda
         )
         with self.assertRaises(ActionFailedError) as err_assert:
             action.execute()
@@ -136,7 +160,7 @@ class TestBuildAction(TestCase):
         with patch.object(LOG, "debug") as mock_warning:
             cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
             action = RustCargoLambdaBuildAction(
-                "source_dir", {"cargo": cargo}, BuildMode.RELEASE, self.subprocess_cargo_lambda
+                "source_dir", {"cargo": cargo}, BuildMode.RELEASE, None, self.subprocess_cargo_lambda
             )
             out = action.execute()
             self.assertEqual(out, "out")
