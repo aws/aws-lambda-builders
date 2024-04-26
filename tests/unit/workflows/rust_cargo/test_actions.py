@@ -45,7 +45,9 @@ class TestBuildAction(TestCase):
 
     def test_release_build_cargo_command_for_provided_al2(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, "provided.al2", self.subprocess_cargo_lambda)
+        action = RustCargoLambdaBuildAction(
+            "source_dir", {"cargo": cargo}, None, "provided.al2", self.subprocess_cargo_lambda
+        )
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--release", "--target", "x86_64-unknown-linux-gnu.2.26"],
@@ -53,7 +55,9 @@ class TestBuildAction(TestCase):
 
     def test_release_build_cargo_command_for_provided_al2_arm64(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, "provided.al2", self.subprocess_cargo_lambda, "arm64")
+        action = RustCargoLambdaBuildAction(
+            "source_dir", {"cargo": cargo}, None, "provided.al2", self.subprocess_cargo_lambda, "arm64"
+        )
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--release", "--target", "aarch64-unknown-linux-gnu.2.26"],
@@ -61,7 +65,9 @@ class TestBuildAction(TestCase):
 
     def test_release_build_cargo_command_for_provided_al2023(self):
         cargo = BinaryPath(None, None, None, binary_path="path/to/cargo")
-        action = RustCargoLambdaBuildAction("source_dir", {"cargo": cargo}, None, "provided.al2023", self.subprocess_cargo_lambda)
+        action = RustCargoLambdaBuildAction(
+            "source_dir", {"cargo": cargo}, None, "provided.al2023", self.subprocess_cargo_lambda
+        )
         self.assertEqual(
             action.build_command(),
             ["path/to/cargo", "lambda", "build", "--release"],
