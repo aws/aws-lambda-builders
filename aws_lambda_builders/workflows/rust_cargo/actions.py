@@ -90,8 +90,6 @@ class RustCargoLambdaBuildAction(BaseAction):
             cmd.extend(["--bin", self._handler])
         if self._flags:
             cmd.extend(self._flags)
-        print("THIS IS THE COMMAND:")
-        print(cmd)
         return cmd
 
     def execute(self):
