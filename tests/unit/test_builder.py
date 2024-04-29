@@ -178,6 +178,7 @@ class TestLambdaBuilder_build(TestCase):
             "manifest_path",
             architecture="arm64",
             runtime="runtime",
+            unpatched_runtime=None,
             optimizations="optimizations",
             options="options",
             executable_search_paths="executable_search_paths",

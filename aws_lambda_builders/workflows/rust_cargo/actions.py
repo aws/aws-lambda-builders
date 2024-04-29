@@ -26,6 +26,7 @@ class RustCargoLambdaBuildAction(BaseAction):
         binaries,
         mode,
         subprocess_cargo_lambda,
+        runtime=None,
         architecture=X86_64,
         handler=None,
         flags=None,
@@ -68,18 +69,27 @@ class RustCargoLambdaBuildAction(BaseAction):
         self._flags = flags
         self._architecture = architecture
         self._subprocess_cargo_lambda = subprocess_cargo_lambda
+        self._runtime = runtime
 
     def build_command(self):
         cmd = [self._binaries["cargo"].binary_path, "lambda", "build"]
         if self._mode != BuildMode.DEBUG:
             cmd.append("--release")
-        if self._architecture == ARM64:
+        # Provided.al2 runtime only has GLIB_2.26 and cargo lambda builds with a higher version by default
+        if self._runtime == "provided.al2":
+            if self._architecture == ARM64:
+                # We cant use the --arm shortcut because then the incorrect version of GLIBC is used
+                cmd.append("--target")
+                cmd.append("aarch64-unknown-linux-gnu.2.26")
+            if self._architecture == X86_64:
+                cmd.append("--target")
+                cmd.append("x86_64-unknown-linux-gnu.2.26")
+        elif self._architecture == ARM64:
             cmd.append("--arm64")
         if self._handler:
             cmd.extend(["--bin", self._handler])
         if self._flags:
             cmd.extend(self._flags)
-
         return cmd
 
     def execute(self):

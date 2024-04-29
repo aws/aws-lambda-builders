@@ -201,6 +201,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         is_building_layer=False,
         experimental_flags=None,
         build_in_source=None,
+        unpatched_runtime=None,
     ):
         # pylint: disable-msg=too-many-locals
         """
@@ -263,6 +264,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         self.combine_dependencies = combine_dependencies
         self.architecture = architecture
         self.is_building_layer = is_building_layer
+        self.unpatched_runtime = unpatched_runtime
         self.experimental_flags = experimental_flags if experimental_flags else []
 
         # this represents where the build/install happens, not the final output directory (that's the artifacts_dir)
