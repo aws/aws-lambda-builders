@@ -22,7 +22,17 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
 
     SUPPORTED_MANIFESTS = ["Cargo.toml"]
 
-    def __init__(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=None, mode=None, **kwargs):
+    def __init__(
+        self,
+        source_dir,
+        artifacts_dir,
+        scratch_dir,
+        manifest_path,
+        runtime=None,
+        unpatched_runtime=None,
+        mode=None,
+        **kwargs,
+    ):
         super(RustCargoLambdaWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
@@ -43,6 +53,7 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
                 self.binaries,
                 mode,
                 subprocess_cargo_lambda,
+                unpatched_runtime,
                 self.architecture,
                 handler,
                 flags,
