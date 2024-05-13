@@ -108,7 +108,7 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS installing in: %s", self.install_dir)
+            LOG.debug("NODEJS installing production dependencies in: %s", self.install_dir)
 
             command = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"]
             self.subprocess_npm.run(command, cwd=self.install_dir)
@@ -132,7 +132,7 @@ class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS updating in: %s", self.install_dir)
+            LOG.debug("NODEJS updating production dependencies in: %s", self.install_dir)
 
             command = [
                 "update",

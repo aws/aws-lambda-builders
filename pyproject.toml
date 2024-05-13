@@ -1,18 +1,20 @@
 [tool.ruff]
 line-length = 120
 
+[tool.ruff.lint]
+
 select = [
-    "E",  # Pycodestyle
-    "F",  # Pyflakes
-    "PL", # pylint
-    "I",  # isort
+  "E",  # Pycodestyle
+  "F",  # Pyflakes
+  "PL", # pylint
+  "I",  # isort
 ]
 ignore = ["PLR0913"]
 
-[tool.ruff.pylint]
+[tool.ruff.lint.pylint]
 max-branches = 13
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "E501"]
 "aws_lambda_builders/workflow.py" = ["E501"]
 
