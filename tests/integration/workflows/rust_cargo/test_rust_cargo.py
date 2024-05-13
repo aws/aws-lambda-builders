@@ -9,8 +9,8 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.rust_cargo.feature_flag import EXPERIMENTAL_FLAG_CARGO_LAMBDA
 
 
-def rm_target_lambda(base):
-    shutil.rmtree(os.path.join(base, "target", "lambda"), ignore_errors=True)
+def rm_target(base):
+    shutil.rmtree(os.path.join(base, "target"), ignore_errors=True)
 
 
 class TestRustCargo(TestCase):
@@ -52,7 +52,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
-        rm_target_lambda(source_dir)
+        rm_target(source_dir)
 
         self.builder.build(
             source_dir,
@@ -70,7 +70,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project_with_artifact_name(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
-        rm_target_lambda(source_dir)
+        rm_target(source_dir)
 
         self.builder.build(
             source_dir,
@@ -89,7 +89,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_hello_project_for_arm64(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "hello")
-        rm_target_lambda(source_dir)
+        rm_target(source_dir)
 
         self.builder.build(
             source_dir,
@@ -109,10 +109,10 @@ class TestRustCargo(TestCase):
 
     def test_builds_workspaces_project_with_bin_name(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
-        rm_target_lambda(source_dir)
+        rm_target(source_dir)
 
         self.builder.build(
-            source_dir,
+            f"{source_dir}",
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "Cargo.toml"),
@@ -125,10 +125,30 @@ class TestRustCargo(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
 
         self.assertEqual(expected_files, output_files)
+        self.assertIn("foo", os.listdir(os.path.join(source_dir, "target", "lambda")))
+
+    def test_builds_workspace_member(self):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
+        rm_target(source_dir)
+
+        self.builder.build(
+            f"{source_dir}/bar",
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "Cargo.toml"),
+            runtime=self.runtime,
+            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
+        )
+
+        expected_files = {"bootstrap"}
+        output_files = set(os.listdir(self.artifacts_dir))
+
+        self.assertEqual(expected_files, output_files)
+        self.assertIn("bar", os.path.join(source_dir, "bar", "target", "lambda"))
 
     def test_builds_workspaces_project_with_package_option(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
-        rm_target_lambda(source_dir)
+        rm_target(source_dir)
 
         self.builder.build(
             source_dir,
@@ -147,7 +167,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_multi_function_project_with_function_a(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "multi-binary")
-        rm_target_lambda(source_dir)
+        rm_target(source_dir)
 
         self.builder.build(
             source_dir,
@@ -166,7 +186,7 @@ class TestRustCargo(TestCase):
 
     def test_builds_multi_function_project_with_function_b(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "multi-binary")
-        rm_target_lambda(source_dir)
+        rm_target(source_dir)
 
         self.builder.build(
             source_dir,

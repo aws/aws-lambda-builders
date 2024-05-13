@@ -100,6 +100,12 @@ class SubprocessCargoLambda(object):
             if "RUST_LOG" not in os.environ:
                 os.environ["RUST_LOG"] = "debug"
             LOG.debug("RUST_LOG environment variable set to `%s`", os.environ.get("RUST_LOG"))
+
+        if not os.getenv("CARGO_TARGET_DIR"):
+            # This results in the "target" dir being created under the member dir of a cargo workspace
+            # This is for supporting sam build for a Cargo Workspace project
+            os.environ["CARGO_TARGET_DIR"] = "target"
+
         cargo_process = self._osutils.popen(
             command,
             stderr=subprocess.PIPE,
