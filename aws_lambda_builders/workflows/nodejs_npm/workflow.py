@@ -243,6 +243,11 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if build_options and isinstance(build_options, dict):
             npm_ci_option = build_options.get("use_npm_ci", False)
 
+        LOG.debug(
+            "npm installation actions install only production dependencies. "
+            "Dev dependencies are omitted from the Lambda artifacts package"
+        )
+
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
             return NodejsNpmCIAction(
                 install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=is_building_in_source
