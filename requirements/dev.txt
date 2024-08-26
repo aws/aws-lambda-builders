@@ -9,4 +9,4 @@ pyelftools~=0.31 # Used to verify the generated Go binary architecture in integr
 
 # formatter
 black==24.8.0
-ruff==0.6.1
+ruff==0.6.2
