@@ -321,3 +321,26 @@ class NodejsNpmLockFileCleanUpAction(BaseAction):
 
         except OSError as ex:
             raise ActionFailedError(str(ex))
+
+class NodejsNpmTestAction(NodejsNpmInstallOrUpdateBaseAction):
+    """
+    A Lambda Builder Action that runs tests in NPM project
+    """
+
+    NAME = "NpmTest"
+    DESCRIPTION = "Running tests from NPM"
+
+    def execute(self):
+        """
+        Runs the action.
+
+        :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
+        """
+        try:
+            LOG.debug("NODEJS running tests in: %s", self.install_dir)
+
+            command = ["test", "--if-present"]
+            self.subprocess_npm.run(command, cwd=self.install_dir)
+
+        except NpmExecutionError as ex:
+            raise ActionFailedError(str(ex))
