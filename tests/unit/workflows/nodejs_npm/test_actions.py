@@ -11,7 +11,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmrcCleanUpAction,
     NodejsNpmLockFileCleanUpAction,
     NodejsNpmCIAction,
-    NodejsNpmTestAction
+    NodejsNpmTestAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
@@ -220,6 +220,7 @@ class TestNodejsNpmLockFileCleanUpAction(TestCase):
 
         with self.assertRaises(ActionFailedError):
             action.execute()
+
 
 class TestNodejsNpmTestAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")

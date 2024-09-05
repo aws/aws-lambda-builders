@@ -127,7 +127,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
             self.actions.append(
                 NodejsNpmTestAction(
                     install_dir=self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir,
-                    subprocess_npm=subprocess_npm
+                    subprocess_npm=subprocess_npm,
                 )
             )
 

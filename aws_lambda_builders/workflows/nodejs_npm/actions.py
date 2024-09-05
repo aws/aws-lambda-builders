@@ -322,6 +322,7 @@ class NodejsNpmLockFileCleanUpAction(BaseAction):
         except OSError as ex:
             raise ActionFailedError(str(ex))
 
+
 class NodejsNpmTestAction(NodejsNpmInstallOrUpdateBaseAction):
     """
     A Lambda Builder Action that runs tests in NPM project
