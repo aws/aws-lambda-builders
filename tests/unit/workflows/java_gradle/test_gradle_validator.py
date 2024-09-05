@@ -78,6 +78,24 @@ class TestGradleBinaryValidator(TestCase):
         validator.validate(runtime_path=self.runtime_path)
         self.mock_log.warning.assert_called_with(GradleValidator.VERSION_STRING_WARNING, self.runtime_path)
 
+    def test_does_not_emit_warning_for_version_string_in_gradle_lt_8_9(self):
+        version_string = "JVM:          9.0.0".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
+        validator = GradleValidator(
+            runtime=self.runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+        )
+        validator.validate(runtime_path=self.runtime_path)
+        self.mock_log.warning.assert_not_called()
+
+    def test_does_not_emit_warning_for_version_string_in_gradle_ge_8_9(self):
+        version_string = "Launcher JVM:          9.0.0".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
+        validator = GradleValidator(
+            runtime=self.runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+        )
+        validator.validate(runtime_path=self.runtime_path)
+        self.mock_log.warning.assert_not_called()
+
     @parameterized.expand(
         [
             ("11.0.0", "java11"),
