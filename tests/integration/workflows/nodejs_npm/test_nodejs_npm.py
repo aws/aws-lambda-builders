@@ -789,7 +789,7 @@ class TestNodejsNpmWorkflow(TestCase):
             runtime=runtime,
         )
 
-        expected_files = {"package.json", "copied.js"}
+        expected_files = {"package.json", "created.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
