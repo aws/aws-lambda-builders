@@ -123,6 +123,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
         npm:
           - 8
           - 9
@@ -156,6 +157,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -183,6 +185,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -213,6 +216,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -265,6 +269,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -293,6 +298,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -320,6 +326,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

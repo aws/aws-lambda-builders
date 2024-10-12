@@ -86,6 +86,7 @@ def get_lambda_abi(runtime):
         "python3.10": "cp310",
         "python3.11": "cp311",
         "python3.12": "cp312",
+        "python3.13": "cp313",
     }
 
     if runtime not in supported:
@@ -100,7 +101,7 @@ class PythonPipDependencyBuilder(object):
 
         :type runtime: str
         :param runtime: Python version to build dependencies for. This can
-            either be python3.8, python3.9, python3.10, python3.11 or python3.12. These are currently the
+            either be python3.8, python3.9, python3.10, python3.11, python3.12 or python3.13. These are currently the
             only supported values.
 
         :type osutils: :class:`lambda_builders.utils.OSUtils`

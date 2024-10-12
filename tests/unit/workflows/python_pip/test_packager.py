@@ -106,6 +106,9 @@ class TestGetLambdaAbi(object):
     def test_get_lambda_abi_python312(self):
         assert "cp312" == get_lambda_abi("python3.12")
 
+    def test_get_lambda_abi_python313(self):
+        assert "cp313" == get_lambda_abi("python3.13")
+
 
 class TestPythonPipDependencyBuilder(object):
     def test_can_call_dependency_builder(self, osutils):
