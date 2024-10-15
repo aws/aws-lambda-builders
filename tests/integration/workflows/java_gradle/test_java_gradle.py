@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import platform
 
 from unittest import TestCase
 from pathlib import Path
@@ -36,7 +37,18 @@ class TestJavaGradle(TestCase):
 
     def setUp(self):
         self.artifacts_dir = tempfile.mkdtemp()
-        self.scratch_dir = tempfile.mkdtemp()
+
+        scratch_folder_override = None
+        if platform.system().lower() == "windows" and os.getenv("GITHUB_ACTIONS"):
+            # lucashuy: there is some really odd behaviour where
+            # gradle will refuse to work it is run within
+            # the default TEMP folder location in Github Actions
+            #
+            # use the runner's home directory as a workaround
+            scratch_folder_override = os.getenv("userprofile")
+
+        self.scratch_dir = tempfile.mkdtemp(dir=scratch_folder_override)
+
         self.dependencies_dir = tempfile.mkdtemp()
         self.builder = LambdaBuilder(language="java", dependency_manager="gradle", application_framework=None)
 
