@@ -248,6 +248,9 @@ class TestPythonPipWorkflow(TestCase):
             self.assertIn(f, output_files)
 
     def test_must_resolve_unknown_package_name(self):
+        skipIf(
+            IS_WINDOWS and self.runtime == "python3.13", "Skip test as pip install infalte64 does not work on Windows"
+        )
         self.builder.build(
             self.source_dir,
             self.artifacts_dir,
