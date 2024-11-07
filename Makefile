@@ -17,8 +17,8 @@ integ-test:
 	LAMBDA_BUILDERS_DEV=1 pytest tests/integration
 
 lint:
-	# Liner performs static analysis to catch latent bugs
-	ruff aws_lambda_builders
+	# Linter performs static analysis to catch latent bugs
+	ruff check aws_lambda_builders
 
 lint-fix:
 	ruff aws_lambda_builders --fix
