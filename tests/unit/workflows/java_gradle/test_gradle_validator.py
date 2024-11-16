@@ -80,6 +80,40 @@ class TestGradleBinaryValidator(TestCase):
 
     @parameterized.expand(
         [
+            ("1.8.0", "java8"),
+            ("11.0.0", "java11"),
+            ("17.0.0", "java17"),
+            ("21.0.0", "java21"),
+        ]
+    )
+    def test_does_not_emit_warning_for_version_string_in_gradle_lt_8_9(self, version, runtime):
+        version_string = f"JVM:          {version}".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
+        validator = GradleValidator(
+            runtime=runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+        )
+        validator.validate(runtime_path=self.runtime_path)
+        self.mock_log.warning.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("1.8.0", "java8"),
+            ("11.0.0", "java11"),
+            ("17.0.0", "java17"),
+            ("21.0.0", "java21"),
+        ]
+    )
+    def test_does_not_emit_warning_for_version_string_in_gradle_ge_8_9(self, version, runtime):
+        version_string = f"Launcher JVM:          {version}".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
+        validator = GradleValidator(
+            runtime=runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+        )
+        validator.validate(runtime_path=self.runtime_path)
+        self.mock_log.warning.assert_not_called()
+
+    @parameterized.expand(
+        [
             ("11.0.0", "java11"),
             ("17.0.0", "java17"),
             ("21.0.0", "java21"),
