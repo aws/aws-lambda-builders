@@ -83,5 +83,5 @@ class GradleValidator(RuntimeValidator):
 
         for line in stdout.splitlines():
             l_dec = decode(line)
-            if l_dec.startswith("JVM"):
+            if "JVM" in l_dec:
                 return l_dec
