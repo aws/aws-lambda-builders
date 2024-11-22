@@ -72,7 +72,7 @@ class TestGradleBinaryValidator(TestCase):
     @parameterized.expand(
         [
             "The Java Version:          9.0.0",
-            "Daemon JVM:    /Library/Java/JavaVirtualMachines/amazon-corretto-21.jdk/Contents/Home (no JDK specified, using current Java home)"
+            "Daemon JVM:    /Library/Java/JavaVirtualMachines/amazon-corretto-21.jdk/Contents/Home (no JDK specified, using current Java home)",
         ]
     )
     def test_emits_warning_when_version_string_not_found(self, path):
