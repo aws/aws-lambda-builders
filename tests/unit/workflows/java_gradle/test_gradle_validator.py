@@ -69,8 +69,14 @@ class TestGradleBinaryValidator(TestCase):
         validator.validate(runtime_path=self.runtime_path)
         self.mock_log.warning.assert_called_with(GradleValidator.VERSION_STRING_WARNING, self.runtime_path)
 
-    def test_emits_warning_when_version_string_not_found(self):
-        version_string = "The Java Version:          9.0.0".encode()
+    @parameterized.expand(
+        [
+            "The Java Version:          9.0.0",
+            "Daemon JVM:    /Library/Java/JavaVirtualMachines/amazon-corretto-21.jdk/Contents/Home (no JDK specified, using current Java home)",
+        ]
+    )
+    def test_emits_warning_when_version_string_not_found(self, path):
+        version_string = path.encode()
         self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
         validator = GradleValidator(
             runtime=self.runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
