@@ -224,7 +224,8 @@ class TestNodejsNpmLockFileCleanUpAction(TestCase):
 
 class TestNodejsNpmTestAction(TestCase):
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
-    def test_runs_npm_test_for_npm_project(self, SubprocessNpmMock):
+    @patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"}, clear=True)
+    def test_runs_npm_test_for_npm_project_if_env_var_true(self, SubprocessNpmMock):
         subprocess_npm = SubprocessNpmMock.return_value
 
         action = NodejsNpmTestAction(install_dir="tests", subprocess_npm=subprocess_npm)
@@ -236,6 +237,17 @@ class TestNodejsNpmTestAction(TestCase):
         subprocess_npm.run.assert_called_with(expected_args, cwd="tests")
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_does_not_run_npm_test_for_npm_project_if_no_env_var(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmTestAction(install_dir="tests", subprocess_npm=subprocess_npm)
+
+        action.execute()
+
+        assert not subprocess_npm.run.called
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    @patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"}, clear=True)
     def test_raises_action_failed_when_npm_test_fails(self, SubprocessNpmMock):
         subprocess_npm = SubprocessNpmMock.return_value
 
