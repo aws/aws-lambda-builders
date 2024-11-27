@@ -69,14 +69,54 @@ class TestGradleBinaryValidator(TestCase):
         validator.validate(runtime_path=self.runtime_path)
         self.mock_log.warning.assert_called_with(GradleValidator.VERSION_STRING_WARNING, self.runtime_path)
 
-    def test_emits_warning_when_version_string_not_found(self):
-        version_string = "The Java Version:          9.0.0".encode()
+    @parameterized.expand(
+        [
+            "The Java Version:          9.0.0",
+            "Daemon JVM:    /Library/Java/JavaVirtualMachines/amazon-corretto-21.jdk/Contents/Home (no JDK specified, using current Java home)",
+        ]
+    )
+    def test_emits_warning_when_version_string_not_found(self, path):
+        version_string = path.encode()
         self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
         validator = GradleValidator(
             runtime=self.runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
         )
         validator.validate(runtime_path=self.runtime_path)
         self.mock_log.warning.assert_called_with(GradleValidator.VERSION_STRING_WARNING, self.runtime_path)
+
+    @parameterized.expand(
+        [
+            ("1.8.0", "java8"),
+            ("11.0.0", "java11"),
+            ("17.0.0", "java17"),
+            ("21.0.0", "java21"),
+        ]
+    )
+    def test_does_not_emit_warning_for_version_string_in_gradle_lt_8_9(self, version, runtime):
+        version_string = f"JVM:          {version}".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
+        validator = GradleValidator(
+            runtime=runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+        )
+        validator.validate(runtime_path=self.runtime_path)
+        self.mock_log.warning.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("1.8.0", "java8"),
+            ("11.0.0", "java11"),
+            ("17.0.0", "java17"),
+            ("21.0.0", "java21"),
+        ]
+    )
+    def test_does_not_emit_warning_for_version_string_in_gradle_ge_8_9(self, version, runtime):
+        version_string = f"Launcher JVM:          {version}".encode()
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string, returncode=0)]
+        validator = GradleValidator(
+            runtime=runtime, architecture=self.architecture, os_utils=self.mock_os_utils, log=self.mock_log
+        )
+        validator.validate(runtime_path=self.runtime_path)
+        self.mock_log.warning.assert_not_called()
 
     @parameterized.expand(
         [
