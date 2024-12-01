@@ -22,6 +22,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
     NodejsNpmrcAndLockfileCopyAction,
     NodejsNpmrcCleanUpAction,
+    NodejsNpmTestAction,
     NodejsNpmUpdateAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
@@ -120,6 +121,13 @@ class NodejsNpmWorkflow(BaseWorkflow):
                     osutils=osutils,
                     build_options=self.options,
                     is_building_in_source=is_building_in_source,
+                )
+            )
+
+            self.actions.append(
+                NodejsNpmTestAction(
+                    install_dir=self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir,
+                    subprocess_npm=subprocess_npm,
                 )
             )
 

@@ -3,6 +3,7 @@ Action to resolve NodeJS dependencies using NPM
 """
 
 import logging
+import os
 from typing import Optional
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
@@ -320,4 +321,33 @@ class NodejsNpmLockFileCleanUpAction(BaseAction):
                 self.osutils.remove_file(npmrc_path)
 
         except OSError as ex:
+            raise ActionFailedError(str(ex))
+
+
+class NodejsNpmTestAction(NodejsNpmInstallOrUpdateBaseAction):
+    """
+    A Lambda Builder Action that runs tests in NPM project
+    """
+
+    NAME = "NpmTest"
+    DESCRIPTION = "Running tests from NPM"
+
+    def execute(self):
+        """
+        Runs the action if environment variable `SAM_NPM_RUN_TEST_WITH_BUILD` is `true`.
+
+        :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
+        """
+        try:
+            is_run_test_with_build = os.getenv("SAM_NPM_RUN_TEST_WITH_BUILD", "False")
+            if is_run_test_with_build == "true":
+                LOG.debug("NODEJS running tests in: %s", self.install_dir)
+
+                command = ["test", "--if-present"]
+                self.subprocess_npm.run(command, cwd=self.install_dir)
+            else:
+                LOG.debug("NODEJS skipping tests")
+                LOG.debug("Add env variable 'SAM_NPM_RUN_TEST_WITH_BUILD=true' to run tests with build")
+
+        except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
