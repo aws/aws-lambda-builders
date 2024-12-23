@@ -11,6 +11,7 @@ updates:
     reviewers:
       - aws/serverless-application-experience-sbt
       - aws/aws-lambda-tooling
+
   - package-ecosystem: "pip"
     directory: "/requirements"
     schedule:
