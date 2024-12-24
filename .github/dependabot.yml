@@ -10,6 +10,7 @@ updates:
       include: scope
     reviewers:
       - aws/serverless-application-experience-sbt
+      - aws/aws-lambda-tooling
 
   - package-ecosystem: "pip"
     directory: "/requirements"
@@ -21,6 +22,7 @@ updates:
       include: scope
     reviewers:
       -  aws/serverless-application-experience-sbt
+      -  aws/aws-lambda-tooling
     ignore:
       # The dependencies are intentionally pinned to certain
       # version ranges for specific Python versions
