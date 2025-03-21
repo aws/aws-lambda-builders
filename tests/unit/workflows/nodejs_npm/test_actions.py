@@ -11,6 +11,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmrcCleanUpAction,
     NodejsNpmLockFileCleanUpAction,
     NodejsNpmCIAction,
+    NodejsNpmTestAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 
@@ -219,3 +220,43 @@ class TestNodejsNpmLockFileCleanUpAction(TestCase):
 
         with self.assertRaises(ActionFailedError):
             action.execute()
+
+
+class TestNodejsNpmTestAction(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    @patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"}, clear=True)
+    def test_runs_npm_test_for_npm_project_if_env_var_true(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmTestAction(install_dir="tests", subprocess_npm=subprocess_npm)
+
+        action.execute()
+
+        expected_args = ["test", "--if-present"]
+
+        subprocess_npm.run.assert_called_with(expected_args, cwd="tests")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_does_not_run_npm_test_for_npm_project_if_no_env_var(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmTestAction(install_dir="tests", subprocess_npm=subprocess_npm)
+
+        action.execute()
+
+        assert not subprocess_npm.run.called
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    @patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"}, clear=True)
+    def test_raises_action_failed_when_npm_test_fails(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        builder_instance = SubprocessNpmMock.return_value
+        builder_instance.run.side_effect = NpmExecutionError(message="boom!")
+
+        action = NodejsNpmTestAction("artifacts", subprocess_npm=subprocess_npm)
+
+        with self.assertRaises(ActionFailedError) as raised:
+            action.execute()
+
+        self.assertEqual(raised.exception.args[0], "NPM Failed: boom!")
