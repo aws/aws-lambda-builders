@@ -781,7 +781,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
 
     @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
-    @mock.patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"}, clear=True)
+    @mock.patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"})
     def test_runs_test_script_if_specified(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "test-script-to-create-file")
 
