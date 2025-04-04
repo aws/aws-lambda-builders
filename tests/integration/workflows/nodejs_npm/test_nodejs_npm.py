@@ -779,3 +779,52 @@ class TestNodejsNpmWorkflow(TestCase):
         # expected dependencies in source directory
         source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
         self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
+
+    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    @mock.patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"})
+    def test_runs_test_script_if_specified(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "test-script-to-create-file")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+        )
+
+        expected_files = {"package.json", "created.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    def test_does_not_run_test_script_if_env_var_not_specified(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "test-script-to-create-file")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+        )
+
+        expected_files = {"package.json"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    def test_does_not_raise_error_if_empty_test_script(self, runtime):
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "empty-test-script")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+        )
+
+        expected_files = {"package.json"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
