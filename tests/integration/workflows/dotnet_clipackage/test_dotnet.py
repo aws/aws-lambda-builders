@@ -61,6 +61,7 @@ class TestDotnet(TestDotnetBase):
         [
             ("dotnet6", "6.0", "WithDefaultsFile6"),
             ("dotnet8", "8.0", "WithDefaultsFile8"),
+            ("dotnet9", "9.0", "WithDefaultsFile9"),
         ]
     )
     def test_with_defaults_file(self, runtime, version, test_project):
@@ -87,6 +88,7 @@ class TestDotnet(TestDotnetBase):
         [
             ("dotnet6", "6.0", "WithDefaultsFile6"),
             ("dotnet8", "8.0", "WithDefaultsFile8"),
+            ("dotnet9", "9.0", "WithDefaultsFile9"),
         ]
     )
     def test_with_defaults_file_x86(self, runtime, version, test_project):
@@ -113,6 +115,7 @@ class TestDotnet(TestDotnetBase):
         [
             ("dotnet6", "6.0", "WithDefaultsFile6"),
             ("dotnet8", "8.0", "WithDefaultsFile8"),
+            ("dotnet9", "9.0", "WithDefaultsFile9"),
         ]
     )
     def test_with_defaults_file_arm64(self, runtime, version, test_project):
@@ -139,6 +142,7 @@ class TestDotnet(TestDotnetBase):
         [
             ("dotnet6", "6.0", "CustomRuntime6"),
             ("dotnet8", "8.0", "CustomRuntime8"),
+            ("dotnet9", "9.0", "CustomRuntime9"),
         ]
     )
     def test_with_custom_runtime(self, runtime, version, test_project):
