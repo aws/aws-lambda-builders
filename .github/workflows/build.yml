@@ -254,7 +254,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/custom_make
 
   python-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / python
+    name: ${{ matrix.os }} / ${{ matrix.python }} / python (pip + uv)
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -279,8 +279,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade setuptools
         if: ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.python }} == '3.12'
+      # Install UV for python_uv workflow tests
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
       - run: make init
+      # Test both python_pip and python_uv workflows
       - run: pytest -vv tests/integration/workflows/python_pip
+      - run: pytest -vv tests/integration/workflows/python_uv
 
   ruby-integration:
     name: ${{ matrix.os }} / ${{ matrix.python }} / ruby

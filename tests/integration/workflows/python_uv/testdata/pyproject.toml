@@ -1,0 +1,11 @@
+[project]
+name = "test-lambda"
+version = "0.1.0"
+requires-python = ">=3.8"
+dependencies = [
+    "six==1.16.0"
+]
+
+# No build-system needed for Lambda functions - just dependencies
+[tool.uv]
+dev-dependencies = []
