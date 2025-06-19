@@ -21,7 +21,7 @@ lint:
 	ruff check aws_lambda_builders
 
 lint-fix:
-	ruff aws_lambda_builders --fix
+	ruff check aws_lambda_builders --fix
 
 # Command to run everytime you make changes to verify everything works
 dev: lint test
