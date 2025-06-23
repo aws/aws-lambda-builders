@@ -174,7 +174,7 @@ class PythonUvWorkflow(BaseWorkflow):
 
     def get_validators(self):
         """Get runtime validators.
-        
+
         UV has robust built-in Python version handling and can automatically
         find, download, and manage Python versions. Unlike pip, UV doesn't need
         external validation of Python runtime paths.

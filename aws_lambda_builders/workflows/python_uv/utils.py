@@ -34,7 +34,7 @@ class OSUtils(BaseOSUtils):
 def detect_uv_manifest(source_dir: str) -> Optional[str]:
     """
     Detect UV-compatible manifest files in order of preference.
-    
+
     Note: uv.lock is NOT a manifest - it's a lock file that accompanies pyproject.toml.
     UV workflows support these manifest types:
     1. pyproject.toml (preferred) - may have accompanying uv.lock
@@ -50,15 +50,15 @@ def detect_uv_manifest(source_dir: str) -> Optional[str]:
     pyproject_path = os.path.join(source_dir, "pyproject.toml")
     if os.path.isfile(pyproject_path):
         return pyproject_path
-    
+
     # Check for requirements.txt variants (in order of preference)
     requirements_variants = [
         "requirements.txt",
-        "requirements-dev.txt", 
+        "requirements-dev.txt",
         "requirements-test.txt",
-        "requirements-prod.txt"
+        "requirements-prod.txt",
     ]
-    
+
     for requirements_file in requirements_variants:
         requirements_path = os.path.join(source_dir, requirements_file)
         if os.path.isfile(requirements_path):
