@@ -369,7 +369,7 @@ class PythonUvDependencyBuilder:
             # For uv sync, we need the project directory (where pyproject.toml and uv.lock are)
             # uv sync automatically finds both files in the working directory
             project_dir = os.path.dirname(lock_path)
-            
+
             self._uv_runner.sync_dependencies(
                 project_dir=project_dir,  # Pass project directory instead of lock path
                 target_dir=target_dir,
