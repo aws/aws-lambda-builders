@@ -1,0 +1,11 @@
+{
+  "name": "testscript",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "touch created.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0"
+}
