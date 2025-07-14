@@ -2,11 +2,12 @@
 Installs packages using PIP
 """
 
+import itertools
 import logging
 import re
 import subprocess
 from email.parser import FeedParser
-from typing import Tuple
+from typing import Tuple, List
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.utils import extract_tarfile
@@ -171,19 +172,25 @@ class DependencyBuilder(object):
     packager.
     """
 
-    _COMPATIBLE_PLATFORM_ARM64 = {
+    _COMPATIBLE_PLATFORM_ARM64 = [
         "any",
         "linux_aarch64",
         "manylinux2014_aarch64",
-    }
+        "manylinux_2_17_aarch64",
+        "manylinux_2_28_aarch64",
+        "manylinux_2_34_aarch64",
+    ]
 
-    _COMPATIBLE_PLATFORM_X86_64 = {
+    _COMPATIBLE_PLATFORM_X86_64 = [
         "any",
         "linux_x86_64",
         "manylinux1_x86_64",
         "manylinux2010_x86_64",
         "manylinux2014_x86_64",
-    }
+        "manylinux_2_17_x86_64",
+        "manylinux_2_28_x86_64",
+        "manylinux_2_34_x86_64",
+    ]
 
     _COMPATIBLE_PLATFORMS = {
         ARM64: _COMPATIBLE_PLATFORM_ARM64,
@@ -213,6 +220,14 @@ class DependencyBuilder(object):
     # not in _RUNTIME_GLIBC.
     # Unlikely to hit this case.
     _DEFAULT_GLIBC = (2, 17)
+
+    # Mapping of glibc version to the most recent manylinux version compatible.
+    # The offically supported manylinux versions are 2_17, 2_28 and 2_34 as per https://github.com/pypa/manylinux
+    _GLIBC_TO_LATEST_MANYLINUX = {
+        (2, 17): "manylinux_2_17",
+        (2, 26): "manylinux_2_17",
+        (2, 34): "manylinux_2_34",
+    }
 
     def __init__(self, osutils, runtime, python_exe, pip_runner=None, architecture=X86_64):
         """Initialize a DependencyBuilder.
@@ -379,8 +394,35 @@ class DependencyBuilder(object):
         # Try to get binary wheels for each package that isn't compatible.
         LOG.debug("Downloading missing wheels: %s", packages)
         lambda_abi = get_lambda_abi(self.runtime)
-        platform = "manylinux2014_aarch64" if self.architecture == ARM64 else "manylinux2014_x86_64"
-        self._pip.download_manylinux_wheels([pkg.identifier for pkg in packages], directory, lambda_abi, platform)
+        self._pip.download_manylinux_wheels(
+            [pkg.identifier for pkg in packages], directory, lambda_abi, self.compatible_platforms
+        )
+
+    @property
+    def compatible_platforms(self) -> List[str]:
+        """Get the list of all compatible platforms for the current architecture.
+
+        Examples:
+        For python 3.11 on x86_64, this will return:
+        ['any', 'linux_x86_64', 'manylinux1_x86_64', 'manylinux2010_x86_64', 'manylinux2014_x86_64', 'manylinux_2_17_x86_64']
+
+        For python 3.12 on x86_64, this will return:
+        ['any', 'linux_x86_64', 'manylinux1_x86_64', 'manylinux2010_x86_64', 'manylinux2014_x86_64', 'manylinux_2_17_x86_64', 'manylinux_2_28_x86_64', 'manylinux_2_34_x86_64']
+
+        For python 3.13 on ARM64, this will return:
+        ['any', 'linux_aarch64', 'manylinux2014_aarch64', 'manylinux_2_17_aarch64', 'manylinux_2_28_aarch64', 'manylinux_2_34_aarch64']
+        """
+        lambda_abi = get_lambda_abi(self.runtime)
+        manylinux_prefix = self._GLIBC_TO_LATEST_MANYLINUX.get(self._RUNTIME_GLIBC.get(lambda_abi, self._DEFAULT_GLIBC))
+        architecture = "aarch64" if self.architecture == ARM64 else "x86_64"
+
+        # Get the latest compatible platform tag for the current architecture,
+        # all the previous ones are also compatible.
+        latest_compatible_platform = f"{manylinux_prefix}_{architecture}"
+
+        all_platforms = self._COMPATIBLE_PLATFORMS[self.architecture]
+        max_index = all_platforms.index(latest_compatible_platform)
+        return all_platforms[: max_index + 1]
 
     def _build_sdists(self, sdists, directory, compile_c=True):
         LOG.debug("Build missing wheels from sdists " "(C compiling %s): %s", compile_c, sdists)
@@ -432,7 +474,7 @@ class DependencyBuilder(object):
 
         In addition to checking the tag pattern, we also need to verify the glibc version
         """
-        if platform in self._COMPATIBLE_PLATFORMS[self.architecture]:
+        if platform in self.compatible_platforms:
             return True
 
         arch = "aarch64" if self.architecture == ARM64 else "x86_64"
@@ -832,7 +874,7 @@ class PipRunner(object):
             # complain at deployment time.
             self.build_wheel(wheel_package_path, directory)
 
-    def download_manylinux_wheels(self, packages, directory, lambda_abi, platform="manylinux2014_x86_64"):
+    def download_manylinux_wheels(self, packages, directory, lambda_abi, platforms):
         """Download wheel files for manylinux for all the given packages."""
         # If any one of these dependencies fails pip will bail out. Since we
         # are only interested in all the ones we can download, we need to feed
@@ -846,8 +888,7 @@ class PipRunner(object):
             arguments = [
                 "--only-binary=:all:",
                 "--no-deps",
-                "--platform",
-                platform,
+                *list(itertools.chain.from_iterable(["--platform", element] for element in platforms)),
                 "--implementation",
                 "cp",
                 "--abi",
