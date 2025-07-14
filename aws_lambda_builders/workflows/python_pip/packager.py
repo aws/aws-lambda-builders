@@ -7,7 +7,7 @@ import logging
 import re
 import subprocess
 from email.parser import FeedParser
-from typing import Tuple, List
+from typing import List, Tuple
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.utils import extract_tarfile
@@ -403,14 +403,39 @@ class DependencyBuilder(object):
         """Get the list of all compatible platforms for the current architecture.
 
         Examples:
-        For python 3.11 on x86_64, this will return:
-        ['any', 'linux_x86_64', 'manylinux1_x86_64', 'manylinux2010_x86_64', 'manylinux2014_x86_64', 'manylinux_2_17_x86_64']
+        ```python
+        # Return value with python 3.11 on x86_64
+        [
+            'any',
+            'linux_x86_64',
+            'manylinux1_x86_64',
+            'manylinux2010_x86_64',
+            'manylinux2014_x86_64',
+            'manylinux_2_17_x86_64'
+        ]
 
-        For python 3.12 on x86_64, this will return:
-        ['any', 'linux_x86_64', 'manylinux1_x86_64', 'manylinux2010_x86_64', 'manylinux2014_x86_64', 'manylinux_2_17_x86_64', 'manylinux_2_28_x86_64', 'manylinux_2_34_x86_64']
+        # Return value with python 3.12 on x86_64
+        [
+            'any',
+            'linux_x86_64',
+            'manylinux1_x86_64',
+            'manylinux2010_x86_64',
+            'manylinux2014_x86_64',
+            'manylinux_2_17_x86_64',
+            'manylinux_2_28_x86_64',
+            'manylinux_2_34_x86_64'
+        ]
 
-        For python 3.13 on ARM64, this will return:
-        ['any', 'linux_aarch64', 'manylinux2014_aarch64', 'manylinux_2_17_aarch64', 'manylinux_2_28_aarch64', 'manylinux_2_34_aarch64']
+        # Return value with python 3.13 on ARM64
+        [
+            'any',
+            'linux_aarch64',
+            'manylinux2014_aarch64',
+            'manylinux_2_17_aarch64',
+            'manylinux_2_28_aarch64',
+            'manylinux_2_34_aarch64'
+        ]
+        ```
         """
         lambda_abi = get_lambda_abi(self.runtime)
         manylinux_prefix = self._GLIBC_TO_LATEST_MANYLINUX.get(self._RUNTIME_GLIBC.get(lambda_abi, self._DEFAULT_GLIBC))
