@@ -202,10 +202,10 @@ class TestDependencyBuilder(object):
         with open(filepath, "w") as f:
             f.write(contents)
 
-    def _make_appdir_and_dependency_builder(self, reqs, tmpdir, runner, **kwargs):
+    def _make_appdir_and_dependency_builder(self, reqs, tmpdir, runner, runtime="python3.9", **kwargs):
         appdir = str(_create_app_structure(tmpdir))
         self._write_requirements_txt(reqs, appdir)
-        builder = DependencyBuilder(OSUtils(), "python3.9", sys.executable, runner, **kwargs)
+        builder = DependencyBuilder(OSUtils(), runtime, sys.executable, runner, **kwargs)
         return appdir, builder
 
     def test_can_build_local_dir_as_whl(self, tmpdir, pip_runner, osutils):
@@ -516,6 +516,74 @@ class TestDependencyBuilder(object):
         for req in reqs:
             assert req in installed_packages
 
+    def test_can_get_newer_platforms(self, tmpdir, osutils, pip_runner):
+        reqs = ["foo", "bar"]
+        pip, runner = pip_runner
+        appdir, builder = self._make_appdir_and_dependency_builder(reqs, tmpdir, runner, runtime="python3.12")
+        requirements_file = os.path.join(appdir, "requirements.txt")
+        pip.packages_to_download(
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            packages=["foo-1.0-cp312-none-any.whl", "bar-1.2-cp312-cp312-manylinux_2_28_x86_64.whl"],
+        )
+        site_packages = os.path.join(appdir, ".chalice.", "site-packages")
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(requirements_file, site_packages, scratch_dir)
+        installed_packages = os.listdir(site_packages)
+
+        pip.validate()
+        for req in reqs:
+            assert req in installed_packages
+
+    def test_can_get_newer_platforms_cross_compile(self, tmpdir, osutils, pip_runner):
+        reqs = ["foo", "bar"]
+        pip, runner = pip_runner
+        appdir, builder = self._make_appdir_and_dependency_builder(
+            reqs, tmpdir, runner, runtime="python3.12", architecture=ARM64
+        )
+        requirements_file = os.path.join(appdir, "requirements.txt")
+        pip.packages_to_download(
+            expected_args=["-r", requirements_file, "--dest", mock.ANY, "--exists-action", "i"],
+            packages=["foo-1.0-cp312-none-any.whl", "bar-1.2-cp312-cp312-manylinux_2_28_x86_64.whl"],
+        )
+
+        # First call returned x86_64 wheels, fallback to the second call
+        pip.packages_to_download(
+            expected_args=[
+                "--only-binary=:all:",
+                "--no-deps",
+                "--platform",
+                "any",
+                "--platform",
+                "linux_aarch64",
+                "--platform",
+                "manylinux2014_aarch64",
+                "--platform",
+                "manylinux_2_17_aarch64",
+                # It's python 3.12, so we can use newer platforms.
+                "--platform",
+                "manylinux_2_28_aarch64",
+                "--platform",
+                "manylinux_2_34_aarch64",
+                "--implementation",
+                "cp",
+                "--abi",
+                get_lambda_abi(builder.runtime),
+                "--dest",
+                mock.ANY,
+                "bar==1.2",
+            ],
+            packages=["bar-1.2-cp312-cp312-manylinux_2_28_aarch64.whl"],
+        )
+
+        site_packages = os.path.join(appdir, ".chalice.", "site-packages")
+        with osutils.tempdir() as scratch_dir:
+            builder.build_site_packages(requirements_file, site_packages, scratch_dir)
+        installed_packages = os.listdir(site_packages)
+
+        pip.validate()
+        for req in reqs:
+            assert req in installed_packages
+
     def test_does_fail_on_invalid_local_package(self, tmpdir, osutils, pip_runner):
         reqs = ["../foo"]
         pip, runner = pip_runner
@@ -629,7 +697,17 @@ class TestDependencyBuilder(object):
                 "--only-binary=:all:",
                 "--no-deps",
                 "--platform",
+                "any",
+                "--platform",
+                "linux_x86_64",
+                "--platform",
+                "manylinux1_x86_64",
+                "--platform",
+                "manylinux2010_x86_64",
+                "--platform",
                 "manylinux2014_x86_64",
+                "--platform",
+                "manylinux_2_17_x86_64",
                 "--implementation",
                 "cp",
                 "--abi",
@@ -663,7 +741,17 @@ class TestDependencyBuilder(object):
                 "--only-binary=:all:",
                 "--no-deps",
                 "--platform",
+                "any",
+                "--platform",
+                "linux_x86_64",
+                "--platform",
+                "manylinux1_x86_64",
+                "--platform",
+                "manylinux2010_x86_64",
+                "--platform",
                 "manylinux2014_x86_64",
+                "--platform",
+                "manylinux_2_17_x86_64",
                 "--implementation",
                 "cp",
                 "--abi",
@@ -798,7 +886,17 @@ class TestDependencyBuilder(object):
                 "--only-binary=:all:",
                 "--no-deps",
                 "--platform",
+                "any",
+                "--platform",
+                "linux_x86_64",
+                "--platform",
+                "manylinux1_x86_64",
+                "--platform",
+                "manylinux2010_x86_64",
+                "--platform",
                 "manylinux2014_x86_64",
+                "--platform",
+                "manylinux_2_17_x86_64",
                 "--implementation",
                 "cp",
                 "--abi",

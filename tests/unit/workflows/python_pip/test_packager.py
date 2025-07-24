@@ -249,13 +249,35 @@ class TestPipRunner(object):
         # for getting lambda compatible wheels.
         pip, runner = pip_factory()
         packages = ["foo", "bar", "baz"]
-        runner.download_manylinux_wheels(packages, "directory", "abi")
+        runner.download_manylinux_wheels(
+            packages,
+            "directory",
+            "abi",
+            [
+                "any",
+                "linux_x86_64",
+                "manylinux1_x86_64",
+                "manylinux2010_x86_64",
+                "manylinux2014_x86_64",
+                "manylinux_2_17_x86_64",
+            ],
+        )
         expected_prefix = [
             "download",
             "--only-binary=:all:",
             "--no-deps",
             "--platform",
+            "any",
+            "--platform",
+            "linux_x86_64",
+            "--platform",
+            "manylinux1_x86_64",
+            "--platform",
+            "manylinux2010_x86_64",
+            "--platform",
             "manylinux2014_x86_64",
+            "--platform",
+            "manylinux_2_17_x86_64",
             "--implementation",
             "cp",
             "--abi",
@@ -270,7 +292,7 @@ class TestPipRunner(object):
 
     def test_download_wheels_no_wheels(self, pip_factory):
         pip, runner = pip_factory()
-        runner.download_manylinux_wheels([], "directory", "abi")
+        runner.download_manylinux_wheels([], "directory", "abi", [])
         assert len(pip.calls) == 0
 
     def test_does_find_local_directory(self, pip_factory):
