@@ -105,7 +105,7 @@ class LambdaBuilder(object):
 
         :type options: dict
         :param options:
-            Optional dictionary of options ot pass to build action. **Not supported**.
+            Optional dictionary of options to pass to build action.
 
         :type executable_search_paths: list
         :param executable_search_paths:

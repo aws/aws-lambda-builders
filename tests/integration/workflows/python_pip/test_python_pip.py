@@ -1,17 +1,16 @@
+import logging
 import os
 import pathlib
+import platform
 import shutil
 import sys
-import platform
 import tempfile
-from unittest import TestCase, skipIf, mock
+from unittest import TestCase, mock, skipIf
 
 from parameterized import parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
-import logging
-
 from aws_lambda_builders.utils import which
 from aws_lambda_builders.workflows.python_pip.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 
@@ -432,3 +431,48 @@ class TestPythonPipWorkflow(TestCase):
         dependencies_files = set(os.listdir(self.dependencies_dir))
         for f in expected_dependencies_files:
             self.assertIn(f, dependencies_files)
+
+    def test_must_copy_with_parent_packages_without_manifest(self):
+        parent_package = "testdata"
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join("non", "existent", "manifest"),
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
+            options={"parent_python_packages": parent_package},
+        )
+        self.assertEqual(set([parent_package]), set(os.listdir(self.artifacts_dir)))
+        expected_files = self.test_data_files
+        output_files = set(os.listdir(pathlib.Path(self.artifacts_dir) / parent_package))
+        self.assertEqual(expected_files, output_files)
+
+    def test_must_copy_with_parent_packages_with_manifest(self):
+        parent_package = "testdata"
+        self.builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_valid,
+            runtime=self.runtime,
+            experimental_flags=self.experimental_flags,
+            options={"parent_python_packages": parent_package},
+        )
+
+        if self.runtime in ("python3.12", "python3.13"):
+            self.check_architecture_in("numpy-2.1.2.dist-info", ["manylinux2014_x86_64", "manylinux1_x86_64"])
+            expected_dependencies = {"numpy", "numpy-2.1.2.dist-info", "numpy.libs"}
+        elif self.runtime in ("python3.10", "python3.11"):
+            self.check_architecture_in("numpy-1.23.5.dist-info", ["manylinux2014_x86_64", "manylinux1_x86_64"])
+            expected_dependencies = {"numpy", "numpy-1.23.5.dist-info", "numpy.libs"}
+        else:
+            self.check_architecture_in("numpy-1.20.3.dist-info", ["manylinux2010_x86_64", "manylinux1_x86_64"])
+            expected_dependencies = {"numpy", "numpy-1.20.3.dist-info", "numpy.libs"}
+
+        output_files: set[str] = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(set([parent_package, *expected_dependencies]), output_files)
+
+        expected_files = self.test_data_files
+        output_files = set(os.listdir(pathlib.Path(self.artifacts_dir) / parent_package))
+        self.assertEqual(expected_files, output_files)

@@ -147,3 +147,17 @@ bundle has an `__init__.py` and is on the `PYTHONPATH`.
 The dependencies should now be succesfully installed in the target directory.
 All the temporary/intermediate files can now be deleting including all the
 wheel files and sdists.
+
+### Configuring the builder
+
+The Lambda builder supports the following optional sub-properties of the `aws_sam` configuration property.
+
+* `parent_python_packages`: string, corresponding to a dot-separated list of parent packages to create in the destination directory. This is useful when the source code has a package structure that needs to be preserved in the built artifacts. 
+
+Here is an example that preserves the package structure in the destination directory:
+
+```json
+{
+    "parent_python_packages": "src.inventory_management"
+}
+```

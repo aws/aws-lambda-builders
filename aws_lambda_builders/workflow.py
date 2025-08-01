@@ -227,7 +227,7 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         optimizations : dict, optional
             dictionary of optimization flags to pass to the build action. **Not supported**, by default None
         options : dict, optional
-            dictionary of options ot pass to build action. **Not supported**., by default None
+            dictionary of options to pass to build action. By default None
         mode : str, optional
             Mode the build should produce, by default BuildMode.RELEASE
         download_dependencies: bool, optional
