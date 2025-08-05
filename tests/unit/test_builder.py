@@ -1,12 +1,12 @@
 import itertools
 from unittest import TestCase
-from unittest.mock import patch, call, Mock
+from unittest.mock import Mock, call, patch
 
 from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.workflow import BuildDirectory, BuildInSourceSupport, Capability, BaseWorkflow
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
+from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 
 class TesetLambdaBuilder_init(TestCase):
@@ -193,6 +193,6 @@ class TestLambdaBuilder_build(TestCase):
         workflow_instance.run.assert_called_once()
         os_mock.path.exists.assert_called_once_with("scratch_dir")
         if scratch_dir_exists:
-            os_mock.makedirs.not_called()
+            os_mock.makedirs.assert_not_called()
         else:
             os_mock.makedirs.assert_called_once_with("scratch_dir")
