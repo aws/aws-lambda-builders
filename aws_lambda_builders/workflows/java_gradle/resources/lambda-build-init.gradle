@@ -54,7 +54,8 @@ def assertExpectedBuildDir(p) {
 }
 
 def createArtifactDir(project) {
-    def distsDir = project.buildDir.toPath().resolve(project.distsDirName).resolve('lambda-build')
+    // In Gradle 9, distsDirName was removed. Use 'distributions' as the default directory name
+    def distsDir = project.buildDir.toPath().resolve('distributions').resolve('lambda-build')
     return makeDirs(distsDir)
 }
 
