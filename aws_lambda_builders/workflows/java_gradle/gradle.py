@@ -30,10 +30,10 @@ class SubprocessGradle(object):
         self.os_utils = os_utils
 
     def build(self, source_dir, build_file, cache_dir=None, init_script_path=None, properties=None):
+        ## Note: build_file parameter is not supported anymore, but kept for backward compatibility
         if not self.os_utils.exists(build_file):
             raise BuildFileNotFoundError(build_file)
-
-        args = ["build", "--build-file", build_file]
+        args = ["build"]
         if cache_dir is not None:
             args.extend(["--project-cache-dir", cache_dir])
         if properties is not None:
