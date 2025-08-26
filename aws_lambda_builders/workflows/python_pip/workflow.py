@@ -9,7 +9,7 @@ from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
-from .actions import PythonPipBuildAction
+from .actions import PARENT_PYTHON_PKGS_KEY, PythonCreateParentPackagesAction, PythonPipBuildAction
 from .utils import OSUtils, is_experimental_build_improvements_enabled
 
 LOG = logging.getLogger(__name__)
@@ -87,15 +87,15 @@ class PythonPipWorkflow(BaseWorkflow):
         self.actions = []
         if not osutils.file_exists(manifest_path):
             LOG.warning("requirements.txt file not found. Continuing the build without dependencies.")
-            self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+            self._actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
             return
 
         # If a requirements.txt exists, run pip builder before copy action.
         if self.download_dependencies:
             if self.dependencies_dir:
                 # clean up the dependencies folder before installing
-                self.actions.append(CleanUpAction(self.dependencies_dir))
-            self.actions.append(
+                self._actions.append(CleanUpAction(self.dependencies_dir))
+            self._actions.append(
                 PythonPipBuildAction(
                     artifacts_dir,
                     scratch_dir,
@@ -113,11 +113,25 @@ class PythonPipWorkflow(BaseWorkflow):
             # when copying downloaded dependencies back to artifacts folder, don't exclude anything
             # symlinking python dependencies is disabled for now since it is breaking sam local commands
             if False and is_experimental_build_improvements_enabled(self.experimental_flags):
-                self.actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
+                self._actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
             else:
-                self.actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
+                self._actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
 
-        self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+        self._actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+
+    @property
+    def actions(self):
+        """
+        Returns the list of actions to be executed in this workflow.
+        If required, creating the parent package(s) must be executed last.
+        """
+        if self._should_create_parent_packages():
+            return self._actions + [PythonCreateParentPackagesAction(self.source_dir, self.artifacts_dir, self.options)]
+        return self._actions
+
+    @actions.setter
+    def actions(self, value):
+        self._actions = value
 
     def get_resolvers(self):
         """
@@ -137,6 +151,14 @@ class PythonPipWorkflow(BaseWorkflow):
         # the specified python runtime is 3.x
         major, _ = self.runtime.replace(self.CAPABILITY.language, "").split(".")
         return [f"{self.CAPABILITY.language}{major}"] if major == self.PYTHON_VERSION_THREE else None
+
+    def _should_create_parent_packages(self):
+        """
+        Determines if the parent package(s) should be created based on the options provided.
+        """
+        if isinstance(self.options, dict):
+            return PARENT_PYTHON_PKGS_KEY in self.options
+        return False
 
     def get_validators(self):
         return [PythonRuntimeValidator(runtime=self.runtime, architecture=self.architecture)]

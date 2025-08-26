@@ -147,3 +147,47 @@ bundle has an `__init__.py` and is on the `PYTHONPATH`.
 The dependencies should now be succesfully installed in the target directory.
 All the temporary/intermediate files can now be deleting including all the
 wheel files and sdists.
+
+### Configuring the builder
+
+The Lambda builder supports the following optional sub-properties of the `aws_sam` configuration property.
+
+#### `parent_python_packages`
+
+`parent_python_packages` must be a string, corresponding to a dot-separated list of parent packages to create in the destination directory. This is useful when the source code has a package structure that needs to be preserved in the built artifacts.
+
+For example, if your source code is structured like this:
+
+```
+├── app
+|   ├── main.py
+|   └── utils
+|       └── logger.py
+└── tests
+    └── unit/test_handler.py
+```
+
+Then the SAM build output will look like this:
+
+```
+└── .aws-sam
+    └── build
+       └── AppLogicalId
+          ├── main.py
+          └── utils
+                └── logger.py
+```
+
+The tests would break because `main.py` is importing `logger` as `from .utils import logger`, but the built artifacts would not have the `app` package.
+
+To fix this, you can set the `parent_python_packages` property to `app` and the SAM build output will look like this:
+
+```
+└── .aws-sam
+    └── build
+       └── AppLogicalId
+          └── app
+              ├── main.py
+              └── utils
+                    └── logger.py
+```
