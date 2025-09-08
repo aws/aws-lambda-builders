@@ -68,7 +68,7 @@ jobs:
           - "3.10"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - name: Unit Testing
@@ -95,7 +95,7 @@ jobs:
           - 9
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-node@v4
@@ -129,7 +129,7 @@ jobs:
           - 9
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-node@v4
@@ -160,7 +160,7 @@ jobs:
           - "3.13"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-go@v5
@@ -188,7 +188,7 @@ jobs:
           - "3.13"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-java@v4
@@ -219,7 +219,7 @@ jobs:
           - "3.13"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-java@v4
@@ -247,7 +247,7 @@ jobs:
           - "3.12"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - run: make init
@@ -272,7 +272,7 @@ jobs:
           - "3.13"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - run: |
@@ -301,7 +301,7 @@ jobs:
           - "3.13"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - uses: ruby/setup-ruby@v1
@@ -329,7 +329,7 @@ jobs:
           - "3.13"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - run: make init
@@ -357,7 +357,7 @@ jobs:
           - stable
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
