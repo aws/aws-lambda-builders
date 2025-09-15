@@ -3,6 +3,7 @@ Action to resolve Python dependencies using PIP
 """
 
 import logging
+from pathlib import Path
 from typing import Optional, Tuple
 
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
@@ -20,6 +21,8 @@ from aws_lambda_builders.workflows.python_pip.packager import (
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
 LOG = logging.getLogger(__name__)
+
+PARENT_PYTHON_PKGS_KEY = "parent_python_packages"
 
 
 class PythonPipBuildAction(BaseAction):
@@ -115,3 +118,49 @@ class PythonPipBuildAction(BaseAction):
                 LOG.debug(f"Python runtime path '{python_path}' does not contain pip")
 
         raise ActionFailedError("Failed to find a Python runtime containing pip on the PATH.")
+
+
+class PythonCreateParentPackagesAction(BaseAction):
+    NAME = "CreateParentPackages"
+    DESCRIPTION = "Creating parent Python packages"
+    PURPOSE = Purpose.COPY_SOURCE
+    LANGUAGE = "python"
+
+    def __init__(self, source_dir, dest_dir, options=None):
+        self.source_dir = source_dir
+        self.dest_dir = dest_dir
+        self.options = options or {}
+
+    def execute(self):
+        pkg_parts = self._get_parent_python_packages()
+        if not pkg_parts:
+            return
+
+        source_path = Path(self.source_dir)
+        dest_path = Path(self.dest_dir)
+
+        target_pkg_path = dest_path.joinpath(*pkg_parts)
+        try:
+            target_pkg_path.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            LOG.warning("Skipping creating package %s as it would overwrite existing folder", target_pkg_path)
+            return
+
+        for item in source_path.glob(pattern="*"):
+            if (dest_path / item.name).exists():
+                (dest_path / item.name).rename(target_pkg_path / item.name)
+            else:
+                LOG.debug(f"{item} does not exist in the build path, skipping.")
+
+    def _get_parent_python_packages(self) -> Optional[list]:
+        """
+        Returns the parent Python packages to be created.
+        """
+        if not isinstance(self.options, dict):
+            return None
+
+        parent_python_pkgs = self.options.get(PARENT_PYTHON_PKGS_KEY)
+        if isinstance(parent_python_pkgs, str) and len(parent_python_pkgs) > 0:
+            return parent_python_pkgs.split(".")
+
+        return None
