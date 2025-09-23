@@ -21,10 +21,10 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const maintainers = 'seshubaws', 'valerena',
+            const maintainers = ['seshubaws', 'valerena',
               'Vandita2020', 'roger-zhangg',
               'vicheey', 'bnusunny', 'tobixlea', 
-              'reedham-aws', 'licjun', 'dependabot[bot]'
+              'reedham-aws', 'licjun', 'dependabot[bot]]'
             if (maintainers.includes(context.payload.sender.login)) {
               github.rest.issues.addLabels({
                 issue_number: context.issue.number,
