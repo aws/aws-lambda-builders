@@ -80,24 +80,3 @@ class PythonUvBuildAction(BaseAction):
         except Exception as ex:
             LOG.error("Unexpected error during UV build: %s", str(ex))
             raise ActionFailedError(f"UV build failed: {str(ex)}")
-
-
-class CopyDependenciesAction(BaseAction):
-    """
-    Custom action for copying dependencies from dependencies_dir to artifacts_dir.
-    Provides clear action name to distinguish from source code copying.
-    """
-
-    NAME = "CopyDependencies"
-    DESCRIPTION = "Copying dependencies from dependencies directory to artifacts directory"
-    PURPOSE = Purpose.COPY_SOURCE
-
-    def __init__(self, dependencies_dir, artifacts_dir):
-        from aws_lambda_builders.actions import copytree
-
-        self.dependencies_dir = dependencies_dir
-        self.artifacts_dir = artifacts_dir
-        self._copytree = copytree
-
-    def execute(self):
-        self._copytree(self.dependencies_dir, self.artifacts_dir, maintain_symlinks=False)

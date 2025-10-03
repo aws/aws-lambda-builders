@@ -278,9 +278,8 @@ Note: `requirements.in` (pip-tools format) is not supported to keep the implemen
 - Fallback: Attempt to install UV using pip if not found (optional behavior)
 
 #### Error Handling Strategy
-- **MissingUvError**: UV binary not found on PATH
+- **MissingUvError**: UV binary not found on PATH (includes path information)
 - **UvInstallationError**: UV installation/setup failures
-- **UvResolutionError**: Dependency resolution failures
 - **UvBuildError**: Package build failures
 - **LockFileError**: Lock file parsing or validation errors
 

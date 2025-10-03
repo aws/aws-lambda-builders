@@ -3,11 +3,11 @@ from unittest.mock import patch, ANY, Mock
 
 from parameterized import parameterized_class
 
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction
+from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction, CopyDependenciesAction
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflows.python_uv.utils import OSUtils, EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 from aws_lambda_builders.workflows.python_uv.workflow import PythonUvWorkflow
-from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction, CopyDependenciesAction
+from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction
 
 
 @parameterized_class(

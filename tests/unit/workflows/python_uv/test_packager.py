@@ -65,8 +65,6 @@ class TestUvRunner(TestCase):
             target_dir="/target",
             scratch_dir="/scratch",
             python_version="3.9",
-            platform="linux",
-            architecture=X86_64,
         )
 
         # Verify UV sync command was called with correct arguments

@@ -27,7 +27,7 @@ class SubprocessUv:
         """Find UV executable in PATH."""
         uv_path = self._osutils.which("uv")
         if not uv_path:
-            raise MissingUvError()
+            raise MissingUvError(uv_path="not found in PATH")
         return uv_path
 
     @property
@@ -76,14 +76,19 @@ class UvRunner:
         """Get UV version."""
         return get_uv_version(self._uv.uv_executable, self._osutils)
 
+    def _ensure_cache_dir(self, config: UvConfig, scratch_dir: str) -> None:
+        """Ensure UV cache directory is configured."""
+        if not config.cache_dir:
+            config.cache_dir = os.path.join(scratch_dir, "uv-cache")
+            if not os.path.exists(config.cache_dir):
+                self._osutils.makedirs(config.cache_dir)
+
     def sync_dependencies(
         self,
         target_dir: str,
         scratch_dir: str,
         config: Optional[UvConfig] = None,
         python_version: Optional[str] = None,
-        platform: Optional[str] = None,
-        architecture: Optional[str] = None,
         manifest_path: Optional[str] = None,
         project_dir: Optional[str] = None,
     ) -> None:
@@ -95,8 +100,6 @@ class UvRunner:
             scratch_dir: Scratch directory for temporary operations
             config: UV configuration options
             python_version: Target Python version (e.g., "3.9")
-            platform: Target platform (e.g., "linux")
-            architecture: Target architecture (e.g., "x86_64")
             manifest_path: Path to dependency manifest file (for backwards compatibility)
             project_dir: Project directory containing pyproject.toml and uv.lock
         """
@@ -113,11 +116,7 @@ class UvRunner:
             raise ValueError("Either project_dir or manifest_path must be provided")
 
         # Ensure UV cache is configured to use scratch directory
-        if not config.cache_dir:
-            config.cache_dir = os.path.join(scratch_dir, "uv-cache")
-            # Use exist_ok equivalent for osutils
-            if not os.path.exists(config.cache_dir):
-                self._osutils.makedirs(config.cache_dir)
+        self._ensure_cache_dir(config, scratch_dir)
 
         args = ["sync"]
 
@@ -136,6 +135,8 @@ class UvRunner:
 
         if rc != 0:
             raise UvInstallationError(reason=f"UV sync failed: {stderr}")
+        
+        LOG.debug("UV sync completed successfully: %s", stdout)
 
         # Copy dependencies from virtual environment to target directory
         # uv sync creates a .venv directory in the project directory
@@ -180,11 +181,7 @@ class UvRunner:
             config = UvConfig()
 
         # Ensure UV cache is configured to use scratch directory
-        if not config.cache_dir:
-            config.cache_dir = os.path.join(scratch_dir, "uv-cache")
-            # Use exist_ok equivalent for osutils
-            if not os.path.exists(config.cache_dir):
-                self._osutils.makedirs(config.cache_dir)
+        self._ensure_cache_dir(config, scratch_dir)
 
         args = ["pip", "install"]
 
@@ -218,6 +215,8 @@ class UvRunner:
 
         if rc != 0:
             raise UvInstallationError(reason=f"UV pip install failed: {stderr}")
+        
+        LOG.debug("UV pip install completed successfully: %s", stdout)
 
 
 class PythonUvDependencyBuilder:
@@ -263,12 +262,9 @@ class PythonUvDependencyBuilder:
 
         # Configure UV to use scratch directory for cache if not already set
         if not config.cache_dir:
-            uv_cache_dir = os.path.join(scratch_dir_path, "uv-cache")
-            # Use exist_ok equivalent for osutils
-            if not os.path.exists(uv_cache_dir):
-                self._osutils.makedirs(uv_cache_dir)
-            config.cache_dir = uv_cache_dir
-            LOG.debug("Configured UV cache directory: %s", uv_cache_dir)
+            config.cache_dir = os.path.join(scratch_dir_path, "uv-cache")
+            if not os.path.exists(config.cache_dir):
+                self._osutils.makedirs(config.cache_dir)
 
         # Determine Python version from runtime
         python_version = self._extract_python_version(self.runtime)
@@ -277,10 +273,17 @@ class PythonUvDependencyBuilder:
         manifest_name = os.path.basename(manifest_path)
 
         try:
-            # Get the appropriate handler for this manifest
+            # Get the appropriate build handler based on manifest type
+            # This dispatch system allows different build strategies:
+            # - pyproject.toml: Uses uv sync (with lock) or uv lock + export (without lock)
+            # - requirements.txt: Uses uv pip install with platform targeting
             handler = self._get_manifest_handler(manifest_name)
 
-            # Execute the handler
+            # Execute the selected build strategy
+            # Dependencies are built by the handler methods which call UvRunner:
+            # - UvRunner.sync_dependencies(): For pyproject.toml with uv.lock
+            # - UvRunner.pip_install(): For requirements.txt and pyproject.toml without lock
+            # Both methods install packages and copy site-packages to artifacts_dir_path
             handler(manifest_path, artifacts_dir_path, scratch_dir_path, python_version, architecture, config)
 
         except Exception as e:
@@ -288,8 +291,13 @@ class PythonUvDependencyBuilder:
             raise
 
     def _get_manifest_handler(self, manifest_name: str):
-        """Get the appropriate handler function for a manifest file."""
-        # Exact match handlers for ACTUAL manifests
+        """Get the appropriate handler function for a manifest file.
+        
+        Uses a dictionary-based dispatch pattern for extensibility.
+        This allows easy addition of new manifest types in the future
+        without modifying the core dispatch logic.
+        """
+        # Exact match handlers for specific manifest files
         exact_handlers = {
             "pyproject.toml": self._handle_pyproject_build,
         }
@@ -417,7 +425,16 @@ class PythonUvDependencyBuilder:
     def _export_pyproject_to_requirements(
         self, pyproject_path: str, scratch_dir: str, python_version: str
     ) -> Optional[str]:
-        """Use UV's native lock and export to convert pyproject.toml to requirements.txt."""
+        """Use UV's native lock and export to convert pyproject.toml to requirements.txt.
+        
+        This conversion is necessary when pyproject.toml exists without a uv.lock file.
+        UV's pip install command provides better platform targeting capabilities
+        (--python-platform) compared to uv sync, which is essential for Lambda's
+        cross-platform builds (x86_64/ARM64). The workflow is:
+        1. uv lock: Generate lock file from pyproject.toml
+        2. uv export: Convert lock file to requirements.txt format
+        3. Use requirements.txt with uv pip install for platform-specific builds
+        """
         project_dir = os.path.dirname(pyproject_path)
 
         try:
@@ -492,7 +509,7 @@ class PythonUvDependencyBuilder:
         except Exception as e:
             raise UvBuildError(reason=f"Failed to build from requirements: {str(e)}")
 
-    def _extract_python_version(self, runtime: str) -> str:
+    def _extract_python_version(self, runtime: Optional[str]) -> str:
         """Extract Python version from runtime string."""
         if not runtime:
             raise UvBuildError(reason="Runtime is required but was not provided")

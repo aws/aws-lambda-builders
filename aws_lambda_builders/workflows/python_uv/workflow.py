@@ -4,11 +4,11 @@ Python UV Workflow
 
 import logging
 
-from aws_lambda_builders.actions import CleanUpAction, CopySourceAction
+from aws_lambda_builders.actions import CleanUpAction, CopySourceAction, CopyDependenciesAction
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
-from .actions import CopyDependenciesAction, PythonUvBuildAction
+from .actions import PythonUvBuildAction
 from .utils import OSUtils, detect_uv_manifest
 
 LOG = logging.getLogger(__name__)
@@ -144,7 +144,14 @@ class PythonUvWorkflow(BaseWorkflow):
 
         # Advanced case: Copy dependencies from dependencies_dir to artifacts_dir if configured
         if self.dependencies_dir and self.combine_dependencies:
-            self.actions.append(CopyDependenciesAction(self.dependencies_dir, artifacts_dir))
+            self.actions.append(
+                CopyDependenciesAction(
+                    source_dir=source_dir,
+                    artifact_dir=artifacts_dir,
+                    destination_dir=self.dependencies_dir,
+                    maintain_symlinks=False,
+                )
+            )
 
         # Always copy source code (final step)
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
