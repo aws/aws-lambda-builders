@@ -5,6 +5,7 @@ Installs packages using PIP
 import itertools
 import logging
 import re
+import subprocess
 from email.parser import FeedParser
 from typing import List, Tuple
 
@@ -670,8 +671,6 @@ class SDistMetadataFetcher(object):
         # In Python 3.12+, setuptools might not be available by default
         try:
             # Check if setuptools is available in the current environment
-            import subprocess
-
             check_cmd = [self.python_exe, "-c", "import setuptools"]
             result = subprocess.run(check_cmd, capture_output=True, timeout=10, check=False)
             if result.returncode != 0:
