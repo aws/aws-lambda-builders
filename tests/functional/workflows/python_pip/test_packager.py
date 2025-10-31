@@ -49,8 +49,11 @@ class FakeSdistBuilder(object):
     def write_fake_sdist(self, directory, name, version):
         filename = "%s-%s.zip" % (name, version)
         path = "%s/%s" % (directory, filename)
+        # Create PKG-INFO content as fallback for Python 3.12+ where distutils is removed
+        pkg_info_content = "Name: %s\nVersion: %s\n" % (name, version)
         with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as z:
             z.writestr("sdist/setup.py", self._SETUP_PY % (name, version))
+            z.writestr("sdist/PKG-INFO", pkg_info_content)
         return directory, filename
 
 
@@ -959,10 +962,7 @@ class TestSdistMetadataFetcher(object):
     _SETUPTOOLS = "from setuptools import setup"
     _DISTUTILS = "from distutils.core import setup"
     _BOTH = (
-        "try:\n"
-        "    from setuptools import setup\n"
-        "except ImportError:\n"
-        "    from distutils.core import setuptools\n"
+        "try:\n" "    from setuptools import setup\n" "except ImportError:\n" "    from distutils.core import setup\n"
     )
 
     _SETUP_PY = "%s\n" "setup(\n" '    name="%s",\n' '    version="%s"\n' ")\n"
@@ -993,16 +993,18 @@ class TestSdistMetadataFetcher(object):
 
     def test_setup_tar_gz(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._SETUPTOOLS, "foo", "1.0")
+        pkg_info_contents = "Name: foo\nVersion: 1.0\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo"
         assert version == "1.0"
 
     def test_setup_tar_bz2(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._SETUPTOOLS, "foo", "1.0")
+        pkg_info_contents = "Name: foo\nVersion: 1.0\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.bz2")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.bz2", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo"
         assert version == "1.0"
@@ -1014,64 +1016,72 @@ class TestSdistMetadataFetcher(object):
         # which would break a simple ``split("-")`` attempt to get that
         # information.
         setup_py = self._SETUP_PY % (self._SETUPTOOLS, "foo-bar", "1.2b2")
+        pkg_info_contents = "Name: foo-bar\nVersion: 1.2b2\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo-bar"
         assert version == "1.2b2"
 
     def test_setup_zip(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._SETUPTOOLS, "foo", "1.0")
+        pkg_info_contents = "Name: foo\nVersion: 1.0\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "zip")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "zip", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo"
         assert version == "1.0"
 
     def test_distutil_tar_gz(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._DISTUTILS, "foo", "1.0")
+        pkg_info_contents = "Name: foo\nVersion: 1.0\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo"
         assert version == "1.0"
 
     def test_distutil_tar_bz2(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._DISTUTILS, "foo", "1.0")
+        pkg_info_contents = "Name: foo\nVersion: 1.0\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.bz2")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.bz2", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo"
         assert version == "1.0"
 
     def test_distutil_zip(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._DISTUTILS, "foo", "1.0")
+        pkg_info_contents = "Name: foo\nVersion: 1.0\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "zip")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "zip", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo"
         assert version == "1.0"
 
     def test_both_tar_gz(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._BOTH, "foo-bar", "1.0b2")
+        pkg_info_contents = "Name: foo-bar\nVersion: 1.0b2\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.gz", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo-bar"
         assert version == "1.0b2"
 
     def test_both_tar_bz2(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._BOTH, "foo-bar", "1.0b2")
+        pkg_info_contents = "Name: foo-bar\nVersion: 1.0b2\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.bz2")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "tar.bz2", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo-bar"
         assert version == "1.0b2"
 
     def test_both_zip(self, osutils, sdist_reader):
         setup_py = self._SETUP_PY % (self._BOTH, "foo", "1.0")
+        pkg_info_contents = "Name: foo\nVersion: 1.0\n"
         with osutils.tempdir() as tempdir:
-            filepath = self._write_fake_sdist(setup_py, tempdir, "zip")
+            filepath = self._write_fake_sdist(setup_py, tempdir, "zip", pkg_info_contents)
             name, version = sdist_reader.get_package_name_and_version(filepath)
         assert name == "foo"
         assert version == "1.0"
