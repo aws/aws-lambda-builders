@@ -7,6 +7,7 @@ from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.supported_runtimes import NODEJS_RUNTIMES
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm_esbuild.esbuild import EsbuildExecutionError
@@ -19,6 +20,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
     """
 
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
+    SUPPORTED_RUNTIMES = [(runtime,) for runtime in NODEJS_RUNTIMES]
 
     def setUp(self):
         self.source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
@@ -52,7 +54,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         if os.path.exists(source_dependencies):
             shutil.rmtree(source_dependencies)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_javascript_project_with_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
@@ -73,7 +75,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_javascript_project_with_multiple_entrypoints(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-multiple-entrypoints")
 
@@ -94,7 +96,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_typescript_projects(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-typescript")
 
@@ -115,7 +117,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_with_external_esbuild(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild")
         options = {"entry_points": ["included.js"]}
@@ -135,7 +137,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_no_options_passed_to_esbuild(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
@@ -152,7 +154,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         self.assertEqual(str(context.exception), "NodejsNpmEsbuildBuilder:EsbuildBundle - entry_points not set ({})")
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_bundle_with_implicit_file_types(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "implicit-file-types")
 
@@ -173,7 +175,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_bundles_project_without_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-package-esbuild")
         options = {"entry_points": ["included"]}
@@ -199,7 +201,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
@@ -227,7 +229,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_remote_dependencies_with_download_dependencies_and_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
@@ -257,7 +259,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(
         self, runtime
     ):
@@ -282,7 +284,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             "dependencies directory was not provided and downloading dependencies is disabled.",
         )
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_without_combine_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-no-node_modules")
         options = {"entry_points": ["included.js"]}
@@ -313,7 +315,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_javascript_project_with_external(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild-externals")
 
@@ -338,7 +340,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             # Check that the module has been require() instead of bundled
             self.assertIn('require("minimal-request-promise")', js_file)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_javascript_project_with_loader(self, runtime):
         osutils = OSUtils()
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps-esbuild-loader")
@@ -380,7 +382,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
             ),
         )
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_includes_sourcemap_if_requested(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
@@ -401,7 +403,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_esbuild_produces_mjs_output_files(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
         options = {"entry_points": ["included.js"], "sourcemap": True, "out_extension": [".js=.mjs"]}
@@ -421,7 +423,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_esbuild_produces_sourcemap_without_source_contents(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
         options = {"entry_points": ["included.js"], "sourcemap": True, "sources_content": "false"}
@@ -444,7 +446,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         self.assertNotIn("sourcesContent", sourcemap)
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_esbuild_can_build_in_source(self, runtime):
         options = {"entry_points": ["included.js"]}
 
@@ -470,7 +472,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_esbuild_can_build_in_source_with_local_dependency(self, runtime):
         self.source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-local-dependency")
 
@@ -498,7 +500,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_javascript_project_ignoring_relevant_flags(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps-esbuild")
 
@@ -519,7 +521,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_typescript_projects_with_external_manifest(self, runtime):
         base_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-manifest-outside-root")
         source_dir = os.path.join(base_dir, "src")
@@ -541,7 +543,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_typescript_projects_with_external_manifest_with_dependencies_dir_without_combine(self, runtime):
         base_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-manifest-outside-root")
         source_dir = os.path.join(base_dir, "src")
@@ -570,7 +572,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
         self.assertIn(expected_modules, output_modules)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_typescript_projects_with_external_manifest_with_dependencies_dir_with_combine(self, runtime):
         base_dir = os.path.join(self.TEST_DATA_FOLDER, "esbuild-manifest-outside-root")
         source_dir = os.path.join(base_dir, "src")
@@ -599,7 +601,7 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         output_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
         self.assertIn(expected_modules, output_modules)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_typescript_projects_with_external_manifest_and_local_depends(self, runtime):
         base_dir = os.path.join(self.temp_testdata_dir, "esbuild-manifest-outside-root-with-local-depends")
         source_dir = os.path.join(base_dir, "src")

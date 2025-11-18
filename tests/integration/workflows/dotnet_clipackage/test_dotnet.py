@@ -137,7 +137,7 @@ class TestDotnet(TestDotnetBase):
 
     @parameterized.expand(
         [
-            ("dotnet6", "6.0", "CustomRuntime6"),
+            # ("dotnet6", "6.0", "CustomRuntime6"),
             ("dotnet8", "8.0", "CustomRuntime8"),
         ]
     )

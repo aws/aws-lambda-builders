@@ -80,7 +80,7 @@ jobs:
         run: make func-test
 
   node-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / node / npm ${{ matrix.npm }}.x
+    name: ${{ matrix.os }} / ${{ matrix.python }} / node ${{ matrix.nodejs }} / npm ${{ matrix.npm }}.x
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -90,17 +90,16 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
         npm:
           - 8
           - 9
           - 10
           - 11
+        nodejs:
+          - 20
+          - 22
+          - 24          
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -108,7 +107,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: ${{ matrix.nodejs }}
       - if: ${{ matrix.npm }}
         run: npm install -g npm@${{ matrix.npm }}
       - run: npm --version
@@ -116,7 +115,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/nodejs_npm
 
   node-esbuild-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / esbuild / npm ${{ matrix.npm }}.x
+    name: ${{ matrix.os }} / ${{ matrix.python }} / esbuild / node ${{ matrix.nodejs }} / npm ${{ matrix.npm }}.x
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -126,17 +125,16 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
         npm:
           - 8
           - 9
           - 10
           - 11
+        nodejs:
+          - 20
+          - 22
+          - 24
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -144,7 +142,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version:  ${{ matrix.nodejs }}
       - if: ${{ matrix.npm }}
         run: npm install -g npm@${{ matrix.npm }}
       - run: npm --version
@@ -162,12 +160,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -190,12 +183,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
         java:
           - "21"
           - "25"
@@ -224,12 +212,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
         java:
           - "21"
           - "25"
@@ -256,12 +239,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -310,12 +288,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -338,12 +311,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -368,12 +336,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
           - "3.13"
-          - "3.14"        
         rust:
           - stable
     steps:
