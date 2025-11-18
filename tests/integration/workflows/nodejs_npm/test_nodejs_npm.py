@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 import shutil
@@ -9,6 +10,7 @@ from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.supported_runtimes import NODEJS_RUNTIMES
 from tests.testing_utils import read_link_without_junction_prefix
 
 logger = logging.getLogger("aws_lambda_builders.workflows.nodejs_npm.workflow")
@@ -20,6 +22,13 @@ class TestNodejsNpmWorkflow(TestCase):
     """
 
     TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
+
+    # Use centralized Node.js runtimes
+    SUPPORTED_RUNTIMES = [(runtime,) for runtime in NODEJS_RUNTIMES]
+
+    # Generate combinations of runtimes and lockfile types
+    LOCKFILE_TYPES = ["package-lock", "shrinkwrap", "package-lock-and-shrinkwrap"]
+    RUNTIME_LOCKFILE_COMBINATIONS = list(itertools.product(NODEJS_RUNTIMES, LOCKFILE_TYPES))
 
     def setUp(self):
         self.artifacts_dir = tempfile.mkdtemp()
@@ -41,7 +50,7 @@ class TestNodejsNpmWorkflow(TestCase):
         shutil.rmtree(self.dependencies_dir)
         shutil.rmtree(self.temp_dir)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_without_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-deps")
 
@@ -57,7 +66,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_without_manifest(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-manifest")
 
@@ -75,7 +84,7 @@ class TestNodejsNpmWorkflow(TestCase):
         mock_warning.assert_called_once_with("package.json file not found. Continuing the build without dependencies.")
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_and_excludes_hidden_aws_sam(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "excluded-files")
 
@@ -91,7 +100,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_remote_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
 
@@ -111,7 +120,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_npmrc(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npmrc")
 
@@ -132,22 +141,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
 
-    @parameterized.expand(
-        [
-            ("nodejs16.x", "package-lock"),
-            ("nodejs18.x", "package-lock"),
-            ("nodejs20.x", "package-lock"),
-            ("nodejs22.x", "package-lock"),
-            ("nodejs16.x", "shrinkwrap"),
-            ("nodejs18.x", "shrinkwrap"),
-            ("nodejs20.x", "shrinkwrap"),
-            ("nodejs22.x", "shrinkwrap"),
-            ("nodejs16.x", "package-lock-and-shrinkwrap"),
-            ("nodejs18.x", "package-lock-and-shrinkwrap"),
-            ("nodejs20.x", "package-lock-and-shrinkwrap"),
-            ("nodejs22.x", "package-lock-and-shrinkwrap"),
-        ]
-    )
+    @parameterized.expand(RUNTIME_LOCKFILE_COMBINATIONS)
     def test_builds_project_with_lockfile(self, runtime, dir_name):
         expected_files_common = {"package.json", "included.js", "node_modules"}
         expected_files_by_dir_name = {
@@ -172,7 +166,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_fails_if_npm_cannot_resolve_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "broken-deps")
 
@@ -187,7 +181,7 @@ class TestNodejsNpmWorkflow(TestCase):
 
         self.assertIn("No matching version found for aws-sdk@2.997.999", str(ctx.exception))
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_remote_dependencies_without_download_dependencies_with_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
 
@@ -205,7 +199,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_remote_dependencies_with_download_dependencies_and_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
 
@@ -235,7 +229,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_remote_dependencies_without_download_dependencies_without_dependencies_dir(
         self, runtime
     ):
@@ -256,7 +250,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_without_combine_dependencies(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "npm-deps")
 
@@ -283,7 +277,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_dependencies_files = set(os.listdir(os.path.join(self.dependencies_dir)))
         self.assertNotIn(expected_dependencies_files, output_dependencies_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_with_download_dependencies(self, runtime):
         source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
 
@@ -312,7 +306,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_with_removed_dependencies(self, runtime):
         # run a build with default requirements and confirm dependencies are downloaded
         source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
@@ -352,7 +346,7 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIn(".package-lock.json", set(os.listdir(source_node_modules)))
         self.assertNotIn("minimal-request-promise", set(os.listdir(source_node_modules)))
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_with_download_dependencies_local_dependency(self, runtime):
         source_dir = os.path.join(self.temp_testdata_dir, "with-local-dependency")
 
@@ -381,7 +375,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_with_download_dependencies_and_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
 
@@ -416,7 +410,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_with_download_dependencies_and_dependencies_dir_without_combine_dependencies(
         self, runtime
     ):
@@ -449,7 +443,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_reuse_saved_dependencies_dir(self, runtime):
         source_dir = os.path.join(self.temp_testdata_dir, "npm-deps")
 
@@ -478,7 +472,7 @@ class TestNodejsNpmWorkflow(TestCase):
             self.artifacts_dir,
             self.scratch_dir,
             os.path.join(source_dir, "package.json"),
-            runtime="nodejs16.x",
+            runtime=runtime,
             build_in_source=True,
             dependencies_dir=self.dependencies_dir,
             download_dependencies=False,
@@ -505,7 +499,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root(self, runtime):
         base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
         source_dir = os.path.join(base_dir, "src")
@@ -528,7 +522,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root_with_reuse_saved_dependencies_dir(self, runtime):
         base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
         source_dir = os.path.join(base_dir, "src")
@@ -575,7 +569,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_modules = set(os.listdir(os.path.join(self.artifacts_dir, "node_modules")))
         self.assertEqual(expected_modules, output_modules)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root_with_dependencies_dir_and_not_combine(self, runtime):
         base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
         source_dir = os.path.join(base_dir, "src")
@@ -600,7 +594,7 @@ class TestNodejsNpmWorkflow(TestCase):
         dependencies_dir_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
         self.assertEqual(expected_modules, dependencies_dir_modules)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root_with_dependencies_dir_and_combine(self, runtime):
         base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root")
         source_dir = os.path.join(base_dir, "src")
@@ -629,7 +623,7 @@ class TestNodejsNpmWorkflow(TestCase):
         dependencies_dir_modules = set(os.listdir(os.path.join(self.dependencies_dir, "node_modules")))
         self.assertEqual(expected_modules, dependencies_dir_modules)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root_and_local_dependencies(self, runtime):
         base_dir = os.path.join(self.temp_testdata_dir, "manifest-outside-root-with-local-dependency")
         source_dir = os.path.join(base_dir, "src")
@@ -657,7 +651,7 @@ class TestNodejsNpmWorkflow(TestCase):
         source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
         self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root_and_local_dependencies_with_reuse_saved_dependencies_dir(
         self, runtime
     ):
@@ -712,7 +706,7 @@ class TestNodejsNpmWorkflow(TestCase):
         source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
         self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root_and_local_dependencies_with_dependencies_dir_and_not_combine(
         self, runtime
     ):
@@ -744,7 +738,7 @@ class TestNodejsNpmWorkflow(TestCase):
         source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
         self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_project_with_manifest_outside_root_and_local_dependencies_with_dependencies_dir_and_combine(
         self, runtime
     ):
@@ -780,7 +774,7 @@ class TestNodejsNpmWorkflow(TestCase):
         source_modules = set(os.listdir(os.path.join(source_dir, "node_modules")))
         self.assertTrue(all(expected_module in source_modules for expected_module in expected_modules))
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     @mock.patch.dict("os.environ", {"SAM_NPM_RUN_TEST_WITH_BUILD": "true"})
     def test_runs_test_script_if_specified(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "test-script-to-create-file")
@@ -797,7 +791,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_does_not_run_test_script_if_env_var_not_specified(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "test-script-to-create-file")
 
@@ -813,7 +807,7 @@ class TestNodejsNpmWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_does_not_raise_error_if_empty_test_script(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "empty-test-script")
 

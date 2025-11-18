@@ -3,6 +3,15 @@ from unittest import TestCase
 from aws_lambda_builders.validator import RuntimeValidator, SUPPORTED_RUNTIMES
 from aws_lambda_builders.exceptions import UnsupportedRuntimeError, UnsupportedArchitectureError
 from aws_lambda_builders.architecture import ARM64, X86_64
+from aws_lambda_builders.supported_runtimes import (
+    NODEJS_RUNTIMES,
+    PYTHON_RUNTIMES,
+    RUBY_RUNTIMES,
+    JAVA_RUNTIMES,
+    DOTNET_RUNTIMES,
+    GO_RUNTIMES,
+    CUSTOM_RUNTIMES,
+)
 
 
 class TestRuntimeValidator(TestCase):
@@ -61,8 +70,7 @@ class TestRuntimeValidator(TestCase):
 
     def test_all_nodejs_runtimes_supported(self):
         """Test all Node.js runtimes are supported with both architectures"""
-        nodejs_runtimes = ["nodejs16.x", "nodejs18.x", "nodejs20.x", "nodejs22.x"]
-        for runtime in nodejs_runtimes:
+        for runtime in NODEJS_RUNTIMES:
             for arch in [ARM64, X86_64]:
                 validator = RuntimeValidator(runtime=runtime, architecture=arch)
                 result = validator.validate("/usr/bin/node")
@@ -71,16 +79,7 @@ class TestRuntimeValidator(TestCase):
 
     def test_all_python_runtimes_supported(self):
         """Test all Python runtimes are supported with both architectures"""
-        python_runtimes = [
-            "python3.8",
-            "python3.9",
-            "python3.10",
-            "python3.11",
-            "python3.12",
-            "python3.13",
-            "python3.14",
-        ]
-        for runtime in python_runtimes:
+        for runtime in PYTHON_RUNTIMES:
             for arch in [ARM64, X86_64]:
                 validator = RuntimeValidator(runtime=runtime, architecture=arch)
                 result = validator.validate(f"/usr/bin/{runtime}")
@@ -89,8 +88,7 @@ class TestRuntimeValidator(TestCase):
 
     def test_all_ruby_runtimes_supported(self):
         """Test all Ruby runtimes are supported with both architectures"""
-        ruby_runtimes = ["ruby3.2", "ruby3.3", "ruby3.4"]
-        for runtime in ruby_runtimes:
+        for runtime in RUBY_RUNTIMES:
             for arch in [ARM64, X86_64]:
                 validator = RuntimeValidator(runtime=runtime, architecture=arch)
                 result = validator.validate("/usr/bin/ruby")
@@ -99,8 +97,7 @@ class TestRuntimeValidator(TestCase):
 
     def test_all_java_runtimes_supported(self):
         """Test all Java runtimes are supported with both architectures"""
-        java_runtimes = ["java8", "java11", "java17", "java21", "java25"]
-        for runtime in java_runtimes:
+        for runtime in JAVA_RUNTIMES:
             for arch in [ARM64, X86_64]:
                 validator = RuntimeValidator(runtime=runtime, architecture=arch)
                 result = validator.validate("/usr/bin/java")
@@ -109,17 +106,16 @@ class TestRuntimeValidator(TestCase):
 
     def test_go_runtime_supported(self):
         """Test Go runtime is supported with both architectures"""
-        runtime = "go1.x"
-        for arch in [ARM64, X86_64]:
-            validator = RuntimeValidator(runtime=runtime, architecture=arch)
-            result = validator.validate("/usr/bin/go")
-            self.assertEqual(result, "/usr/bin/go")
-            self.assertEqual(validator._runtime_path, "/usr/bin/go")
+        for runtime in GO_RUNTIMES:
+            for arch in [ARM64, X86_64]:
+                validator = RuntimeValidator(runtime=runtime, architecture=arch)
+                result = validator.validate("/usr/bin/go")
+                self.assertEqual(result, "/usr/bin/go")
+                self.assertEqual(validator._runtime_path, "/usr/bin/go")
 
     def test_all_dotnet_runtimes_supported(self):
         """Test all .NET runtimes are supported with both architectures"""
-        dotnet_runtimes = ["dotnet6", "dotnet8"]
-        for runtime in dotnet_runtimes:
+        for runtime in DOTNET_RUNTIMES:
             for arch in [ARM64, X86_64]:
                 validator = RuntimeValidator(runtime=runtime, architecture=arch)
                 result = validator.validate("/usr/bin/dotnet")
@@ -128,12 +124,12 @@ class TestRuntimeValidator(TestCase):
 
     def test_provided_runtime_supported(self):
         """Test provided runtime is supported with both architectures"""
-        runtime = "provided"
-        for arch in [ARM64, X86_64]:
-            validator = RuntimeValidator(runtime=runtime, architecture=arch)
-            result = validator.validate("/opt/bootstrap")
-            self.assertEqual(result, "/opt/bootstrap")
-            self.assertEqual(validator._runtime_path, "/opt/bootstrap")
+        for runtime in CUSTOM_RUNTIMES:
+            for arch in [ARM64, X86_64]:
+                validator = RuntimeValidator(runtime=runtime, architecture=arch)
+                result = validator.validate("/opt/bootstrap")
+                self.assertEqual(result, "/opt/bootstrap")
+                self.assertEqual(validator._runtime_path, "/opt/bootstrap")
 
     def test_all_runtimes_support_both_architectures(self):
         """Test that all supported runtimes support both ARM64 and X86_64 architectures"""
@@ -149,6 +145,8 @@ class TestRuntimeValidator(TestCase):
             ("nodejs20.x", "/opt/node/bin/node"),
             ("java17", "/usr/lib/jvm/java-17/bin/java"),
             ("provided", "/var/runtime/bootstrap"),
+            ("provided.al2", "/var/runtime/bootstrap"),
+            ("provided.al2023", "/var/runtime/bootstrap"),
         ]
 
         for runtime, path in test_cases:
