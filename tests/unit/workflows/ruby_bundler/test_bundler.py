@@ -31,46 +31,38 @@ class TestSubprocessBundler(TestCase):
     def test_run_executes_bundler_on_nixes(self):
         self.osutils.is_windows.side_effect = [False]
         self.under_test = SubprocessBundler(self.osutils)
-        self.under_test.run(["install", "--without", "development", "test"])
-        self.osutils.popen.assert_called_with(
-            ["bundle", "install", "--without", "development", "test"], cwd=None, stderr="PIPE", stdout="PIPE"
-        )
+        self.under_test.run(["install"])
+        self.osutils.popen.assert_called_with(["bundle", "install"], cwd=None, stderr="PIPE", stdout="PIPE")
 
     def test_run_executes_bundler_on_windows(self):
         self.osutils.is_windows.side_effect = [True]
         self.under_test = SubprocessBundler(self.osutils)
-        self.under_test.run(["install", "--without", "development", "test"])
-        self.osutils.popen.assert_called_with(
-            ["bundler.bat", "install", "--without", "development", "test"], cwd=None, stderr="PIPE", stdout="PIPE"
-        )
+        self.under_test.run(["install"])
+        self.osutils.popen.assert_called_with(["bundler.bat", "install"], cwd=None, stderr="PIPE", stdout="PIPE")
 
     def test_uses_custom_bundler_path_if_supplied(self):
-        self.under_test.run(["install", "--without", "development", "test"])
-        self.osutils.popen.assert_called_with(
-            ["/a/b/c/bundle", "install", "--without", "development", "test"], cwd=None, stderr="PIPE", stdout="PIPE"
-        )
+        self.under_test.run(["install"])
+        self.osutils.popen.assert_called_with(["/a/b/c/bundle", "install"], cwd=None, stderr="PIPE", stdout="PIPE")
 
     def test_uses_cwd_if_supplied(self):
-        self.under_test.run(["install", "--without", "development", "test"], cwd="/a/cwd")
-        self.osutils.popen.assert_called_with(
-            ["/a/b/c/bundle", "install", "--without", "development", "test"], cwd="/a/cwd", stderr="PIPE", stdout="PIPE"
-        )
+        self.under_test.run(["install"], cwd="/a/cwd")
+        self.osutils.popen.assert_called_with(["/a/b/c/bundle", "install"], cwd="/a/cwd", stderr="PIPE", stdout="PIPE")
 
     def test_returns_popen_out_decoded_if_retcode_is_0(self):
         self.popen.out = b"some encoded text\n\n"
-        result = self.under_test.run(["install", "--without", "development", "test"])
+        result = self.under_test.run(["install"])
         self.assertEqual(result, "some encoded text")
 
     def test_logs_warning_when_gemfile_missing(self):
         self.popen.returncode = 10
         with patch.object(logger, "warning") as mock_warning:
-            self.under_test.run(["install", "--without", "development", "test"])
+            self.under_test.run(["install"])
         mock_warning.assert_called_once_with("Gemfile not found. Continuing the build without dependencies.")
 
     def test_bundle_file_removed_if_generated(self):
         self.popen.returncode = 10
         self.osutils.directory_exists.return_value = True
-        self.under_test.run(["install", "--without", "development", "test"])
+        self.under_test.run(["install"])
         self.osutils.get_bundle_dir.assert_called_once()
         self.osutils.remove_directory.assert_called_once()
 
@@ -79,7 +71,7 @@ class TestSubprocessBundler(TestCase):
         self.popen.out = b"some error text\n\n"
         self.popen.err = b""
         with self.assertRaises(BundlerExecutionError) as raised:
-            self.under_test.run(["install", "--without", "development", "test"])
+            self.under_test.run(["install"])
         self.assertEqual(raised.exception.args[0], "Bundler Failed: some error text")
 
     def test_raises_BundlerExecutionError_with_stderr_text_if_retcode_is_not_0(self):
@@ -87,7 +79,7 @@ class TestSubprocessBundler(TestCase):
         self.popen.err = b"some error text\n\n"
         self.popen.out = b""
         with self.assertRaises(BundlerExecutionError) as raised:
-            self.under_test.run(["install", "--without", "development", "test"])
+            self.under_test.run(["install"])
         self.assertEqual(raised.exception.args[0], "Bundler Failed: some error text")
 
     def test_raises_BundlerExecutionError_with_both_stderr_and_stdout_text_if_retcode_is_not_0(self):
@@ -95,14 +87,14 @@ class TestSubprocessBundler(TestCase):
         self.popen.err = b"some error text from stderr\n\n"
         self.popen.out = b"some error text from stdout\n\n"
         with self.assertRaises(BundlerExecutionError) as raised:
-            self.under_test.run(["install", "--without", "development", "test"])
+            self.under_test.run(["install"])
         self.assertEqual(
             raised.exception.args[0], f"Bundler Failed: some error text from stdout{linesep}some error text from stderr"
         )
 
     def test_raises_ValueError_if_args_not_a_list(self):
         with self.assertRaises(ValueError) as raised:
-            self.under_test.run(("install", "--without", "development", "test"))
+            self.under_test.run("install")
         self.assertEqual(raised.exception.args[0], "args must be a list")
 
     def test_raises_ValueError_if_args_empty(self):
