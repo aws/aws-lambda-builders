@@ -294,7 +294,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      - uses: ruby/setup-ruby@v1
+      # Pin to specific version until Lambda Builders support bundler 4.0.0
+      - uses: ruby/setup-ruby@v1.268.0
         with:
           ruby-version: "3.2"
       - run: make init
