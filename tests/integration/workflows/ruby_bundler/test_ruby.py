@@ -19,6 +19,8 @@ workflow_logger = logging.getLogger("aws_lambda_builders.workflows.ruby_bundler.
     ("runtime",),
     [
         ("ruby3.2",),
+        # ("ruby3.3",),
+        # ("ruby3.4",),
     ],
 )
 class TestRubyWorkflow(TestCase):
