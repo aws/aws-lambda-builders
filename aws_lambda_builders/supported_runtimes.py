@@ -52,6 +52,7 @@ GO_RUNTIMES = [
 DOTNET_RUNTIMES = [
     "dotnet6",
     "dotnet8",
+    "dotnet10",
 ]
 
 # Custom runtimes
