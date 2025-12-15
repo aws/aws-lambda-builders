@@ -36,7 +36,7 @@ class SubprocessBundler(object):
         self.osutils = osutils
         if bundler_exe is None:
             if osutils.is_windows():
-                bundler_exe = "bundler.bat"
+                bundler_exe = "bundle.bat"
             else:
                 bundler_exe = "bundle"
 
