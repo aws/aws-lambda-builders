@@ -302,7 +302,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/ruby_bundler
 
   dotnet-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / dotnet
+    name: ${{ matrix.os }} / ${{ matrix.python }} / dotnet ${{ matrix.dotnet }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -313,11 +313,18 @@ jobs:
           - windows-latest
         python:
           - "3.13"
+        dotnet:
+          - "6.0.x"
+          - "8.0.x"
+          - "10.0.x"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
       - run: make init
       - run: pytest -vv tests/integration/workflows/dotnet_clipackage
 
