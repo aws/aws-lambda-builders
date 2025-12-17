@@ -38,7 +38,7 @@ class TestSubprocessBundler(TestCase):
         self.osutils.is_windows.side_effect = [True]
         self.under_test = SubprocessBundler(self.osutils)
         self.under_test.run(["install"])
-        self.osutils.popen.assert_called_with(["bundler.bat", "install"], cwd=None, stderr="PIPE", stdout="PIPE")
+        self.osutils.popen.assert_called_with(["bundle.bat", "install"], cwd=None, stderr="PIPE", stdout="PIPE")
 
     def test_uses_custom_bundler_path_if_supplied(self):
         self.under_test.run(["install"])
