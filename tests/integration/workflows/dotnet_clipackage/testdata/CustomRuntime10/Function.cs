@@ -2,7 +2,7 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 
-namespace CustomRuntime8;
+namespace CustomRuntime10;
 
 public class Function
 {
