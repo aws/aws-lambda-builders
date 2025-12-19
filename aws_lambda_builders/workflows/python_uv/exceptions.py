@@ -8,7 +8,10 @@ from aws_lambda_builders.exceptions import LambdaBuilderError
 class MissingUvError(LambdaBuilderError):
     """Exception raised when UV executable is not found."""
 
-    MESSAGE = "uv executable not found at {uv_path}. Please install uv: https://docs.astral.sh/uv/getting-started/installation/"
+    MESSAGE = (
+        "uv executable not found at {uv_path}. "
+        "Please install uv: https://docs.astral.sh/uv/getting-started/installation/"
+    )
 
 
 class UvInstallationError(LambdaBuilderError):

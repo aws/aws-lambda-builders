@@ -47,18 +47,18 @@ class PythonUvBuildAction(BaseAction):
 
     def execute(self) -> None:
         """Execute the build action for Python UV workflows."""
+        # Initialize UV components
+        uv_subprocess = SubprocessUv(osutils=self._os_utils)
+        uv_runner = UvRunner(uv_subprocess=uv_subprocess, osutils=self._os_utils)
+
+        # Create main package builder
+        package_builder = PythonUvDependencyBuilder(
+            osutils=self._os_utils,
+            runtime=self.runtime,
+            uv_runner=uv_runner,
+        )
+
         try:
-            # Initialize UV components
-            uv_subprocess = SubprocessUv(osutils=self._os_utils)
-            uv_runner = UvRunner(uv_subprocess=uv_subprocess, osutils=self._os_utils)
-
-            # Create main package builder
-            package_builder = PythonUvDependencyBuilder(
-                osutils=self._os_utils,
-                runtime=self.runtime,
-                uv_runner=uv_runner,
-            )
-
             # Determine target directory
             target_artifact_dir = self.artifacts_dir
             if self.dependencies_dir:
@@ -72,11 +72,5 @@ class PythonUvBuildAction(BaseAction):
                 architecture=self.architecture,
                 config=self.config,
             )
-
-            LOG.info("Successfully built Python dependencies using UV")
-
         except (MissingUvError, UvInstallationError, UvBuildError) as ex:
             raise ActionFailedError(str(ex))
-        except Exception as ex:
-            LOG.error("Unexpected error during UV build: %s", str(ex))
-            raise ActionFailedError(f"UV build failed: {str(ex)}")

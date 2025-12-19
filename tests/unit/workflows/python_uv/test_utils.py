@@ -1,13 +1,13 @@
 import os
 import tempfile
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 
 from aws_lambda_builders.workflows.python_uv.utils import (
     OSUtils,
+    UvConfig,
     detect_uv_manifest,
     get_uv_version,
-    UvConfig,
 )
 
 

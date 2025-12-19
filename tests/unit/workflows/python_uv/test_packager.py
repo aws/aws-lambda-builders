@@ -1,9 +1,9 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from aws_lambda_builders.architecture import X86_64, ARM64
-from aws_lambda_builders.workflows.python_uv.packager import SubprocessUv, UvRunner, PythonUvDependencyBuilder
-from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvInstallationError, UvBuildError
+from aws_lambda_builders.architecture import X86_64
+from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvBuildError, UvInstallationError
+from aws_lambda_builders.workflows.python_uv.packager import PythonUvDependencyBuilder, SubprocessUv, UvRunner
 from aws_lambda_builders.workflows.python_uv.utils import UvConfig
 
 
@@ -16,6 +16,16 @@ class TestSubprocessUv(TestCase):
 
         subprocess_uv = SubprocessUv()
         self.assertEqual(subprocess_uv.uv_executable, "/usr/bin/uv")
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_subprocess_uv_init_success_windows_path(self, mock_osutils_class):
+        """Test SubprocessUv initialization with Windows-style path."""
+        mock_osutils = Mock()
+        mock_osutils.which.return_value = "C:\\Users\\user\\AppData\\Local\\uv\\uv.exe"
+        mock_osutils_class.return_value = mock_osutils
+
+        subprocess_uv = SubprocessUv()
+        self.assertEqual(subprocess_uv.uv_executable, "C:\\Users\\user\\AppData\\Local\\uv\\uv.exe")
 
     @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
     def test_subprocess_uv_init_missing_uv(self, mock_osutils_class):
@@ -41,6 +51,45 @@ class TestSubprocessUv(TestCase):
         self.assertEqual(stderr, "")
         mock_osutils.run_subprocess.assert_called_once_with(["/usr/bin/uv", "--version"], cwd=None, env=None)
 
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_run_uv_command_success_windows_path(self, mock_osutils_class):
+        """Test run_uv_command with Windows-style path."""
+        mock_osutils = Mock()
+        windows_uv_path = "C:\\Users\\user\\AppData\\Local\\uv\\uv.exe"
+        mock_osutils.which.return_value = windows_uv_path
+        mock_osutils.run_subprocess.return_value = (0, "success", "")
+        mock_osutils_class.return_value = mock_osutils
+
+        subprocess_uv = SubprocessUv()
+        rc, stdout, stderr = subprocess_uv.run_uv_command(["--version"])
+
+        self.assertEqual(rc, 0)
+        mock_osutils.run_subprocess.assert_called_once_with([windows_uv_path, "--version"], cwd=None, env=None)
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_get_uv_version_success(self, mock_osutils_class):
+        mock_osutils = Mock()
+        mock_osutils.which.return_value = "/usr/bin/uv"
+        mock_osutils.run_subprocess.return_value = (0, "uv 0.6.16", "")
+        mock_osutils_class.return_value = mock_osutils
+
+        subprocess_uv = SubprocessUv()
+        version = subprocess_uv.get_uv_version()
+
+        self.assertEqual(version, "0.6.16")
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_get_uv_version_failure(self, mock_osutils_class):
+        mock_osutils = Mock()
+        mock_osutils.which.return_value = "/usr/bin/uv"
+        mock_osutils.run_subprocess.return_value = (1, "", "error")
+        mock_osutils_class.return_value = mock_osutils
+
+        subprocess_uv = SubprocessUv()
+        version = subprocess_uv.get_uv_version()
+
+        self.assertIsNone(version)
+
 
 class TestUvRunner(TestCase):
     def setUp(self):
@@ -49,38 +98,12 @@ class TestUvRunner(TestCase):
         self.mock_osutils = Mock()
         self.uv_runner = UvRunner(uv_subprocess=self.mock_subprocess_uv, osutils=self.mock_osutils)
 
-    @patch("aws_lambda_builders.workflows.python_uv.packager.get_uv_version")
-    def test_uv_version_property(self, mock_get_version):
-        mock_get_version.return_value = "0.6.16"
+    def test_uv_version_property(self):
+        self.mock_subprocess_uv.get_uv_version.return_value = "0.6.16"
 
         version = self.uv_runner.uv_version
         self.assertEqual(version, "0.6.16")
-        mock_get_version.assert_called_once_with("/usr/bin/uv", self.mock_osutils)
-
-    def test_sync_dependencies_success(self):
-        self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
-
-        self.uv_runner.sync_dependencies(
-            manifest_path="/path/to/pyproject.toml",
-            target_dir="/target",
-            scratch_dir="/scratch",
-            python_version="3.9",
-        )
-
-        # Verify UV sync command was called with correct arguments
-        args_called = self.mock_subprocess_uv.run_uv_command.call_args[0][0]
-        self.assertIn("sync", args_called)
-        self.assertIn("--python", args_called)
-        self.assertIn("3.9", args_called)
-        # Note: UV sync doesn't support --target, it syncs to the project environment
-
-    def test_sync_dependencies_failure(self):
-        self.mock_subprocess_uv.run_uv_command.return_value = (1, "", "error message")
-
-        with self.assertRaises(UvInstallationError):
-            self.uv_runner.sync_dependencies(
-                manifest_path="/path/to/pyproject.toml", target_dir="/target", scratch_dir="/scratch"
-            )
+        self.mock_subprocess_uv.get_uv_version.assert_called_once()
 
     def test_install_requirements_success(self):
         self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
@@ -134,6 +157,9 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.assertIn("Runtime is required", str(context.exception))
 
     def test_build_from_lock_file(self):
+        # Mock the uv command for export
+        self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+
         self.builder._build_from_lock_file(
             lock_path="/path/to/uv.lock",
             target_dir="/target",
@@ -143,7 +169,9 @@ class TestPythonUvDependencyBuilder(TestCase):
             config=UvConfig(),
         )
 
-        self.mock_uv_runner.sync_dependencies.assert_called_once()
+        # Should call export then install_requirements
+        self.mock_uv_runner._uv.run_uv_command.assert_called_once()
+        self.mock_uv_runner.install_requirements.assert_called_once()
 
     def test_build_from_requirements(self):
         self.builder._build_from_requirements(
@@ -187,6 +215,9 @@ class TestPythonUvDependencyBuilder(TestCase):
 
     def test_build_dependencies_pyproject_with_uv_lock(self):
         """Test that pyproject.toml with uv.lock present uses lock-based build."""
+        # Mock the uv export command
+        self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+
         with patch("os.path.basename", return_value="pyproject.toml"), patch(
             "os.path.dirname", return_value="/path/to"
         ), patch("os.path.exists") as mock_exists:
@@ -201,9 +232,9 @@ class TestPythonUvDependencyBuilder(TestCase):
                 architecture=X86_64,
             )
 
-        # Should use sync_dependencies (lock-based build)
-        self.mock_uv_runner.sync_dependencies.assert_called_once()
-        self.mock_uv_runner.install_requirements.assert_not_called()
+        # Should use export + install_requirements (for cross-platform support)
+        self.mock_uv_runner._uv.run_uv_command.assert_called_once()  # export
+        self.mock_uv_runner.install_requirements.assert_called_once()
 
         # Verify it checked for uv.lock in the right location
         mock_exists.assert_called_with("/path/to/uv.lock")
@@ -233,8 +264,8 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Verify it checked for uv.lock in the right location
         mock_exists.assert_called_with("/path/to/uv.lock")
 
-    def test_build_dependencies_configures_cache_dir(self):
-        """Test that build_dependencies properly configures UV cache directory in scratch_dir."""
+    def test_build_dependencies_passes_scratch_dir(self):
+        """Test that build_dependencies passes scratch_dir to UvRunner for cache configuration."""
         with patch("os.path.basename", return_value="requirements.txt"):
             self.builder.build_dependencies(
                 artifacts_dir_path="/artifacts",
@@ -244,16 +275,12 @@ class TestPythonUvDependencyBuilder(TestCase):
             )
 
         # Verify that install_requirements was called with scratch_dir
+        # UvRunner._ensure_cache_dir() will use this to configure the cache
         call_args = self.mock_uv_runner.install_requirements.call_args
         self.assertEqual(call_args[1]["scratch_dir"], "/scratch")
 
-        # Verify that makedirs was called to create cache directory
-        self.mock_osutils.makedirs.assert_called()
-
     def test_build_dependencies_respects_existing_cache_dir(self):
         """Test that existing cache_dir in config is respected."""
-        from aws_lambda_builders.workflows.python_uv.utils import UvConfig
-
         config = UvConfig(cache_dir="/custom/cache")
 
         with patch("os.path.basename", return_value="requirements.txt"):

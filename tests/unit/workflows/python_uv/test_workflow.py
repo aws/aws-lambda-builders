@@ -1,13 +1,12 @@
 from unittest import TestCase
-from unittest.mock import patch, ANY, Mock
+from unittest.mock import Mock, patch
 
 from parameterized import parameterized_class
 
-from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction, CopyDependenciesAction
-from aws_lambda_builders.path_resolver import PathResolver
-from aws_lambda_builders.workflows.python_uv.utils import OSUtils, EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
-from aws_lambda_builders.workflows.python_uv.workflow import PythonUvWorkflow
+from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
 from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction
+from aws_lambda_builders.workflows.python_uv.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE, OSUtils
+from aws_lambda_builders.workflows.python_uv.workflow import PythonUvWorkflow
 
 
 @parameterized_class(
@@ -155,9 +154,9 @@ class TestPythonUvWorkflow(TestCase):
         self.assertEqual(self.workflow.EXCLUDED_FILES, expected_excluded_files)
 
     def test_get_resolvers(self):
+        # UV has built-in Python version handling, no external resolvers needed
         resolvers = self.workflow.get_resolvers()
-        self.assertEqual(len(resolvers), 1)
-        self.assertIsInstance(resolvers[0], PathResolver)
+        self.assertEqual(len(resolvers), 0)
 
     def test_get_validators(self):
         validators = self.workflow.get_validators()

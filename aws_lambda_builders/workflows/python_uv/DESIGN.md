@@ -123,16 +123,23 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 #### Step 2: Build dependencies based on manifest type
 
 **For pyproject.toml with uv.lock present:**
-- Use `uv sync` to install exact dependencies from lock file
-- Provides reproducible builds with locked dependency versions
+- Use `uv export` to convert lock file to requirements.txt format
+- Install using `uv pip install` with platform targeting (--python-platform)
+- Provides reproducible builds with locked dependency versions AND cross-platform support
 
 **For pyproject.toml without uv.lock:**
 - Use `uv lock` to create temporary lock file with resolved dependencies  
 - Use `uv export` to convert lock file to requirements.txt format
-- Install dependencies using the exported requirements
+- Install dependencies using `uv pip install` with platform targeting
 
 **For requirements.txt files:**
 - Use `uv pip install` directly with Lambda-compatible settings
+
+**Why export + pip install instead of uv sync?**
+`uv sync` doesn't support cross-platform builds (no --python-platform flag). Since Lambda
+requires building for Linux (x86_64 or ARM64) regardless of the build machine's OS, we use
+`uv export` to convert lock files to requirements.txt, then `uv pip install` which supports
+the `--python-platform` flag for cross-platform wheel selection.
 
 #### Step 3: Configure Lambda-compatible installation
 
@@ -291,6 +298,7 @@ Note: `requirements.in` (pip-tools format) is not supported to keep the implemen
 | python3.10    | ✓      | ✓     | Supported |
 | python3.11    | ✓      | ✓     | Supported |
 | python3.12    | ✓      | ✓     | Supported |
+| python3.13    | ✓      | ✓     | Supported |
 | python3.13    | ✓      | ✓     | Supported |
 
 #### Integration with Lambda Builders

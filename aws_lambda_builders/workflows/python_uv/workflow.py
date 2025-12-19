@@ -4,8 +4,7 @@ Python UV Workflow
 
 import logging
 
-from aws_lambda_builders.actions import CleanUpAction, CopySourceAction, CopyDependenciesAction
-from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import PythonUvBuildAction
@@ -80,8 +79,6 @@ class PythonUvWorkflow(BaseWorkflow):
         ".vscode",
         ".idea",
     )
-
-    PYTHON_VERSION_THREE = "3"
 
     DEFAULT_BUILD_DIR = BuildDirectory.SCRATCH
     BUILD_IN_SOURCE_SUPPORT = BuildInSourceSupport.NOT_SUPPORTED
@@ -158,26 +155,13 @@ class PythonUvWorkflow(BaseWorkflow):
 
     def get_resolvers(self):
         """
-        Get path resolvers for finding Python and UV binaries.
+        Get path resolvers for the workflow.
 
-        Returns specialized Python path resolver that looks for additional binaries
-        in addition to the language specific binary.
+        UV has robust built-in Python version handling and can automatically
+        find, download, and manage Python versions. Unlike pip-based workflows,
+        UV doesn't need external Python binary resolution.
         """
-        return [
-            PathResolver(
-                runtime=self.runtime,
-                binary=self.CAPABILITY.language,
-                additional_binaries=self._get_additional_binaries(),
-                executable_search_paths=self.executable_search_paths,
-            )
-        ]
-
-    def _get_additional_binaries(self):
-        """Get additional Python binaries to search for."""
-        # python3 is an additional binary that has to be considered in addition to the original python binary,
-        # when the specified python runtime is 3.x
-        major, _ = self.runtime.replace(self.CAPABILITY.language, "").split(".")
-        return [f"{self.CAPABILITY.language}{major}"] if major == self.PYTHON_VERSION_THREE else None
+        return []
 
     def get_validators(self):
         """Get runtime validators.
