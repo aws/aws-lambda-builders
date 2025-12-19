@@ -180,6 +180,82 @@ class TestPythonUvWorkflow(TestCase):
         self.assertIn("no such comparison operator", error_message)
 
     @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_uses_pyproject_with_lock_file(self):
+        """Test that UV uses existing uv.lock file for reproducible builds"""
+        builder = LambdaBuilder(
+            language="python",
+            dependency_manager="uv",
+            application_framework=None,
+        )
+        builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_pyproject,
+            runtime="python3.9",
+            experimental_flags=self.experimental_flags,
+        )
+
+        # uv.lock exists in testdata alongside pyproject.toml
+        # Verify dependencies were installed from lock file
+        expected_files = {"six.py", "six-1.16.0.dist-info"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        for expected_file in expected_files:
+            self.assertIn(expected_file, output_files)
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_builds_with_arm64_architecture(self):
+        """Test that UV builds for ARM64 architecture"""
+        builder = LambdaBuilder(
+            language="python",
+            dependency_manager="uv",
+            application_framework=None,
+        )
+        builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_numpy,
+            runtime="python3.12",
+            architecture="arm64",
+            experimental_flags=self.experimental_flags,
+        )
+
+        # Verify numpy was built for ARM64 by checking WHEEL metadata
+        wheel_path = os.path.join(self.artifacts_dir, "numpy-2.1.2.dist-info", "WHEEL")
+        self.assertTrue(os.path.exists(wheel_path), "WHEEL metadata file should exist")
+
+        with open(wheel_path) as f:
+            wheel_content = f.read()
+        self.assertIn("aarch64", wheel_content, "WHEEL should contain aarch64 platform tag")
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_builds_with_x86_64_architecture(self):
+        """Test that UV builds for x86_64 architecture (default)"""
+        builder = LambdaBuilder(
+            language="python",
+            dependency_manager="uv",
+            application_framework=None,
+        )
+        builder.build(
+            self.source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            self.manifest_path_numpy,
+            runtime="python3.12",
+            architecture="x86_64",
+            experimental_flags=self.experimental_flags,
+        )
+
+        # Verify numpy was built for x86_64 by checking WHEEL metadata
+        wheel_path = os.path.join(self.artifacts_dir, "numpy-2.1.2.dist-info", "WHEEL")
+        self.assertTrue(os.path.exists(wheel_path), "WHEEL metadata file should exist")
+
+        with open(wheel_path) as f:
+            wheel_content = f.read()
+        self.assertIn("x86_64", wheel_content, "WHEEL should contain x86_64 platform tag")
+
+    @skipIf(which("uv") is None, "uv not available")
     def test_workflow_builds_numpy_with_pyproject(self):
         """Test that UV can build numpy using pyproject.toml format"""
         builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
