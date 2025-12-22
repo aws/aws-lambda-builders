@@ -14,6 +14,7 @@ Lambda Builders currently contains the following workflows
 * Java with Maven
 * Dotnet with amazon.lambda.tools
 * Python with Pip
+* Python with Uv
 * Javascript with Npm
 * Typescript with esbuild
 * Ruby with Bundler
