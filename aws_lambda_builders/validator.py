@@ -4,34 +4,10 @@ No-op validator that does not validate the runtime_path for a specified language
 
 import logging
 
-from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.exceptions import UnsupportedArchitectureError, UnsupportedRuntimeError
+from aws_lambda_builders.supported_runtimes import RUNTIME_ARCHITECTURES as SUPPORTED_RUNTIMES
 
 LOG = logging.getLogger(__name__)
-
-SUPPORTED_RUNTIMES = {
-    "nodejs16.x": [ARM64, X86_64],
-    "nodejs18.x": [ARM64, X86_64],
-    "nodejs20.x": [ARM64, X86_64],
-    "nodejs22.x": [ARM64, X86_64],
-    "python3.8": [ARM64, X86_64],
-    "python3.9": [ARM64, X86_64],
-    "python3.10": [ARM64, X86_64],
-    "python3.11": [ARM64, X86_64],
-    "python3.12": [ARM64, X86_64],
-    "python3.13": [ARM64, X86_64],
-    "ruby3.2": [ARM64, X86_64],
-    "ruby3.3": [ARM64, X86_64],
-    "ruby3.4": [ARM64, X86_64],
-    "java8": [ARM64, X86_64],
-    "java11": [ARM64, X86_64],
-    "java17": [ARM64, X86_64],
-    "java21": [ARM64, X86_64],
-    "go1.x": [ARM64, X86_64],
-    "dotnet6": [ARM64, X86_64],
-    "dotnet8": [ARM64, X86_64],
-    "provided": [ARM64, X86_64],
-}
 
 
 class RuntimeValidator(object):

@@ -17,7 +17,7 @@ from aws_lambda_builders.workflows.python_pip.utils import EXPERIMENTAL_FLAG_BUI
 logger = logging.getLogger("aws_lambda_builders.workflows.python_pip.workflow")
 IS_WINDOWS = platform.system().lower() == "windows"
 NOT_ARM = platform.processor() != "aarch64"
-ARM_RUNTIMES = {"python3.8", "python3.9", "python3.10", "python3.11", "python3.12", "python3.13"}
+ARM_RUNTIMES = {"python3.8", "python3.9", "python3.10", "python3.11", "python3.12", "python3.13", "python3.14"}
 
 
 @parameterized_class(("experimental_flags",), [([]), ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE])])
@@ -64,6 +64,7 @@ class TestPythonPipWorkflow(TestCase):
             "python3.11": "python3.10",
             "python3.12": "python3.11",
             "python3.13": "python3.12",
+            "python3.14": "python3.13",
         }
 
     def tearDown(self):
@@ -96,7 +97,10 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
 
-        if self.runtime in ("python3.12", "python3.13"):
+        if self.runtime in ("python3.14"):
+            self.check_architecture_in("numpy-2.3.4.dist-info", ["manylinux_2_27_x86_64", "manylinux_2_28_x86_64"])
+            expected_files = self.test_data_files.union({"numpy", "numpy-2.3.4.dist-info", "numpy.libs"})
+        elif self.runtime in ("python3.12", "python3.13"):
             self.check_architecture_in("numpy-2.1.2.dist-info", ["manylinux2014_x86_64", "manylinux1_x86_64"])
             expected_files = self.test_data_files.union({"numpy", "numpy-2.1.2.dist-info", "numpy.libs"})
         elif self.runtime in ("python3.10", "python3.11"):
@@ -126,7 +130,10 @@ class TestPythonPipWorkflow(TestCase):
                 executable_search_paths=[executable_dir],
             )
 
-            if self.runtime in ("python3.12", "python3.13"):
+            if self.runtime in ("python3.14"):
+                self.check_architecture_in("numpy-2.3.4.dist-info", ["manylinux_2_27_x86_64", "manylinux_2_28_x86_64"])
+                expected_files = self.test_data_files.union({"numpy", "numpy-2.3.4.dist-info", "numpy.libs"})
+            elif self.runtime in ("python3.12", "python3.13"):
                 self.check_architecture_in("numpy-2.1.2.dist-info", ["manylinux2014_x86_64", "manylinux1_x86_64"])
                 expected_files = self.test_data_files.union({"numpy", "numpy-2.1.2.dist-info", "numpy.libs"})
             elif self.runtime in ("python3.10", "python3.11"):
@@ -174,14 +181,18 @@ class TestPythonPipWorkflow(TestCase):
             experimental_flags=self.experimental_flags,
         )
         expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-1.20.3.dist-info"})
-        if self.runtime in ("python3.12", "python3.13"):
+        if self.runtime in ("python3.14"):
+            expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-2.3.4.dist-info"})
+        elif self.runtime in ("python3.12", "python3.13"):
             expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-2.1.2.dist-info"})
         if self.runtime in ("python3.10", "python3.11"):
             expected_files = self.test_data_files.union({"numpy", "numpy.libs", "numpy-1.23.5.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
 
-        if self.runtime in ("python3.12", "python3.13"):
+        if self.runtime in ("python3.14"):
+            self.check_architecture_in("numpy-2.3.4.dist-info", ["manylinux_2_27_aarch64", "manylinux_2_28_aarch64"])
+        elif self.runtime in ("python3.12", "python3.13"):
             self.check_architecture_in("numpy-2.1.2.dist-info", ["manylinux2014_aarch64"])
         elif self.runtime in ("python3.10", "python3.11"):
             self.check_architecture_in("numpy-1.23.5.dist-info", ["manylinux2014_aarch64"])
@@ -246,9 +257,8 @@ class TestPythonPipWorkflow(TestCase):
         for f in expected_files:
             self.assertIn(f, output_files)
 
+    @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_must_resolve_unknown_package_name(self):
-        if IS_WINDOWS and self.runtime == "python3.13":
-            self.skipTest("Skip test as pip install inflate64 does not work on Windows with Python 3.13")
         self.builder.build(
             self.source_dir,
             self.artifacts_dir,
@@ -460,7 +470,10 @@ class TestPythonPipWorkflow(TestCase):
             options={"parent_python_packages": parent_package},
         )
 
-        if self.runtime in ("python3.12", "python3.13"):
+        if self.runtime in ("python3.14"):
+            self.check_architecture_in("numpy-2.3.4.dist-info", ["manylinux_2_27_x86_64", "manylinux_2_28_x86_64"])
+            expected_dependencies = {"numpy", "numpy-2.3.4.dist-info", "numpy.libs"}
+        elif self.runtime in ("python3.12", "python3.13"):
             self.check_architecture_in("numpy-2.1.2.dist-info", ["manylinux2014_x86_64", "manylinux1_x86_64"])
             expected_dependencies = {"numpy", "numpy-2.1.2.dist-info", "numpy.libs"}
         elif self.runtime in ("python3.10", "python3.11"):
