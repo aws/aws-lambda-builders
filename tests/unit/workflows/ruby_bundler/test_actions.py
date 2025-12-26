@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.ruby_bundler.actions import RubyBundlerInstallAction, RubyBundlerVendorAction
@@ -12,7 +12,12 @@ class TestRubyBundlerInstallAction(TestCase):
         subprocess_bundler = SubprocessBundlerMock.return_value
         action = RubyBundlerInstallAction("source_dir", subprocess_bundler=subprocess_bundler)
         action.execute()
-        subprocess_bundler.run.assert_called_with(["install", "--without", "development", "test"], cwd="source_dir")
+        subprocess_bundler.run.assert_has_calls(
+            [
+                call(["config", "set", "--local", "without", "development:test"], cwd="source_dir"),
+                call(["install"], cwd="source_dir"),
+            ]
+        )
 
     @patch("aws_lambda_builders.workflows.ruby_bundler.bundler.SubprocessBundler")
     def test_raises_action_failed_on_failure(self, SubprocessBundlerMock):
@@ -31,8 +36,11 @@ class TestRubyBundlerVendorAction(TestCase):
         subprocess_bundler = SubprocessBundlerMock.return_value
         action = RubyBundlerVendorAction("source_dir", subprocess_bundler=subprocess_bundler)
         action.execute()
-        subprocess_bundler.run.assert_called_with(
-            ["install", "--deployment", "--without", "development", "test"], cwd="source_dir"
+        subprocess_bundler.run.assert_has_calls(
+            [
+                call(["config", "set", "--local", "deployment", "true"], cwd="source_dir"),
+                call(["install"], cwd="source_dir"),
+            ]
         )
 
     @patch("aws_lambda_builders.workflows.ruby_bundler.bundler.SubprocessBundler")
