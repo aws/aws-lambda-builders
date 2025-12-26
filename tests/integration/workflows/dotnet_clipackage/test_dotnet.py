@@ -13,6 +13,34 @@ from unittest import TestCase
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.architecture import ARM64, X86_64
+from aws_lambda_builders.supported_runtimes import DOTNET_RUNTIMES
+
+
+def get_dotnet_test_params():
+    """Generate test parameters from DOTNET_RUNTIMES for standard Lambda functions."""
+    params = []
+    for runtime in DOTNET_RUNTIMES:
+        version_num = runtime.replace("dotnet", "")
+        version = f"{version_num}.0"
+        test_project = f"WithDefaultsFile{version_num}"
+        params.append((runtime, version, test_project))
+    return params
+
+
+def get_custom_runtime_test_params():
+    """Generate test parameters from DOTNET_RUNTIMES for custom runtime builds.
+
+    Note: dotnet6 is excluded as it doesn't support custom runtime in the same way.
+    """
+    params = []
+    for runtime in DOTNET_RUNTIMES:
+        if runtime == "dotnet6":
+            continue
+        version_num = runtime.replace("dotnet", "")
+        version = f"{version_num}.0"
+        test_project = f"CustomRuntime{version_num}"
+        params.append((runtime, version, test_project))
+    return params
 
 
 class TestDotnetBase(TestCase):
@@ -57,12 +85,7 @@ class TestDotnet(TestDotnetBase):
     def setUp(self):
         super(TestDotnet, self).setUp()
 
-    @parameterized.expand(
-        [
-            ("dotnet6", "6.0", "WithDefaultsFile6"),
-            ("dotnet8", "8.0", "WithDefaultsFile8"),
-        ]
-    )
+    @parameterized.expand(get_dotnet_test_params())
     def test_with_defaults_file(self, runtime, version, test_project):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
 
@@ -83,12 +106,7 @@ class TestDotnet(TestDotnetBase):
         self.assertEqual(expected_files, output_files)
         self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version)
 
-    @parameterized.expand(
-        [
-            ("dotnet6", "6.0", "WithDefaultsFile6"),
-            ("dotnet8", "8.0", "WithDefaultsFile8"),
-        ]
-    )
+    @parameterized.expand(get_dotnet_test_params())
     def test_with_defaults_file_x86(self, runtime, version, test_project):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
 
@@ -109,12 +127,7 @@ class TestDotnet(TestDotnetBase):
         self.assertEqual(expected_files, output_files)
         self.verify_architecture("WithDefaultsFile.deps.json", "linux-x64", version)
 
-    @parameterized.expand(
-        [
-            ("dotnet6", "6.0", "WithDefaultsFile6"),
-            ("dotnet8", "8.0", "WithDefaultsFile8"),
-        ]
-    )
+    @parameterized.expand(get_dotnet_test_params())
     def test_with_defaults_file_arm64(self, runtime, version, test_project):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
 
@@ -135,12 +148,7 @@ class TestDotnet(TestDotnetBase):
         self.assertEqual(expected_files, output_files)
         self.verify_architecture("WithDefaultsFile.deps.json", "linux-arm64", version)
 
-    @parameterized.expand(
-        [
-            # ("dotnet6", "6.0", "CustomRuntime6"),
-            ("dotnet8", "8.0", "CustomRuntime8"),
-        ]
-    )
+    @parameterized.expand(get_custom_runtime_test_params())
     def test_with_custom_runtime(self, runtime, version, test_project):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, test_project)
 
