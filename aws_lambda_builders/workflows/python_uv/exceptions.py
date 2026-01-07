@@ -9,7 +9,7 @@ class MissingUvError(LambdaBuilderError):
     """Exception raised when UV executable is not found."""
 
     MESSAGE = (
-        "uv executable not found at {uv_path}. "
+        "uv executable not found in PATH. "
         "Please install uv: https://docs.astral.sh/uv/getting-started/installation/"
     )
 

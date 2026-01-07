@@ -27,7 +27,7 @@ class SubprocessUv:
         """Find UV executable in PATH."""
         uv_path = self._osutils.which("uv")
         if not uv_path:
-            raise MissingUvError(uv_path="not found in PATH")
+            raise MissingUvError()
         return uv_path
 
     @property
