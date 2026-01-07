@@ -111,6 +111,7 @@ class UvRunner:
         python_version: Optional[str] = None,
         platform: Optional[str] = None,
         architecture: Optional[str] = None,
+        cwd: Optional[str] = None,
     ) -> None:
         """
         Install requirements using UV pip interface.
@@ -158,7 +159,7 @@ class UvRunner:
                 args.extend(["--python-platform", platform_mapping[platform_key]])
 
         # Execute UV pip install
-        rc, stdout, stderr = self._uv.run_uv_command(args)
+        rc, stdout, stderr = self._uv.run_uv_command(args, cwd)
 
         if rc != 0:
             raise UvInstallationError(reason=f"UV pip install failed: {stderr}")
@@ -336,6 +337,7 @@ class PythonUvDependencyBuilder:
                 config=config,
                 python_version=python_version,
                 platform="linux",
+                cwd=project_dir,
                 architecture=architecture,
             )
         except LockFileError:
