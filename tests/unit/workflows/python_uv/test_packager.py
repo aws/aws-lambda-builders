@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -219,7 +220,7 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
 
         with patch("os.path.basename", return_value="pyproject.toml"), patch(
-            "os.path.dirname", return_value="/path/to"
+            "os.path.dirname", return_value=os.path.join("path", "to")
         ), patch("os.path.exists") as mock_exists:
 
             # Mock that uv.lock exists alongside pyproject.toml
@@ -237,12 +238,12 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.mock_uv_runner.install_requirements.assert_called_once()
 
         # Verify it checked for uv.lock in the right location
-        mock_exists.assert_called_with("/path/to/uv.lock")
+        mock_exists.assert_called_with(os.path.join("path", "to", "uv.lock"))
 
     def test_build_dependencies_pyproject_without_uv_lock(self):
         """Test that pyproject.toml without uv.lock uses standard pyproject build."""
         with patch("os.path.basename", return_value="pyproject.toml"), patch(
-            "os.path.dirname", return_value="/path/to"
+            "os.path.dirname", return_value=os.path.join("path", "to")
         ), patch("os.path.exists") as mock_exists, patch.object(
             self.builder, "_export_pyproject_to_requirements", return_value="/temp/requirements.txt"
         ):
@@ -262,7 +263,7 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.mock_uv_runner.sync_dependencies.assert_not_called()
 
         # Verify it checked for uv.lock in the right location
-        mock_exists.assert_called_with("/path/to/uv.lock")
+        mock_exists.assert_called_with(os.path.join("path", "to", "uv.lock"))
 
     def test_build_dependencies_passes_scratch_dir(self):
         """Test that build_dependencies passes scratch_dir to UvRunner for cache configuration."""
