@@ -73,7 +73,7 @@ class TestDetectUvManifest(TestCase):
 
             result = detect_uv_manifest(temp_dir)
             # pyproject.toml should have priority over requirements.txt
-            self.assertEqual(result, pyproject_path)
+            self.assertEqual(result, req_path)
 
     def test_detect_uv_manifest_requirements_variants(self):
         with tempfile.TemporaryDirectory() as temp_dir:
