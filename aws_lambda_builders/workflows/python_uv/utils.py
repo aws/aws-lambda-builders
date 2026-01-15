@@ -38,7 +38,7 @@ def detect_uv_manifest(source_dir: str) -> Optional[str]:
     Note: uv.lock is NOT a manifest - it's a lock file that accompanies pyproject.toml.
     UV workflows support these manifest types:
     1. requirements.txt and variants - traditional pip-style manifests
-    2. pyproject.toml (preferred) - may have accompanying uv.lock
+    2. pyproject.toml - may have accompanying uv.lock
 
     We favor requirements.txt because it is possible to have both, but the pyproject could just be project metadata.
 
@@ -61,7 +61,6 @@ def detect_uv_manifest(source_dir: str) -> Optional[str]:
         if os.path.isfile(requirements_path):
             return requirements_path
 
-    # Check for pyproject.toml first (preferred manifest)
     pyproject_path = os.path.join(source_dir, "pyproject.toml")
     if os.path.isfile(pyproject_path):
         return pyproject_path

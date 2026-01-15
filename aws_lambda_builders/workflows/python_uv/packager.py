@@ -328,7 +328,6 @@ class PythonUvDependencyBuilder:
                 "--format",
                 "requirements.txt",
                 "--no-emit-project",  # Don't include the project itself, only dependencies
-                "--no-header",  # Skip comment header
                 "--no-hashes",  # Skip hashes for cleaner output (optional)
                 "--output-file",
                 temp_requirements,
