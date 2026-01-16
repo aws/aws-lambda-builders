@@ -50,12 +50,12 @@ class TestSubprocessMaven(TestCase):
         )
 
     def test_build_raises_exception_if_retcode_not_0(self):
-        self.popen = FakePopen(retcode=1, out=b"Some Error Message")
+        self.popen = FakePopen(retcode=1, err=b"Maven Error from stderr")
         self.os_utils.popen.side_effect = [self.popen]
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
             maven.build(self.source_dir)
-        self.assertEqual(err.exception.args[0], "Maven Failed: Some Error Message")
+        self.assertEqual(err.exception.args[0], "Maven Failed: Maven Error from stderr")
 
     def test_copy_dependency(self):
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
@@ -68,9 +68,9 @@ class TestSubprocessMaven(TestCase):
         )
 
     def test_copy_dependency_raises_exception_if_retcode_not_0(self):
-        self.popen = FakePopen(retcode=1, out=b"Some Error Message")
+        self.popen = FakePopen(retcode=1, err=b"Maven Error from stderr")
         self.os_utils.popen.side_effect = [self.popen]
         maven = SubprocessMaven(maven_binary=self.maven_binary, os_utils=self.os_utils)
         with self.assertRaises(MavenExecutionError) as err:
             maven.copy_dependency(self.source_dir)
-        self.assertEqual(err.exception.args[0], "Maven Failed: Some Error Message")
+        self.assertEqual(err.exception.args[0], "Maven Failed: Maven Error from stderr")
