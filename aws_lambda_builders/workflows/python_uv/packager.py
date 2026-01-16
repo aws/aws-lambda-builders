@@ -323,7 +323,19 @@ class PythonUvDependencyBuilder:
 
             # Export lock file to requirements.txt for platform-specific install
             temp_requirements = os.path.join(scratch_dir, "lock_requirements.txt")
-            export_args = ["export", "--format", "requirements-txt", "--no-hashes", "-o", temp_requirements]
+            export_args = [
+                "export",
+                "--format",
+                "requirements.txt",
+                "--no-emit-project",  # Don't include the project itself, only dependencies
+                "--no-hashes",  # Skip hashes for cleaner output (optional)
+                "--output-file",
+                temp_requirements,
+                # We want to specify the version because `uv export` might default to using a different one
+                # This is important for dependencies that use different versions depending on python version
+                "--python",
+                python_version,
+            ]
 
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(export_args, cwd=project_dir)
             if rc != 0:
@@ -358,86 +370,23 @@ class PythonUvDependencyBuilder:
         LOG.info("Building from pyproject.toml using UV lock and export")
 
         try:
-            # Use UV's native workflow: lock -> export -> install
-            temp_requirements = self._export_pyproject_to_requirements(pyproject_path, scratch_dir, python_version)
-
-            if temp_requirements:
-                self._uv_runner.install_requirements(
-                    requirements_path=temp_requirements,
-                    target_dir=target_dir,
-                    scratch_dir=scratch_dir,
-                    config=config,
-                    python_version=python_version,
-                    platform="linux",
-                    architecture=architecture,
-                )
-            else:
-                LOG.info("No dependencies found in pyproject.toml")
-
-        except Exception as e:
-            raise UvBuildError(reason=f"Failed to build from pyproject.toml: {str(e)}")
-
-    def _export_pyproject_to_requirements(
-        self, pyproject_path: str, scratch_dir: str, python_version: str
-    ) -> Optional[str]:
-        """Use UV's native lock and export to convert pyproject.toml to requirements.txt.
-
-        This conversion is necessary when pyproject.toml exists without a uv.lock file.
-        UV's pip install command provides better platform targeting capabilities
-        (--python-platform) compared to uv sync, which is essential for Lambda's
-        cross-platform builds (x86_64/ARM64). The workflow is:
-        1. uv lock: Generate lock file from pyproject.toml
-        2. uv export: Convert lock file to requirements.txt format
-        3. Use requirements.txt with uv pip install for platform-specific builds
-        """
-        project_dir = os.path.dirname(pyproject_path)
-
-        try:
-            # Step 1: Create lock file using UV
+            # Generate lock file from pyproject.toml
             LOG.debug("Creating lock file from pyproject.toml")
             lock_args = ["lock", "--no-progress"]
-
             if python_version:
                 lock_args.extend(["--python", python_version])
 
+            project_dir = os.path.dirname(pyproject_path)
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(lock_args, cwd=project_dir)
-
             if rc != 0:
-                LOG.warning(f"UV lock failed: {stderr}")
-                return None
+                raise UvBuildError(reason=f"UV lock failed: {stderr}")
 
-            # Step 2: Export lock file to requirements.txt format
-            LOG.debug("Exporting lock file to requirements.txt format")
-            temp_requirements = os.path.join(scratch_dir, "exported_requirements.txt")
-
-            export_args = [
-                "export",
-                "--format",
-                "requirements.txt",
-                "--no-emit-project",  # Don't include the project itself, only dependencies
-                "--no-header",  # Skip comment header
-                "--no-hashes",  # Skip hashes for cleaner output (optional)
-                "--output-file",
-                temp_requirements,
-            ]
-
-            rc, stdout, stderr = self._uv_runner._uv.run_uv_command(export_args, cwd=project_dir)
-
-            if rc != 0:
-                LOG.warning(f"UV export failed: {stderr}")
-                return None
-
-            # Verify the requirements file was created and has content
-            if os.path.exists(temp_requirements) and os.path.getsize(temp_requirements) > 0:
-                LOG.debug(f"Successfully exported dependencies to {temp_requirements}")
-                return temp_requirements
-            else:
-                LOG.info("No dependencies to export from pyproject.toml")
-                return None
+            # Reuse lock file build logic
+            lock_path = os.path.join(project_dir, "uv.lock")
+            self._build_from_lock_file(lock_path, target_dir, scratch_dir, python_version, architecture, config)
 
         except Exception as e:
-            LOG.warning(f"Failed to export pyproject.toml using UV native workflow: {e}")
-            return None
+            raise UvBuildError(reason=f"Failed to build from pyproject.toml: {str(e)}")
 
     def _build_from_requirements(
         self,

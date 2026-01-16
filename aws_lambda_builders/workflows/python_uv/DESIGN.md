@@ -109,11 +109,12 @@ The general algorithm for preparing a python package using UV for use on AWS Lam
 The workflow uses a smart dispatch system that recognizes actual manifest files:
 
 **Supported Manifests:**
-- `pyproject.toml` - Modern Python project manifest (preferred)
+- `pyproject.toml` - Modern Python project manifest
 - `requirements.txt` - Traditional pip requirements file
 - `requirements-*.txt` - Environment-specific variants (dev, prod, test, etc.)
 
 **Smart Lock File Detection:**
+- Look for requirements.txt first
 - When `pyproject.toml` is the manifest, automatically checks for `uv.lock` in the same directory
 - If `uv.lock` exists alongside `pyproject.toml`, uses lock-based build for precise dependencies
 - If no `uv.lock`, uses standard pyproject.toml build with UV's lock and export workflow
@@ -258,9 +259,9 @@ CAPABILITY = Capability(
 The workflow uses intelligent manifest detection:
 
 **Supported Manifests (in order of preference):**
-1. `pyproject.toml` - Modern Python project manifest (preferred)
-2. `requirements.txt` - Standard pip format  
-3. `requirements-*.txt` - Environment-specific variants (dev, test, prod, etc.)
+1. `requirements.txt` - Standard pip format
+2. `requirements-*.txt` - Environment-specific variants (dev, test, prod, etc.)
+3. `pyproject.toml` - Modern Python project manifest
 
 **Smart Lock File Enhancement:**
 - When `pyproject.toml` is used, automatically detects `uv.lock` in the same directory
