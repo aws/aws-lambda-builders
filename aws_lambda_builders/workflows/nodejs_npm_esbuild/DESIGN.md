@@ -26,7 +26,7 @@ operation is designed to be faster than installing dependencies using `npm insta
 in automated CI environments.
 
 If the directory does not contain lockfiles, but contains `package.json`,
-execute [`npm install --production`] to download production dependencies.
+execute [`npm install --omit=dev`] to download production dependencies.
 
 #### Step 2: bundle the main Lambda file
 
