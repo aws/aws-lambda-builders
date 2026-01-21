@@ -28,21 +28,21 @@ class SubprocessMaven(object):
 
     def build(self, scratch_dir):
         args = ["clean", "install"]
-        ret_code, stdout, _ = self._run(args, scratch_dir)
+        ret_code, stdout, stderr = self._run(args, scratch_dir)
 
         LOG.debug("Maven logs: %s", decode(stdout))
 
         if ret_code != 0:
-            raise MavenExecutionError(message=decode(stdout))
+            raise MavenExecutionError(message=decode(stderr))
 
     def copy_dependency(self, scratch_dir):
         include_scope = "runtime"
         LOG.debug("Running copy_dependency with scope: %s", include_scope)
         args = ["dependency:copy-dependencies", f"-DincludeScope={include_scope}", "-Dmdep.prependGroupId=true"]
-        ret_code, stdout, _ = self._run(args, scratch_dir)
+        ret_code, stdout, stderr = self._run(args, scratch_dir)
 
         if ret_code != 0:
-            raise MavenExecutionError(message=decode(stdout))
+            raise MavenExecutionError(message=decode(stderr))
 
     def _run(self, args, cwd=None):
         p = self.os_utils.popen(
