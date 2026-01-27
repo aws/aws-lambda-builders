@@ -303,6 +303,39 @@ class TestPythonPipWorkflow(TestCase):
             "requirements.txt file not found. Continuing the build without dependencies."
         )
 
+    def test_build_succeeds_with_mismatched_runtime_when_no_requirements(self):
+        """
+        When no requirements.txt exists, build should succeed even if the target runtime
+        binary validation would fail (issue #678). The base RuntimeValidator is used
+        which only checks if the runtime is supported, not if the binary exists.
+        """
+        # Mock PythonRuntimeValidator to always fail - simulating missing Python binary
+        with mock.patch(
+            "aws_lambda_builders.workflows.python_pip.workflow.PythonRuntimeValidator"
+        ) as mock_validator_class:
+            mock_validator = mock.Mock()
+            mock_validator.validate.side_effect = Exception("Python binary not found")
+            mock_validator_class.return_value = mock_validator
+
+            # This should succeed because without requirements.txt, we use base RuntimeValidator
+            # not PythonRuntimeValidator
+            self.builder.build(
+                self.source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join("non", "existent", "manifest"),
+                runtime=self.runtime,
+                experimental_flags=self.experimental_flags,
+            )
+
+        # Should just copy source files
+        expected_files = self.test_data_files
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        # Verify PythonRuntimeValidator was never instantiated (we used base RuntimeValidator)
+        mock_validator_class.assert_not_called()
+
     @skipIf(IS_WINDOWS, "Skip in windows tests")
     def test_without_download_dependencies_with_dependencies_dir(self):
         source_dir = os.path.join(self.source_dir, "local-dependencies")

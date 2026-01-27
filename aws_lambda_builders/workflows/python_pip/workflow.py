@@ -6,6 +6,7 @@ import logging
 
 from aws_lambda_builders.actions import CleanUpAction, CopySourceAction, LinkSourceAction
 from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 
@@ -78,6 +79,8 @@ class PythonPipWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
 
+        self._use_pip = False
+
         if not self.download_dependencies and not self.dependencies_dir:
             LOG.info(
                 "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
@@ -92,6 +95,7 @@ class PythonPipWorkflow(BaseWorkflow):
 
         # If a requirements.txt exists, run pip builder before copy action.
         if self.download_dependencies:
+            self._use_pip = True
             if self.dependencies_dir:
                 # clean up the dependencies folder before installing
                 self._actions.append(CleanUpAction(self.dependencies_dir))
@@ -161,4 +165,6 @@ class PythonPipWorkflow(BaseWorkflow):
         return False
 
     def get_validators(self):
+        if not self._use_pip:
+            return [RuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
         return [PythonRuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
