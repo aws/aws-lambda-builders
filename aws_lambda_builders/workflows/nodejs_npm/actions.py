@@ -111,7 +111,7 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
         try:
             LOG.debug("NODEJS installing production dependencies in: %s", self.install_dir)
 
-            command = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--production"]
+            command = ["install", "-q", "--no-audit", "--no-save", "--unsafe-perm", "--omit=dev"]
             self.subprocess_npm.run(command, cwd=self.install_dir)
 
         except NpmExecutionError as ex:
@@ -140,7 +140,7 @@ class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
                 "--no-audit",
                 "--no-save",
                 "--unsafe-perm",
-                "--production",
+                "--omit=dev",
                 "--no-package-lock",
                 "--install-links",
             ]
