@@ -6,7 +6,6 @@ from aws_lambda_builders.workflows.rust_cargo.actions import (
     RustCargoLambdaBuildAction,
     RustCopyAndRenameAction,
 )
-from aws_lambda_builders.workflows.rust_cargo.feature_flag import EXPERIMENTAL_FLAG_CARGO_LAMBDA
 
 
 class TestRustCargoLambdaWorkflow(TestCase):
@@ -21,7 +20,6 @@ class TestRustCargoLambdaWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             runtime="provided",
-            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
         )
         self.assertEqual(len(workflow.actions), 2)
         self.assertIsInstance(workflow.actions[0], RustCargoLambdaBuildAction)
@@ -34,7 +32,6 @@ class TestRustCargoLambdaWorkflow(TestCase):
             "scratch_dir",
             "manifest",
             runtime="provided",
-            experimental_flags=[EXPERIMENTAL_FLAG_CARGO_LAMBDA],
         )
         resolvers = workflow.get_resolvers()
         self.assertEqual(len(resolvers), 2)
