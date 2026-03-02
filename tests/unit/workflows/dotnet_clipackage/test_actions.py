@@ -22,32 +22,34 @@ class TestGlobalToolInstallAction(TestCase):
         self.subprocess_dotnet.reset_mock()
 
     def test_global_tool_install(self):
+        self.subprocess_dotnet.run.return_value = ""
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         action.execute()
-        self.subprocess_dotnet.run.assert_called_once_with(
-            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
-        )
-
-    def test_global_tool_update(self):
-        self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="Already Installed"), None]
-        action = GlobalToolInstallAction(self.subprocess_dotnet)
-        action.execute()
+        self.subprocess_dotnet.run.assert_any_call(["tool", "list", "-g"])
         self.subprocess_dotnet.run.assert_any_call(
             ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
         )
-        self.subprocess_dotnet.run.assert_any_call(
-            ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
-        )
 
-    def test_global_tool_update_failed(self):
+    def test_global_tool_already_installed(self):
+        self.subprocess_dotnet.run.return_value = (
+            "Package Id                      Version         Commands\n"
+            "--------------------------------------------------------------\n"
+            "amazon.lambda.tools             5.3.0           dotnet-lambda\n"
+        )
+        action = GlobalToolInstallAction(self.subprocess_dotnet)
+        action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(["tool", "list", "-g"])
+
+    def test_global_tool_install_failed(self):
         self.subprocess_dotnet.run.side_effect = [
-            DotnetCLIExecutionError(message="Already Installed"),
-            DotnetCLIExecutionError(message="Updated Failed"),
+            "",  # tool list returns empty (not installed)
+            DotnetCLIExecutionError(message="Install Failed"),
         ]
         action = GlobalToolInstallAction(self.subprocess_dotnet)
         self.assertRaises(ActionFailedError, action.execute)
 
     def test_global_tool_parallel(self):
+        self.subprocess_dotnet.run.return_value = ""
         actions = [
             GlobalToolInstallAction(self.subprocess_dotnet),
             GlobalToolInstallAction(self.subprocess_dotnet),
@@ -58,9 +60,11 @@ class TestGlobalToolInstallAction(TestCase):
             for action in actions:
                 executor.submit(action.execute)
 
-        self.subprocess_dotnet.run.assert_called_once_with(
+        self.subprocess_dotnet.run.assert_any_call(["tool", "list", "-g"])
+        self.subprocess_dotnet.run.assert_any_call(
             ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
         )
+        self.assertEqual(self.subprocess_dotnet.run.call_count, 2)
 
 
 class TestRunPackageAction(TestCase):
