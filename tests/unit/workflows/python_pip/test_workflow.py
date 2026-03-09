@@ -5,6 +5,7 @@ from parameterized import parameterized_class
 
 from aws_lambda_builders.actions import CopySourceAction, CleanUpAction, LinkSourceAction
 from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils, EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 from aws_lambda_builders.workflows.python_pip.validator import PythonRuntimeValidator
 from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildAction, PythonPipWorkflow
@@ -59,6 +60,41 @@ class TestPythonPipWorkflow(TestCase):
     def test_workflow_validator(self):
         for validator in self.workflow.get_validators():
             self.assertTrue(isinstance(validator, PythonRuntimeValidator))
+
+    def test_workflow_validator_without_requirements_skips_python_validation(self):
+        """When no requirements.txt exists, should use base RuntimeValidator (no Python binary check)."""
+        self.osutils_mock.file_exists.return_value = False
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.12",
+            osutils=self.osutils_mock,
+            experimental_flags=self.experimental_flags,
+        )
+        validators = self.workflow.get_validators()
+        self.assertEqual(len(validators), 1)
+        self.assertIsInstance(validators[0], RuntimeValidator)
+        self.assertNotIsInstance(validators[0], PythonRuntimeValidator)
+
+    def test_workflow_validator_without_download_dependencies_skips_python_validation(self):
+        """When download_dependencies=False, should use base RuntimeValidator (no Python binary check)."""
+        self.osutils_mock.file_exists.return_value = True
+        self.workflow = PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.12",
+            osutils=self.osutils_mock,
+            download_dependencies=False,
+            experimental_flags=self.experimental_flags,
+        )
+        validators = self.workflow.get_validators()
+        self.assertEqual(len(validators), 1)
+        self.assertIsInstance(validators[0], RuntimeValidator)
+        self.assertNotIsInstance(validators[0], PythonRuntimeValidator)
 
     def test_workflow_resolver(self):
         for resolver in self.workflow.get_resolvers():

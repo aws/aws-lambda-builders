@@ -8,8 +8,6 @@ from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSo
 
 from .actions import RustCargoLambdaBuildAction, RustCopyAndRenameAction
 from .cargo_lambda import SubprocessCargoLambda
-from .exceptions import CargoLambdaExecutionException
-from .feature_flag import is_experimental_cargo_lambda_scope
 
 
 class RustCargoLambdaWorkflow(BaseWorkflow):
@@ -36,11 +34,6 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
         super(RustCargoLambdaWorkflow, self).__init__(
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
-        if not is_experimental_cargo_lambda_scope(self.experimental_flags):
-            raise CargoLambdaExecutionException(
-                message="Feature flag `experimentalCargoLambda` must be enabled to use this workflow"
-            )
-
         # we utilize the handler identifier to
         # select the binary to build
         options = kwargs.get("options") or {}
