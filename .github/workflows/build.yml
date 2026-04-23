@@ -101,7 +101,12 @@ jobs:
         nodejs:
           - 20
           - 22
-          - 24          
+          - 24
+        exclude:
+          # Node 22.22.2 ships broken npm missing promise-retry, preventing
+          # upgrade to npm 11. See: https://github.com/npm/cli/issues/9151
+          - nodejs: 22
+            npm: 11
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -137,6 +142,11 @@ jobs:
           - 20
           - 22
           - 24
+        exclude:
+          # Node 22.22.2 ships broken npm missing promise-retry, preventing
+          # upgrade to npm 11. See: https://github.com/npm/cli/issues/9151
+          - nodejs: 22
+            npm: 11
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
