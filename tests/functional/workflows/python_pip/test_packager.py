@@ -21,7 +21,6 @@ from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_env
 from aws_lambda_builders.workflows.python_pip.compat import pip_no_compile_c_shim
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils
 
-
 FakePipCall = namedtuple("FakePipEntry", ["args", "env_vars", "shim"])
 
 

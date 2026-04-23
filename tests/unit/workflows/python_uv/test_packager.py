@@ -219,9 +219,11 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Mock the uv export command
         self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
 
-        with patch("os.path.basename", return_value="pyproject.toml"), patch(
-            "os.path.dirname", return_value=os.path.join("path", "to")
-        ), patch("os.path.exists") as mock_exists:
+        with (
+            patch("os.path.basename", return_value="pyproject.toml"),
+            patch("os.path.dirname", return_value=os.path.join("path", "to")),
+            patch("os.path.exists") as mock_exists,
+        ):
 
             # Mock that uv.lock exists alongside pyproject.toml
             mock_exists.return_value = True
@@ -242,9 +244,11 @@ class TestPythonUvDependencyBuilder(TestCase):
 
     def test_build_dependencies_pyproject_without_uv_lock(self):
         """Test that pyproject.toml without uv.lock uses standard pyproject build."""
-        with patch("os.path.basename", return_value="pyproject.toml"), patch(
-            "os.path.dirname", return_value=os.path.join("path", "to")
-        ), patch("os.path.exists") as mock_exists:
+        with (
+            patch("os.path.basename", return_value="pyproject.toml"),
+            patch("os.path.dirname", return_value=os.path.join("path", "to")),
+            patch("os.path.exists") as mock_exists,
+        ):
             # Mock that uv.lock does NOT exist alongside pyproject.toml
             mock_exists.return_value = False
 
