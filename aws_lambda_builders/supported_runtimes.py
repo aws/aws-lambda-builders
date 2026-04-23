@@ -32,6 +32,7 @@ RUBY_RUNTIMES = [
     "ruby3.2",
     "ruby3.3",
     "ruby3.4",
+    "ruby4.0",
 ]
 
 # Java runtimes

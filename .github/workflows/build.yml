@@ -101,7 +101,12 @@ jobs:
         nodejs:
           - 20
           - 22
-          - 24          
+          - 24
+        exclude:
+          # Node 22.22.2 ships broken npm missing promise-retry, preventing
+          # upgrade to npm 11. See: https://github.com/npm/cli/issues/9151
+          - nodejs: 22
+            npm: 11
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -137,6 +142,11 @@ jobs:
           - 20
           - 22
           - 24
+        exclude:
+          # Node 22.22.2 ships broken npm missing promise-retry, preventing
+          # upgrade to npm 11. See: https://github.com/npm/cli/issues/9151
+          - nodejs: 22
+            npm: 11
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -312,7 +322,7 @@ jobs:
       - run: pytest -vv tests/integration/workflows/python_uv
 
   ruby-integration:
-    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby
+    name: ${{ matrix.os }} / ${{ matrix.python }} / ruby ${{ matrix.ruby }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -323,6 +333,9 @@ jobs:
           - windows-latest
         python:
           - "3.13"
+        ruby:
+          - "3.2"
+          - "4.0"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -330,7 +343,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
         with:
-          ruby-version: "3.2"
+          ruby-version: ${{ matrix.ruby }}
       - run: make init
       - run: pytest -vv tests/integration/workflows/ruby_bundler
 
