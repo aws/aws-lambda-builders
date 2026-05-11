@@ -139,13 +139,15 @@ class PythonUvWorkflow(BaseWorkflow):
                 )
             )
 
-        # Advanced case: Copy dependencies from dependencies_dir to artifacts_dir if configured
+        # Advanced case: copy dependencies from dependencies_dir to artifacts_dir if configured.
+        # Dependencies were installed into dependencies_dir above, so that is the copy source
+        # (artifact_dir) and artifacts_dir is the destination.
         if self.dependencies_dir and self.combine_dependencies:
             self.actions.append(
                 CopyDependenciesAction(
                     source_dir=source_dir,
-                    artifact_dir=artifacts_dir,
-                    destination_dir=self.dependencies_dir,
+                    artifact_dir=self.dependencies_dir,
+                    destination_dir=artifacts_dir,
                     maintain_symlinks=False,
                 )
             )
