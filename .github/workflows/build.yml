@@ -341,7 +341,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      - uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
+      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1
         with:
           ruby-version: ${{ matrix.ruby }}
       - run: make init
