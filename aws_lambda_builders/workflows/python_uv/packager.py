@@ -329,6 +329,7 @@ class PythonUvDependencyBuilder:
                 "requirements.txt",
                 "--no-emit-project",  # Don't include the project itself, only dependencies
                 "--no-hashes",  # Skip hashes for cleaner output (optional)
+                "--no-default-groups",  # Exclude PEP 735 default groups (e.g. dev/test) from Lambda zips
                 "--output-file",
                 temp_requirements,
                 # We want to specify the version because `uv export` might default to using a different one
