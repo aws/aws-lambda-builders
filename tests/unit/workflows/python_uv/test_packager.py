@@ -125,6 +125,22 @@ class TestUvRunner(TestCase):
         self.assertIn("-r", args_called)
         self.assertIn("/path/to/requirements.txt", args_called)
 
+    def test_install_requirements_resolves_relative_target_to_absolute(self):
+        # UV runs with cwd=project_dir, so a relative --target must be resolved to an absolute path
+        # first, otherwise dependencies land under the source dir instead of the build root.
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
+
+        self.uv_runner.install_requirements(
+            requirements_path="/path/to/requirements.txt",
+            target_dir=os.path.join(".aws-sam", "deps", "abc-123"),
+            scratch_dir="/scratch",
+        )
+
+        args_called = self.mock_subprocess_uv.run_uv_command.call_args[0][0]
+        target_value = args_called[args_called.index("--target") + 1]
+        self.assertTrue(os.path.isabs(target_value), f"--target should be absolute, got: {target_value}")
+        self.assertEqual(target_value, os.path.abspath(os.path.join(".aws-sam", "deps", "abc-123")))
+
     def test_install_requirements_failure(self):
         self.mock_subprocess_uv.run_uv_command.return_value = (1, "", "error message")
 
@@ -241,6 +257,11 @@ class TestPythonUvDependencyBuilder(TestCase):
 
         # Verify it checked for uv.lock in the right location
         mock_exists.assert_called_with(os.path.join("path", "to", "uv.lock"))
+
+        # Verify export excludes PEP 735 default dependency-groups (dev/test deps
+        # must not land in Lambda zips).
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args[0][0]
+        self.assertIn("--no-default-groups", export_args)
 
     def test_build_dependencies_pyproject_without_uv_lock(self):
         """Test that pyproject.toml without uv.lock uses standard pyproject build."""

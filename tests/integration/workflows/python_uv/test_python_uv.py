@@ -121,6 +121,9 @@ class TestPythonUvWorkflow(TestCase):
         dependencies_files = set(os.listdir(self.dependencies_dir))
         self.assertEqual(expected_dependencies.intersection(dependencies_files), expected_dependencies)
 
+        # combine_dependencies defaults to True, so dependencies must also be copied into the artifacts dir.
+        self.assertEqual(expected_dependencies.intersection(output_files), expected_dependencies)
+
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_builds_numpy_successfully(self):
         """Test that UV can build numpy (same as PIP workflow test)"""

@@ -136,8 +136,10 @@ class UvRunner:
         # Add requirements file
         args.extend(["-r", requirements_path])
 
-        # Add target directory
-        args.extend(["--target", target_dir])
+        # Resolve --target to an absolute path: UV runs with cwd set to the project directory, so a
+        # relative target (e.g. the incremental-build dependencies dir) would otherwise be created
+        # under the source directory instead of the build root.
+        args.extend(["--target", os.path.abspath(target_dir)])
 
         # Add configuration arguments
         args.extend(config.to_uv_args())
@@ -329,6 +331,7 @@ class PythonUvDependencyBuilder:
                 "requirements.txt",
                 "--no-emit-project",  # Don't include the project itself, only dependencies
                 "--no-hashes",  # Skip hashes for cleaner output (optional)
+                "--no-default-groups",  # Exclude PEP 735 default groups (e.g. dev/test) from Lambda zips
                 "--output-file",
                 temp_requirements,
                 # We want to specify the version because `uv export` might default to using a different one
