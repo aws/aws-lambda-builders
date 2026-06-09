@@ -74,6 +74,13 @@ class TestPythonUvWorkflow(TestCase):
         self.assertIsInstance(self.workflow.actions[2], CopyDependenciesAction)
         self.assertIsInstance(self.workflow.actions[3], CopySourceAction)
 
+        # Dependencies are installed into dependencies_dir, then copied into artifacts_dir;
+        # artifact_dir is the copy source and dest_dir the destination (must not be swapped).
+        copy_deps_action = self.workflow.actions[2]
+        self.assertEqual(copy_deps_action.source_dir, "source")
+        self.assertEqual(copy_deps_action.artifact_dir, "deps")
+        self.assertEqual(copy_deps_action.dest_dir, "artifacts")
+
     def test_workflow_sets_up_actions_without_download_dependencies_and_dependencies_dir(self):
         self.workflow = PythonUvWorkflow(
             "source",
