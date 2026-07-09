@@ -332,6 +332,7 @@ class PythonUvDependencyBuilder:
                 "--no-emit-project",  # Don't include the project itself, only dependencies
                 "--no-hashes",  # Skip hashes for cleaner output (optional)
                 "--no-default-groups",  # Exclude PEP 735 default groups (e.g. dev/test) from Lambda zips
+                "--no-editable",  # Export editable dependencies as non-editable
                 "--output-file",
                 temp_requirements,
                 # We want to specify the version because `uv export` might default to using a different one
@@ -344,6 +345,15 @@ class PythonUvDependencyBuilder:
             if rc != 0:
                 raise LockFileError(reason=f"Failed to export lock file: {stderr}")
 
+            # Get the workspace root (or project directory if no workspace is used)
+            # For packages in the workspace, exported paths are relative to the workspace root,
+            # regardless of where in the workspace uv export is called
+            workspace_args = ["workspace", "dir"]
+            rc, stdout, stderr = self._uv_runner._uv.run_uv_command(workspace_args, cwd=project_dir)
+            if rc != 0:
+                raise LockFileError(reason=f"Failed to get workspace root: {stderr}")
+            workspace_dir = stdout.strip()
+
             # Install with platform targeting
             self._uv_runner.install_requirements(
                 requirements_path=temp_requirements,
@@ -352,7 +362,7 @@ class PythonUvDependencyBuilder:
                 config=config,
                 python_version=python_version,
                 platform="linux",
-                cwd=project_dir,
+                cwd=workspace_dir,
                 architecture=architecture,
             )
         except LockFileError:
