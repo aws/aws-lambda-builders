@@ -130,9 +130,9 @@ class UvRunner:
         # Add requirements file
         args.extend(["-r", requirements_path])
 
-        # Resolve --target to an absolute path: UV runs with cwd set to the project directory, so a
-        # relative target (e.g. the incremental-build dependencies dir) would otherwise be created
-        # under the source directory instead of the build root.
+        # Resolve --target to an absolute path: UV runs from the project or workspace directory,
+        # so a relative target (e.g. the incremental-build dependencies dir) would otherwise be
+        # created under the UV's cwd instead of the build root.
         args.extend(["--target", os.path.abspath(target_dir)])
 
         # Add configuration arguments
@@ -326,6 +326,8 @@ class PythonUvDependencyBuilder:
                 "--no-emit-project",  # Don't include the project itself, only dependencies
                 "--no-hashes",  # Skip hashes for cleaner output (optional)
                 "--no-default-groups",  # Exclude PEP 735 default groups (e.g. dev/test) from Lambda zips
+                # Install package bodies instead of editable .pth links, which break in Lambda zips.
+                "--no-editable",
                 "--output-file",
                 temp_requirements,
                 # We want to specify the version because `uv export` might default to using a different one
@@ -338,6 +340,19 @@ class PythonUvDependencyBuilder:
             if rc != 0:
                 raise LockFileError(reason=f"Failed to export lock file: {stderr}")
 
+            # Get the workspace root (or project directory if no workspace is used)
+            # For packages in the workspace, exported paths are relative to the workspace root,
+            # regardless of where in the workspace uv export is called
+            workspace_args = ["workspace", "dir"]
+            rc, stdout, stderr = self._uv_runner._uv.run_uv_command(workspace_args, cwd=project_dir)
+            if rc == 0:
+                workspace_dir = stdout.strip()
+            else:
+                # `uv workspace dir` requires uv >= 0.9.9. Fall back to the project directory,
+                # which is what that command returns for any non-workspace project anyway.
+                LOG.debug("Could not determine workspace root, assuming no workspace: %s", stderr)
+                workspace_dir = project_dir
+
             # Install with platform targeting
             self._uv_runner.install_requirements(
                 requirements_path=temp_requirements,
@@ -345,7 +360,7 @@ class PythonUvDependencyBuilder:
                 config=config,
                 python_version=python_version,
                 platform="linux",
-                cwd=project_dir,
+                cwd=workspace_dir,
                 architecture=architecture,
             )
         except LockFileError:

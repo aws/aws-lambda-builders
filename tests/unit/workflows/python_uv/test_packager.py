@@ -125,8 +125,9 @@ class TestUvRunner(TestCase):
         self.assertIn("/path/to/requirements.txt", args_called)
 
     def test_install_requirements_resolves_relative_target_to_absolute(self):
-        # UV runs with cwd=project_dir, so a relative --target must be resolved to an absolute path
-        # first, otherwise dependencies land under the source dir instead of the build root.
+        # UV runs from project_dir or workspace_dir,
+        # so a relative --target must be resolved to an absolute path first,
+        # otherwise dependencies land under the source dir instead of the build root.
         self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
 
         self.uv_runner.install_requirements(
@@ -209,21 +210,29 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.assertIn("Runtime is required", str(context.exception))
 
     def test_build_from_lock_file(self):
-        # Mock the uv command for export
-        self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+        # Mock the uv commands
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, b"", b""),  # export
+            (0, "/workspace\n", b""),  # workspace dir
+        ]
 
-        self.builder._build_from_lock_file(
-            lock_path="/path/to/uv.lock",
-            target_dir="/target",
-            scratch_dir="/scratch",
-            python_version="3.9",
-            architecture=X86_64,
-            config=UvConfig(),
-        )
+        with patch("os.path.dirname", return_value="/path/to"):
+            self.builder._build_from_lock_file(
+                lock_path="/path/to/uv.lock",
+                target_dir="/target",
+                scratch_dir="/scratch",
+                python_version="3.9",
+                architecture=X86_64,
+                config=UvConfig(),
+            )
 
-        # Should call export then install_requirements
-        self.mock_uv_runner._uv.run_uv_command.assert_called_once()
+        # Should call export and workspace dir then install_requirements
+        assert self.mock_uv_runner._uv.run_uv_command.call_count == 2
         self.mock_uv_runner.install_requirements.assert_called_once()
+
+        # Verify install_requirements is called from workspace root
+        assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
+        assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
 
     def test_build_from_requirements(self):
         self.builder._build_from_requirements(
@@ -267,15 +276,17 @@ class TestPythonUvDependencyBuilder(TestCase):
 
     def test_build_dependencies_pyproject_with_uv_lock(self):
         """Test that pyproject.toml with uv.lock present uses lock-based build."""
-        # Mock the uv export command
-        self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+        # Mock the uv commands
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, b"", b""),  # export
+            (0, "/workspace\n", b""),  # workspace dir
+        ]
 
         with (
             patch("os.path.basename", return_value="pyproject.toml"),
             patch("os.path.dirname", return_value=os.path.join("path", "to")),
             patch("os.path.exists") as mock_exists,
         ):
-
             # Mock that uv.lock exists alongside pyproject.toml
             mock_exists.return_value = True
 
@@ -286,17 +297,26 @@ class TestPythonUvDependencyBuilder(TestCase):
                 architecture=X86_64,
             )
 
-        # Should use export + install_requirements (for cross-platform support)
-        self.mock_uv_runner._uv.run_uv_command.assert_called_once()  # export
+        # Should use export + workspace dir + install_requirements (for cross-platform support)
+        assert self.mock_uv_runner._uv.run_uv_command.call_count == 2
         self.mock_uv_runner.install_requirements.assert_called_once()
+
+        # Verify install_requirements is called from workspace root
+        assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == os.path.join("path", "to")
+        assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
 
         # Verify it checked for uv.lock in the right location
         mock_exists.assert_called_with(os.path.join("path", "to", "uv.lock"))
 
         # Verify export excludes PEP 735 default dependency-groups (dev/test deps
         # must not land in Lambda zips).
-        export_args = self.mock_uv_runner._uv.run_uv_command.call_args[0][0]
+        export_args = next(
+            call.args[0]
+            for call in self.mock_uv_runner._uv.run_uv_command.call_args_list
+            if call.args[0][0] == "export"
+        )
         self.assertIn("--no-default-groups", export_args)
+        self.assertIn("--no-editable", export_args)
 
     def test_build_dependencies_pyproject_without_uv_lock(self):
         """Test that pyproject.toml without uv.lock uses standard pyproject build."""
