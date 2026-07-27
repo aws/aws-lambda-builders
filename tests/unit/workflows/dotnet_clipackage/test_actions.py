@@ -62,6 +62,31 @@ class TestGlobalToolInstallAction(TestCase):
             ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
         )
 
+    def test_global_tool_install_dotnet6_pins_version(self):
+        action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
+        action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
+        )
+
+    def test_global_tool_update_dotnet6_pins_version(self):
+        self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="Already Installed"), None]
+        action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
+        action.execute()
+        self.subprocess_dotnet.run.assert_any_call(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
+        )
+        self.subprocess_dotnet.run.assert_any_call(
+            ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
+        )
+
+    def test_global_tool_install_other_runtimes_no_version_pin(self):
+        action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet8")
+        action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+        )
+
 
 class TestRunPackageAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")

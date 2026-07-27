@@ -28,9 +28,14 @@ class GlobalToolInstallAction(BaseAction):
     DESCRIPTION = "Install or update the Amazon.Lambda.Tools .NET Core Global Tool."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, subprocess_dotnet):
+    # Amazon.Lambda.Tools 7.0.0 dropped support for dotnet6 (EOL runtime).
+    # Pin to the last compatible version to keep sam build --use-container working.
+    _DOTNET6_LAMBDA_TOOLS_VERSION = "5.14.0"
+
+    def __init__(self, subprocess_dotnet, runtime=None):
         super(GlobalToolInstallAction, self).__init__()
         self.subprocess_dotnet = subprocess_dotnet
+        self.runtime = runtime
 
     def execute(self):
         # run Amazon.Lambda.Tools update in sync block in case build is triggered in parallel
@@ -42,15 +47,25 @@ class GlobalToolInstallAction(BaseAction):
                 LOG.info("Skipping to update Amazon.Lambda.Tools install/update, since it is updated recently")
                 return
 
+            version_args = []
+            if self.runtime == "dotnet6":
+                LOG.info(
+                    "Pinning Amazon.Lambda.Tools to %s for dotnet6 (Amazon.Lambda.Tools 7.0.0+ is incompatible)",
+                    self._DOTNET6_LAMBDA_TOOLS_VERSION,
+                )
+                version_args = ["--version", self._DOTNET6_LAMBDA_TOOLS_VERSION]
+
             try:
                 LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
-                self.subprocess_dotnet.run(["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"])
+                self.subprocess_dotnet.run(
+                    ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"] + version_args
+                )
                 GlobalToolInstallAction.__tools_installed = True
             except DotnetCLIExecutionError:
                 LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
                 try:
                     self.subprocess_dotnet.run(
-                        ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+                        ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"] + version_args
                     )
                     GlobalToolInstallAction.__tools_installed = True
                 except DotnetCLIExecutionError as ex:
