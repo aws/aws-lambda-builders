@@ -30,7 +30,7 @@ class GlobalToolInstallAction(BaseAction):
 
     # Amazon.Lambda.Tools 7.0.0 dropped support for dotnet6 (EOL runtime).
     # Pin to the last compatible version to keep sam build --use-container working.
-    _DOTNET6_LAMBDA_TOOLS_VERSION = "5.14.0"
+    _DOTNET6_LAMBDA_TOOLS_VERSION = "5.13.2"
     _LATEST = "latest"
 
     def __init__(self, subprocess_dotnet, runtime=None):
@@ -43,9 +43,7 @@ class GlobalToolInstallAction(BaseAction):
         with GlobalToolInstallAction.__lock:
             LOG.debug("Entered synchronized block for updating Amazon.Lambda.Tools")
 
-            desired_version = (
-                self._DOTNET6_LAMBDA_TOOLS_VERSION if self.runtime == "dotnet6" else self._LATEST
-            )
+            desired_version = self._DOTNET6_LAMBDA_TOOLS_VERSION if self.runtime == "dotnet6" else self._LATEST
 
             # skip if already installed at the required version
             if GlobalToolInstallAction.__installed_version == desired_version:

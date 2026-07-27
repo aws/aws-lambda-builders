@@ -67,7 +67,7 @@ class TestGlobalToolInstallAction(TestCase):
         action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
         action.execute()
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.13.2"]
         )
 
     def test_global_tool_update_dotnet6_pins_version(self):
@@ -75,10 +75,10 @@ class TestGlobalToolInstallAction(TestCase):
         action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
         action.execute()
         self.subprocess_dotnet.run.assert_any_call(
-            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.13.2"]
         )
         self.subprocess_dotnet.run.assert_any_call(
-            ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
+            ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.13.2"]
         )
 
     def test_global_tool_install_other_runtimes_no_version_pin(self):
@@ -101,7 +101,7 @@ class TestGlobalToolInstallAction(TestCase):
         dotnet6_action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
         dotnet6_action.execute()
         self.subprocess_dotnet.run.assert_called_once_with(
-            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.13.2"]
         )
 
 
