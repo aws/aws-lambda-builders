@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 
 class GlobalToolInstallAction(BaseAction):
     __lock = threading.Lock()
-    __tools_installed = False
+    __installed_version = None  # None = not yet installed, "latest" or a specific version string
 
     """
     A Lambda Builder Action which installs the Amazon.Lambda.Tools .NET Core Global Tool
@@ -31,6 +31,7 @@ class GlobalToolInstallAction(BaseAction):
     # Amazon.Lambda.Tools 7.0.0 dropped support for dotnet6 (EOL runtime).
     # Pin to the last compatible version to keep sam build --use-container working.
     _DOTNET6_LAMBDA_TOOLS_VERSION = "5.14.0"
+    _LATEST = "latest"
 
     def __init__(self, subprocess_dotnet, runtime=None):
         super(GlobalToolInstallAction, self).__init__()
@@ -42,32 +43,36 @@ class GlobalToolInstallAction(BaseAction):
         with GlobalToolInstallAction.__lock:
             LOG.debug("Entered synchronized block for updating Amazon.Lambda.Tools")
 
-            # check if Amazon.Lambda.Tools updated recently
-            if GlobalToolInstallAction.__tools_installed:
-                LOG.info("Skipping to update Amazon.Lambda.Tools install/update, since it is updated recently")
+            desired_version = (
+                self._DOTNET6_LAMBDA_TOOLS_VERSION if self.runtime == "dotnet6" else self._LATEST
+            )
+
+            # skip if already installed at the required version
+            if GlobalToolInstallAction.__installed_version == desired_version:
+                LOG.info("Skipping Amazon.Lambda.Tools install/update; already at %s", desired_version)
                 return
 
             version_args = []
-            if self.runtime == "dotnet6":
+            if desired_version != self._LATEST:
                 LOG.info(
                     "Pinning Amazon.Lambda.Tools to %s for dotnet6 (Amazon.Lambda.Tools 7.0.0+ is incompatible)",
-                    self._DOTNET6_LAMBDA_TOOLS_VERSION,
+                    desired_version,
                 )
-                version_args = ["--version", self._DOTNET6_LAMBDA_TOOLS_VERSION]
+                version_args = ["--version", desired_version]
 
             try:
                 LOG.debug("Installing Amazon.Lambda.Tools Global Tool")
                 self.subprocess_dotnet.run(
                     ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"] + version_args
                 )
-                GlobalToolInstallAction.__tools_installed = True
+                GlobalToolInstallAction.__installed_version = desired_version
             except DotnetCLIExecutionError:
                 LOG.debug("Error installing probably due to already installed. Attempt to update to latest version.")
                 try:
                     self.subprocess_dotnet.run(
                         ["tool", "update", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"] + version_args
                     )
-                    GlobalToolInstallAction.__tools_installed = True
+                    GlobalToolInstallAction.__installed_version = desired_version
                 except DotnetCLIExecutionError as ex:
                     raise ActionFailedError(
                         "Error configuring the Amazon.Lambda.Tools .NET Core Global Tool: " + str(ex)

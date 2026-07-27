@@ -12,7 +12,7 @@ from aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli import DotnetCLIE
 from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction, RunPackageAction
 
 
-@patch.object(GlobalToolInstallAction, "_GlobalToolInstallAction__tools_installed", False)
+@patch.object(GlobalToolInstallAction, "_GlobalToolInstallAction__installed_version", None)
 class TestGlobalToolInstallAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
     def setUp(self, MockSubprocessDotnetCLI):
@@ -20,6 +20,7 @@ class TestGlobalToolInstallAction(TestCase):
 
     def tearDown(self):
         self.subprocess_dotnet.reset_mock()
+        GlobalToolInstallAction._GlobalToolInstallAction__installed_version = None
 
     def test_global_tool_install(self):
         action = GlobalToolInstallAction(self.subprocess_dotnet)
@@ -85,6 +86,22 @@ class TestGlobalToolInstallAction(TestCase):
         action.execute()
         self.subprocess_dotnet.run.assert_called_once_with(
             ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+        )
+
+    def test_dotnet6_pins_version_even_after_dotnet8_installs_latest(self):
+        # dotnet8 builds first — installs latest (no pin)
+        dotnet8_action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet8")
+        dotnet8_action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+        )
+        self.subprocess_dotnet.reset_mock()
+
+        # dotnet6 builds next — must re-pin to 5.14.0, not skip
+        dotnet6_action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
+        dotnet6_action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources", "--version", "5.14.0"]
         )
 
 
