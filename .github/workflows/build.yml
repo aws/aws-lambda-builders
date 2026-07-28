@@ -371,6 +371,17 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
+      # The matrix requests an SDK, but setup-dotnet adds to DOTNET_ROOT rather
+      # than replacing what the runner image already ships. With no global.json,
+      # the CLI selects the highest installed SDK -- so the requested version may
+      # not be the one actually used. Log both to make the difference visible.
+      - name: Report requested vs selected .NET SDK
+        shell: bash
+        run: |
+          echo "matrix requested : ${{ matrix.dotnet }}"
+          echo "dotnet --version : $(dotnet --version)"
+          echo "installed SDKs   :"
+          dotnet --list-sdks
       - run: make init
       - run: pytest -vv tests/integration/workflows/dotnet_clipackage
 
