@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 import tempfile
 import json
 from parameterized import parameterized
@@ -14,6 +15,7 @@ from unittest import TestCase
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.supported_runtimes import DOTNET_RUNTIMES
+from aws_lambda_builders.workflows.dotnet_clipackage.actions import GlobalToolInstallAction
 
 
 def get_dotnet_test_params():
@@ -54,6 +56,13 @@ class TestDotnetBase(TestCase):
         self.artifacts_dir = tempfile.mkdtemp()
         self.scratch_dir = tempfile.mkdtemp()
         self.builder = LambdaBuilder(language="dotnet", dependency_manager="cli-package", application_framework=None)
+        # Reset cached install state and uninstall any pre-existing Amazon.Lambda.Tools
+        # so each test exercises the actual install path.
+        GlobalToolInstallAction._GlobalToolInstallAction__tools_installed = False
+        subprocess.run(
+            ["dotnet", "tool", "uninstall", "-g", "Amazon.Lambda.Tools"],
+            capture_output=True,
+        )
 
     def tearDown(self):
         shutil.rmtree(self.artifacts_dir)
