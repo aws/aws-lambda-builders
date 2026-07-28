@@ -57,9 +57,10 @@ class GlobalToolInstallAction(BaseAction):
             # Amazon.Lambda.Tools 7.0.0 dropped support for dotnet6 (EOL runtime), so
             # installing/updating to latest breaks dotnet6 builds. If a working tool is
             # already available (e.g. pre-installed in the SAM build image), use it as is.
+            # Deliberately not setting __tools_installed here so other runtimes in the
+            # same process still install/update to latest as before.
             if self.runtime == "dotnet6" and self._existing_tool_available():
                 LOG.info("Skipping Amazon.Lambda.Tools install/update for dotnet6; using the pre-installed version")
-                GlobalToolInstallAction.__tools_installed = True
                 return
 
             try:
