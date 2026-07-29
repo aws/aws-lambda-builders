@@ -95,18 +95,10 @@ class UvRunner:
         """Get UV version."""
         return self._uv.get_uv_version()
 
-    def _ensure_cache_dir(self, config: UvConfig, scratch_dir: str) -> None:
-        """Ensure UV cache directory is configured."""
-        if not config.cache_dir:
-            config.cache_dir = os.path.join(scratch_dir, "uv-cache")
-            if not os.path.exists(config.cache_dir):
-                self._osutils.makedirs(config.cache_dir)
-
     def install_requirements(
         self,
         requirements_path: str,
         target_dir: str,
-        scratch_dir: str,
         config: Optional[UvConfig] = None,
         python_version: Optional[str] = None,
         platform: Optional[str] = None,
@@ -116,10 +108,15 @@ class UvRunner:
         """
         Install requirements using UV pip interface.
 
+        No ``--cache-dir`` is passed unless the caller supplies one, so UV uses its own
+        default cache location. That cache outlives a single build, letting UV reuse
+        previously downloaded dependencies across functions and across builds. Pointing UV
+        at a per-build directory instead would discard the cache every time, since the
+        build's scratch directory is deleted when the build finishes.
+
         Args:
             requirements_path: Path to requirements.txt file
             target_dir: Directory to install dependencies
-            scratch_dir: Scratch directory for temporary operations
             config: UV configuration options
             python_version: Target Python version
             platform: Target platform
@@ -127,9 +124,6 @@ class UvRunner:
         """
         if config is None:
             config = UvConfig()
-
-        # Ensure UV cache is configured to use scratch directory
-        self._ensure_cache_dir(config, scratch_dir)
 
         args = ["pip", "install"]
 
@@ -348,7 +342,6 @@ class PythonUvDependencyBuilder:
             self._uv_runner.install_requirements(
                 requirements_path=temp_requirements,
                 target_dir=target_dir,
-                scratch_dir=scratch_dir,
                 config=config,
                 python_version=python_version,
                 platform="linux",
@@ -400,14 +393,17 @@ class PythonUvDependencyBuilder:
         architecture: str,
         config: UvConfig,
     ) -> None:
-        """Build dependencies from requirements.txt file."""
+        """Build dependencies from requirements.txt file.
+
+        ``scratch_dir`` is unused here; it is part of the signature shared by every manifest
+        handler dispatched from :meth:`build_dependencies`.
+        """
         LOG.info("Building from requirements file")
 
         try:
             self._uv_runner.install_requirements(
                 requirements_path=requirements_path,
                 target_dir=target_dir,
-                scratch_dir=scratch_dir,
                 config=config,
                 python_version=python_version,
                 platform="linux",

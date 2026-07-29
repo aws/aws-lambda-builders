@@ -201,7 +201,7 @@ The workflow supports various configuration options through the config parameter
 config = {
     "index_url": "https://pypi.org/simple/",  # Custom package index
     "extra_index_urls": [],                   # Additional package indexes
-    "cache_dir": "/tmp/uv-cache",            # Custom cache directory
+    "cache_dir": None,                       # Custom cache directory; UV's own default when unset
     "no_cache": False,                       # Disable caching
     "prerelease": "disallow",                # Handle pre-release versions
     "resolution": "highest",                 # Resolution strategy
@@ -210,6 +210,19 @@ config = {
     "generate_hashes": False,                # Generate package hashes
 }
 ```
+
+### Caching
+
+The workflow does not pass `--cache-dir` unless a caller supplies one, so UV uses its own
+default cache location (`~/.cache/uv` on Linux, overridable with `UV_CACHE_DIR`). This mirrors
+the `python_pip` workflow, which likewise leaves `PIP_CACHE_DIR` alone and inherits pip's
+user-level cache.
+
+Keeping the cache outside the build directory is what makes it useful: it survives a single
+build, so UV reuses previously downloaded dependencies across functions within one `sam build`
+and across successive builds. Pointing UV at the build's scratch directory instead would
+discard the cache every time, because that directory is deleted when the build finishes — every
+function would then re-download its entire dependency set on every build.
 
 ### Compatibility with Existing Workflows
 
