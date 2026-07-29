@@ -29,7 +29,7 @@ class DotnetCliPackageWorkflow(BaseWorkflow):
 
         options = kwargs["options"] if "options" in kwargs else {}
         subprocess_dotnetcli = SubprocessDotnetCLI(os_utils=OSUtils())
-        dotnetcli_install = GlobalToolInstallAction(subprocess_dotnet=subprocess_dotnetcli)
+        dotnetcli_install = GlobalToolInstallAction(subprocess_dotnet=subprocess_dotnetcli, runtime=runtime)
 
         dotnetcli_deployment = RunPackageAction(
             source_dir,
