@@ -51,7 +51,7 @@ class RustCargoLambdaWorkflow(BaseWorkflow):
                 handler,
                 flags,
             ),
-            RustCopyAndRenameAction(source_dir, artifacts_dir, handler),
+            RustCopyAndRenameAction(source_dir, artifacts_dir, handler, self.binaries, subprocess_cargo_lambda),
         ]
 
     def get_resolvers(self):
