@@ -28,9 +28,21 @@ class GlobalToolInstallAction(BaseAction):
     DESCRIPTION = "Install or update the Amazon.Lambda.Tools .NET Core Global Tool."
     PURPOSE = Purpose.COMPILE_SOURCE
 
-    def __init__(self, subprocess_dotnet):
+    def __init__(self, subprocess_dotnet, runtime=None):
         super(GlobalToolInstallAction, self).__init__()
         self.subprocess_dotnet = subprocess_dotnet
+        self.runtime = runtime
+
+    def _existing_tool_available(self):
+        """
+        Returns True if a working Amazon.Lambda.Tools is already available on the PATH
+        (e.g. pre-installed in the SAM build image).
+        """
+        try:
+            self.subprocess_dotnet.run(["lambda", "help"])
+            return True
+        except DotnetCLIExecutionError:
+            return False
 
     def execute(self):
         # run Amazon.Lambda.Tools update in sync block in case build is triggered in parallel
@@ -40,6 +52,15 @@ class GlobalToolInstallAction(BaseAction):
             # check if Amazon.Lambda.Tools updated recently
             if GlobalToolInstallAction.__tools_installed:
                 LOG.info("Skipping to update Amazon.Lambda.Tools install/update, since it is updated recently")
+                return
+
+            # Amazon.Lambda.Tools 7.0.0 dropped support for dotnet6 (EOL runtime), so
+            # installing/updating to latest breaks dotnet6 builds. If a working tool is
+            # already available (e.g. pre-installed in the SAM build image), use it as is.
+            # Deliberately not setting __tools_installed here so other runtimes in the
+            # same process still install/update to latest as before.
+            if self.runtime == "dotnet6" and self._existing_tool_available():
+                LOG.info("Skipping Amazon.Lambda.Tools install/update for dotnet6; using the pre-installed version")
                 return
 
             try:
