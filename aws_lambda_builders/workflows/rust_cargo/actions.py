@@ -104,7 +104,9 @@ class RustCopyAndRenameAction(BaseAction):
     DESCRIPTION = "Copy Rust executable, renaming if needed"
     PURPOSE = Purpose.COPY_SOURCE
 
-    def __init__(self, source_dir, artifacts_dir, handler=None, osutils=OSUtils()):
+    def __init__(
+        self, source_dir, artifacts_dir, handler=None, binaries=None, subprocess_cargo_lambda=None, osutils=OSUtils()
+    ):
         """
         Copy and rename Rust executable
 
@@ -119,21 +121,57 @@ class RustCopyAndRenameAction(BaseAction):
         handler : str, optional
             Handler name in `package.bin_name` or `bin_name` format
 
+        binaries : dict, optional
+            Resolved path dependencies, used to locate the `cargo` binary when
+            resolving the workspace target directory
+
+        subprocess_cargo_lambda : aws_lambda_builders.workflows.rust_cargo.cargo_lambda.SubprocessCargoLambda, optional
+            The Cargo Lambda process wrapper, used to resolve the same target
+            directory the build action compiled into
+
         osutils : aws_lambda_builders.workflows.rust_cargo.utils.OSUtils, optional
             Optional, External IO utils
         """
         self._source_dir = source_dir
         self._handler = handler
         self._artifacts_dir = artifacts_dir
+        self._binaries = binaries
+        self._subprocess_cargo_lambda = subprocess_cargo_lambda
         self._osutils = osutils
 
+    def _workspace_layout(self):
+        # Resolve the same shared target directory and binary name the build action
+        # used, from a single cached cargo metadata call. Returns None when the
+        # cargo wrapper is unavailable (e.g. in unit tests exercising the legacy path).
+        if self._subprocess_cargo_lambda and self._binaries and self._binaries.get("cargo"):
+            return self._subprocess_cargo_lambda.resolve_workspace_layout(
+                self._binaries["cargo"].binary_path, self._source_dir
+            )
+        return None
+
     def base_path(self):
+        # For a workspace member this is the workspace root's shared target/lambda; for
+        # a standalone project it is source_dir/target/lambda, matching the legacy path.
+        layout = self._workspace_layout()
+        if layout and layout.get("target_directory"):
+            return os.path.join(layout["target_directory"], "lambda")
         return os.path.join(self._source_dir, "target", "lambda")
 
     def binary_path(self):
         base = self.base_path()
-        if self._handler:
-            binary_path = os.path.join(base, self._handler, "bootstrap")
+
+        # An explicit handler (artifact_executable_name) always wins.
+        binary_name = self._handler
+        # Otherwise use the bin name cargo reported for this member. This is what lets
+        # the copy step pick the right binary now that every member shares one
+        # target/lambda directory holding all of the workspace's binaries.
+        if not binary_name:
+            layout = self._workspace_layout()
+            if layout:
+                binary_name = layout.get("binary_name")
+
+        if binary_name:
+            binary_path = os.path.join(base, binary_name, "bootstrap")
             LOG.debug("copying function binary from %s", binary_path)
             return binary_path
 

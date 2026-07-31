@@ -62,6 +62,43 @@ class TestGlobalToolInstallAction(TestCase):
             ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
         )
 
+    def test_dotnet6_skips_install_when_tool_preinstalled(self):
+        # `dotnet lambda help` succeeds -> a working tool is already available (e.g. SAM build image)
+        action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
+        action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(["lambda", "help"])
+
+    def test_dotnet6_installs_when_no_tool_preinstalled(self):
+        # `dotnet lambda help` fails -> no tool available, fall back to normal install
+        self.subprocess_dotnet.run.side_effect = [DotnetCLIExecutionError(message="No tool"), None]
+        action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
+        action.execute()
+        self.subprocess_dotnet.run.assert_any_call(["lambda", "help"])
+        self.subprocess_dotnet.run.assert_any_call(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+        )
+
+    def test_other_runtimes_do_not_probe_for_preinstalled_tool(self):
+        action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet8")
+        action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+        )
+
+    def test_dotnet8_after_dotnet6_skip_still_installs(self):
+        # dotnet6 skips because a working tool is pre-installed, but it must NOT mark the
+        # tool as installed for the process - a subsequent dotnet8 build still installs
+        # or updates to latest as before
+        dotnet6_action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet6")
+        dotnet6_action.execute()
+        self.subprocess_dotnet.reset_mock()
+
+        dotnet8_action = GlobalToolInstallAction(self.subprocess_dotnet, runtime="dotnet8")
+        dotnet8_action.execute()
+        self.subprocess_dotnet.run.assert_called_once_with(
+            ["tool", "install", "-g", "Amazon.Lambda.Tools", "--ignore-failed-sources"]
+        )
+
 
 class TestRunPackageAction(TestCase):
     @patch("aws_lambda_builders.workflows.dotnet_clipackage.dotnetcli.SubprocessDotnetCLI")
