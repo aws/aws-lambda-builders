@@ -139,6 +139,35 @@ class TestRustCargo(TestCase):
         self.assertEqual(expected_files, output_files)
         self.assertIn("bar", os.path.join(source_dir, "bar", "target", "lambda"))
 
+    def test_builds_workspace_members_into_shared_target_dir(self):
+        # Building each member of a workspace, without an explicit handler, should place
+        # every binary under the single workspace-root target/lambda directory so cargo
+        # reuses compiled dependencies across the per-function builds. Each member's own
+        # binary must still be copied to its artifacts dir even though the shared
+        # target/lambda now holds every member's binary.
+        source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
+        rm_target(source_dir)
+
+        member_artifacts = {}
+        for member in ("foo", "bar"):
+            artifacts_dir = tempfile.mkdtemp()
+            member_artifacts[member] = artifacts_dir
+            self.builder.build(
+                os.path.join(source_dir, member),
+                artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, member, "Cargo.toml"),
+                runtime=self.runtime,
+            )
+
+        shared_lambda_dir = os.path.join(source_dir, "target", "lambda")
+        self.assertEqual({"foo", "bar"}, set(os.listdir(shared_lambda_dir)))
+        self.assertFalse(os.path.isdir(os.path.join(source_dir, "foo", "target")))
+        self.assertFalse(os.path.isdir(os.path.join(source_dir, "bar", "target")))
+        for member, artifacts_dir in member_artifacts.items():
+            self.assertEqual({"bootstrap"}, set(os.listdir(artifacts_dir)))
+            shutil.rmtree(artifacts_dir, ignore_errors=True)
+
     def test_builds_workspaces_project_with_package_option(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "workspaces")
         rm_target(source_dir)
