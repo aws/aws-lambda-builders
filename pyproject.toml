@@ -9,7 +9,10 @@ select = [
   "PL", # pylint
   "I",  # isort
 ]
-ignore = ["PLR0913", "PLC0415"]
+# PLR0917 (too-many-positional-arguments) became stable in ruff 0.16, and "PL" selects it.
+# Ignored for the same reason as PLR0913: the builder and workflow constructors take their
+# arguments positionally by design.
+ignore = ["PLR0913", "PLR0917", "PLC0415"]
 
 [tool.ruff.lint.pylint]
 max-branches = 13
