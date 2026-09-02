@@ -71,7 +71,7 @@ jobs:
           - "3.13"
           - "3.14"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -108,7 +108,7 @@ jobs:
           - nodejs: 22
             npm: 11
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -148,7 +148,7 @@ jobs:
           - nodejs: 22
             npm: 11
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -174,7 +174,7 @@ jobs:
         python:
           - "3.13"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -200,7 +200,7 @@ jobs:
           - "21"
           - "25"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -229,7 +229,7 @@ jobs:
           - "21"
           - "25"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -253,7 +253,7 @@ jobs:
         python:
           - "3.13"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -277,7 +277,7 @@ jobs:
           - "3.13"
           - "3.14"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -305,7 +305,7 @@ jobs:
           - "3.13"
           - "3.14"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -337,7 +337,7 @@ jobs:
           - "3.2"
           - "4.0"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -364,11 +364,11 @@ jobs:
           - "8.0.x"
           - "10.0.x"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - run: make init
@@ -379,7 +379,9 @@ jobs:
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
-      CARGO_LAMBDA_VERSION: 0.15.0
+      # 1.9.2 bundles cargo-zigbuild 0.23.0, which drops the -Wl,--fix-cortex-a53-843419 that
+      # rustc now passes for aarch64 and zig rejects. 0.15.0 bundled 0.14.1, which did not.
+      CARGO_LAMBDA_VERSION: 1.9.2
     defaults:
       run:
         shell: bash
@@ -394,7 +396,7 @@ jobs:
         rust:
           - stable
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
