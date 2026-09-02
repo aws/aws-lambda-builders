@@ -112,7 +112,6 @@ class TestUvRunner(TestCase):
         self.uv_runner.install_requirements(
             requirements_path="/path/to/requirements.txt",
             target_dir="/target",
-            scratch_dir="/scratch",
             python_version="3.9",
             platform="linux",
             architecture=X86_64,
@@ -133,7 +132,6 @@ class TestUvRunner(TestCase):
         self.uv_runner.install_requirements(
             requirements_path="/path/to/requirements.txt",
             target_dir=os.path.join(".aws-sam", "deps", "abc-123"),
-            scratch_dir="/scratch",
         )
 
         args_called = self.mock_subprocess_uv.run_uv_command.call_args[0][0]
@@ -141,13 +139,50 @@ class TestUvRunner(TestCase):
         self.assertTrue(os.path.isabs(target_value), f"--target should be absolute, got: {target_value}")
         self.assertEqual(target_value, os.path.abspath(os.path.join(".aws-sam", "deps", "abc-123")))
 
+    def test_install_requirements_does_not_pass_cache_dir_by_default(self):
+        # No --cache-dir means UV uses its own persistent cache, so dependencies downloaded for
+        # one function are reused by the next function and by later builds. Passing a per-build
+        # directory here would throw the cache away every time.
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
+
+        self.uv_runner.install_requirements(
+            requirements_path="/path/to/requirements.txt",
+            target_dir="/target",
+        )
+
+        args_called = self.mock_subprocess_uv.run_uv_command.call_args[0][0]
+        self.assertNotIn("--cache-dir", args_called)
+
+    def test_install_requirements_does_not_create_cache_directory(self):
+        # The previous implementation created a cache directory on disk under the scratch dir.
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
+
+        self.uv_runner.install_requirements(
+            requirements_path="/path/to/requirements.txt",
+            target_dir="/target",
+        )
+
+        self.mock_osutils.makedirs.assert_not_called()
+
+    def test_install_requirements_honors_caller_supplied_cache_dir(self):
+        # An explicit cache_dir is still forwarded, so a caller can opt into a specific location.
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
+
+        self.uv_runner.install_requirements(
+            requirements_path="/path/to/requirements.txt",
+            target_dir="/target",
+            config=UvConfig(cache_dir="/custom/cache"),
+        )
+
+        args_called = self.mock_subprocess_uv.run_uv_command.call_args[0][0]
+        self.assertIn("--cache-dir", args_called)
+        self.assertEqual(args_called[args_called.index("--cache-dir") + 1], "/custom/cache")
+
     def test_install_requirements_failure(self):
         self.mock_subprocess_uv.run_uv_command.return_value = (1, "", "error message")
 
         with self.assertRaises(UvInstallationError):
-            self.uv_runner.install_requirements(
-                requirements_path="/path/to/requirements.txt", target_dir="/target", scratch_dir="/scratch"
-            )
+            self.uv_runner.install_requirements(requirements_path="/path/to/requirements.txt", target_dir="/target")
 
 
 class TestPythonUvDependencyBuilder(TestCase):
@@ -288,8 +323,13 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Verify it checked for uv.lock in the right location
         mock_exists.assert_called_with(os.path.join("path", "to", "uv.lock"))
 
-    def test_build_dependencies_passes_scratch_dir(self):
-        """Test that build_dependencies passes scratch_dir to UvRunner for cache configuration."""
+    def test_build_dependencies_leaves_cache_dir_unset(self):
+        """A build must not derive a cache directory from the ephemeral scratch directory.
+
+        The scratch directory is deleted when the build finishes, so caching there would make
+        every function re-download its dependencies on every build. Leaving cache_dir unset
+        lets UV use its own persistent cache.
+        """
         with patch("os.path.basename", return_value="requirements.txt"):
             self.builder.build_dependencies(
                 artifacts_dir_path="/artifacts",
@@ -298,10 +338,8 @@ class TestPythonUvDependencyBuilder(TestCase):
                 architecture=X86_64,
             )
 
-        # Verify that install_requirements was called with scratch_dir
-        # UvRunner._ensure_cache_dir() will use this to configure the cache
-        call_args = self.mock_uv_runner.install_requirements.call_args
-        self.assertEqual(call_args[1]["scratch_dir"], "/scratch")
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertIsNone(passed_config.cache_dir)
 
     def test_build_dependencies_respects_existing_cache_dir(self):
         """Test that existing cache_dir in config is respected."""
