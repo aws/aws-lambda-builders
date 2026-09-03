@@ -13,9 +13,7 @@ from aws_lambda_builders.actions import (
     LinkSinglePathAction,
     MoveDependenciesAction,
 )
-from aws_lambda_builders.exceptions import RuntimeValidatorError, WorkflowFailedError
 from aws_lambda_builders.path_resolver import PathResolver
-from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmCIAction,
@@ -221,17 +219,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if not self._use_npm:
             return []
         return super().get_validators()
-
-    def run(self):
-        if not self._use_npm:
-            self._validate_runtime()
-        return super().run()
-
-    def _validate_runtime(self):
-        try:
-            RuntimeValidator(runtime=self.runtime, architecture=self.architecture).validate(None)
-        except RuntimeValidatorError as ex:
-            raise WorkflowFailedError(workflow_name=self.NAME, action_name="Validation", reason=str(ex)) from ex
 
     @staticmethod
     def get_install_action(

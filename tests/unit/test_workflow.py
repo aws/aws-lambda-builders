@@ -396,6 +396,46 @@ class TestBaseWorkflow_run(TestCase):
 
         self.assertIn("Architecture invalid_arch is not supported for runtime python3.12", str(ex.exception))
 
+    def test_empty_binaries_with_supported_runtime_executes_actions(self):
+        self.work.runtime = "python3.12"
+        self.work.architecture = "arm64"
+        self.work.get_resolvers = Mock(return_value=[])
+        self.work.get_validators = Mock(return_value=[])
+        action_mock = Mock()
+        self.work.actions = [action_mock]
+
+        self.work.run()
+
+        self.work.get_resolvers.assert_called_once_with()
+        self.work.get_validators.assert_called_once_with()
+        action_mock.execute.assert_called_once_with()
+
+    def test_empty_binaries_with_unsupported_runtime_raises_workflow_failed_error(self):
+        self.work.runtime = "python1.0"
+        self.work.get_resolvers = Mock(return_value=[])
+        self.work.get_validators = Mock(return_value=[])
+        self.work.actions = [Mock()]
+
+        with self.assertRaises(WorkflowFailedError) as raised:
+            self.work.run()
+
+        self.assertEqual(str(raised.exception), "MyWorkflow:Validation - Runtime python1.0 is not supported")
+
+    def test_empty_binaries_with_unsupported_architecture_raises_workflow_failed_error(self):
+        self.work.runtime = "python3.12"
+        self.work.architecture = "invalid_arch"
+        self.work.get_resolvers = Mock(return_value=[])
+        self.work.get_validators = Mock(return_value=[])
+        self.work.actions = [Mock()]
+
+        with self.assertRaises(WorkflowFailedError) as raised:
+            self.work.run()
+
+        self.assertEqual(
+            str(raised.exception),
+            "MyWorkflow:Validation - Architecture invalid_arch is not supported for runtime python3.12",
+        )
+
 
 class TestBaseWorkflow_repr(TestCase):
     class MyWorkflow(BaseWorkflow):

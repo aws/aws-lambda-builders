@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from parameterized import parameterized_class
 
 from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
+from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction
 from aws_lambda_builders.workflows.python_uv.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE, OSUtils
 from aws_lambda_builders.workflows.python_uv.workflow import PythonUvWorkflow
@@ -169,6 +170,34 @@ class TestPythonUvWorkflow(TestCase):
         validators = self.workflow.get_validators()
         # UV has built-in Python version handling, no external validators needed
         self.assertEqual(len(validators), 0)
+
+    def test_supported_runtime_runs_without_binary_resolution(self):
+        action_mock = Mock()
+        self.workflow.actions = [action_mock]
+
+        with patch("aws_lambda_builders.path_resolver.which", side_effect=AssertionError("binary resolution called")):
+            self.workflow.run()
+
+        action_mock.execute.assert_called_once_with()
+
+    def test_unsupported_runtime_is_rejected(self):
+        self.workflow.runtime = "python1.0"
+
+        with self.assertRaises(WorkflowFailedError) as raised:
+            self.workflow.run()
+
+        self.assertEqual(str(raised.exception), "PythonUvBuilder:Validation - Runtime python1.0 is not supported")
+
+    def test_unsupported_architecture_is_rejected(self):
+        self.workflow.architecture = "invalid_arch"
+
+        with self.assertRaises(WorkflowFailedError) as raised:
+            self.workflow.run()
+
+        self.assertEqual(
+            str(raised.exception),
+            "PythonUvBuilder:Validation - Architecture invalid_arch is not supported for runtime python3.9",
+        )
 
     @patch("aws_lambda_builders.workflows.python_uv.workflow.detect_uv_manifest")
     def test_workflow_auto_detects_manifest(self, mock_detect):
