@@ -75,7 +75,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Unit Testing
         run: make pr
       - name: Functional Testing
@@ -315,7 +315,7 @@ jobs:
         if: ${{ matrix.os }} == 'ubuntu-latest' && ${{ matrix.python }} == '3.12'
       # Install UV for python_uv workflow tests
       - name: Install UV
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           enable-cache: true
       - run: make init
