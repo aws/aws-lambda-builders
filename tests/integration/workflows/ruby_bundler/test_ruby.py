@@ -135,7 +135,12 @@ class TestRubyWorkflow(TestCase):
 
     def test_builds_project_without_downloaded_dependencies_without_dependencies_dir(self):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "with-deps")
-        with mock.patch.object(workflow_logger, "info") as mock_info:
+        with (
+            mock.patch.object(workflow_logger, "info") as mock_info,
+            mock.patch(
+                "aws_lambda_builders.path_resolver.which", side_effect=AssertionError("Ruby should not be resolved")
+            ),
+        ):
             self.builder.build(
                 source_dir,
                 self.artifacts_dir,

@@ -2,6 +2,8 @@ from unittest import TestCase
 
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
 from aws_lambda_builders.architecture import ARM64
+from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.ruby_bundler.workflow import RubyBundlerWorkflow
 from aws_lambda_builders.workflows.ruby_bundler.actions import RubyBundlerInstallAction, RubyBundlerVendorAction
 
@@ -43,6 +45,37 @@ class TestRubyBundlerWorkflow(TestCase):
         self.assertEqual(len(workflow.actions), 1)
 
         self.assertIsInstance(workflow.actions[0], CopySourceAction)
+
+    def test_workflow_without_download_dependencies_skips_ruby_resolution_and_validation(self):
+        workflow = RubyBundlerWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="ruby3.3",
+            download_dependencies=False,
+        )
+
+        self.assertEqual(workflow.get_resolvers(), [])
+        self.assertEqual(workflow.get_validators(), [])
+
+    def test_workflow_with_download_dependencies_retains_ruby_resolution_and_validation(self):
+        workflow = RubyBundlerWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="ruby3.3",
+            download_dependencies=True,
+        )
+
+        resolvers = workflow.get_resolvers()
+        validators = workflow.get_validators()
+        self.assertEqual(len(resolvers), 1)
+        self.assertIsInstance(resolvers[0], PathResolver)
+        self.assertEqual(resolvers[0].binary, "ruby")
+        self.assertEqual(len(validators), 1)
+        self.assertIsInstance(validators[0], RuntimeValidator)
 
     def test_must_validate_architecture(self):
         workflow = RubyBundlerWorkflow(

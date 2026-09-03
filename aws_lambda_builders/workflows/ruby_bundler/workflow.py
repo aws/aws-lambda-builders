@@ -34,6 +34,8 @@ class RubyBundlerWorkflow(BaseWorkflow):
             source_dir, artifacts_dir, scratch_dir, manifest_path, runtime=runtime, **kwargs
         )
 
+        self._use_bundler = self.download_dependencies
+
         if osutils is None:
             osutils = OSUtils()
 
@@ -61,3 +63,13 @@ class RubyBundlerWorkflow(BaseWorkflow):
                 "download_dependencies is False and dependencies_dir is None. Copying the source files into the "
                 "artifacts directory. "
             )
+
+    def get_resolvers(self):
+        if not self._use_bundler:
+            return []
+        return super().get_resolvers()
+
+    def get_validators(self):
+        if not self._use_bundler:
+            return []
+        return super().get_validators()

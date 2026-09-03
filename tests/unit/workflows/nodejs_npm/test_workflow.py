@@ -12,6 +12,8 @@ from aws_lambda_builders.actions import (
     MoveDependenciesAction,
 )
 from aws_lambda_builders.architecture import ARM64
+from aws_lambda_builders.path_resolver import PathResolver
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmPackAction,
@@ -205,6 +207,37 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
         self.assertIsInstance(workflow.actions[3], NodejsNpmrcCleanUpAction)
         self.assertIsInstance(workflow.actions[4], NodejsNpmLockFileCleanUpAction)
+
+    def test_workflow_without_manifest_skips_npm_resolution_and_validation(self):
+        self.osutils.file_exists.return_value = False
+
+        workflow = NodejsNpmWorkflow(
+            "source", "artifacts", "scratch_dir", "source/manifest", runtime="nodejs20.x", osutils=self.osutils
+        )
+
+        self.assertEqual(workflow.get_resolvers(), [])
+        self.assertEqual(workflow.get_validators(), [])
+
+    def test_workflow_with_manifest_retains_npm_resolution_and_validation(self):
+        self.osutils.file_exists.return_value = True
+
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "source/manifest",
+            runtime="nodejs20.x",
+            download_dependencies=False,
+            osutils=self.osutils,
+        )
+
+        resolvers = workflow.get_resolvers()
+        validators = workflow.get_validators()
+        self.assertEqual(len(resolvers), 1)
+        self.assertIsInstance(resolvers[0], PathResolver)
+        self.assertEqual(resolvers[0].binary, "npm")
+        self.assertEqual(len(validators), 1)
+        self.assertIsInstance(validators[0], RuntimeValidator)
 
     def test_workflow_sets_up_npm_actions_without_combine_dependencies(self):
         self.osutils.file_exists.side_effect = [True, False, False]
