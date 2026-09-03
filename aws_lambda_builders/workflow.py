@@ -58,6 +58,12 @@ class BuildInSourceSupport(Enum):
     EXCLUSIVELY_SUPPORTED = [True]
 
 
+def _validate_runtime_without_binary(workflow):
+    runtime_validator = workflow.get_runtime_validator()
+    if runtime_validator:
+        runtime_validator.validate(None)
+
+
 # TODO: Move sanitize out to its own class.
 def sanitize(func):  # pylint: disable=too-many-statements
     """
@@ -74,7 +80,7 @@ def sanitize(func):  # pylint: disable=too-many-statements
 
         if not binaries:
             try:
-                RuntimeValidator(runtime=self.runtime, architecture=self.architecture).validate(None)
+                _validate_runtime_without_binary(self)
             except RuntimeValidatorError as ex:
                 validation_errors.append(str(ex))
 
@@ -337,6 +343,10 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         No-op validator that does not validate the runtime_path.
         """
         return [RuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
+
+    def get_runtime_validator(self):
+        """Return the validator used when the workflow does not require any binaries."""
+        return RuntimeValidator(runtime=self.runtime, architecture=self.architecture)
 
     @property
     def binaries(self):

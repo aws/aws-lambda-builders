@@ -436,6 +436,19 @@ class TestBaseWorkflow_run(TestCase):
             "MyWorkflow:Validation - Architecture invalid_arch is not supported for runtime python3.12",
         )
 
+    def test_empty_binaries_can_skip_runtime_validation(self):
+        self.work.runtime = "unsupported"
+        self.work.get_resolvers = Mock(return_value=[])
+        self.work.get_validators = Mock(return_value=[])
+        self.work.get_runtime_validator = Mock(return_value=None)
+        action_mock = Mock()
+        self.work.actions = [action_mock]
+
+        self.work.run()
+
+        self.work.get_runtime_validator.assert_called_once_with()
+        action_mock.execute.assert_called_once_with()
+
 
 class TestBaseWorkflow_repr(TestCase):
     class MyWorkflow(BaseWorkflow):
