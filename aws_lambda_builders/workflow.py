@@ -58,6 +58,12 @@ class BuildInSourceSupport(Enum):
     EXCLUSIVELY_SUPPORTED = [True]
 
 
+def _validate_runtime_without_binary(workflow):
+    runtime_validator = workflow.get_runtime_validator()
+    if runtime_validator:
+        runtime_validator.validate(None)
+
+
 # TODO: Move sanitize out to its own class.
 def sanitize(func):  # pylint: disable=too-many-statements
     """
@@ -70,8 +76,16 @@ def sanitize(func):  # pylint: disable=too-many-statements
         valid_paths = {}
         invalid_paths = {}
         validation_errors = []
+        binaries = self.binaries
+
+        if not binaries:
+            try:
+                _validate_runtime_without_binary(self)
+            except RuntimeValidatorError as ex:
+                validation_errors.append(str(ex))
+
         # NOTE: we need to access binaries to get paths and resolvers, before validating.
-        for binary, binary_checker in self.binaries.items():
+        for binary, binary_checker in binaries.items():
             invalid_paths[binary] = []
             try:
                 exec_paths = (
@@ -103,8 +117,8 @@ def sanitize(func):  # pylint: disable=too-many-statements
                 workflow_name=self.NAME, action_name="Validation", reason="\n".join(validation_errors)
             )
 
-        if len(self.binaries) != len(valid_paths):
-            validation_failed_binaries = set(self.binaries.keys()).difference(valid_paths.keys())
+        if len(binaries) != len(valid_paths):
+            validation_failed_binaries = set(binaries.keys()).difference(valid_paths.keys())
             for validation_failed_binary in validation_failed_binaries:
                 message = "Binary validation failed for {0}, searched for {0} in following locations  : {1} which did not satisfy constraints for runtime: {2}. Do you have {0} for runtime: {2} on your PATH?".format(
                     validation_failed_binary, invalid_paths[validation_failed_binary], self.runtime
@@ -329,6 +343,10 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
         No-op validator that does not validate the runtime_path.
         """
         return [RuntimeValidator(runtime=self.runtime, architecture=self.architecture)]
+
+    def get_runtime_validator(self):
+        """Return the validator used when the workflow does not require any binaries."""
+        return RuntimeValidator(runtime=self.runtime, architecture=self.architecture)
 
     @property
     def binaries(self):

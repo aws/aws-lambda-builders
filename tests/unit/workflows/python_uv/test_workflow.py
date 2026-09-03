@@ -170,6 +170,33 @@ class TestPythonUvWorkflow(TestCase):
         # UV has built-in Python version handling, no external validators needed
         self.assertEqual(len(validators), 0)
 
+    def test_get_runtime_validator(self):
+        self.assertIsNone(self.workflow.get_runtime_validator())
+
+    def test_supported_runtime_runs_without_binary_resolution(self):
+        action_mock = Mock()
+        self.workflow.actions = [action_mock]
+
+        with patch("aws_lambda_builders.path_resolver.which", side_effect=AssertionError("binary resolution called")):
+            self.workflow.run()
+
+        action_mock.execute.assert_called_once_with()
+
+    def test_runtime_validation_opt_out_preserves_previous_behavior(self):
+        for runtime, architecture in (("python1.0", "x86_64"), ("python3.9", "invalid_arch"), (None, "x86_64")):
+            with self.subTest(runtime=runtime, architecture=architecture):
+                action_mock = Mock()
+                self.workflow.runtime = runtime
+                self.workflow.architecture = architecture
+                self.workflow.actions = [action_mock]
+
+                with patch(
+                    "aws_lambda_builders.path_resolver.which", side_effect=AssertionError("binary resolution called")
+                ):
+                    self.workflow.run()
+
+                action_mock.execute.assert_called_once_with()
+
     @patch("aws_lambda_builders.workflows.python_uv.workflow.detect_uv_manifest")
     def test_workflow_auto_detects_manifest(self, mock_detect):
         mock_detect.return_value = "/path/to/pyproject.toml"

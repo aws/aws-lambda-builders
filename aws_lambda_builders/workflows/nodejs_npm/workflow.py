@@ -67,8 +67,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if osutils is None:
             osutils = OSUtils()
         self.osutils = osutils
+        self._use_npm = osutils.file_exists(manifest_path)
 
-        if not osutils.file_exists(manifest_path):
+        if not self._use_npm:
             LOG.warning("package.json file not found. Continuing the build without dependencies.")
             self.actions = [CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES)]
             return
@@ -210,7 +211,14 @@ class NodejsNpmWorkflow(BaseWorkflow):
         """
         specialized path resolver that just returns the list of executable for the runtime on the path.
         """
+        if not self._use_npm:
+            return []
         return [PathResolver(runtime=self.runtime, binary="npm")]
+
+    def get_validators(self):
+        if not self._use_npm:
+            return []
+        return super().get_validators()
 
     @staticmethod
     def get_install_action(

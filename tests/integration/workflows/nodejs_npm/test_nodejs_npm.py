@@ -70,7 +70,12 @@ class TestNodejsNpmWorkflow(TestCase):
     def test_builds_project_without_manifest(self, runtime):
         source_dir = os.path.join(self.TEST_DATA_FOLDER, "no-manifest")
 
-        with mock.patch.object(logger, "warning") as mock_warning:
+        with (
+            mock.patch.object(logger, "warning") as mock_warning,
+            mock.patch(
+                "aws_lambda_builders.path_resolver.which", side_effect=AssertionError("npm should not be resolved")
+            ),
+        ):
             self.builder.build(
                 source_dir,
                 self.artifacts_dir,

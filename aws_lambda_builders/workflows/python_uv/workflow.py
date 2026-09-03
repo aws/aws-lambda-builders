@@ -173,3 +173,7 @@ class PythonUvWorkflow(BaseWorkflow):
         external validation of Python runtime paths.
         """
         return []
+
+    def get_runtime_validator(self):
+        """UV manages the requested Python runtime without BaseWorkflow validation."""
+        return None
