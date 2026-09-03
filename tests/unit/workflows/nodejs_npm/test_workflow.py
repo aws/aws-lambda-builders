@@ -12,6 +12,7 @@ from aws_lambda_builders.actions import (
     MoveDependenciesAction,
 )
 from aws_lambda_builders.architecture import ARM64
+from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
@@ -238,6 +239,37 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(resolvers[0].binary, "npm")
         self.assertEqual(len(validators), 1)
         self.assertIsInstance(validators[0], RuntimeValidator)
+
+    def test_workflow_without_manifest_rejects_unsupported_runtime(self):
+        self.osutils.file_exists.return_value = False
+
+        workflow = NodejsNpmWorkflow(
+            "source", "artifacts", "scratch_dir", "source/manifest", runtime="nodejs1.x", osutils=self.osutils
+        )
+        with self.assertRaises(WorkflowFailedError) as raised:
+            workflow.run()
+
+        self.assertEqual(str(raised.exception), "NodejsNpmBuilder:Validation - Runtime nodejs1.x is not supported")
+
+    def test_workflow_without_manifest_rejects_unsupported_architecture(self):
+        self.osutils.file_exists.return_value = False
+
+        workflow = NodejsNpmWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "source/manifest",
+            runtime="nodejs20.x",
+            architecture="invalid_arch",
+            osutils=self.osutils,
+        )
+        with self.assertRaises(WorkflowFailedError) as raised:
+            workflow.run()
+
+        self.assertEqual(
+            str(raised.exception),
+            "NodejsNpmBuilder:Validation - Architecture invalid_arch is not supported for runtime nodejs20.x",
+        )
 
     def test_workflow_sets_up_npm_actions_without_combine_dependencies(self):
         self.osutils.file_exists.side_effect = [True, False, False]

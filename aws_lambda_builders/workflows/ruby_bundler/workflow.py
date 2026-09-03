@@ -5,6 +5,8 @@ Ruby Bundler Workflow
 import logging
 
 from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
+from aws_lambda_builders.exceptions import RuntimeValidatorError, WorkflowFailedError
+from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import RubyBundlerInstallAction, RubyBundlerVendorAction
@@ -73,3 +75,14 @@ class RubyBundlerWorkflow(BaseWorkflow):
         if not self._use_bundler:
             return []
         return super().get_validators()
+
+    def run(self):
+        if not self._use_bundler:
+            self._validate_runtime()
+        return super().run()
+
+    def _validate_runtime(self):
+        try:
+            RuntimeValidator(runtime=self.runtime, architecture=self.architecture).validate(None)
+        except RuntimeValidatorError as ex:
+            raise WorkflowFailedError(workflow_name=self.NAME, action_name="Validation", reason=str(ex)) from ex

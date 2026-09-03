@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from aws_lambda_builders.actions import CopySourceAction, CopyDependenciesAction, CleanUpAction
 from aws_lambda_builders.architecture import ARM64
+from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.validator import RuntimeValidator
 from aws_lambda_builders.workflows.ruby_bundler.workflow import RubyBundlerWorkflow
@@ -76,6 +77,38 @@ class TestRubyBundlerWorkflow(TestCase):
         self.assertEqual(resolvers[0].binary, "ruby")
         self.assertEqual(len(validators), 1)
         self.assertIsInstance(validators[0], RuntimeValidator)
+
+    def test_workflow_without_download_dependencies_rejects_unsupported_runtime(self):
+        workflow = RubyBundlerWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="ruby1.0",
+            download_dependencies=False,
+        )
+        with self.assertRaises(WorkflowFailedError) as raised:
+            workflow.run()
+
+        self.assertEqual(str(raised.exception), "RubyBundlerBuilder:Validation - Runtime ruby1.0 is not supported")
+
+    def test_workflow_without_download_dependencies_rejects_unsupported_architecture(self):
+        workflow = RubyBundlerWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="ruby3.3",
+            architecture="invalid_arch",
+            download_dependencies=False,
+        )
+        with self.assertRaises(WorkflowFailedError) as raised:
+            workflow.run()
+
+        self.assertEqual(
+            str(raised.exception),
+            "RubyBundlerBuilder:Validation - Architecture invalid_arch is not supported for runtime ruby3.3",
+        )
 
     def test_must_validate_architecture(self):
         workflow = RubyBundlerWorkflow(
