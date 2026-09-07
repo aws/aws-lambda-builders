@@ -297,3 +297,27 @@ class TestPythonUvWorkflow(TestCase):
 
         finally:
             shutil.rmtree(temp_source_dir)
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_builds_with_dependencies_within_workspace(self):
+        with tempfile.TemporaryDirectory() as workspace_dir:
+            shutil.copytree(os.path.join(self.TEST_DATA_FOLDER, "workspace"), workspace_dir, dirs_exist_ok=True)
+            source_dir = os.path.join(workspace_dir, "app")
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "pyproject.toml"),
+                runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertTrue(os.path.isfile(os.path.join(workspace_dir, "uv.lock")))
+            self.assertFalse(os.path.exists(os.path.join(source_dir, "uv.lock")))
+            for filename in ("__init__.py", "py.typed"):
+                installed = pathlib.Path(self.artifacts_dir, "workspace_lib", filename)
+                original = pathlib.Path(workspace_dir, "lib", "src", "workspace_lib", filename)
+                self.assertEqual(installed.read_bytes(), original.read_bytes())
+            self.assertTrue(os.path.isdir(os.path.join(self.artifacts_dir, "workspace_lib-0.1.0.dist-info")))
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("*.pth")), [])
