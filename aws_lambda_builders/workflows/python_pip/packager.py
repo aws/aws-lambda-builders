@@ -55,8 +55,11 @@ class MissingDependencyError(PackagerError):
 class NoSuchPackageError(PackagerError):
     """Raised when a package name or version could not be found."""
 
-    def __init__(self, package_name):
-        super(NoSuchPackageError, self).__init__("Could not satisfy the requirement: %s" % package_name)
+    def __init__(self, package_name, pip_error=None):
+        message = "Could not satisfy the requirement: %s" % package_name
+        if pip_error:
+            message += "\npip output:\n" + pip_error
+        super(NoSuchPackageError, self).__init__(message)
 
 
 class PackageDownloadError(PackagerError):
@@ -926,7 +929,7 @@ class PipRunner(object):
             match = re.search(("Could not find a version that satisfies the " "requirement (.+?) "), error)
             if match:
                 package_name = match.group(1)
-                raise NoSuchPackageError(str(package_name))
+                raise NoSuchPackageError(str(package_name), error)
             raise PackageDownloadError(error)
 
         # Extract local packages from pip output.
