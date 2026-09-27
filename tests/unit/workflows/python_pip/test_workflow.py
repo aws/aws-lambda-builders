@@ -12,14 +12,24 @@ from aws_lambda_builders.workflows.python_pip.workflow import PythonPipBuildActi
 
 
 @parameterized_class(
-    ("experimental_flags",),
+    ("experimental_flags", "is_building_layer"),
     [
-        ([]),
-        ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE]),
+        ([], False),
+        ([], True),
+        ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE], False),
+        ([EXPERIMENTAL_FLAG_BUILD_PERFORMANCE], True),
     ],
 )
 class TestPythonPipWorkflow(TestCase):
     experimental_flags = []
+    is_building_layer = False
+
+    @property
+    def expects_linked_dependencies(self):
+        """Dependencies are symlinked only when the build performance flag is on AND we are
+        building a layer -- a function's artifacts are bind-mounted into the local invoke
+        container, where symlinks pointing outside the mount dangle."""
+        return bool(self.experimental_flags) and self.is_building_layer
 
     def setUp(self):
         self.osutils = OSUtils()
@@ -121,10 +131,10 @@ class TestPythonPipWorkflow(TestCase):
             dependencies_dir="dep",
             download_dependencies=False,
             experimental_flags=self.experimental_flags,
+            is_building_layer=self.is_building_layer,
         )
         self.assertEqual(len(self.workflow.actions), 2)
-        # symlinking python dependencies is disabled for now since it is breaking sam local commands
-        if False and self.experimental_flags:
+        if self.expects_linked_dependencies:
             self.assertIsInstance(self.workflow.actions[0], LinkSourceAction)
         else:
             self.assertIsInstance(self.workflow.actions[0], CopySourceAction)
@@ -143,12 +153,12 @@ class TestPythonPipWorkflow(TestCase):
             dependencies_dir="dep",
             download_dependencies=True,
             experimental_flags=self.experimental_flags,
+            is_building_layer=self.is_building_layer,
         )
         self.assertEqual(len(self.workflow.actions), 4)
         self.assertIsInstance(self.workflow.actions[0], CleanUpAction)
         self.assertIsInstance(self.workflow.actions[1], PythonPipBuildAction)
-        # symlinking python dependencies is disabled for now since it is breaking sam local commands
-        if False and self.experimental_flags:
+        if self.expects_linked_dependencies:
             self.assertIsInstance(self.workflow.actions[2], LinkSourceAction)
         else:
             self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
@@ -192,6 +202,30 @@ class TestPythonPipWorkflow(TestCase):
         self.assertIsInstance(self.workflow.actions[0], CleanUpAction)
         self.assertIsInstance(self.workflow.actions[1], PythonPipBuildAction)
         self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
+
+    def test_layer_links_dependencies_while_function_copies_them(self):
+        """The layer/function distinction is the whole reason linking is safe at all, so assert the
+        contrast on inputs that are otherwise identical -- otherwise a future change that drops
+        is_building_layer still passes every other test in this class."""
+
+        def actions_for(is_building_layer):
+            osutils_mock = Mock(spec=self.osutils)
+            osutils_mock.file_exists.return_value = True
+            return PythonPipWorkflow(
+                "source",
+                "artifacts",
+                "scratch_dir",
+                "manifest",
+                runtime="python3.9",
+                osutils=osutils_mock,
+                dependencies_dir="dep",
+                download_dependencies=True,
+                experimental_flags=[EXPERIMENTAL_FLAG_BUILD_PERFORMANCE],
+                is_building_layer=is_building_layer,
+            ).actions
+
+        self.assertIsInstance(actions_for(is_building_layer=True)[2], LinkSourceAction)
+        self.assertIsInstance(actions_for(is_building_layer=False)[2], CopySourceAction)
 
     @patch("aws_lambda_builders.workflows.python_pip.workflow.PythonPipBuildAction")
     def test_must_build_with_architecture(self, PythonPipBuildActionMock):

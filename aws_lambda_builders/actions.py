@@ -137,8 +137,15 @@ class LinkSourceAction(BaseAction):
         for source_file in source_files:
             source_path = Path(self._source_dir, source_file)
             destination_path = Path(self._dest_dir, source_file)
-            if destination_path.exists():
+            if destination_path.is_symlink() or destination_path.is_file():
+                # is_symlink() is checked first and deliberately: a dangling symlink is not
+                # exists(), so the previous exists() check left it in place and os.symlink then
+                # failed with FileExistsError.
                 os.remove(destination_path)
+            elif destination_path.is_dir():
+                # A real directory left behind by an earlier copying build. os.remove cannot remove
+                # it, and leaving it would shadow the symlink we are about to create.
+                shutil.rmtree(destination_path)
             else:
                 os.makedirs(destination_path.parent, exist_ok=True)
             utils.create_symlink_or_copy(str(source_path), str(destination_path))
