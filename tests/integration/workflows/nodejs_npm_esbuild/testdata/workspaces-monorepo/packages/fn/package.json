@@ -1,0 +1,12 @@
+{
+  "name": "@workspaces-monorepo/fn",
+  "version": "1.0.0",
+  "license": "APACHE2.0",
+  "files": [
+    "included.js"
+  ],
+  "main": "included.js",
+  "dependencies": {
+    "minimal-request-promise": "^1.3.0"
+  }
+}

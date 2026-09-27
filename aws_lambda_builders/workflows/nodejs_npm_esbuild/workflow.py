@@ -118,6 +118,7 @@ class NodejsNpmEsbuildWorkflow(BaseWorkflow):
                     osutils=self.osutils,
                     build_options=self.options,
                     is_building_in_source=is_building_in_source,
+                    experimental_flags=self.experimental_flags,
                 )
             )
 

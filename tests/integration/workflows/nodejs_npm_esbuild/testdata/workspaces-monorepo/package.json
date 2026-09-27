@@ -1,0 +1,7 @@
+{
+  "name": "workspaces-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "license": "APACHE2.0",
+  "workspaces": ["packages/*"]
+}

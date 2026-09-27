@@ -102,6 +102,22 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
     NAME = "NpmInstall"
     DESCRIPTION = "Installing dependencies from NPM"
 
+    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, install_links: Optional[bool] = False):
+        """
+        Parameters
+        ----------
+        install_dir : str
+            Dependencies will be installed in this directory.
+        subprocess_npm : SubprocessNpm
+            An instance of the NPM process wrapper
+        install_links : Optional[bool]
+            Uses the --install-links npm option if True, by default False. Required when installing into the
+            source directory, so that local file dependencies are installed as regular dependencies.
+        """
+
+        super().__init__(install_dir=install_dir, subprocess_npm=subprocess_npm)
+        self.install_links = install_links
+
     def execute(self):
         """
         Runs the action.
@@ -112,6 +128,8 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
             LOG.debug("NODEJS installing production dependencies in: %s", self.install_dir)
 
             command = ["install", "-q", "--no-audit", "--no-save", "--omit=dev"]
+            if self.install_links:
+                command.append("--install-links")
             self.subprocess_npm.run(command, cwd=self.install_dir)
 
         except NpmExecutionError as ex:
@@ -120,7 +138,13 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
 
 class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
     """
-    A Lambda Builder Action that installs NPM project dependencies
+    A Lambda Builder Action that installs NPM project dependencies, ignoring any lockfile.
+
+    Used when building in source and either no lockfile applies or `experimentalNodejsMonorepo` is off -
+    which, the flag being opt-in, is still every in-source build by default, lockfile or not.
+    `--no-package-lock` means dependency versions are resolved afresh on every build, so once a caller
+    opts in, a project that does have a lockfile is installed with NodejsNpmInstallAction instead to keep
+    builds reproducible.
     """
 
     NAME = "NpmUpdate"

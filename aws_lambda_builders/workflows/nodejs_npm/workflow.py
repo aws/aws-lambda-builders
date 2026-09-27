@@ -4,7 +4,7 @@ NodeJS NPM Workflow
 
 import logging
 import os
-from typing import Optional
+from typing import List, Optional
 
 from aws_lambda_builders.actions import (
     CleanUpAction,
@@ -25,8 +25,8 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmTestAction,
     NodejsNpmUpdateAction,
 )
-from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
-from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
+from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError, SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils, is_nodejs_monorepo_support_enabled
 
 LOG = logging.getLogger(__name__)
 
@@ -121,6 +121,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
                     osutils=osutils,
                     build_options=self.options,
                     is_building_in_source=is_building_in_source,
+                    experimental_flags=self.experimental_flags,
                 )
             )
 
@@ -174,6 +175,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     @property
     def _actions_for_linking_source_dependencies_to_artifacts(self):
+        # Known gap in a workspaces monorepo - no node_modules beside the function, and the monorepo flag
+        # does not cover it: aws/aws-lambda-builders#933
         source_dependencies_path = os.path.join(self.source_dir, "node_modules")
         artifact_dependencies_path = os.path.join(self.artifacts_dir, "node_modules")
         return [LinkSinglePathAction(source=source_dependencies_path, dest=artifact_dependencies_path)]
@@ -220,6 +223,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         osutils: OSUtils,
         build_options: Optional[dict],
         is_building_in_source: Optional[bool] = False,
+        experimental_flags: Optional[List[str]] = None,
     ):
         """
         Get the install action used to install dependencies.
@@ -238,6 +242,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
             Object containing build options configurations
         is_building_in_source : Optional[bool]
             States whether --build-in-source flag is set or not
+        experimental_flags : Optional[List[str]]
+            Flags the caller opted in to; the lockfile-honouring in-source install is gated on
+            experimentalNodejsMonorepo while it rolls out
 
         Returns
         -------
@@ -256,15 +263,76 @@ class NodejsNpmWorkflow(BaseWorkflow):
             "Dev dependencies are omitted from the Lambda artifacts package"
         )
 
+        # `npm ci` keeps looking for a lockfile in the source directory itself, unchanged, rather than using
+        # the lookup below. Not for a dev-dependency reason - `npm install --omit=dev` prunes the root's own
+        # dev dependencies too, on every version measured, so that draws no distinction - but for blast
+        # radius: `npm ci` deletes node_modules before it reifies, and refuses outright when the lockfile
+        # and the manifest disagree. Pointed at a whole workspace root the user never named, an opt-in
+        # build option becomes a wipe of a tree it does not own, so the lookup stays out of this branch.
         if (osutils.file_exists(lockfile_path) or osutils.file_exists(shrinkwrap_path)) and npm_ci_option:
             return NodejsNpmCIAction(
                 install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=is_building_in_source
             )
 
         if is_building_in_source:
+            # With a lockfile npm will use, install the locked versions. Without one there is nothing to be
+            # reproducible about, so keep updating, which also prunes dependencies that were removed from the
+            # manifest since the last build.
+            #
+            # Opt-in while this rolls out: without the flag every in-source build keeps `npm update
+            # --no-package-lock`, which re-resolves the ranges and is what every release so far has run.
+            if is_nodejs_monorepo_support_enabled(experimental_flags) and NodejsNpmWorkflow.get_lockfile_path(
+                install_dir, subprocess_npm, osutils
+            ):
+                return NodejsNpmInstallAction(
+                    install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=True
+                )
+
             return NodejsNpmUpdateAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
 
         return NodejsNpmInstallAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
+
+    @staticmethod
+    def get_lockfile_path(install_dir: str, subprocess_npm: SubprocessNpm, osutils: OSUtils) -> Optional[str]:
+        """
+        Find the lockfile npm would use when it runs in the given directory.
+
+        The lockfile does not have to sit in that directory: in an npm workspaces monorepo a single
+        package-lock.json lives at the repository root and covers every workspace package. Which directory that
+        is, is npm's own decision - `npm prefix` reports it, resolving to the workspace root for a workspace
+        package and to the directory itself for any other nested package, whose ancestors' lockfiles npm
+        ignores. Asking npm keeps this answer identical to the one the install will act on, and bounded to the
+        project.
+
+        Parameters
+        ----------
+        install_dir : str
+            the directory npm will run in, where dependencies will be installed
+        subprocess_npm : SubprocessNpm
+            An instance of the NPM process wrapper
+        osutils : OSUtils
+            An instance of OS Utilities for file manipulation
+
+        Returns
+        -------
+        Optional[str]
+            Path of the lockfile in npm's project root, or None if that project does not have one
+        """
+        try:
+            project_root = subprocess_npm.run(["prefix"], cwd=install_dir).strip()
+        except NpmExecutionError as ex:
+            # without npm's answer there is no evidence a lockfile applies, so install as if there were none
+            LOG.debug("NODEJS could not resolve the npm project root of %s: %s", install_dir, ex)
+            return None
+
+        # npm's own precedence: where a project root holds both, npm reads npm-shrinkwrap.json and ignores
+        # package-lock.json, so look in that order to name the file the install will actually act on
+        for lockfile_name in ("npm-shrinkwrap.json", "package-lock.json"):
+            lockfile_path = osutils.joinpath(project_root, lockfile_name)
+            if osutils.file_exists(lockfile_path):
+                return lockfile_path
+
+        return None
 
     @staticmethod
     def can_use_install_links(npm_process: SubprocessNpm) -> bool:
