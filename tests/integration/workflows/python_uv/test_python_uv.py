@@ -5,12 +5,14 @@ import sys
 import platform
 import tempfile
 from unittest import TestCase, skipIf
+from unittest.mock import patch
 
 from parameterized import parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.utils import which
+from aws_lambda_builders.workflows.python_uv.packager import PythonUvDependencyBuilder
 from aws_lambda_builders.workflows.python_uv.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -302,6 +304,7 @@ class TestPythonUvWorkflow(TestCase):
     def test_workflow_builds_with_dependencies_within_workspace(self):
         with tempfile.TemporaryDirectory() as workspace_dir:
             shutil.copytree(os.path.join(self.TEST_DATA_FOLDER, "workspace"), workspace_dir, dirs_exist_ok=True)
+            os.unlink(os.path.join(workspace_dir, "uv.lock"))
             source_dir = os.path.join(workspace_dir, "app")
             # Both UV commands must resolve relative scratch paths against the builder's cwd
             try:
@@ -328,4 +331,30 @@ class TestPythonUvWorkflow(TestCase):
                 original = pathlib.Path(workspace_dir, "lib", "src", "workspace_lib", filename)
                 self.assertEqual(installed.read_bytes(), original.read_bytes())
             self.assertTrue(os.path.isdir(os.path.join(self.artifacts_dir, "workspace_lib-0.1.0.dist-info")))
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("*.pth")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_reuses_existing_workspace_lock(self):
+        with tempfile.TemporaryDirectory() as workspace_dir:
+            shutil.copytree(os.path.join(self.TEST_DATA_FOLDER, "workspace"), workspace_dir, dirs_exist_ok=True)
+            source_dir = os.path.join(workspace_dir, "app")
+            lock_path = pathlib.Path(workspace_dir, "uv.lock")
+            self.assertTrue(lock_path.is_file())
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            with patch.object(
+                PythonUvDependencyBuilder, "_build_from_pyproject", side_effect=AssertionError("Must reuse root lock")
+            ):
+                builder.build(
+                    source_dir,
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    os.path.join(source_dir, "pyproject.toml"),
+                    runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                    experimental_flags=self.experimental_flags,
+                )
+            # uv export may update lock serialization; only the builder's reuse path matters here.
+            self.assertTrue(lock_path.is_file())
+            self.assertFalse(os.path.exists(os.path.join(source_dir, "uv.lock")))
+            self.assertTrue(pathlib.Path(self.artifacts_dir, "workspace_lib", "__init__.py").is_file())
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).glob("workspace_app-*.dist-info")), [])
             self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("*.pth")), [])

@@ -311,8 +311,8 @@ class TestPythonUvDependencyBuilder(TestCase):
         """Test that pyproject.toml with uv.lock present uses lock-based build."""
         # Mock the uv commands
         self.mock_uv_runner._uv.run_uv_command.side_effect = [
-            (0, b"", b""),  # export
-            (0, "/workspace\n", b""),  # workspace dir
+            (0, "/workspace\n", ""),  # workspace dir
+            (0, "", ""),  # export
         ]
 
         with (
@@ -320,7 +320,7 @@ class TestPythonUvDependencyBuilder(TestCase):
             patch("os.path.dirname", return_value=os.path.join("path", "to")),
             patch("os.path.exists") as mock_exists,
         ):
-            # Mock that uv.lock exists alongside pyproject.toml
+            # Mock that uv.lock exists at the workspace root
             mock_exists.return_value = True
 
             self.builder.build_dependencies(
@@ -339,7 +339,7 @@ class TestPythonUvDependencyBuilder(TestCase):
         assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
 
         # Verify it checked for uv.lock in the right location
-        mock_exists.assert_called_with(os.path.join("path", "to", "uv.lock"))
+        mock_exists.assert_called_with(os.path.join("/workspace", "uv.lock"))
 
         # Verify export excludes PEP 735 default dependency-groups (dev/test deps
         # must not land in Lambda zips).
@@ -350,6 +350,31 @@ class TestPythonUvDependencyBuilder(TestCase):
         )
         self.assertIn("--no-default-groups", export_args)
         self.assertIn("--no-editable", export_args)
+        self.assertEqual(
+            [call.args[0][0] for call in self.mock_uv_runner._uv.run_uv_command.call_args_list],
+            ["workspace", "export"],
+        )
+
+    def test_build_dependencies_without_workspace_command(self):
+        project_dir = os.path.join("path", "to")
+        for has_lock in (True, False):
+            with self.subTest(has_lock=has_lock):
+                self.mock_uv_runner.reset_mock()
+                self.mock_uv_runner._uv.run_uv_command.side_effect = [
+                    (2, "", "unrecognized subcommand 'workspace'"),
+                    *([] if has_lock else [(0, "", "")]),
+                    (0, "", ""),
+                ]
+                with patch("os.path.exists", return_value=has_lock) as exists:
+                    self.builder.build_dependencies(
+                        artifacts_dir_path="/artifacts",
+                        scratch_dir_path="/scratch",
+                        manifest_path=os.path.join(project_dir, "pyproject.toml"),
+                    )
+                exists.assert_called_once_with(os.path.join(project_dir, "uv.lock"))
+                commands = [call.args[0][0] for call in self.mock_uv_runner._uv.run_uv_command.call_args_list]
+                self.assertEqual(commands, ["workspace", "export"] if has_lock else ["workspace", "lock", "export"])
+                self.assertEqual(self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"], project_dir)
 
     def test_build_dependencies_pyproject_without_uv_lock(self):
         """Test that pyproject.toml without uv.lock uses standard pyproject build."""
@@ -361,7 +386,11 @@ class TestPythonUvDependencyBuilder(TestCase):
             # Mock that uv.lock does NOT exist alongside pyproject.toml
             mock_exists.return_value = False
 
-            self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+            self.mock_uv_runner._uv.run_uv_command.side_effect = [
+                (0, os.path.join("path", "to"), ""),
+                (0, "", ""),
+                (0, "", ""),
+            ]
             self.builder.build_dependencies(
                 artifacts_dir_path="/artifacts",
                 scratch_dir_path="/scratch",
