@@ -127,8 +127,8 @@ class UvRunner:
 
         args = ["pip", "install"]
 
-        # Add requirements file
-        args.extend(["-r", requirements_path])
+        # Resolve the requirements file before UV changes to the project or workspace directory
+        args.extend(["-r", os.path.abspath(requirements_path)])
 
         # Resolve --target to an absolute path: UV runs from the project or workspace directory,
         # so a relative target (e.g. the incremental-build dependencies dir) would otherwise be
@@ -318,7 +318,8 @@ class PythonUvDependencyBuilder:
             project_dir = os.path.dirname(lock_path)
 
             # Export lock file to requirements.txt for platform-specific install
-            temp_requirements = os.path.join(scratch_dir, "lock_requirements.txt")
+            # Export and install may run from different directories in a workspace
+            temp_requirements = os.path.abspath(os.path.join(scratch_dir, "lock_requirements.txt"))
             export_args = [
                 "export",
                 "--format",

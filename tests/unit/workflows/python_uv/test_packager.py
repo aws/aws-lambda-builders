@@ -122,7 +122,7 @@ class TestUvRunner(TestCase):
         self.assertIn("pip", args_called)
         self.assertIn("install", args_called)
         self.assertIn("-r", args_called)
-        self.assertIn("/path/to/requirements.txt", args_called)
+        self.assertEqual(args_called[args_called.index("-r") + 1], os.path.abspath("/path/to/requirements.txt"))
 
     def test_install_requirements_resolves_relative_target_to_absolute(self):
         # UV runs from project_dir or workspace_dir,
@@ -185,6 +185,17 @@ class TestUvRunner(TestCase):
         with self.assertRaises(UvInstallationError):
             self.uv_runner.install_requirements(requirements_path="/path/to/requirements.txt", target_dir="/target")
 
+    def test_install_requirements_resolves_relative_requirements_path(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "", "")
+        self.uv_runner.install_requirements(
+            requirements_path=os.path.join("app", "requirements.txt"),
+            target_dir="/target",
+            cwd="/workspace",
+        )
+
+        args = self.mock_subprocess_uv.run_uv_command.call_args.args[0]
+        self.assertEqual(args[args.index("-r") + 1], os.path.abspath(os.path.join("app", "requirements.txt")))
+
 
 class TestPythonUvDependencyBuilder(TestCase):
     def setUp(self):
@@ -245,6 +256,28 @@ class TestPythonUvDependencyBuilder(TestCase):
         )
 
         self.mock_uv_runner.install_requirements.assert_called_once()
+
+    def test_build_from_lock_file_shares_absolute_requirements_path(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, "/workspace\n", "")]
+        self.builder._build_from_lock_file(
+            lock_path="/workspace/app/uv.lock",
+            target_dir="/target",
+            scratch_dir="scratch",
+            python_version="3.9",
+            architecture=X86_64,
+            config=UvConfig(),
+        )
+
+        export_call = next(
+            call for call in self.mock_uv_runner._uv.run_uv_command.call_args_list if call.args[0][0] == "export"
+        )
+        export_args = export_call.args[0]
+        requirements_path = os.path.abspath(os.path.join("scratch", "lock_requirements.txt"))
+        self.assertEqual(export_args[export_args.index("--output-file") + 1], requirements_path)
+        self.assertEqual(export_call.kwargs["cwd"], "/workspace/app")
+        install_args = self.mock_uv_runner.install_requirements.call_args.kwargs
+        self.assertEqual(install_args["requirements_path"], requirements_path)
+        self.assertEqual(install_args["cwd"], "/workspace")
 
     def test_build_dependencies_with_requirements_txt(self):
         with patch("os.path.basename", return_value="requirements.txt"):

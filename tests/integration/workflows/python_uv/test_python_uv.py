@@ -303,17 +303,25 @@ class TestPythonUvWorkflow(TestCase):
         with tempfile.TemporaryDirectory() as workspace_dir:
             shutil.copytree(os.path.join(self.TEST_DATA_FOLDER, "workspace"), workspace_dir, dirs_exist_ok=True)
             source_dir = os.path.join(workspace_dir, "app")
+            # Both UV commands must resolve relative scratch paths against the builder's cwd
+            try:
+                scratch_dir = os.path.relpath(self.scratch_dir)
+            except ValueError:
+                # Windows cannot express relative paths across different drives
+                scratch_dir = self.scratch_dir
             builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
             builder.build(
                 source_dir,
                 self.artifacts_dir,
-                self.scratch_dir,
+                scratch_dir,
                 os.path.join(source_dir, "pyproject.toml"),
                 runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
                 experimental_flags=self.experimental_flags,
             )
 
             self.assertTrue(os.path.isfile(os.path.join(workspace_dir, "uv.lock")))
+            self.assertTrue(os.path.isfile(os.path.join(self.scratch_dir, "lock_requirements.txt")))
+            self.assertFalse(os.path.exists(os.path.join(self.scratch_dir, "uv-cache")))
             self.assertFalse(os.path.exists(os.path.join(source_dir, "uv.lock")))
             for filename in ("__init__.py", "py.typed"):
                 installed = pathlib.Path(self.artifacts_dir, "workspace_lib", filename)
