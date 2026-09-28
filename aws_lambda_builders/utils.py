@@ -240,6 +240,11 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
             "consider enabling the necessary settings or privileges on your system to support symbolic links.",
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
+        if os.path.islink(destination):
+            # A leftover link is one reason os.symlink raised: the guard above misses a dangling one,
+            # which is not exists(). Copying through it would write outside the destination tree.
+            LOG.debug("Removing existing symlink at destination %s before copying", destination)
+            os.unlink(destination)
         # A dependencies directory holds top-level files as well as packages (six.py, *.pth), and
         # copytree assumes its source is a directory -- it would makedirs a folder named six.py and
         # then raise NotADirectoryError on listdir.

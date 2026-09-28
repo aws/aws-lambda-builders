@@ -93,6 +93,23 @@ class Test_create_symlink_or_copy(TestCase):
 
             self.assertFalse(destination.exists())
 
+    def test_fallback_does_not_copy_through_a_dangling_destination_link(self):
+        # A dangling link at the destination is not exists(), so the already-a-symlink guard misses
+        # it and os.symlink raises FileExistsError. The fallback must not then copy through it.
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp, "six.py")
+            source.write_text("body")
+            outside = Path(tmp, "outside.txt")
+            destination = Path(tmp, "artifacts", "six.py")
+            destination.parent.mkdir()
+            destination.symlink_to(str(outside))
+
+            utils.create_symlink_or_copy(str(source), str(destination))
+
+            self.assertFalse(outside.exists(), "copy followed a dangling link outside the destination tree")
+            self.assertFalse(destination.is_symlink())
+            self.assertEqual(destination.read_text(), "body")
+
 
 class Test_copytree(TestCase):
     def test_does_not_write_through_a_symlinked_destination(self):
