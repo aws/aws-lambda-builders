@@ -201,6 +201,7 @@ class TestPythonUvDependencyBuilder(TestCase):
     def setUp(self):
         self.mock_osutils = Mock()
         self.mock_uv_runner = Mock()
+        self.mock_uv_runner.uv_version = "0.9.9"
         self.builder = PythonUvDependencyBuilder(
             osutils=self.mock_osutils, runtime="python3.9", uv_runner=self.mock_uv_runner
         )
@@ -355,13 +356,96 @@ class TestPythonUvDependencyBuilder(TestCase):
             ["workspace", "export"],
         )
 
+    def test_resolve_workspace_dir_warns_for_old_uv(self):
+        project_dir = os.path.join("path", "to")
+        for version in ("0.8.17", "0.9.8"):
+            with self.subTest(version=version):
+                self.mock_uv_runner.uv_version = version
+                with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+                    self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
+                self.mock_uv_runner._uv.run_uv_command.assert_not_called()
+                self.assertIn(project_dir, logs.output[0])
+                self.assertIn(version, logs.output[0])
+                self.assertIn("uv >= 0.9.9", logs.output[0])
+                self.assertIn("upgrade uv", logs.output[0])
+
+    def test_resolve_workspace_dir_probes_supported_or_unknown_versions(self):
+        for version in ("0.9.9", "0.9.10", "0.10.0", "1.0.0", None, "", "unknown", "0.9.9rc1"):
+            for rc, stdout, stderr in ((0, "/workspace\n", ""), (1, "", "Permission denied")):
+                with self.subTest(version=version, rc=rc):
+                    self.mock_uv_runner.reset_mock()
+                    self.mock_uv_runner.uv_version = version
+                    self.mock_uv_runner._uv.run_uv_command.return_value = (rc, stdout, stderr)
+                    with self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"):
+                        if rc == 0:
+                            self.assertEqual(self.builder._resolve_workspace_dir("/workspace/app"), "/workspace")
+                        else:
+                            with self.assertRaises(UvBuildError) as error:
+                                self.builder._resolve_workspace_dir("/workspace/app")
+                            self.assertIn(stderr, str(error.exception))
+                    self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(
+                        ["workspace", "dir"], cwd="/workspace/app"
+                    )
+
+    def test_resolve_workspace_dir_falls_back_for_explicitly_unsupported_command(self):
+        project_dir = os.path.join("path", "to")
+        for version in ("0.9.9", "0.10.0", None, "", "unknown", "0.9.8+dev", "0.9.0-alpha.1", "0.9.9rc1"):
+            with self.subTest(version=version):
+                self.mock_uv_runner.reset_mock()
+                self.mock_uv_runner.uv_version = version
+                self.mock_uv_runner._uv.run_uv_command.return_value = (
+                    2,
+                    "",
+                    "error: unrecognized subcommand 'workspace'",
+                )
+                with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+                    self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
+                self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(["workspace", "dir"], cwd=project_dir)
+                self.assertIn(project_dir, logs.output[0])
+                self.assertIn("upgrade uv", logs.output[0])
+
+    def test_workspace_resolution_failure_stops_build(self):
+        project_dir = os.path.join("path", "to")
+        for rc, stdout, stderr in (
+            (1, "", "Permission denied"),
+            (2, "", "Failed to parse pyproject.toml"),
+            (1, "", "[Errno 2] No such file or directory: 'uv'"),
+            (2, "", "unrecognized subcommand 'other'"),
+            (1, "/workspace", "Failed to read workspace"),
+            (1, "", ""),
+            (0, "", ""),
+            (0, "", "unrecognized subcommand 'workspace'"),
+            (0, " \n\t", ""),
+        ):
+            with self.subTest(rc=rc, stdout=stdout, stderr=stderr):
+                self.mock_uv_runner.reset_mock()
+                self.mock_uv_runner._uv.run_uv_command.return_value = (rc, stdout, stderr)
+                with (
+                    patch("os.path.exists") as exists,
+                    self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+                    self.assertRaises(UvBuildError) as error,
+                ):
+                    self.builder._handle_pyproject_build(
+                        os.path.join(project_dir, "pyproject.toml"), "/target", "/scratch", "3.9", X86_64, UvConfig()
+                    )
+                self.assertIn(project_dir, str(error.exception))
+                self.assertIn(stderr or "returned no workspace path", str(error.exception))
+                exists.assert_not_called()
+                self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(["workspace", "dir"], cwd=project_dir)
+                self.mock_uv_runner.install_requirements.assert_not_called()
+
+    def test_resolve_workspace_dir_returns_path_without_warning(self):
+        self.mock_uv_runner._uv.run_uv_command.return_value = (0, "/workspace\n", "")
+        with self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"):
+            self.assertEqual(self.builder._resolve_workspace_dir("/workspace/app"), "/workspace")
+
     def test_build_dependencies_without_workspace_command(self):
+        self.mock_uv_runner.uv_version = "0.9.8"
         project_dir = os.path.join("path", "to")
         for has_lock in (True, False):
             with self.subTest(has_lock=has_lock):
                 self.mock_uv_runner.reset_mock()
                 self.mock_uv_runner._uv.run_uv_command.side_effect = [
-                    (2, "", "unrecognized subcommand 'workspace'"),
                     *([] if has_lock else [(0, "", "")]),
                     (0, "", ""),
                 ]
@@ -373,7 +457,7 @@ class TestPythonUvDependencyBuilder(TestCase):
                     )
                 exists.assert_called_once_with(os.path.join(project_dir, "uv.lock"))
                 commands = [call.args[0][0] for call in self.mock_uv_runner._uv.run_uv_command.call_args_list]
-                self.assertEqual(commands, ["workspace", "export"] if has_lock else ["workspace", "lock", "export"])
+                self.assertEqual(commands, ["export"] if has_lock else ["lock", "export"])
                 self.assertEqual(self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"], project_dir)
 
     def test_build_dependencies_pyproject_without_uv_lock(self):

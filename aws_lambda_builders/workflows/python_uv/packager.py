@@ -4,6 +4,7 @@ UV-based Python dependency packager for AWS Lambda
 
 import logging
 import os
+import re
 from typing import Dict, List, Optional
 
 from aws_lambda_builders.architecture import ARM64, X86_64
@@ -295,13 +296,37 @@ class PythonUvDependencyBuilder:
 
     def _resolve_workspace_dir(self, project_dir: str) -> str:
         """Find the workspace root, falling back for UV versions without this command."""
+        version = self._uv_runner.uv_version
+        # Only interpret plain release versions. Probe the command for unknown
+        # or prerelease versions instead of assuming whether it is supported.
+        if version and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+            if tuple(int(part) for part in version.split(".")) < (0, 9, 9):
+                LOG.warning(
+                    "UV %s does not support `uv workspace dir` (requires uv >= 0.9.9); "
+                    "falling back to project directory %s. If this project is a workspace member, upgrade uv.",
+                    version,
+                    project_dir,
+                )
+                return project_dir
+
         rc, stdout, stderr = self._uv_runner._uv.run_uv_command(["workspace", "dir"], cwd=project_dir)
-        if rc == 0:
-            return stdout.strip()
-        # `uv workspace dir` requires uv >= 0.9.9. For a non-workspace project,
-        # the project directory is also what the command would return.
-        LOG.debug("Could not determine workspace root, assuming no workspace: %s", stderr)
-        return project_dir
+        workspace_dir = stdout.strip() if rc == 0 else ""
+        if workspace_dir:
+            return workspace_dir
+        if rc != 0 and "unrecognized subcommand 'workspace'" in stderr:
+            LOG.warning(
+                "This UV build does not support `uv workspace dir` (requires uv >= 0.9.9); "
+                "falling back to project directory %s. If this project is a workspace member, upgrade uv.",
+                project_dir,
+            )
+            return project_dir
+        # Other failures do not establish that this is a standalone project. Stop
+        # rather than risk missing a workspace lock and regenerating it, or installing
+        # workspace-relative dependencies from the wrong directory. This deliberately
+        # also stops standalone builds when discovery fails. A successful exit with
+        # empty output is still a failure to discover the root, not evidence of no workspace.
+        reason = stderr.strip() or f"uv workspace dir returned no workspace path (exit code {rc})"
+        raise UvBuildError(reason=f"Could not determine the UV workspace root for {project_dir}: {reason}")
 
     def _is_requirements_file(self, filename: str) -> bool:
         """
