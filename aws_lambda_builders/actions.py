@@ -132,6 +132,12 @@ class LinkSourceAction(BaseAction):
         self._dest_dir = dest_dir
 
     def execute(self):
+        # Match CopySourceAction, which this replaces for layers: a dependencies directory that was
+        # never created (download_dependencies=False against a missing cache) is skipped, not fatal.
+        if not os.path.isdir(self._source_dir):
+            LOG.warning("Skipping link operation since source %s does not exist", self._source_dir)
+            return
+
         source_files = set(os.listdir(self._source_dir))
 
         for source_file in source_files:

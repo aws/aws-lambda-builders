@@ -46,11 +46,14 @@ class Test_create_symlink_or_copy(TestCase):
     @patch("aws_lambda_builders.utils.os")
     @patch("aws_lambda_builders.utils.copytree")
     def test_must_not_copy_when_symlink_succeeds(self, patched_copy_tree, pathced_os, patched_path):
+        # As above: without this the already-a-symlink early return is taken and os.symlink is never reached.
+        patched_path.return_value.exists.return_value = False
+
         source_path = "source/path"
         destination_path = "destination/path"
         utils.create_symlink_or_copy(source_path, destination_path)
 
-        pathced_os.symlink.assert_not_called()
+        pathced_os.symlink.assert_called_once()
         patched_copy_tree.assert_not_called()
 
     def test_falls_back_to_copying_a_top_level_file(self):

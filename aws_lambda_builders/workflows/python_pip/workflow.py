@@ -123,6 +123,10 @@ class PythonPipWorkflow(BaseWorkflow):
             # option does not exist on `sam local start-api` / `start-lambda`, so linking function
             # dependencies would break those commands -- which is why this was disabled wholesale in
             # https://github.com/aws/aws-lambda-builders/pull/391. Keep copying for functions.
+            #
+            # The links are absolute, so they only resolve on the machine that built them. SAM CLI's
+            # container build (`sam build --use-container`) never sends a dependencies_dir over
+            # JSON-RPC, so it cannot reach this branch; a caller that does must share the path.
             if self.is_building_layer and is_experimental_build_improvements_enabled(self.experimental_flags):
                 self._actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
             else:

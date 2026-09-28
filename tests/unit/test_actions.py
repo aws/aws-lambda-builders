@@ -318,6 +318,14 @@ class TestLinkSourceAction(TestCase):
         self._execute()
         self._assert_linked()
 
+    def test_skips_a_source_that_does_not_exist(self):
+        # CopySourceAction warns and continues here; the layer path must not turn that into a failure.
+        missing = Path(self._tmp.name, "never-created")
+
+        LinkSourceAction(str(missing), str(self.dest_dir)).execute()
+
+        self.assertEqual(os.listdir(self.dest_dir), [])
+
 
 class TestLinkSinglePathAction(TestCase):
     @patch("aws_lambda_builders.actions.os.makedirs")
