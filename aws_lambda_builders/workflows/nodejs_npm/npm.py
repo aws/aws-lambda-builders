@@ -3,6 +3,7 @@ Wrapper around calling npm through a subprocess.
 """
 
 import logging
+from typing import Dict, Optional
 
 from aws_lambda_builders.workflows.nodejs_npm.exceptions import NpmExecutionError
 
@@ -33,6 +34,36 @@ class SubprocessNpm(object):
                 npm_exe = "npm"
 
         self.npm_exe = npm_exe
+        self._project_root_cache: Dict[str, Optional[str]] = {}
+
+    def resolve_project_root(self, cwd: str) -> Optional[str]:
+        """
+        Ask npm which directory it treats as the project root when it runs in ``cwd``, caching the answer.
+
+        `npm prefix` walks up to the nearest directory holding a package.json, which for a workspace
+        package is the monorepo root - where npm keeps the single lockfile and hoists node_modules to -
+        and is the directory itself for any other package. Both the lockfile lookup that selects the
+        install command and the link step that points the artifacts at the installed dependencies need
+        that answer for the same directory, so it is resolved once per directory rather than per caller.
+
+        Parameters
+        ----------
+        cwd : str
+            the directory npm will run in
+
+        Returns
+        -------
+        Optional[str]
+            npm's project root, or None when npm could not be asked
+        """
+        if cwd not in self._project_root_cache:
+            try:
+                self._project_root_cache[cwd] = self.run(["prefix"], cwd=cwd).strip()
+            except NpmExecutionError as ex:
+                LOG.debug("NODEJS could not resolve the npm project root of %s: %s", cwd, ex)
+                self._project_root_cache[cwd] = None
+
+        return self._project_root_cache[cwd]
 
     def run(self, args, cwd=None):
         """

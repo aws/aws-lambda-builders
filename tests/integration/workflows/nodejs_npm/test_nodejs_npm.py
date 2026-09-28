@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import shutil
+import subprocess
 import tempfile
 
 from unittest import TestCase, mock
@@ -477,6 +478,48 @@ class TestNodejsNpmWorkflow(TestCase):
 
         with open(lockfile_path, "rb") as lockfile:
             self.assertEqual(lockfile.read(), original_lockfile)
+
+    @parameterized.expand(SUPPORTED_RUNTIMES)
+    def test_build_in_source_in_workspaces_monorepo_links_the_hoisted_dependencies(self, runtime):
+        # npm hoists a workspace package's dependencies to the monorepo root, so node_modules never
+        # appears beside the function. This workflow ships node_modules rather than bundling it, so the
+        # artifacts have to reach the directory npm actually used.
+        monorepo_dir = os.path.join(self.temp_testdata_dir, "workspaces-monorepo")
+        source_dir = os.path.join(monorepo_dir, "endpoints", "fn")
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+        )
+
+        # npm hoisted to the monorepo root and left nothing beside the function
+        self.assertFalse(os.path.exists(os.path.join(source_dir, "node_modules")))
+
+        artifacts_node_modules = os.path.join(self.artifacts_dir, "node_modules")
+        self.assertTrue(os.path.exists(artifacts_node_modules), "the artifacts have no node_modules at all")
+
+        installed = set(os.listdir(artifacts_node_modules))
+        self.assertIn("minimal-request-promise", installed)
+        self.assertIn("@nodejs-workspaces-monorepo", installed)
+
+        # the locked version won, not the newest one the range allows
+        installed_manifest = os.path.join(artifacts_node_modules, "minimal-request-promise", "package.json")
+        with open(installed_manifest) as manifest:
+            self.assertEqual(json.load(manifest)["version"], "1.3.0")
+
+        # the handler's own requires resolve from the artifacts directory - the property that makes this
+        # a deployable package rather than a directory that merely holds the right names
+        require_handler = subprocess.run(
+            ["node", "-e", "require('./included.js')"],
+            cwd=self.artifacts_dir,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(require_handler.returncode, 0, require_handler.stderr)
 
     @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_with_removed_dependencies(self, runtime):
