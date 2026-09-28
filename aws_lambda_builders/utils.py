@@ -112,6 +112,10 @@ def copytree(
         elif os.path.isdir(new_source):
             copytree(new_source, new_destination, ignore=ignore, include=include, maintain_symlinks=maintain_symlinks)
         else:
+            # copy2 opens the destination for writing and would follow a symlink into the shared
+            # dependencies directory; it replaces the whole file, so unlinking loses nothing.
+            if os.path.islink(new_destination):
+                os.unlink(new_destination)
             LOG.debug("Copying source file (%s) to destination (%s)", new_source, new_destination)
             shutil.copy2(new_source, new_destination)
 
@@ -241,9 +245,11 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
         # then raise NotADirectoryError on listdir.
         if os.path.isdir(source):
             copytree(source, destination)
-        else:
+        elif os.path.isfile(source):
             os.makedirs(os.path.dirname(destination), exist_ok=True)
             shutil.copy2(source, destination)
+        else:
+            LOG.warning("Skipping copy operation since source %s does not exist", source)
 
 
 def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, os.PathLike]) -> bool:

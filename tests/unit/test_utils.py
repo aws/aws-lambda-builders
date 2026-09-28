@@ -79,6 +79,17 @@ class Test_create_symlink_or_copy(TestCase):
             self.assertTrue(destination.is_dir())
             self.assertEqual((destination / "__init__.py").read_text(), "body")
 
+    def test_fallback_skips_a_source_that_does_not_exist(self):
+        # maintain_symlinks passes raw os.readlink() output, which is often relative to the link
+        # rather than the CWD (npm's node_modules/.bin entries), so the fallback must skip it.
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp, "artifacts", "tsc")
+
+            with patch("aws_lambda_builders.utils.os.symlink", side_effect=OSError("privilege not held")):
+                utils.create_symlink_or_copy("../typescript/bin/tsc", str(destination))
+
+            self.assertFalse(destination.exists())
+
 
 class Test_copytree(TestCase):
     def test_does_not_write_through_a_symlinked_destination(self):
@@ -104,6 +115,46 @@ class Test_copytree(TestCase):
             self.assertFalse((artifacts / "requests").is_symlink())
             self.assertEqual((artifacts / "requests" / "my_helper.py").read_text(), "user code")
             self.assertEqual((artifacts / "requests" / "__init__.py").read_text(), "dependency")
+
+    def test_does_not_write_through_a_symlinked_file_destination(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deps = Path(tmp, "deps")
+            deps.mkdir()
+            (deps / "six.py").write_text("dependency")
+
+            artifacts = Path(tmp, "artifacts")
+            artifacts.mkdir()
+            os.symlink(str(deps / "six.py"), str(artifacts / "six.py"))
+
+            source = Path(tmp, "source")
+            source.mkdir()
+            (source / "six.py").write_text("user code")
+
+            utils.copytree(str(source), str(artifacts))
+
+            self.assertEqual(
+                (deps / "six.py").read_text(), "dependency", "source leaked into the dependencies directory"
+            )
+            self.assertFalse((artifacts / "six.py").is_symlink())
+            self.assertEqual((artifacts / "six.py").read_text(), "user code")
+
+    def test_does_not_create_a_file_through_a_dangling_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outside = Path(tmp, "outside", "six.py")
+            outside.parent.mkdir()
+
+            artifacts = Path(tmp, "artifacts")
+            artifacts.mkdir()
+            os.symlink(str(outside), str(artifacts / "six.py"))
+
+            source = Path(tmp, "source")
+            source.mkdir()
+            (source / "six.py").write_text("user code")
+
+            utils.copytree(str(source), str(artifacts))
+
+            self.assertFalse(outside.exists(), "copy followed a dangling link outside the destination tree")
+            self.assertEqual((artifacts / "six.py").read_text(), "user code")
 
 
 class TestDecode(TestCase):
