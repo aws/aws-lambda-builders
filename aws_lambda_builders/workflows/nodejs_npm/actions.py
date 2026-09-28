@@ -4,13 +4,18 @@ Action to resolve NodeJS dependencies using NPM
 
 import logging
 import os
+import re
 from typing import Optional
 
+from aws_lambda_builders import utils
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.utils import extract_tarfile
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError, SubprocessNpm
 
 LOG = logging.getLogger(__name__)
+
+# `pkg` or `@scope/pkg` and nothing else, so no traversal, absolute path or drive letter gets through.
+NODE_MODULES_PACKAGE_NAME = re.compile(r"^(?:@[^/\\:]+/)?[^.@/\\:][^/\\:]*$")
 
 
 class NodejsNpmPackAction(BaseAction):
@@ -374,3 +379,200 @@ class NodejsNpmTestAction(NodejsNpmInstallOrUpdateBaseAction):
 
         except NpmExecutionError as ex:
             raise ActionFailedError(str(ex))
+
+
+class NodejsNpmLinkDependencyClosureAction(BaseAction):
+    """
+    A Lambda Builder Action that links only this function's own dependencies into the artifacts directory.
+
+    Used when npm installed somewhere other than the function's directory, which is what npm does for a
+    workspaces monorepo: it hoists every workspace package's dependencies into one node_modules at the
+    monorepo root. Linking that whole directory would ship every sibling function's dependencies too, so
+    this asks npm which packages this function actually resolves and links those under their own names.
+
+    Names come from the install path rather than the manifest (`_link_name`), and when npm reports no
+    closure the installed packages are linked one by one (`_link_every_installed_package`).
+    """
+
+    NAME = "NpmLinkDependencyClosure"
+    DESCRIPTION = "Linking this function's dependencies into the artifacts directory"
+    PURPOSE = Purpose.LINK_SOURCE
+
+    def __init__(self, install_dir, project_root, artifacts_dir, subprocess_npm, osutils):
+        """
+        Parameters
+        ----------
+        install_dir : str
+            the directory npm ran in, whose project's closure is wanted
+        project_root : str
+            the directory npm installed into, linked whole if the closure cannot be resolved
+        artifacts_dir : str
+            an existing (writable) directory where node_modules is assembled
+        subprocess_npm : aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm
+            An instance of the NPM process wrapper
+        osutils : aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils
+            An instance of OS Utilities for file manipulation
+        """
+        super(NodejsNpmLinkDependencyClosureAction, self).__init__()
+        self._install_dir = install_dir
+        self._project_root = project_root
+        self._artifacts_dir = artifacts_dir
+        self._subprocess_npm = subprocess_npm
+        self._osutils = osutils
+
+    def execute(self):
+        closure = self._subprocess_npm.resolve_dependency_closure(self._install_dir)
+        destination = os.path.join(self._artifacts_dir, "node_modules")
+
+        if closure is None:
+            self._link_every_installed_package(destination)
+            return
+
+        for name, package_dir in self._packages_by_name(self._outermost_packages(closure)).items():
+            self._link(package_dir, destination, name)
+
+    def _link_every_installed_package(self, destination):
+        """
+        Link every package npm installed, when npm could not say which ones this function resolves.
+
+        Per-entry links, not one link for the whole tree: only the overlay is a superset of what the
+        function resolves, and it cannot dangle. See aws/aws-lambda-builders#935.
+        """
+        # Own directory last, and resolved into one mapping before linking: create_symlink_or_copy keeps
+        # the first link at a destination, so linking as we go would give the hoisted copy precedence.
+        chosen = {}
+        for directory in (self._project_root, self._install_dir):
+            tree = os.path.join(directory, "node_modules")
+            if not os.path.isdir(tree):
+                LOG.debug("NODEJS no dependencies installed in %s, nothing to link from there", tree)
+                continue
+            LOG.debug("NODEJS linking every package installed in %s into the artifacts", tree)
+            chosen.update(dict(self._installed_packages(tree)))
+
+        if not chosen:
+            LOG.warning(
+                "No installed dependencies were found for %s; the artifacts will have no node_modules",
+                self._install_dir,
+            )
+        for name, package_dir in chosen.items():
+            self._link(package_dir, destination, name)
+
+    def _installed_packages(self, tree):
+        """
+        `(name, directory)` for every package directly inside one `node_modules`, scopes walked one level.
+
+        Dot entries are npm's bookkeeping (`.package-lock.json`, `.bin`), not packages.
+        """
+        for entry in sorted(os.listdir(tree)):
+            if entry.startswith("."):
+                continue
+            path = os.path.join(tree, entry)
+            if entry.startswith("@"):
+                if os.path.isdir(path):
+                    for scoped in sorted(os.listdir(path)):
+                        if not scoped.startswith("."):
+                            yield f"{entry}/{scoped}", os.path.join(path, scoped)
+                continue
+            yield entry, path
+
+    def _packages_by_name(self, package_dirs):
+        """
+        Map each package to the one name it will be linked under, resolving same-name collisions.
+
+        A function pinning its own copy of a package the root also hoists produces two paths wanting one
+        name; the function's own wins, since that is what its code resolves. See
+        aws/aws-lambda-builders#935 for why nesting cannot decide this.
+        """
+        chosen = {}
+        for package_dir in package_dirs:
+            name = self._link_name(package_dir)
+            if name in chosen:
+                if self._is_inside(package_dir, self._install_dir):
+                    LOG.debug("NODEJS %s pins its own %s; it wins over %s", self._install_dir, name, chosen[name])
+                    chosen[name] = package_dir
+                else:
+                    # Neither copy is the function's own, so this rule cannot say which should win.
+                    LOG.warning(
+                        "Two installed copies of %s claim the same name; keeping %s and ignoring %s",
+                        name,
+                        chosen[name],
+                        package_dir,
+                    )
+                continue
+            chosen[name] = package_dir
+        return chosen
+
+    def _link_name(self, package_dir):
+        """
+        The name node must find this package under: the segments after the last `node_modules`, scope
+        included.
+
+        From the path, not the manifest - an npm alias makes the two differ, and a dependency's manifest
+        is untrusted input to a path. Outside `node_modules` (a workspace dependency, reported as its own
+        source directory) the manifest is the only source. See aws/aws-lambda-builders#935.
+        """
+        segments = os.path.normpath(package_dir).split(os.sep)
+        for index in range(len(segments) - 1, -1, -1):
+            if os.path.normcase(segments[index]) == "node_modules":
+                return self._validated_name("/".join(segments[index + 1 :]), package_dir)
+
+        try:
+            name = self._osutils.parse_json(os.path.join(package_dir, "package.json"))["name"]
+        except (OSError, ValueError, KeyError) as ex:
+            # no readable manifest and no name in the path; guessing one lands it where node will not look
+            raise ActionFailedError(f"Cannot read the package name of {package_dir}: {ex}")
+        return self._validated_name(name, package_dir)
+
+    @staticmethod
+    def _validated_name(name, package_dir):
+        if not isinstance(name, str) or not NODE_MODULES_PACKAGE_NAME.match(name):
+            raise ActionFailedError(f"{package_dir} claims the unusable package name {name!r}")
+        return name
+
+    def _link(self, package_dir, destination, name):
+        link_path = os.path.join(destination, *name.split("/"))
+        # Second guard behind NODE_MODULES_PACKAGE_NAME. Resolve the PARENT and normalise, not the link
+        # itself: realpath follows an existing link to its target outside the artifacts, and commonpath
+        # does not interpret a trailing `..`. See aws/aws-lambda-builders#935.
+        real_destination = os.path.realpath(destination)
+        landing = os.path.normpath(
+            os.path.join(os.path.realpath(os.path.dirname(link_path)), os.path.basename(link_path))
+        )
+        try:
+            contained = os.path.commonpath([real_destination, landing]) == real_destination
+        except ValueError:
+            # different drives on Windows, which is an escape rather than an error to pass on
+            contained = False
+        if not contained:
+            raise ActionFailedError(f"{package_dir} would be linked outside the artifacts as {name!r}")
+        os.makedirs(os.path.dirname(link_path), exist_ok=True)
+        utils.create_symlink_or_copy(package_dir, link_path)
+
+    @staticmethod
+    def _is_inside(path, directory):
+        parent = os.path.normcase(os.path.realpath(directory))
+        return os.path.normcase(os.path.realpath(path)).startswith(parent + os.sep)
+
+    def _outermost_packages(self, closure):
+        """
+        Keep the packages that need their own entry in node_modules.
+
+        npm reports the project itself, which is not one of its own dependencies, and it reports a nested
+        copy of a package that a dependency pins to a different version. A nested copy must stay where it
+        is - hoisting it would shadow the top-level version for every other caller - and it is already
+        reachable through the dependency that contains it, so only the outermost paths are linked.
+        """
+        # Compare through normcase, link the original path: npm's spelling and the build's can differ in
+        # case on Windows and still name one directory. See aws/aws-lambda-builders#935.
+        paths = [os.path.realpath(path) for path in closure]
+        excluded = {os.path.normcase(os.path.realpath(d)) for d in (self._project_root, self._install_dir)}
+        candidates = [path for path in paths if os.path.normcase(path) not in excluded]
+
+        def is_nested_in_another(path):
+            key = os.path.normcase(path)
+            return any(
+                key != os.path.normcase(other) and key.startswith(os.path.normcase(other) + os.sep)
+                for other in candidates
+            )
+
+        return [path for path in candidates if not is_nested_in_another(path)]

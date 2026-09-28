@@ -18,6 +18,7 @@ from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
+    NodejsNpmLinkDependencyClosureAction,
     NodejsNpmPackAction,
     NodejsNpmInstallAction,
     NodejsNpmrcAndLockfileCopyAction,
@@ -399,15 +400,60 @@ class TestNodejsNpmWorkflow(TestCase):
             manifest_path=os.path.join("monorepo", "endpoints", "a", "manifest"),
             osutils=self.osutils,
             build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
         )
 
-        links = [
-            action
-            for action in workflow.actions
-            if isinstance(action, LinkSinglePathAction) and action._dest == os.path.join("artifacts", "node_modules")
+        # a workspaces monorepo gets the closure action instead of a link to the whole installed tree,
+        # which would carry every sibling function's dependencies into this function's artifacts
+        closure_actions = [
+            action for action in workflow.actions if isinstance(action, NodejsNpmLinkDependencyClosureAction)
         ]
-        self.assertEqual(len(links), 1)
-        self.assertEqual(links[0]._source, os.path.join("monorepo", "node_modules"))
+        self.assertEqual(len(closure_actions), 1)
+        self.assertEqual(closure_actions[0]._install_dir, os.path.join("monorepo", "endpoints", "a"))
+        self.assertEqual(closure_actions[0]._project_root, "monorepo")
+        self.assertEqual(closure_actions[0]._artifacts_dir, "artifacts")
+        self.assertFalse(
+            [
+                action
+                for action in workflow.actions
+                if isinstance(action, LinkSinglePathAction)
+                and action._dest == os.path.join("artifacts", "node_modules")
+            ]
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
+    def test_without_the_flag_a_monorepo_keeps_the_plain_link_and_npm_is_not_asked(
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
+    ):
+        # the rollout guarantee: the same monorepo shape without the flag takes the link every release so
+        # far has taken - the #933 gap - and npm is never asked where its project root is
+        can_use_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = None
+        self.osutils.dirname.return_value = os.path.join("monorepo", "endpoints", "a")
+
+        workflow = NodejsNpmWorkflow(
+            source_dir=os.path.join("monorepo", "endpoints", "a"),
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path=os.path.join("monorepo", "endpoints", "a", "manifest"),
+            osutils=self.osutils,
+            build_in_source=True,
+        )
+
+        resolve_project_root_mock.assert_not_called()
+        self.assertFalse(
+            [action for action in workflow.actions if isinstance(action, NodejsNpmLinkDependencyClosureAction)]
+        )
+        self.assertTrue(
+            [
+                action
+                for action in workflow.actions
+                if isinstance(action, LinkSinglePathAction)
+                and action._dest == os.path.join("artifacts", "node_modules")
+            ]
+        )
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")

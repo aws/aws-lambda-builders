@@ -487,6 +487,10 @@ class TestNodejsNpmWorkflow(TestCase):
         monorepo_dir = os.path.join(self.temp_testdata_dir, "workspaces-monorepo")
         source_dir = os.path.join(monorepo_dir, "endpoints", "fn")
 
+        # the developer's own install, at the monorepo root, which is how a workspaces project is set up
+        # before `sam build` ever runs. It installs every endpoint's dependencies into one node_modules.
+        SubprocessNpm(OSUtils()).run(["install", "--silent", "--no-audit", "--no-fund"], cwd=monorepo_dir)
+
         self.builder.build(
             source_dir,
             self.artifacts_dir,
@@ -494,6 +498,7 @@ class TestNodejsNpmWorkflow(TestCase):
             os.path.join(source_dir, "package.json"),
             runtime=runtime,
             build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
         )
 
         # npm hoisted to the monorepo root and left nothing beside the function
@@ -505,6 +510,18 @@ class TestNodejsNpmWorkflow(TestCase):
         installed = set(os.listdir(artifacts_node_modules))
         self.assertIn("minimal-request-promise", installed)
         self.assertIn("@nodejs-workspaces-monorepo", installed)
+
+        # npm hoists every workspace package's dependencies into the one node_modules it creates, so the
+        # sibling endpoint's `ms` is sitting right beside this function's own dependencies. It must not
+        # reach this function's artifacts.
+        self.assertIn("ms", set(os.listdir(os.path.join(monorepo_dir, "node_modules"))))
+        self.assertNotIn("ms", installed)
+
+        # the workspace package this function depends on is reachable under its own name, which is not the
+        # name of the directory it lives in
+        self.assertTrue(
+            os.path.exists(os.path.join(artifacts_node_modules, "@nodejs-workspaces-monorepo", "shared", "index.js"))
+        )
 
         # the locked version won, not the newest one the range allows
         installed_manifest = os.path.join(artifacts_node_modules, "minimal-request-promise", "package.json")

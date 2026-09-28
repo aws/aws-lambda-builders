@@ -3,7 +3,7 @@ Wrapper around calling npm through a subprocess.
 """
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from aws_lambda_builders.workflows.nodejs_npm.exceptions import NpmExecutionError
 
@@ -64,6 +64,36 @@ class SubprocessNpm(object):
                 self._project_root_cache[cwd] = None
 
         return self._project_root_cache[cwd]
+
+    def resolve_dependency_closure(self, cwd: str) -> Optional[List[str]]:
+        """
+        Ask npm for every package the project in ``cwd`` actually resolves, production only.
+
+        `npm ls --all --parseable --omit=dev` walks the installed tree and prints one absolute path per
+        resolved package. In a workspaces monorepo that answers a question the directory layout cannot:
+        which of the packages hoisted to the monorepo root belong to THIS function, and which belong to
+        a sibling. The paths are real paths, so a workspace dependency is reported as its own source
+        directory rather than as the link under node_modules.
+
+        Parameters
+        ----------
+        cwd : str
+            the directory whose project npm should report on
+
+        Returns
+        -------
+        Optional[List[str]]
+            the resolved package directories, or None when npm could not answer. npm exits non-zero for
+            any tree it considers incomplete (missing peer, invalid version) and its partial output is
+            not worth trusting, so callers fall back to shipping the whole installed tree instead.
+        """
+        try:
+            output = self.run(["ls", "--all", "--parseable", "--omit=dev"], cwd=cwd)
+        except NpmExecutionError as ex:
+            LOG.debug("NODEJS could not resolve the dependency closure of %s: %s", cwd, ex)
+            return None
+
+        return [line.strip() for line in output.splitlines() if line.strip()]
 
     def run(self, args, cwd=None):
         """
