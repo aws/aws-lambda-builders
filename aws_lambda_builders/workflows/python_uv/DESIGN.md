@@ -312,7 +312,14 @@ The compatibility fallback to the project directory is deliberately limited to t
 - A plain `X.Y.Z` UV version is numerically below `0.9.9`; the workspace command is not invoked.
 - The workspace command exits unsuccessfully and stderr contains `unrecognized subcommand 'workspace'`.
 
-Both cases emit a warning. This preserves the previous behavior for standalone projects
+Both cases log at DEBUG. They additionally emit a WARNING only if a `pyproject.toml`
+in the project directory or an ancestor contains a `tool.uv.workspace` table. This is
+only a diagnostic hint: `members` and `exclude` are not evaluated, so the warning does
+not assert membership or change the chosen root or build path. Unreadable or invalid
+TOML is logged at DEBUG and skipped. The helper lazily imports `tomllib`, or optional
+`tomli` on Python 3.10. If neither is available, it logs at DEBUG and skips configuration
+inspection; no TOML parser is required to build dependencies.
+This preserves the previous behavior for standalone projects
 using unsupported UV versions; it does not provide workspace support for those versions.
 Unknown or prerelease version strings are tested by invoking the workspace command rather
 than assuming support or lack of support.

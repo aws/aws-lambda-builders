@@ -301,12 +301,7 @@ class PythonUvDependencyBuilder:
         # or prerelease versions instead of assuming whether it is supported.
         if version and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
             if tuple(int(part) for part in version.split(".")) < (0, 9, 9):
-                LOG.warning(
-                    "UV %s does not support `uv workspace dir` (requires uv >= 0.9.9); "
-                    "falling back to project directory %s. If this project is a workspace member, upgrade uv.",
-                    version,
-                    project_dir,
-                )
+                self._log_workspace_fallback(project_dir)
                 return project_dir
 
         rc, stdout, stderr = self._uv_runner._uv.run_uv_command(["workspace", "dir"], cwd=project_dir)
@@ -314,11 +309,7 @@ class PythonUvDependencyBuilder:
         if workspace_dir:
             return workspace_dir
         if rc != 0 and "unrecognized subcommand 'workspace'" in stderr:
-            LOG.warning(
-                "This UV build does not support `uv workspace dir` (requires uv >= 0.9.9); "
-                "falling back to project directory %s. If this project is a workspace member, upgrade uv.",
-                project_dir,
-            )
+            self._log_workspace_fallback(project_dir)
             return project_dir
         # Other failures do not establish that this is a standalone project. Stop
         # rather than risk missing a workspace lock and regenerating it, or installing
@@ -327,6 +318,52 @@ class PythonUvDependencyBuilder:
         # empty output is still a failure to discover the root, not evidence of no workspace.
         reason = stderr.strip() or f"uv workspace dir returned no workspace path (exit code {rc})"
         raise UvBuildError(reason=f"Could not determine the UV workspace root for {project_dir}: {reason}")
+
+    def _log_workspace_fallback(self, project_dir: str) -> None:
+        """Use workspace configuration only as a warning hint, not as a root or membership decision."""
+        LOG.debug(
+            "This UV build does not support `uv workspace dir` (requires uv >= 0.9.9); "
+            "falling back to project directory %s.",
+            project_dir,
+        )
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            try:
+                import tomli as tomllib
+            except ModuleNotFoundError:
+                LOG.debug("Skipping workspace configuration hint: no TOML parser is available.")
+                return
+
+        directory = os.path.abspath(project_dir)
+        while True:
+            manifest = os.path.join(directory, "pyproject.toml")
+            try:
+                with open(manifest, "rb") as file:
+                    config = tomllib.load(file)
+                # Ancestor manifests may contain valid TOML with unrelated value types.
+                # Only an actual table is a workspace hint; diagnostics must not fail the build.
+                tool_config = config.get("tool")
+                uv_config = tool_config.get("uv") if isinstance(tool_config, dict) else None
+                has_uv_workspace_table = isinstance(uv_config, dict) and isinstance(uv_config.get("workspace"), dict)
+                if has_uv_workspace_table:
+                    LOG.warning(
+                        "UV does not support `uv workspace dir` (requires uv >= 0.9.9), and workspace "
+                        "configuration was found in %s. Falling back to project directory %s. "
+                        "If this project is a member of that workspace, upgrade uv. "
+                        "Workspace members and exclusions have not been evaluated.",
+                        manifest,
+                        project_dir,
+                    )
+                    return
+            except FileNotFoundError:
+                pass
+            except (OSError, ValueError) as error:
+                LOG.debug("Could not inspect workspace configuration in %s: %s", manifest, error)
+            parent = os.path.dirname(directory)
+            if parent == directory:
+                return
+            directory = parent
 
     def _is_requirements_file(self, filename: str) -> bool:
         """

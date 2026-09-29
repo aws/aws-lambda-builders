@@ -1,4 +1,6 @@
 import os
+import tempfile
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -356,18 +358,18 @@ class TestPythonUvDependencyBuilder(TestCase):
             ["workspace", "export"],
         )
 
-    def test_resolve_workspace_dir_warns_for_old_uv(self):
-        project_dir = os.path.join("path", "to")
-        for version in ("0.8.17", "0.9.8"):
-            with self.subTest(version=version):
-                self.mock_uv_runner.uv_version = version
-                with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
-                    self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
-                self.mock_uv_runner._uv.run_uv_command.assert_not_called()
-                self.assertIn(project_dir, logs.output[0])
-                self.assertIn(version, logs.output[0])
-                self.assertIn("uv >= 0.9.9", logs.output[0])
-                self.assertIn("upgrade uv", logs.output[0])
+    def test_resolve_workspace_dir_logs_debug_for_old_uv(self):
+        # Bound discovery so manifests above the test directory cannot affect logging.
+        with tempfile.TemporaryDirectory() as project_dir, patch("os.path.dirname", return_value=project_dir):
+            for version in ("0.8.17", "0.9.8"):
+                with self.subTest(version=version):
+                    self.mock_uv_runner.uv_version = version
+                    with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="DEBUG") as logs:
+                        self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
+                    self.mock_uv_runner._uv.run_uv_command.assert_not_called()
+                    self.assertIn(project_dir, logs.output[0])
+                    self.assertIn("uv >= 0.9.9", logs.output[0])
+                    self.assertTrue(all(record.levelname == "DEBUG" for record in logs.records))
 
     def test_resolve_workspace_dir_probes_supported_or_unknown_versions(self):
         for version in ("0.9.9", "0.9.10", "0.10.0", "1.0.0", None, "", "unknown", "0.9.9rc1"):
@@ -388,21 +390,116 @@ class TestPythonUvDependencyBuilder(TestCase):
                     )
 
     def test_resolve_workspace_dir_falls_back_for_explicitly_unsupported_command(self):
-        project_dir = os.path.join("path", "to")
-        for version in ("0.9.9", "0.10.0", None, "", "unknown", "0.9.8+dev", "0.9.0-alpha.1", "0.9.9rc1"):
-            with self.subTest(version=version):
-                self.mock_uv_runner.reset_mock()
-                self.mock_uv_runner.uv_version = version
-                self.mock_uv_runner._uv.run_uv_command.return_value = (
-                    2,
-                    "",
-                    "error: unrecognized subcommand 'workspace'",
-                )
-                with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
-                    self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
-                self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(["workspace", "dir"], cwd=project_dir)
-                self.assertIn(project_dir, logs.output[0])
-                self.assertIn("upgrade uv", logs.output[0])
+        # Bound discovery so manifests above the test directory cannot affect logging.
+        with tempfile.TemporaryDirectory() as project_dir, patch("os.path.dirname", return_value=project_dir):
+            for version in ("0.9.9", "0.10.0", None, "", "unknown", "0.9.8+dev", "0.9.0-alpha.1", "0.9.9rc1"):
+                with self.subTest(version=version):
+                    self.mock_uv_runner.reset_mock()
+                    self.mock_uv_runner.uv_version = version
+                    self.mock_uv_runner._uv.run_uv_command.return_value = (
+                        2,
+                        "",
+                        "error: unrecognized subcommand 'workspace'",
+                    )
+                    with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="DEBUG") as logs:
+                        self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
+                    self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(
+                        ["workspace", "dir"], cwd=project_dir
+                    )
+                    self.assertIn(project_dir, logs.output[0])
+                    self.assertTrue(all(record.levelname == "DEBUG" for record in logs.records))
+
+    def test_workspace_fallback_warning_is_only_a_configuration_hint(self):
+        for unsupported_by_version in (True, False):
+            for location in ("app", "."):
+                with self.subTest(old_version=unsupported_by_version, location=location):
+                    with tempfile.TemporaryDirectory() as root:
+                        project = Path(root, "app")
+                        project.mkdir()
+                        manifest = Path(root, location, "pyproject.toml")
+                        manifest.write_text('[tool.uv.workspace]\nmembers = ["other"]\nexclude = ["app"]\n')
+                        self.mock_uv_runner.uv_version = "0.9.8" if unsupported_by_version else None
+                        self.mock_uv_runner._uv.run_uv_command.return_value = (
+                            2,
+                            "",
+                            "unrecognized subcommand 'workspace'",
+                        )
+                        with self.assertLogs(
+                            "aws_lambda_builders.workflows.python_uv.packager", level="WARNING"
+                        ) as logs:
+                            self.assertEqual(self.builder._resolve_workspace_dir(str(project)), str(project))
+                        self.assertIn(str(manifest), logs.output[0])
+                        self.assertIn("If this project is a member", logs.output[0])
+                        self.assertIn("upgrade uv", logs.output[0])
+                        self.assertEqual(len(logs.records), 1)
+
+    def test_workspace_fallback_without_toml_parser(self):
+        self.mock_uv_runner.uv_version = "0.9.8"
+        with (
+            patch.dict("sys.modules", {"tomllib": None, "tomli": None}),
+            patch("builtins.open") as open_file,
+            self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="DEBUG") as logs,
+        ):
+            self.assertEqual(self.builder._resolve_workspace_dir("/project"), "/project")
+        open_file.assert_not_called()
+        self.mock_uv_runner._uv.run_uv_command.assert_not_called()
+        self.assertTrue(all(record.levelname == "DEBUG" for record in logs.records))
+        self.assertIn("no TOML parser", logs.output[-1])
+
+    def test_workspace_hint_uses_optional_tomli(self):
+        parser = Mock()
+        parser.load.return_value = {"tool": {"uv": {"workspace": {}}}}
+        with (
+            patch.dict("sys.modules", {"tomllib": None, "tomli": parser}),
+            patch("builtins.open"),
+            self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+        ):
+            self.builder._log_workspace_fallback("/project")
+        parser.load.assert_called_once()
+
+    def test_workspace_hint_skips_non_table_values_and_continues_to_parent(self):
+        for content in (
+            'tool = "text"\n',
+            'tool = ["uv"]\n',
+            "[tool]\nuv = 5\n",
+            '[tool]\nuv = "workspace"\n',
+            '[tool]\nuv = ["workspace"]\n',
+            "[tool.uv]\nworkspace = false\n",
+            '[tool.uv]\nworkspace = "text"\n',
+            "[tool.uv]\nworkspace = []\n",
+            "[[tool.uv.workspace]]\n",
+        ):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as root:
+                project = Path(root, "app")
+                project.mkdir()
+                Path(project, "pyproject.toml").write_text(content)
+                # Stop at the temporary root so unrelated manifests outside the test cannot warn.
+                real_dirname = os.path.dirname
+                with patch("os.path.dirname", side_effect=lambda path: root if path == root else real_dirname(path)):
+                    with self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"):
+                        self.builder._log_workspace_fallback(str(project))
+
+                    parent_manifest = Path(root, "pyproject.toml")
+                    parent_manifest.write_text("[tool.uv.workspace]\n")
+                    with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+                        self.builder._log_workspace_fallback(str(project))
+                    self.assertEqual(len(logs.records), 1)
+                    self.assertIn(str(parent_manifest), logs.output[0])
+
+    def test_workspace_hint_ignores_comments_and_invalid_or_unreadable_toml(self):
+        for content in ("# [tool.uv.workspace]\n", "[invalid", '[tool]\nuv = "text"\n'):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as root:
+                Path(root, "pyproject.toml").write_text(content)
+                with (
+                    patch("os.path.dirname", return_value=root),
+                    self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+                ):
+                    self.builder._log_workspace_fallback(root)
+        with (
+            patch("builtins.open", side_effect=PermissionError("denied")),
+            self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+        ):
+            self.builder._log_workspace_fallback("/project")
 
     def test_workspace_resolution_failure_stops_build(self):
         project_dir = os.path.join("path", "to")
