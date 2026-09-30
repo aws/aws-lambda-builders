@@ -72,3 +72,24 @@ class WorkflowUnknownError(LambdaBuilderError):
     """
 
     MESSAGE = "{workflow_name}:{action_name} - {reason}"
+
+
+class SharedProjectNotSupportedError(LambdaBuilderError):
+    """
+    Raised when the selected workflow has no notion of work shared by every
+    package under one project root
+    """
+
+    MESSAGE = (
+        "Workflow for capability '{capabilities}' does not support preparing a project root "
+        "shared by several functions"
+    )
+
+
+class SharedProjectPreparationError(LambdaBuilderError):
+    """
+    Raised when preparing the shared project root itself failed; the caller can
+    fall back to building each function on its own
+    """
+
+    MESSAGE = "Preparing the shared project root {project_root} failed: {reason}"

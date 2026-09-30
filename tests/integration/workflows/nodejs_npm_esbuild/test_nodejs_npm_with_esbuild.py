@@ -695,3 +695,37 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
 
         # dependencies not in scratch
         self.assertNotIn("node_modules", os.listdir(self.scratch_dir))
+
+    @parameterized.expand(SUPPORTED_RUNTIMES)
+    def test_shared_install_then_bundles_a_workspace_member_without_downloading(self, runtime):
+        # how sam build uses prepare_shared_project for a monorepo of esbuild functions:
+        # one install at the workspace root, then every member bundles with
+        # download_dependencies=False and no dependencies_dir, resolving from the source tree
+        monorepo_dir = os.path.join(self.temp_testdata_dir, "workspaces-monorepo")
+        source_dir = os.path.join(monorepo_dir, "packages", "fn")
+
+        self.builder.prepare_shared_project(monorepo_dir, experimental_flags=["experimentalNodejsMonorepo"])
+
+        # npm hoisted the member's dependency to the root during the shared install
+        self.assertTrue(os.path.isdir(os.path.join(monorepo_dir, "node_modules", "minimal-request-promise")))
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options={"entry_points": ["included.js"]},
+            executable_search_paths=[self.binpath],
+            build_in_source=True,
+            download_dependencies=False,
+        )
+
+        # the bundler resolved the hoisted dependency without a per-function install: requiring
+        # the bundle would raise MODULE_NOT_FOUND if the import were left unbundled
+        self.assertEqual({"included.js"}, set(os.listdir(self.artifacts_dir)))
+        bundle = os.path.join(self.artifacts_dir, "included.js")
+        require_bundle = subprocess.run(
+            ["node", "-e", "require(process.argv[1])", bundle], capture_output=True, text=True
+        )
+        self.assertEqual(require_bundle.returncode, 0, require_bundle.stderr)

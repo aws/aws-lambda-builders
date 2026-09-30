@@ -11,7 +11,7 @@ one records the tree npm reified. See aws/aws-lambda-builders#938.
 import json
 import logging
 import os
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 LOG = logging.getLogger(__name__)
 
@@ -68,6 +68,62 @@ def _entry_dir(project_root: str, key: str, entry: Dict) -> str:
     if entry.get("link") and entry.get("resolved"):
         return os.path.join(project_root, *entry["resolved"].split("/"))
     return os.path.join(project_root, *key.split("/")) if key else project_root
+
+
+def _lockfile_packages(project_root: str) -> Optional[Dict]:
+    """
+    The packages map of whichever lockfile under `project_root` parses, hidden one first.
+
+    No staleness gate, unlike `production_closure`: this is read for `dev` markers only, and which
+    packages a project declares as dev survives a tree the hidden lockfile no longer describes.
+    """
+    candidates = [hidden_lockfile_path(project_root)] + [
+        os.path.join(project_root, name) for name in ("npm-shrinkwrap.json", "package-lock.json")
+    ]
+    for path in candidates:
+        try:
+            with open(path) as handle:
+                lock = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if lock.get("lockfileVersion", 1) >= MINIMUM_LOCKFILE_VERSION and "packages" in lock:
+            return lock["packages"]
+    return None
+
+
+def _declared_dev_dependencies(directory: str) -> Set[str]:
+    """The names in one manifest's `devDependencies`, empty when it cannot be read."""
+    try:
+        with open(os.path.join(directory, "package.json")) as handle:
+            return set(json.load(handle).get("devDependencies") or {})
+    except (OSError, ValueError, AttributeError):
+        return set()
+
+
+def dev_packages(project_root: str, install_dir: str) -> Tuple[Set[str], Set[str]]:
+    """
+    What is installed only for development, as `(real directories, package names)`.
+
+    For the shared install at a workspace root, which keeps dev dependencies on purpose - the root's
+    own build tools have to survive it - so that the artifacts can still leave them out.
+
+    A lockfile answers by directory, and answers properly: it marks an entry `dev` when every path to
+    it runs through a devDependency, so transitive ones are covered too. Without a usable lockfile
+    only the manifests' own declarations are known, and those answer by NAME: npm hoists a workspace
+    member's dev dependency to the root, so the directory it ends up in is not one this can predict.
+    """
+    packages = _lockfile_packages(project_root)
+    if packages is not None:
+        dev_dirs = {
+            os.path.realpath(_entry_dir(project_root, key, entry))
+            for key, entry in packages.items()
+            if key and entry.get("dev")
+        }
+        return dev_dirs, set()
+
+    LOG.debug("NODEJS no usable lockfile under %s; excluding only the manifests' own dev dependencies", project_root)
+    dev_names = _declared_dev_dependencies(project_root) | _declared_dev_dependencies(install_dir)
+    return set(), dev_names
 
 
 def production_closure(project_root: str, install_dir: str) -> Optional[List[str]]:

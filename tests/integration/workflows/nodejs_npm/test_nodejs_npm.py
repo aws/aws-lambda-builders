@@ -11,7 +11,7 @@ from unittest import TestCase, mock
 from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
-from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.exceptions import SharedProjectPreparationError, WorkflowFailedError
 from aws_lambda_builders.supported_runtimes import NODEJS_RUNTIMES
 from aws_lambda_builders.workflows.nodejs_npm.lockfile_closure import production_closure
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
@@ -1107,3 +1107,242 @@ class TestNodejsNpmWorkflow(TestCase):
         expected_files = {"package.json"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+
+class TestNodejsNpmPrepareSharedProject(TestCase):
+    """
+    Runs LambdaBuilder.prepare_shared_project against the real npm: one install at the
+    workspace root prepares every member for builds that run with download_dependencies=False,
+    which is how sam build uses it for an npm workspaces monorepo under --build-in-source.
+    """
+
+    TEST_DATA_FOLDER = os.path.join(os.path.dirname(__file__), "testdata")
+    SUPPORTED_RUNTIMES = [(runtime,) for runtime in NODEJS_RUNTIMES]
+
+    def setUp(self):
+        self.scratch_dir = tempfile.mkdtemp()
+        self.fn_artifacts_dir = tempfile.mkdtemp()
+        self.other_artifacts_dir = tempfile.mkdtemp()
+
+        # use this so tests don't modify actual testdata, and we can parallelize
+        self.temp_dir = tempfile.mkdtemp()
+        self.temp_testdata_dir = os.path.join(self.temp_dir, "testdata")
+        shutil.copytree(self.TEST_DATA_FOLDER, self.temp_testdata_dir)
+        self.monorepo_dir = os.path.join(self.temp_testdata_dir, "workspaces-monorepo")
+
+        self.builder = LambdaBuilder(language="nodejs", dependency_manager="npm", application_framework=None)
+
+    def tearDown(self):
+        for directory in (self.scratch_dir, self.fn_artifacts_dir, self.other_artifacts_dir, self.temp_dir):
+            shutil.rmtree(directory)
+
+    def prepare_shared(self, project_root):
+        # gated on the same flag the per-function builds below pass
+        self.builder.prepare_shared_project(project_root, experimental_flags=["experimentalNodejsMonorepo"])
+
+    def build_member(self, endpoint, artifacts_dir, runtime):
+        source_dir = os.path.join(self.monorepo_dir, "endpoints", endpoint)
+        self.builder.build(
+            source_dir,
+            artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            build_in_source=True,
+            download_dependencies=False,
+            experimental_flags=["experimentalNodejsMonorepo"],
+        )
+
+    @parameterized.expand(SUPPORTED_RUNTIMES)
+    def test_installs_once_at_the_root_then_builds_members_without_downloading(self, runtime):
+        lockfile_path = os.path.join(self.monorepo_dir, "package-lock.json")
+        with open(lockfile_path, "rb") as lockfile:
+            original_lockfile = lockfile.read()
+
+        self.prepare_shared(self.monorepo_dir)
+
+        # the lockfile drove the install: it pins 1.3.0 while the manifest range allows newer
+        installed_manifest = os.path.join(self.monorepo_dir, "node_modules", "minimal-request-promise", "package.json")
+        with open(installed_manifest) as manifest:
+            self.assertEqual(json.load(manifest)["version"], "1.3.0")
+        # and came back byte-identical
+        with open(lockfile_path, "rb") as lockfile:
+            self.assertEqual(lockfile.read(), original_lockfile)
+
+        # both members build off that one install, downloading nothing themselves
+        self.build_member("fn", self.fn_artifacts_dir, runtime)
+        self.build_member("other", self.other_artifacts_dir, runtime)
+
+        # npm kept everything hoisted: the builds added no node_modules beside the members
+        self.assertFalse(os.path.exists(os.path.join(self.monorepo_dir, "endpoints", "fn", "node_modules")))
+        self.assertFalse(os.path.exists(os.path.join(self.monorepo_dir, "endpoints", "other", "node_modules")))
+
+        # each member's artifacts hold its own dependencies plus the workspace package, and not
+        # its sibling's, even though npm hoisted both into the same root node_modules
+        fn_modules = set(os.listdir(os.path.join(self.fn_artifacts_dir, "node_modules")))
+        self.assertIn("minimal-request-promise", fn_modules)
+        self.assertIn("@nodejs-workspaces-monorepo", fn_modules)
+        self.assertNotIn("ms", fn_modules)
+
+        other_modules = set(os.listdir(os.path.join(self.other_artifacts_dir, "node_modules")))
+        self.assertIn("ms", other_modules)
+        self.assertNotIn("minimal-request-promise", other_modules)
+
+        # the handlers' own requires resolve from each artifacts directory
+        for artifacts_dir in (self.fn_artifacts_dir, self.other_artifacts_dir):
+            require_handler = subprocess.run(
+                ["node", "-e", "require('./included.js')"],
+                cwd=artifacts_dir,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(require_handler.returncode, 0, require_handler.stderr)
+
+    def test_shared_install_without_a_lockfile_keeps_the_root_dev_dependencies(self):
+        os.remove(os.path.join(self.monorepo_dir, "package-lock.json"))
+
+        # a build tool the root depends on, spelled as a local file dependency so the assertion
+        # does not ride on what the registry serves
+        devtool_dir = os.path.join(self.monorepo_dir, "devtool")
+        os.makedirs(devtool_dir)
+        with open(os.path.join(devtool_dir, "package.json"), "w") as manifest:
+            json.dump({"name": "devtool", "version": "1.0.0"}, manifest)
+
+        root_manifest_path = os.path.join(self.monorepo_dir, "package.json")
+        with open(root_manifest_path) as manifest:
+            root_manifest = json.load(manifest)
+        root_manifest["devDependencies"] = {"devtool": "file:devtool"}
+        with open(root_manifest_path, "w") as manifest:
+            json.dump(root_manifest, manifest)
+
+        self.prepare_shared(self.monorepo_dir)
+
+        # the shared install must not pass --omit=dev: run at the root that flag would remove the
+        # root's own build tools, which the function builds still need
+        self.assertTrue(os.path.isdir(os.path.join(self.monorepo_dir, "node_modules", "devtool")))
+        # and one update still resolved every member's dependencies
+        self.assertTrue(os.path.isdir(os.path.join(self.monorepo_dir, "node_modules", "ms")))
+        self.assertTrue(os.path.isdir(os.path.join(self.monorepo_dir, "node_modules", "minimal-request-promise")))
+
+    def _local_dev_dependency(self, manifest_path, package_name, directory_name):
+        # a local file dependency, so the assertion does not ride on what the registry serves
+        package_dir = os.path.join(os.path.dirname(manifest_path), directory_name)
+        os.makedirs(package_dir)
+        with open(os.path.join(package_dir, "package.json"), "w") as manifest:
+            json.dump({"name": package_name, "version": "1.0.0"}, manifest)
+
+        with open(manifest_path) as manifest:
+            owner = json.load(manifest)
+        owner.setdefault("devDependencies", {})[package_name] = f"file:{directory_name}"
+        with open(manifest_path, "w") as manifest:
+            json.dump(owner, manifest)
+
+    @parameterized.expand(SUPPORTED_RUNTIMES)
+    def test_a_members_artifacts_exclude_the_root_and_member_dev_dependencies(self, runtime):
+        # The shared install keeps dev dependencies on purpose - run at the root, --omit=dev would take
+        # the root's own build tools with it - so the artifacts are where they have to be left out.
+        # Asserted on both paths that can produce them: the resolved closure, and the fallback that
+        # ships from the installed tree itself when no closure can be had.
+        os.remove(os.path.join(self.monorepo_dir, "package-lock.json"))
+        self._local_dev_dependency(os.path.join(self.monorepo_dir, "package.json"), "devtool", "devtool")
+        fn_manifest_path = os.path.join(self.monorepo_dir, "endpoints", "fn", "package.json")
+        self._local_dev_dependency(fn_manifest_path, "fntool", "fntool")
+
+        self.prepare_shared(self.monorepo_dir)
+
+        # both are installed, which is the whole point of dropping --omit=dev
+        root_modules = os.path.join(self.monorepo_dir, "node_modules")
+        self.assertTrue(os.path.isdir(os.path.join(root_modules, "devtool")))
+        self.assertTrue(os.path.isdir(os.path.join(root_modules, "fntool")))
+
+        self.build_member("fn", self.fn_artifacts_dir, runtime)
+
+        fn_modules = set(os.listdir(os.path.join(self.fn_artifacts_dir, "node_modules")))
+        self.assertIn("minimal-request-promise", fn_modules, "the production dependency is missing")
+        self.assertNotIn("devtool", fn_modules, "the root's dev dependency reached a function's artifacts")
+        self.assertNotIn("fntool", fn_modules, "the member's own dev dependency reached its artifacts")
+
+        # Now the fallback. Removing npm's hidden lockfile leaves nothing to derive a closure from, and
+        # a dependency named but not installed makes `npm ls` exit non-zero - which is how the real
+        # unmet-peer case reaches this same path.
+        os.remove(os.path.join(root_modules, ".package-lock.json"))
+        with open(fn_manifest_path) as manifest:
+            fn_manifest = json.load(manifest)
+        fn_manifest["dependencies"]["not-installed-at-all"] = "^1.0.0"
+        with open(fn_manifest_path, "w") as manifest:
+            json.dump(fn_manifest, manifest)
+
+        fallback_artifacts_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, fallback_artifacts_dir, True)
+        self.build_member("fn", fallback_artifacts_dir, runtime)
+
+        fallback_modules = set(os.listdir(os.path.join(fallback_artifacts_dir, "node_modules")))
+        self.assertIn("minimal-request-promise", fallback_modules, "the fallback dropped a real dependency")
+        self.assertNotIn("devtool", fallback_modules, "the fallback shipped the root's dev dependency")
+        self.assertNotIn("fntool", fallback_modules, "the fallback shipped the member's dev dependency")
+
+    def test_shared_install_drops_a_dependency_removed_from_a_member_manifest(self):
+        # aws/aws-lambda-builders#579 moved build-in-source to `npm update` because the install then in
+        # use left a dependency behind after it was removed from the manifest. The shared install reaches
+        # the same get_install_action, so it has to keep that property at the workspace root, where the
+        # tree it reconciles is every member's at once. Asserted for both commands the action can pick:
+        # with the lockfile (npm install) and then without one (npm update).
+        lockfile_path = os.path.join(self.monorepo_dir, "package-lock.json")
+        other_manifest_path = os.path.join(self.monorepo_dir, "endpoints", "other", "package.json")
+        root_modules = os.path.join(self.monorepo_dir, "node_modules")
+
+        def set_other_dependencies(dependencies):
+            with open(other_manifest_path) as manifest:
+                other_manifest = json.load(manifest)
+            other_manifest["dependencies"] = dependencies
+            with open(other_manifest_path, "w") as manifest:
+                json.dump(other_manifest, manifest)
+
+        self.prepare_shared(self.monorepo_dir)
+        self.assertTrue(os.path.isdir(os.path.join(root_modules, "ms")), "the fixture's own dependency is missing")
+        with open(lockfile_path, "rb") as lockfile:
+            original_lockfile = lockfile.read()
+
+        # the developer drops the dependency from the member that declared it, and rebuilds
+        set_other_dependencies({})
+        self.prepare_shared(self.monorepo_dir)
+
+        self.assertFalse(
+            os.path.exists(os.path.join(root_modules, "ms")),
+            "the hoisted tree kept a dependency no member declares any more (#579)",
+        )
+        # still the developer's own directory, so the now out-of-date lockfile stays as they left it
+        with open(lockfile_path, "rb") as lockfile:
+            self.assertEqual(lockfile.read(), original_lockfile)
+
+        # and the same holds on the no-lockfile path, which runs npm update instead of npm install
+        os.remove(lockfile_path)
+        set_other_dependencies({"ms": "^2.1.3"})
+        self.prepare_shared(self.monorepo_dir)
+        self.assertTrue(os.path.isdir(os.path.join(root_modules, "ms")))
+
+        set_other_dependencies({})
+        self.prepare_shared(self.monorepo_dir)
+
+        self.assertFalse(
+            os.path.exists(os.path.join(root_modules, "ms")),
+            "the npm update path kept a dependency no member declares any more (#579)",
+        )
+
+    def test_a_failing_install_raises_the_error_the_caller_falls_back_on(self):
+        # broken-deps pins a version the registry does not have, so the real npm install fails
+        broken_dir = os.path.join(self.temp_testdata_dir, "broken-deps")
+
+        with self.assertRaises(SharedProjectPreparationError) as raised:
+            self.prepare_shared(broken_dir)
+
+        self.assertIn(broken_dir, str(raised.exception))
+
+    def test_an_unflagged_caller_is_refused_and_installs_nothing(self):
+        # the per-function build gates its artifacts link on experimentalNodejsMonorepo, so a caller
+        # that installs without it would ship functions whose artifacts carry no dependencies
+        with self.assertRaises(SharedProjectPreparationError) as raised:
+            self.builder.prepare_shared_project(self.monorepo_dir)
+
+        self.assertIn("experimentalNodejsMonorepo", str(raised.exception))
+        self.assertFalse(os.path.exists(os.path.join(self.monorepo_dir, "node_modules")))

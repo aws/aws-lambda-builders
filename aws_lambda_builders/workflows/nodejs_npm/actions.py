@@ -10,7 +10,7 @@ from typing import Optional
 from aws_lambda_builders import utils
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.utils import extract_tarfile
-from aws_lambda_builders.workflows.nodejs_npm.lockfile_closure import production_closure
+from aws_lambda_builders.workflows.nodejs_npm.lockfile_closure import dev_packages, production_closure
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError, SubprocessNpm
 
 LOG = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class NodejsNpmInstallOrUpdateBaseAction(BaseAction):
 
     PURPOSE = Purpose.RESOLVE_DEPENDENCIES
 
-    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm):
+    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, omit_dev: bool = True):
         """
         Parameters
         ----------
@@ -93,11 +93,16 @@ class NodejsNpmInstallOrUpdateBaseAction(BaseAction):
             Dependencies will be installed in this directory.
         subprocess_npm : SubprocessNpm
             An instance of the NPM process wrapper
+        omit_dev : bool
+            Passes --omit=dev if True, by default True. False is for installing a whole workspace root,
+            whose own dev dependencies (build tools like esbuild) must survive the install; the artifacts
+            leave them out at the link step instead.
         """
 
         super().__init__()
         self.install_dir = install_dir
         self.subprocess_npm = subprocess_npm
+        self.omit_dev = omit_dev
 
 
 class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
@@ -108,20 +113,24 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
     NAME = "NpmInstall"
     DESCRIPTION = "Installing dependencies from NPM"
 
-    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, install_links: Optional[bool] = False):
+    def __init__(
+        self,
+        install_dir: str,
+        subprocess_npm: SubprocessNpm,
+        install_links: Optional[bool] = False,
+        omit_dev: bool = True,
+    ):
         """
         Parameters
         ----------
-        install_dir : str
-            Dependencies will be installed in this directory.
-        subprocess_npm : SubprocessNpm
-            An instance of the NPM process wrapper
         install_links : Optional[bool]
             Uses the --install-links npm option if True, by default False. Required when installing into the
             source directory, so that local file dependencies are installed as regular dependencies.
+
+        See NodejsNpmInstallOrUpdateBaseAction for the rest.
         """
 
-        super().__init__(install_dir=install_dir, subprocess_npm=subprocess_npm)
+        super().__init__(install_dir=install_dir, subprocess_npm=subprocess_npm, omit_dev=omit_dev)
         self.install_links = install_links
 
     def execute(self):
@@ -131,9 +140,11 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS installing production dependencies in: %s", self.install_dir)
+            LOG.debug("NODEJS installing dependencies in: %s", self.install_dir)
 
-            command = ["install", "-q", "--no-audit", "--no-save", "--omit=dev"]
+            command = ["install", "-q", "--no-audit", "--no-save"]
+            if self.omit_dev:
+                command.append("--omit=dev")
             if self.install_links:
                 command.append("--install-links")
             self.subprocess_npm.run(command, cwd=self.install_dir)
@@ -163,13 +174,12 @@ class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS updating production dependencies in: %s", self.install_dir)
+            LOG.debug("NODEJS updating dependencies in: %s", self.install_dir)
 
-            command = [
-                "update",
-                "--no-audit",
-                "--no-save",
-                "--omit=dev",
+            command = ["update", "--no-audit", "--no-save"]
+            if self.omit_dev:
+                command.append("--omit=dev")
+            command += [
                 "--no-package-lock",
                 "--install-links",
             ]
@@ -441,7 +451,13 @@ class NodejsNpmLinkDependencyClosureAction(BaseAction):
 
         Per-entry links, not one link for the whole tree: only the overlay is a superset of what the
         function resolves, and it cannot dangle. See aws/aws-lambda-builders#935.
+
+        A superset of the production closure, but not of the dev tree: the shared install at a
+        workspace root keeps dev dependencies on purpose, and shipping those would put the root's
+        build tools in every function's artifacts, which the per-function install never does.
         """
+        dev_dirs, dev_names = dev_packages(self._project_root, self._install_dir)
+
         # Own directory last, and resolved into one mapping before linking: create_symlink_or_copy keeps
         # the first link at a destination, so linking as we go would give the hoisted copy precedence.
         chosen = {}
@@ -451,7 +467,11 @@ class NodejsNpmLinkDependencyClosureAction(BaseAction):
                 LOG.debug("NODEJS no dependencies installed in %s, nothing to link from there", tree)
                 continue
             LOG.debug("NODEJS linking every package installed in %s into the artifacts", tree)
-            chosen.update(dict(self._installed_packages(tree)))
+            for name, package_dir in self._installed_packages(tree):
+                if name in dev_names or os.path.realpath(package_dir) in dev_dirs:
+                    LOG.debug("NODEJS %s is installed only for development; leaving it out", name)
+                    continue
+                chosen[name] = package_dir
 
         if not chosen:
             LOG.warning(
