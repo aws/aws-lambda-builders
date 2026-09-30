@@ -14,6 +14,7 @@ from aws_lambda_builders.actions import (
     MoveDependenciesAction,
 )
 from aws_lambda_builders.architecture import ARM64
+from aws_lambda_builders.exceptions import SharedDependenciesInstallError
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
@@ -320,8 +321,15 @@ class TestNodejsNpmWorkflow(TestCase):
         self.osutils.file_exists.assert_has_calls([call("source/package-lock.json")])
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
-    def test_build_in_source_without_download_dependencies_and_without_dependencies_dir(self, can_use_links_mock):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
+    def test_build_in_source_without_download_dependencies_and_without_dependencies_dir(
+        self, resolve_project_root_mock, can_use_links_mock
+    ):
+        # Skipping the install does not mean skipping the dependencies: building in source, they are already
+        # in the source tree, put there by whoever ran the install. The artifacts still have to be linked to
+        # them, or this produces a deployment package with no node_modules at all.
         can_use_links_mock.return_value = True
+        resolve_project_root_mock.return_value = "source"
 
         source_dir = "source"
         artifacts_dir = "artifacts"
@@ -335,11 +343,46 @@ class TestNodejsNpmWorkflow(TestCase):
             download_dependencies=False,
         )
 
-        self.assertEqual(len(workflow.actions), 4)
+        self.assertEqual(len(workflow.actions), 5)
         self.assertIsInstance(workflow.actions[0], NodejsNpmPackAction)
         self.assertIsInstance(workflow.actions[1], NodejsNpmrcAndLockfileCopyAction)
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
-        self.assertIsInstance(workflow.actions[3], NodejsNpmrcCleanUpAction)
+        self.assertIsInstance(workflow.actions[3], LinkSinglePathAction)
+        self.assertEqual(workflow.actions[3]._source, os.path.join(source_dir, "node_modules"))
+        self.assertEqual(workflow.actions[3]._dest, os.path.join(artifacts_dir, "node_modules"))
+        self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
+    def test_build_in_source_without_download_dependencies_narrows_a_monorepo_to_the_closure(
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
+    ):
+        # The install being skipped is exactly how a workspaces monorepo is built once the dependencies are
+        # installed at the root, so this path has to narrow to the function's own closure too rather than
+        # link the shared tree carrying every sibling's dependencies.
+        can_use_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = os.path.join("monorepo", "package-lock.json")
+        resolve_project_root_mock.return_value = "monorepo"
+        self.osutils.dirname.return_value = os.path.join("monorepo", "endpoints", "a")
+
+        workflow = NodejsNpmWorkflow(
+            source_dir=os.path.join("monorepo", "endpoints", "a"),
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path=os.path.join("monorepo", "endpoints", "a", "manifest"),
+            osutils=self.osutils,
+            build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
+            download_dependencies=False,
+        )
+
+        closure_actions = [
+            action for action in workflow.actions if isinstance(action, NodejsNpmLinkDependencyClosureAction)
+        ]
+        self.assertEqual(len(closure_actions), 1)
+        self.assertEqual(closure_actions[0]._install_dir, os.path.join("monorepo", "endpoints", "a"))
+        self.assertEqual(closure_actions[0]._project_root, "monorepo")
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
@@ -553,6 +596,11 @@ class TestNodejsNpmWorkflow(TestCase):
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
     def test_build_in_source_with_dependencies_dir(self, can_use_links_mock):
+        # With the install skipped and a dependencies_dir to take dependencies from, the copy below is the
+        # only supplier and there must be no link to the source tree. A link here would place a symlink at
+        # artifacts/node_modules that the copy either silently keeps - pointing the artifacts at the source
+        # tree instead of at the cached dependencies - or, when the cached node_modules is a real directory,
+        # recurses through, writing the cached dependencies into the customer's source tree.
         can_use_links_mock.return_value = True
 
         source_dir = "source"
@@ -574,6 +622,13 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertIsInstance(workflow.actions[2], CopySourceAction)
         self.assertIsInstance(workflow.actions[3], CopySourceAction)
         self.assertIsInstance(workflow.actions[4], NodejsNpmrcCleanUpAction)
+        self.assertFalse(
+            [
+                action
+                for action in workflow.actions
+                if isinstance(action, (LinkSinglePathAction, NodejsNpmLinkDependencyClosureAction))
+            ]
+        )
 
     @parameterized.expand(
         [
@@ -772,3 +827,114 @@ class TestNodejsNpmWorkflowGetLockfilePath(TestCase):
         action = self._install_action(source_dir="src", install_dir="manifest")
 
         self.assertIsInstance(action, NodejsNpmUpdateAction)
+
+
+class TestNodejsNpmWorkflowInstallSharedDependencies(TestCase):
+    """
+    the shared (once per workspace root) install reuses get_install_action, so these tests only pin
+    what differs: it refuses without experimentalNodejsMonorepo, the root's dev dependencies
+    survive, and failure maps to the typed error the caller falls back on
+    """
+
+    def setUp(self):
+        self.osutils = OSUtils()
+        self.tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp_dir, True)
+        self.subprocess_npm = Mock()
+        self.subprocess_npm.resolve_project_root.return_value = self.tmp_dir
+
+    def _touch(self, name):
+        with open(os.path.join(self.tmp_dir, name), "w") as f:
+            f.write("{}")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_installs_at_the_root_honouring_the_lockfile_and_keeping_dev_dependencies(self, can_use_install_links):
+        can_use_install_links.return_value = True
+        self._touch("package.json")
+        self._touch("package-lock.json")
+
+        NodejsNpmWorkflow.install_shared_dependencies(
+            self.tmp_dir,
+            experimental_flags=["experimentalNodejsMonorepo"],
+            osutils=self.osutils,
+            subprocess_npm=self.subprocess_npm,
+        )
+
+        # no --omit=dev: the root's own devDependencies (build tools like esbuild) must survive
+        self.subprocess_npm.run.assert_called_with(
+            ["install", "-q", "--no-audit", "--no-save", "--install-links"], cwd=self.tmp_dir
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_updates_when_the_root_has_no_lockfile(self, can_use_install_links):
+        can_use_install_links.return_value = True
+        self._touch("package.json")
+
+        NodejsNpmWorkflow.install_shared_dependencies(
+            self.tmp_dir,
+            experimental_flags=["experimentalNodejsMonorepo"],
+            osutils=self.osutils,
+            subprocess_npm=self.subprocess_npm,
+        )
+
+        self.subprocess_npm.run.assert_called_with(
+            ["update", "--no-audit", "--no-save", "--no-package-lock", "--install-links"], cwd=self.tmp_dir
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_refuses_an_npm_without_install_links(self, can_use_install_links):
+        can_use_install_links.return_value = False
+
+        with self.assertRaises(SharedDependenciesInstallError):
+            NodejsNpmWorkflow.install_shared_dependencies(
+                self.tmp_dir,
+                experimental_flags=["experimentalNodejsMonorepo"],
+                osutils=self.osutils,
+                subprocess_npm=self.subprocess_npm,
+            )
+
+        self.subprocess_npm.run.assert_not_called()
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_wraps_a_failed_install_in_the_typed_error(self, can_use_install_links):
+        can_use_install_links.return_value = True
+        self._touch("package.json")
+        self._touch("package-lock.json")
+        self.subprocess_npm.run.side_effect = NpmExecutionError(message="registry unreachable")
+
+        with self.assertRaises(SharedDependenciesInstallError):
+            NodejsNpmWorkflow.install_shared_dependencies(
+                self.tmp_dir,
+                experimental_flags=["experimentalNodejsMonorepo"],
+                osutils=self.osutils,
+                subprocess_npm=self.subprocess_npm,
+            )
+
+    @parameterized.expand([(None,), ([],), (["experimentalSomethingElse"],)])
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_refuses_without_the_monorepo_flag(self, experimental_flags, can_use_install_links):
+        # the per-function build gates its artifacts link on the same flag, so installing without it
+        # would leave every function's artifacts empty
+        can_use_install_links.return_value = True
+        self._touch("package.json")
+        self._touch("package-lock.json")
+
+        with self.assertRaises(SharedDependenciesInstallError):
+            NodejsNpmWorkflow.install_shared_dependencies(
+                self.tmp_dir,
+                experimental_flags=experimental_flags,
+                osutils=self.osutils,
+                subprocess_npm=self.subprocess_npm,
+            )
+
+        self.subprocess_npm.run.assert_not_called()
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_refuses_the_flag_before_asking_npm_its_version(self, can_use_install_links):
+        # an unflagged caller must not pay for a subprocess just to be told no
+        with self.assertRaises(SharedDependenciesInstallError):
+            NodejsNpmWorkflow.install_shared_dependencies(
+                self.tmp_dir, osutils=self.osutils, subprocess_npm=self.subprocess_npm
+            )
+
+        can_use_install_links.assert_not_called()

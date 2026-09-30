@@ -9,6 +9,7 @@ from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
+    NodejsNpmUpdateAction,
     NodejsNpmLinkDependencyClosureAction,
     NodejsNpmPackAction,
     NodejsNpmInstallAction,
@@ -527,3 +528,31 @@ class TestNodejsNpmLinkDependencyClosureAction(TestCase):
         self._action().execute()
 
         self.assertEqual(self._linked(), {"mystery"})
+
+
+class TestNodejsNpmInstallActionOmitDev(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_keeps_dev_dependencies_when_omit_dev_is_false(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmInstallAction(
+            "workspace-root", subprocess_npm=subprocess_npm, install_links=True, omit_dev=False
+        )
+
+        action.execute()
+
+        subprocess_npm.run.assert_called_with(
+            ["install", "-q", "--no-audit", "--no-save", "--install-links"], cwd="workspace-root"
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_update_keeps_dev_dependencies_when_omit_dev_is_false(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmUpdateAction("workspace-root", subprocess_npm=subprocess_npm, omit_dev=False)
+
+        action.execute()
+
+        subprocess_npm.run.assert_called_with(
+            ["update", "--no-audit", "--no-save", "--no-package-lock", "--install-links"], cwd="workspace-root"
+        )

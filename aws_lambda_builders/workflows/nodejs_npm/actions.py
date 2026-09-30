@@ -108,7 +108,13 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
     NAME = "NpmInstall"
     DESCRIPTION = "Installing dependencies from NPM"
 
-    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, install_links: Optional[bool] = False):
+    def __init__(
+        self,
+        install_dir: str,
+        subprocess_npm: SubprocessNpm,
+        install_links: Optional[bool] = False,
+        omit_dev: bool = True,
+    ):
         """
         Parameters
         ----------
@@ -119,10 +125,15 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
         install_links : Optional[bool]
             Uses the --install-links npm option if True, by default False. Required when installing into the
             source directory, so that local file dependencies are installed as regular dependencies.
+        omit_dev : bool
+            Passes --omit=dev if True, by default True. False is for installing a whole workspace root,
+            whose own dev dependencies (build tools like esbuild) must survive the install; production
+            filtering of the artifacts does not rely on it there.
         """
 
         super().__init__(install_dir=install_dir, subprocess_npm=subprocess_npm)
         self.install_links = install_links
+        self.omit_dev = omit_dev
 
     def execute(self):
         """
@@ -131,9 +142,11 @@ class NodejsNpmInstallAction(NodejsNpmInstallOrUpdateBaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS installing production dependencies in: %s", self.install_dir)
+            LOG.debug("NODEJS installing dependencies in: %s", self.install_dir)
 
-            command = ["install", "-q", "--no-audit", "--no-save", "--omit=dev"]
+            command = ["install", "-q", "--no-audit", "--no-save"]
+            if self.omit_dev:
+                command.append("--omit=dev")
             if self.install_links:
                 command.append("--install-links")
             self.subprocess_npm.run(command, cwd=self.install_dir)
@@ -156,6 +169,22 @@ class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
     NAME = "NpmUpdate"
     DESCRIPTION = "Updating dependencies from NPM"
 
+    def __init__(self, install_dir: str, subprocess_npm: SubprocessNpm, omit_dev: bool = True):
+        """
+        Parameters
+        ----------
+        install_dir : str
+            Dependencies will be installed in this directory.
+        subprocess_npm : SubprocessNpm
+            An instance of the NPM process wrapper
+        omit_dev : bool
+            Passes --omit=dev if True, by default True. False is for installing a whole workspace root,
+            whose own dev dependencies must survive the install.
+        """
+
+        super().__init__(install_dir=install_dir, subprocess_npm=subprocess_npm)
+        self.omit_dev = omit_dev
+
     def execute(self):
         """
         Runs the action.
@@ -163,13 +192,12 @@ class NodejsNpmUpdateAction(NodejsNpmInstallOrUpdateBaseAction):
         :raises lambda_builders.actions.ActionFailedError: when NPM execution fails
         """
         try:
-            LOG.debug("NODEJS updating production dependencies in: %s", self.install_dir)
+            LOG.debug("NODEJS updating dependencies in: %s", self.install_dir)
 
-            command = [
-                "update",
-                "--no-audit",
-                "--no-save",
-                "--omit=dev",
+            command = ["update", "--no-audit", "--no-save"]
+            if self.omit_dev:
+                command.append("--omit=dev")
+            command += [
                 "--no-package-lock",
                 "--install-links",
             ]

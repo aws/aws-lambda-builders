@@ -348,6 +348,24 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
                 download_dependencies=False,
             )
 
+    def test_no_download_dependencies_and_no_dependencies_dir_is_allowed_building_in_source(self):
+        # the dependencies already sit in the source tree - installed by the developer or once per
+        # workspace root by LambdaBuilder.install_shared_dependencies - so the build only bundles
+        self.osutils.file_exists.side_effect = [True]
+
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "source/manifest",
+            osutils=self.osutils,
+            download_dependencies=False,
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], EsbuildBundleAction)
+
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
     def test_build_in_source(self, install_links_mock, get_lockfile_path_mock):

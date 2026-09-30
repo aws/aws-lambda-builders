@@ -7,12 +7,14 @@ import os
 from typing import List, Optional
 
 from aws_lambda_builders.actions import (
+    ActionFailedError,
     CleanUpAction,
     CopyDependenciesAction,
     CopySourceAction,
     LinkSinglePathAction,
     MoveDependenciesAction,
 )
+from aws_lambda_builders.exceptions import SharedDependenciesInstallError
 from aws_lambda_builders.path_resolver import PathResolver
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
@@ -27,7 +29,11 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmUpdateAction,
 )
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
-from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils, is_nodejs_monorepo_support_enabled
+from aws_lambda_builders.workflows.nodejs_npm.utils import (
+    EXPERIMENTAL_FLAG_NODEJS_MONOREPO,
+    OSUtils,
+    is_nodejs_monorepo_support_enabled,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -107,6 +113,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
                 is_building_in_source = False
                 self.build_dir = self._select_build_dir(build_in_source=False)
 
+        install_dir = self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir
+
+        if self.download_dependencies:
             # run npm install in the directory where the manifest (package.json) exists if customer is building
             # in source, and manifest directory is different from source.
             # This will let NPM find the local dependencies that are defined in the manifest file (they are
@@ -114,8 +123,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
             # manifest directory instead of source directory).
             # If customer is not building in source, so it is ok to run `npm install` in the build
             # directory (the artifacts directory in this case), as the local dependencies are not supported.
-            install_dir = self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir
-
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
@@ -144,7 +151,11 @@ class NodejsNpmWorkflow(BaseWorkflow):
                     LinkSinglePathAction(source=manifest_dependencies_path, dest=source_dependencies_path)
                 )
 
-        if self.download_dependencies and is_building_in_source:
+        # When the copy below supplies the dependencies, this link must not also run - it would write
+        # the cache into the customer's source tree. See aws/aws-lambda-builders#940.
+        dependencies_come_from_cache = not self.download_dependencies and bool(self.dependencies_dir)
+
+        if is_building_in_source and not dependencies_come_from_cache:
             # npm hoists a workspace member's dependencies to the monorepo root, so nothing appears beside
             # the function and the artifacts link found no source: aws/aws-lambda-builders#933. Only a
             # project root outside the install directory redirects it, compared through normcase for
@@ -252,6 +263,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
         build_options: Optional[dict],
         is_building_in_source: Optional[bool] = False,
         experimental_flags: Optional[List[str]] = None,
+        omit_dev: bool = True,
     ):
         """
         Get the install action used to install dependencies.
@@ -273,6 +285,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
         experimental_flags : Optional[List[str]]
             Flags the caller opted in to; the lockfile-honouring in-source install is gated on
             experimentalNodejsMonorepo while it rolls out
+        omit_dev : bool
+            Passes --omit=dev if True, by default True. False is for the shared install at a workspace
+            root, whose own dev dependencies must survive the install.
 
         Returns
         -------
@@ -313,12 +328,83 @@ class NodejsNpmWorkflow(BaseWorkflow):
                 install_dir, subprocess_npm, osutils
             ):
                 return NodejsNpmInstallAction(
-                    install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=True
+                    install_dir=install_dir, subprocess_npm=subprocess_npm, install_links=True, omit_dev=omit_dev
                 )
 
-            return NodejsNpmUpdateAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
+            return NodejsNpmUpdateAction(install_dir=install_dir, subprocess_npm=subprocess_npm, omit_dev=omit_dev)
 
-        return NodejsNpmInstallAction(install_dir=install_dir, subprocess_npm=subprocess_npm)
+        return NodejsNpmInstallAction(install_dir=install_dir, subprocess_npm=subprocess_npm, omit_dev=omit_dev)
+
+    @staticmethod
+    def install_shared_dependencies(
+        project_root: str,
+        experimental_flags: Optional[List[str]] = None,
+        osutils=None,
+        subprocess_npm=None,
+    ) -> None:
+        """
+        Install, once, the dependencies shared by every package under an npm project root.
+
+        In an npm workspaces monorepo every member's install reconciles the same root tree, so a caller
+        building several functions from one monorepo can run this once at the workspace root and then
+        build each function with download_dependencies=False; the build-in-source link steps pick the
+        dependencies up from where npm hoisted them.
+
+        The install command is selected by the same get_install_action that per-function builds use, so
+        the lockfile handling cannot drift, with one difference: no --omit=dev. Run at the root,
+        --omit=dev removes the ROOT's own dev dependencies on every npm version - build tools like
+        esbuild live there - and production filtering of the artifacts does not depend on it: the
+        dependency-closure link ships only production packages and esbuild bundles only what is imported.
+
+        Parameters
+        ----------
+        project_root : str
+            the npm project root shared by the functions about to be built, normally the answer
+            npm itself gives for a member directory (SubprocessNpm.resolve_project_root)
+        experimental_flags : Optional[List[str]]
+            the same flags the per-function builds get; must carry experimentalNodejsMonorepo
+        osutils :
+            optional OSUtils override, for testing
+        subprocess_npm :
+            optional SubprocessNpm override, for testing
+
+        Raises
+        ------
+        SharedDependenciesInstallError
+            when experimentalNodejsMonorepo is absent, npm is too old for --install-links, or the
+            install itself fails; the caller can fall back to per-function installs
+        """
+        osutils = osutils or OSUtils()
+        subprocess_npm = subprocess_npm or SubprocessNpm(osutils)
+
+        if not is_nodejs_monorepo_support_enabled(experimental_flags):
+            # The per-function build gates its artifacts link on this same flag. Installing without it
+            # would leave every function's artifacts empty, so refuse rather than half-apply the feature.
+            raise SharedDependenciesInstallError(
+                project_root=project_root,
+                reason=f"the {EXPERIMENTAL_FLAG_NODEJS_MONOREPO} experimental flag is not enabled",
+            )
+
+        if not NodejsNpmWorkflow.can_use_install_links(subprocess_npm):
+            raise SharedDependenciesInstallError(
+                project_root=project_root, reason="npm does not support --install-links (requires npm >= 8.8.0)"
+            )
+
+        install_action = NodejsNpmWorkflow.get_install_action(
+            source_dir=project_root,
+            install_dir=project_root,
+            subprocess_npm=subprocess_npm,
+            osutils=osutils,
+            build_options=None,
+            is_building_in_source=True,
+            omit_dev=False,
+            experimental_flags=experimental_flags,
+        )
+        LOG.debug("NODEJS installing shared dependencies for project root: %s", project_root)
+        try:
+            install_action.execute()
+        except ActionFailedError as ex:
+            raise SharedDependenciesInstallError(project_root=project_root, reason=str(ex))
 
     @staticmethod
     def get_lockfile_path(install_dir: str, subprocess_npm: SubprocessNpm, osutils: OSUtils) -> Optional[str]:
