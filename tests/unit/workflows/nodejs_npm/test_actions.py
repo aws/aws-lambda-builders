@@ -18,6 +18,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmCIAction,
     NodejsNpmTestAction,
 )
+from aws_lambda_builders.workflows.nodejs_npm.lockfile_closure import hidden_lockfile_path
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 
@@ -312,6 +313,17 @@ class TestNodejsNpmLinkDependencyClosureAction(TestCase):
             osutils=self.osutils,
         )
 
+    def _hidden_lockfile(self, version, packages):
+        # npm's hidden lockfile is the only one the action reads, and it must not be older than the
+        # tree it describes
+        path = hidden_lockfile_path(self.root)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as handle:
+            json.dump({"lockfileVersion": version, "packages": packages}, handle)
+        tree = os.path.getmtime(os.path.join(self.root, "node_modules"))
+        os.utime(path, (tree + 1, tree + 1))
+        return path
+
     def _linked(self):
         node_modules = os.path.join(self.artifacts_dir, "node_modules")
         found = set()
@@ -321,6 +333,47 @@ class TestNodejsNpmLinkDependencyClosureAction(TestCase):
             else:
                 found.add(entry)
         return found
+
+    def test_a_usable_hidden_lockfile_answers_the_closure_without_running_npm(self):
+        # the whole point of reading the lockfile: no npm process per function
+        self._package("endpoints/fn", "@mono/fn")
+        self._package("node_modules/lodash", "lodash")
+        self._hidden_lockfile(
+            3,
+            {
+                "": {"workspaces": ["endpoints/fn"]},
+                "endpoints/fn": {"dependencies": {"lodash": "^4.0.0"}},
+                "node_modules/lodash": {"version": "4.17.21"},
+            },
+        )
+
+        self._action().execute()
+
+        self.assertEqual(self._linked(), {"lodash"})
+        self.subprocess_npm.resolve_dependency_closure.assert_not_called()
+
+    def test_a_hidden_lockfile_that_cannot_answer_falls_back_to_npm(self):
+        # version 1 carries no per-path map, so the fallback is the only thing that can produce a closure
+        self._package("endpoints/fn", "@mono/fn")
+        mine = self._package("node_modules/lodash", "lodash")
+        self._hidden_lockfile(1, {})
+        self.subprocess_npm.resolve_dependency_closure.return_value = [self.root, self.install_dir, mine]
+
+        self._action().execute()
+
+        self.assertEqual(self._linked(), {"lodash"})
+        self.subprocess_npm.resolve_dependency_closure.assert_called_once_with(self.install_dir)
+
+    def test_no_hidden_lockfile_falls_back_to_npm(self):
+        # the pre-npm-7 and other-package-manager case: every existing closure test runs this path
+        self._package("endpoints/fn", "@mono/fn")
+        mine = self._package("node_modules/lodash", "lodash")
+        self.subprocess_npm.resolve_dependency_closure.return_value = [self.root, self.install_dir, mine]
+
+        self._action().execute()
+
+        self.assertEqual(self._linked(), {"lodash"})
+        self.subprocess_npm.resolve_dependency_closure.assert_called_once_with(self.install_dir)
 
     def test_links_only_this_function_s_dependencies(self):
         self._package("endpoints/fn", "@mono/fn")

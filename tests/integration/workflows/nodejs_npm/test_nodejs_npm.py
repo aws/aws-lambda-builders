@@ -13,6 +13,7 @@ from parameterized import parameterized
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.supported_runtimes import NODEJS_RUNTIMES
+from aws_lambda_builders.workflows.nodejs_npm.lockfile_closure import production_closure
 from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
 from aws_lambda_builders.workflows.nodejs_npm.utils import EXPERIMENTAL_FLAG_NODEJS_MONOREPO, OSUtils
 from tests.testing_utils import read_link_without_junction_prefix
@@ -537,6 +538,60 @@ class TestNodejsNpmWorkflow(TestCase):
             text=True,
         )
         self.assertEqual(require_handler.returncode, 0, require_handler.stderr)
+
+    def test_the_lockfile_closure_agrees_with_npm_ls_on_a_real_install(self):
+        # this is the property that lets the lockfile replace `npm ls`: against a real npm install, on a
+        # real workspaces monorepo, the two must name the same set of directories. A unit test cannot
+        # assert it - it would be comparing this code against a fixture written from this code.
+        monorepo_dir = os.path.join(self.temp_testdata_dir, "workspaces-monorepo")
+        npm = SubprocessNpm(OSUtils())
+        npm.run(["install", "--silent", "--no-audit", "--no-fund"], cwd=monorepo_dir)
+
+        for endpoint in ("fn", "other"):
+            install_dir = os.path.join(monorepo_dir, "endpoints", endpoint)
+            from_npm = npm.resolve_dependency_closure(install_dir)
+            self.assertIsNotNone(from_npm, "npm ls must answer, or this test proves nothing")
+            from_lockfile = production_closure(monorepo_dir, install_dir)
+            self.assertIsNotNone(from_lockfile, "npm's hidden lockfile must be readable by the resolver")
+
+            normalise = {os.path.normcase(os.path.realpath(p)) for p in from_npm}
+            self.assertEqual(
+                {os.path.normcase(os.path.realpath(p)) for p in from_lockfile},
+                normalise,
+                f"the two closure sources disagree for endpoints/{endpoint}",
+            )
+
+    def test_a_manifest_the_project_lockfile_has_not_recorded_still_reaches_the_artifacts(self):
+        # `npm install --no-save` installs a newly declared dependency without writing package-lock.json,
+        # so a closure read from THAT file drops the package and the function fails with Cannot find
+        # module. npm's hidden lockfile records the tree it reified, which is why the resolver reads it.
+        monorepo_dir = os.path.join(self.temp_testdata_dir, "workspaces-monorepo")
+        source_dir = os.path.join(monorepo_dir, "endpoints", "fn")
+        npm = SubprocessNpm(OSUtils())
+        npm.run(["install", "--silent", "--no-audit", "--no-fund"], cwd=monorepo_dir)
+
+        # declare a dependency the lockfile knows nothing about, exactly as editing package.json does
+        manifest_path = os.path.join(source_dir, "package.json")
+        with open(manifest_path) as manifest:
+            manifest_json = json.load(manifest)
+        manifest_json["dependencies"]["ms"] = "^2.1.3"
+        with open(manifest_path, "w") as manifest:
+            json.dump(manifest_json, manifest)
+        with open(os.path.join(monorepo_dir, "package-lock.json")) as lockfile:
+            self.assertNotIn("ms", json.load(lockfile)["packages"]["endpoints/fn"].get("dependencies", {}))
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest_path,
+            # one runtime: this pins the closure source, which no runtime varies
+            runtime=NODEJS_RUNTIMES[-1],
+            build_in_source=True,
+            experimental_flags=[EXPERIMENTAL_FLAG_NODEJS_MONOREPO],
+        )
+
+        self.assertIn("ms", set(os.listdir(os.path.join(self.artifacts_dir, "node_modules"))))
 
     @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_build_in_source_with_removed_dependencies(self, runtime):
