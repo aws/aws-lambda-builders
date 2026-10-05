@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 from unittest import TestCase
@@ -499,6 +500,63 @@ class TestNodejsNpmWorkflowWithEsbuild(TestCase):
         expected_files = {"included.js"}
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files, output_files)
+
+    @parameterized.expand(SUPPORTED_RUNTIMES)
+    def test_esbuild_can_build_in_source_in_workspaces_monorepo_with_locked_versions(self, runtime):
+        # npm workspaces keep one lockfile at the monorepo root rather than next to each function. This one pins
+        # minimal-request-promise to 1.3.0 while the function's manifest allows ^1.3.0, so a build that ignored
+        # the lockfile would silently upgrade the dependency in the developer's own source tree.
+        monorepo_dir = os.path.join(self.temp_testdata_dir, "workspaces-monorepo")
+        source_dir = os.path.join(monorepo_dir, "packages", "fn")
+        lockfile_path = os.path.join(monorepo_dir, "package-lock.json")
+        with open(lockfile_path, "rb") as lockfile:
+            original_lockfile = lockfile.read()
+
+        options = {"entry_points": ["included.js"]}
+
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            os.path.join(source_dir, "package.json"),
+            runtime=runtime,
+            options=options,
+            executable_search_paths=[self.binpath],
+            build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
+        )
+
+        # the locked version is what got installed, and npm hoists it to the monorepo root
+        installed_manifest = os.path.join(monorepo_dir, "node_modules", "minimal-request-promise", "package.json")
+        self.assertTrue(os.path.isfile(installed_manifest))
+        with open(installed_manifest) as manifest:
+            self.assertEqual(json.load(manifest)["version"], "1.3.0")
+
+        # the root lockfile records the workspace package as a link entry, which is the tree --install-links
+        # overrides for a file: dependency. npm exempts workspaces from that, so the link still resolves to
+        # the developer's own packages/fn rather than a packed snapshot of it. Compare resolved paths rather
+        # than calling os.path.islink: npm links a workspace with a junction on Windows, which is a directory
+        # to Python, not a link.
+        workspace_link = os.path.join(monorepo_dir, "node_modules", "@workspaces-monorepo", "fn")
+        self.assertEqual(os.path.realpath(workspace_link), os.path.realpath(source_dir))
+
+        # the install runs inside the workspace package but reifies the root, so the root lockfile is the
+        # developer file most at risk - it has to come back untouched. This fixture is lockfileVersion 2,
+        # which npm migrates in memory before reifying; npm-deps-with-lockfile covers version 3.
+        with open(lockfile_path, "rb") as lockfile:
+            self.assertEqual(lockfile.read(), original_lockfile)
+
+        # bundle is in artifacts, and it resolved the hoisted dependency: requiring it would raise
+        # MODULE_NOT_FOUND if esbuild had left the import unbundled
+        expected_files = {"included.js"}
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertEqual(expected_files, output_files)
+
+        bundle = os.path.join(self.artifacts_dir, "included.js")
+        require_bundle = subprocess.run(
+            ["node", "-e", "require(process.argv[1])", bundle], capture_output=True, text=True
+        )
+        self.assertEqual(require_bundle.returncode, 0, require_bundle.stderr)
 
     @parameterized.expand(SUPPORTED_RUNTIMES)
     def test_builds_javascript_project_ignoring_relevant_flags(self, runtime):

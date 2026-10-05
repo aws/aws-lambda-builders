@@ -72,6 +72,19 @@ class TestNodejsNpmInstallAction(TestCase):
         subprocess_npm.run.assert_called_with(expected_args, cwd="artifacts")
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_installs_with_install_links_when_requested(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmInstallAction("source", subprocess_npm=subprocess_npm, install_links=True)
+
+        action.execute()
+
+        # deliberately no --no-package-lock: a project that has a lockfile gets the locked versions installed
+        expected_args = ["install", "-q", "--no-audit", "--no-save", "--omit=dev", "--install-links"]
+
+        subprocess_npm.run.assert_called_with(expected_args, cwd="source")
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
     def test_raises_action_failed_when_npm_fails(self, SubprocessNpmMock):
         subprocess_npm = SubprocessNpmMock.return_value
 
