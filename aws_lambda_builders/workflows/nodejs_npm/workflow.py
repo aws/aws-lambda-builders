@@ -18,6 +18,7 @@ from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSo
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmCIAction,
     NodejsNpmInstallAction,
+    NodejsNpmLinkDependencyClosureAction,
     NodejsNpmLockFileCleanUpAction,
     NodejsNpmPackAction,
     NodejsNpmrcAndLockfileCopyAction,
@@ -25,7 +26,7 @@ from aws_lambda_builders.workflows.nodejs_npm.actions import (
     NodejsNpmTestAction,
     NodejsNpmUpdateAction,
 )
-from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError, SubprocessNpm
+from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils, is_nodejs_monorepo_support_enabled
 
 LOG = logging.getLogger(__name__)
@@ -106,17 +107,19 @@ class NodejsNpmWorkflow(BaseWorkflow):
                 is_building_in_source = False
                 self.build_dir = self._select_build_dir(build_in_source=False)
 
+            # run npm install in the directory where the manifest (package.json) exists if customer is building
+            # in source, and manifest directory is different from source.
+            # This will let NPM find the local dependencies that are defined in the manifest file (they are
+            # usually defined as relative to the manifest location, and that is why we run `npm install` in the
+            # manifest directory instead of source directory).
+            # If customer is not building in source, so it is ok to run `npm install` in the build
+            # directory (the artifacts directory in this case), as the local dependencies are not supported.
+            install_dir = self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir
+
             self.actions.append(
                 NodejsNpmWorkflow.get_install_action(
                     source_dir=source_dir,
-                    # run npm install in the directory where the manifest (package.json) exists if customer is building
-                    # in source, and manifest directory is different from source.
-                    # This will let NPM find the local dependencies that are defined in the manifest file (they are
-                    # usually defined as relative to the manifest location, and that is why we run `npm install` in the
-                    # manifest directory instead of source directory).
-                    # If customer is not building in source, so it is ok to run `npm install` in the build
-                    # directory (the artifacts directory in this case), as the local dependencies are not supported.
-                    install_dir=self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir,
+                    install_dir=install_dir,
                     subprocess_npm=subprocess_npm,
                     osutils=osutils,
                     build_options=self.options,
@@ -127,7 +130,7 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
             self.actions.append(
                 NodejsNpmTestAction(
-                    install_dir=self.manifest_dir if is_building_in_source and is_external_manifest else self.build_dir,
+                    install_dir=install_dir,
                     subprocess_npm=subprocess_npm,
                 )
             )
@@ -142,7 +145,34 @@ class NodejsNpmWorkflow(BaseWorkflow):
                 )
 
         if self.download_dependencies and is_building_in_source:
-            self.actions += self._actions_for_linking_source_dependencies_to_artifacts
+            # npm hoists a workspace member's dependencies to the monorepo root, so nothing appears beside
+            # the function and the artifacts link found no source: aws/aws-lambda-builders#933. Only a
+            # project root outside the install directory redirects it, compared through normcase for
+            # Windows. Gated on experimentalNodejsMonorepo while this rolls out.
+            project_root = (
+                subprocess_npm.resolve_project_root(install_dir)
+                if is_nodejs_monorepo_support_enabled(self.experimental_flags)
+                else None
+            )
+            if project_root and os.path.normcase(os.path.realpath(project_root)) != os.path.normcase(
+                os.path.realpath(install_dir)
+            ):
+                LOG.debug(
+                    "NODEJS npm installs into %s rather than %s; linking this function's own dependencies",
+                    project_root,
+                    install_dir,
+                )
+                self.actions.append(
+                    NodejsNpmLinkDependencyClosureAction(
+                        install_dir=install_dir,
+                        project_root=project_root,
+                        artifacts_dir=artifacts_dir,
+                        subprocess_npm=subprocess_npm,
+                        osutils=osutils,
+                    )
+                )
+            else:
+                self.actions += self._actions_for_linking_source_dependencies_to_artifacts
 
         # if no dependencies dir, just cleanup artifacts and we're done
         if not self.dependencies_dir:
@@ -175,8 +205,6 @@ class NodejsNpmWorkflow(BaseWorkflow):
 
     @property
     def _actions_for_linking_source_dependencies_to_artifacts(self):
-        # Known gap in a workspaces monorepo - no node_modules beside the function, and the monorepo flag
-        # does not cover it: aws/aws-lambda-builders#933
         source_dependencies_path = os.path.join(self.source_dir, "node_modules")
         artifact_dependencies_path = os.path.join(self.artifacts_dir, "node_modules")
         return [LinkSinglePathAction(source=source_dependencies_path, dest=artifact_dependencies_path)]
@@ -318,11 +346,9 @@ class NodejsNpmWorkflow(BaseWorkflow):
         Optional[str]
             Path of the lockfile in npm's project root, or None if that project does not have one
         """
-        try:
-            project_root = subprocess_npm.run(["prefix"], cwd=install_dir).strip()
-        except NpmExecutionError as ex:
+        project_root = subprocess_npm.resolve_project_root(install_dir)
+        if project_root is None:
             # without npm's answer there is no evidence a lockfile applies, so install as if there were none
-            LOG.debug("NODEJS could not resolve the npm project root of %s: %s", install_dir, ex)
             return None
 
         # npm's own precedence: where a project root holds both, npm reads npm-shrinkwrap.json and ignores

@@ -18,6 +18,7 @@ from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError
 from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils
 from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
+    NodejsNpmLinkDependencyClosureAction,
     NodejsNpmPackAction,
     NodejsNpmInstallAction,
     NodejsNpmrcAndLockfileCopyAction,
@@ -95,8 +96,9 @@ class TestNodejsNpmWorkflow(TestCase):
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
     def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest_and_build_in_source(
-        self, can_use_links_mock, get_lockfile_path_mock
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
     ):
         can_use_links_mock.return_value = True
         get_lockfile_path_mock.return_value = os.path.join("not_source", "package-lock.json")
@@ -105,6 +107,9 @@ class TestNodejsNpmWorkflow(TestCase):
         self.osutils.file_exists.return_value = True
 
         self.osutils.file_exists.side_effect = [True, False, False]
+        # npm reports the install directory itself as its project root for anything that is not a
+        # workspace member, which is what leaves the artifacts link pointing at the source tree
+        resolve_project_root_mock.return_value = "not_source"
 
         workflow = NodejsNpmWorkflow(
             "source",
@@ -338,12 +343,19 @@ class TestNodejsNpmWorkflow(TestCase):
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
-    def test_build_in_source_with_download_dependencies(self, can_use_links_mock, get_lockfile_path_mock):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
+    def test_build_in_source_with_download_dependencies(
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
+    ):
         can_use_links_mock.return_value = True
         get_lockfile_path_mock.return_value = os.path.join("source", "package-lock.json")
 
         source_dir = "source"
         artifacts_dir = "artifacts"
+        # npm reports the install directory itself as its project root for anything that is not a
+        # workspace member, which is what leaves the artifacts link pointing at the source tree
+        resolve_project_root_mock.return_value = source_dir
+
         workflow = NodejsNpmWorkflow(
             source_dir=source_dir,
             artifacts_dir=artifacts_dir,
@@ -367,6 +379,110 @@ class TestNodejsNpmWorkflow(TestCase):
         self.assertEqual(workflow.actions[5]._source, os.path.join(source_dir, "node_modules"))
         self.assertEqual(workflow.actions[5]._dest, os.path.join(artifacts_dir, "node_modules"))
         self.assertIsInstance(workflow.actions[6], NodejsNpmrcCleanUpAction)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
+    def test_build_in_source_links_artifacts_to_the_hoisted_dependencies_in_a_workspaces_monorepo(
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
+    ):
+        # npm hoists a workspace package's dependencies to the monorepo root it reports as its project
+        # root, so that - not the function directory - is where the artifacts have to be linked
+        can_use_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = os.path.join("monorepo", "package-lock.json")
+        resolve_project_root_mock.return_value = "monorepo"
+        self.osutils.dirname.return_value = os.path.join("monorepo", "endpoints", "a")
+
+        workflow = NodejsNpmWorkflow(
+            source_dir=os.path.join("monorepo", "endpoints", "a"),
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path=os.path.join("monorepo", "endpoints", "a", "manifest"),
+            osutils=self.osutils,
+            build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
+        )
+
+        # a workspaces monorepo gets the closure action instead of a link to the whole installed tree,
+        # which would carry every sibling function's dependencies into this function's artifacts
+        closure_actions = [
+            action for action in workflow.actions if isinstance(action, NodejsNpmLinkDependencyClosureAction)
+        ]
+        self.assertEqual(len(closure_actions), 1)
+        self.assertEqual(closure_actions[0]._install_dir, os.path.join("monorepo", "endpoints", "a"))
+        self.assertEqual(closure_actions[0]._project_root, "monorepo")
+        self.assertEqual(closure_actions[0]._artifacts_dir, "artifacts")
+        self.assertFalse(
+            [
+                action
+                for action in workflow.actions
+                if isinstance(action, LinkSinglePathAction)
+                and action._dest == os.path.join("artifacts", "node_modules")
+            ]
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
+    def test_without_the_flag_a_monorepo_keeps_the_plain_link_and_npm_is_not_asked(
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
+    ):
+        # the rollout guarantee: the same monorepo shape without the flag takes the link every release so
+        # far has taken - the #933 gap - and npm is never asked where its project root is
+        can_use_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = None
+        self.osutils.dirname.return_value = os.path.join("monorepo", "endpoints", "a")
+
+        workflow = NodejsNpmWorkflow(
+            source_dir=os.path.join("monorepo", "endpoints", "a"),
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path=os.path.join("monorepo", "endpoints", "a", "manifest"),
+            osutils=self.osutils,
+            build_in_source=True,
+        )
+
+        resolve_project_root_mock.assert_not_called()
+        self.assertFalse(
+            [action for action in workflow.actions if isinstance(action, NodejsNpmLinkDependencyClosureAction)]
+        )
+        self.assertTrue(
+            [
+                action
+                for action in workflow.actions
+                if isinstance(action, LinkSinglePathAction)
+                and action._dest == os.path.join("artifacts", "node_modules")
+            ]
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
+    def test_build_in_source_links_artifacts_to_the_source_when_npm_cannot_be_asked(
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
+    ):
+        # no answer from npm is no evidence the dependencies went anywhere else, so keep the old source
+        can_use_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = None
+        resolve_project_root_mock.return_value = None
+
+        source_dir = "source"
+        workflow = NodejsNpmWorkflow(
+            source_dir=source_dir,
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+        )
+
+        links = [
+            action
+            for action in workflow.actions
+            if isinstance(action, LinkSinglePathAction) and action._dest == os.path.join("artifacts", "node_modules")
+        ]
+        self.assertEqual(len(links), 1)
+        self.assertEqual(links[0]._source, os.path.join(source_dir, "node_modules"))
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
@@ -395,14 +511,19 @@ class TestNodejsNpmWorkflow(TestCase):
 
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm.resolve_project_root")
     def test_build_in_source_with_download_dependencies_and_dependencies_dir(
-        self, can_use_links_mock, get_lockfile_path_mock
+        self, resolve_project_root_mock, can_use_links_mock, get_lockfile_path_mock
     ):
         can_use_links_mock.return_value = True
         get_lockfile_path_mock.return_value = os.path.join("source", "package-lock.json")
 
         source_dir = "source"
         artifacts_dir = "artifacts"
+        # npm reports the install directory itself as its project root for anything that is not a
+        # workspace member, which is what leaves the artifacts link pointing at the source tree
+        resolve_project_root_mock.return_value = source_dir
+
         workflow = NodejsNpmWorkflow(
             source_dir=source_dir,
             artifacts_dir=artifacts_dir,
@@ -531,8 +652,7 @@ class TestNodejsNpmWorkflowGetLockfilePath(TestCase):
         return file_path
 
     def _npm_prefix_is(self, *path_parts):
-        # npm prints the project root with a trailing newline
-        self.subprocess_npm.run.return_value = os.path.join(self.tmp_dir, *path_parts) + os.linesep
+        self.subprocess_npm.resolve_project_root.return_value = os.path.join(self.tmp_dir, *path_parts)
 
     def _lockfile_path(self, install_dir_parts):
         return NodejsNpmWorkflow.get_lockfile_path(
@@ -552,13 +672,13 @@ class TestNodejsNpmWorkflowGetLockfilePath(TestCase):
             experimental_flags=list(experimental_flags),
         )
 
-    def test_asks_npm_for_the_project_root(self):
+    def test_asks_npm_for_the_project_root_of_the_install_dir(self):
         self._touch("fn", "package.json")
         self._npm_prefix_is("fn")
 
         self._lockfile_path(["fn"])
 
-        self.subprocess_npm.run.assert_called_with(["prefix"], cwd=os.path.join(self.tmp_dir, "fn"))
+        self.subprocess_npm.resolve_project_root.assert_called_with(os.path.join(self.tmp_dir, "fn"))
 
     def test_without_the_flag_a_lockfile_is_ignored_and_the_update_runs(self):
         # the rollout guarantee: a project with a lockfile npm would read still takes the update every
@@ -625,7 +745,7 @@ class TestNodejsNpmWorkflowGetLockfilePath(TestCase):
     def test_returns_none_when_npm_cannot_report_the_project_root(self):
         self._touch("fn", "package.json")
         self._touch("fn", "package-lock.json")
-        self.subprocess_npm.run.side_effect = NpmExecutionError(message="boom!")
+        self.subprocess_npm.resolve_project_root.return_value = None
 
         self.assertIsNone(self._lockfile_path(["fn"]))
 
