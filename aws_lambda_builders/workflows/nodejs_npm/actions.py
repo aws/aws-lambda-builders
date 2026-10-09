@@ -10,6 +10,7 @@ from typing import Optional
 from aws_lambda_builders import utils
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.utils import extract_tarfile
+from aws_lambda_builders.workflows.nodejs_npm.lockfile_closure import production_closure
 from aws_lambda_builders.workflows.nodejs_npm.npm import NpmExecutionError, SubprocessNpm
 
 LOG = logging.getLogger(__name__)
@@ -421,7 +422,11 @@ class NodejsNpmLinkDependencyClosureAction(BaseAction):
         self._osutils = osutils
 
     def execute(self):
-        closure = self._subprocess_npm.resolve_dependency_closure(self._install_dir)
+        # npm's hidden lockfile records the tree the install just reified, so read that rather than
+        # paying an npm process per function; it answers None whenever it cannot be trusted
+        closure = production_closure(self._project_root, self._install_dir)
+        if closure is None:
+            closure = self._subprocess_npm.resolve_dependency_closure(self._install_dir)
         destination = os.path.join(self._artifacts_dir, "node_modules")
 
         if closure is None:
@@ -562,8 +567,9 @@ class NodejsNpmLinkDependencyClosureAction(BaseAction):
         is - hoisting it would shadow the top-level version for every other caller - and it is already
         reachable through the dependency that contains it, so only the outermost paths are linked.
         """
-        # Compare through normcase, link the original path: npm's spelling and the build's can differ in
-        # case on Windows and still name one directory. See aws/aws-lambda-builders#935.
+        # Compare through normcase, link the original path: an `npm ls` closure carries npm's spelling
+        # while project_root and install_dir carry the build's, and on Windows those can differ in case
+        # and still name one directory. See aws/aws-lambda-builders#935.
         paths = [os.path.realpath(path) for path in closure]
         excluded = {os.path.normcase(os.path.realpath(d)) for d in (self._project_root, self._install_dir)}
         candidates = [path for path in paths if os.path.normcase(path) not in excluded]
