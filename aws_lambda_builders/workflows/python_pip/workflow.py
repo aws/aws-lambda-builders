@@ -115,8 +115,19 @@ class PythonPipWorkflow(BaseWorkflow):
         # folder
         if self.dependencies_dir and self.combine_dependencies:
             # when copying downloaded dependencies back to artifacts folder, don't exclude anything
-            # symlinking python dependencies is disabled for now since it is breaking sam local commands
-            if False and is_experimental_build_improvements_enabled(self.experimental_flags):
+            #
+            # Symlinking is only safe for layers. A layer's artifacts are packed into a tarball
+            # (which dereferences symlinks) before they reach the local invoke container, whereas a
+            # function's artifacts are bind-mounted at /var/task, where a symlink pointing outside
+            # the mount dangles unless the caller passes `sam local invoke --mount-symlinks`. That
+            # option does not exist on `sam local start-api` / `start-lambda`, so linking function
+            # dependencies would break those commands -- which is why this was disabled wholesale in
+            # https://github.com/aws/aws-lambda-builders/pull/391. Keep copying for functions.
+            #
+            # The links are absolute, so they only resolve on the machine that built them. SAM CLI's
+            # container build (`sam build --use-container`) never sends a dependencies_dir over
+            # JSON-RPC, so it cannot reach this branch; a caller that does must share the path.
+            if self.is_building_layer and is_experimental_build_improvements_enabled(self.experimental_flags):
                 self._actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
             else:
                 self._actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
