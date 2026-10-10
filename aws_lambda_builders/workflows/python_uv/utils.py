@@ -25,7 +25,16 @@ class OSUtils(BaseOSUtils):
             env = self.original_environ()
 
         try:
-            result = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                cmd,
+                cwd=cwd,
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+            )
             return result.returncode, result.stdout, result.stderr
         except Exception as e:
             return 1, "", str(e)
