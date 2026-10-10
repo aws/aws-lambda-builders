@@ -371,7 +371,23 @@ class TestPipRunner(object):
         pip.add_return((1, b"", (b"Could not find a version that satisfies the " b"requirement BadPackageName ")))
         with pytest.raises(NoSuchPackageError) as einfo:
             runner.download_all_dependencies("requirements.txt", "directory")
-        assert str(einfo.value) == ("Could not satisfy the requirement: " "BadPackageName")
+        assert str(einfo.value) == (
+            "Could not satisfy the requirement: BadPackageName\npip output:\n"
+            "Could not find a version that satisfies the requirement BadPackageName "
+        )
+
+    def test_preserve_ssl_failure_with_no_matching_distribution(self, pip_factory):
+        pip, runner = pip_factory()
+        stderr = (
+            b"Could not fetch URL https://pypi.org/simple/example/: "
+            b"SSLError: certificate verify failed - skipping\n"
+            b"ERROR: Could not find a version that satisfies the requirement example (from versions: none)\n"
+            b"ERROR: No matching distribution found for example"
+        )
+        pip.add_return((1, b"", stderr))
+        with pytest.raises(NoSuchPackageError) as einfo:
+            runner.download_all_dependencies("requirements.txt", "directory")
+        assert stderr.decode() in str(einfo.value)
 
     def test_raise_other_unknown_error_during_downloads(self, pip_factory):
         pip, runner = pip_factory()
