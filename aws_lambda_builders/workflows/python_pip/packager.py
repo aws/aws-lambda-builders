@@ -7,7 +7,12 @@ import logging
 import re
 import subprocess
 from email.parser import FeedParser
-from typing import List, Tuple
+from typing import List, Optional, Tuple
+
+try:
+    import tomllib
+except ImportError:  # Python 3.10 does not have tomllib in the standard library
+    tomllib = None
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.utils import extract_tarfile
@@ -16,6 +21,40 @@ from .compat import pip_import_string, pip_no_compile_c_env_vars, pip_no_compile
 from .utils import OSUtils
 
 LOG = logging.getLogger(__name__)
+
+
+# Matches a quoted scalar value with an optional trailing comment, e.g.
+#   "1.2.3"            -> group(2) == 1.2.3
+#   'foo'  # comment   -> group(2) == foo
+QUOTED_VALUE = re.compile(r"""^(["'])(.*?)\1\s*(?:#.*)?$""")
+
+
+def _canonicalize_version(version):
+    """
+    Return the PEP 440 canonical form of an author-written version string.
+
+    Every other version producer in this module (PKG-INFO, wheel filenames)
+    supplies the canonical form, and ``Package`` identity comparison is an
+    exact string match -- so a non-canonical ``pyproject.toml`` version would
+    never reconcile with the wheel built from it. Returns None when the
+    version is not valid PEP 440, in which case the package is treated as
+    unrecoverable.
+
+    The ``packaging`` import is local and degradable: this is a rare fallback
+    path, and importing it at module scope would make it a hard import-time
+    requirement for the entire python_pip workflow (PLC0415 is already in the
+    ruff ignore list, so a function-local import is idiomatic here).
+    """
+    try:
+        from packaging.version import InvalidVersion, Version
+    except ImportError:
+        LOG.debug("packaging is unavailable; using the pyproject.toml version as written")
+        return version
+    try:
+        return str(Version(version))
+    except InvalidVersion:
+        LOG.debug("pyproject.toml version %r is not a valid PEP 440 version", version)
+        return None
 
 
 # TODO update the wording here
@@ -29,6 +68,71 @@ the vendor folder.
 
 class PackagerError(Exception):
     pass
+
+
+def _finalize_name_version(name, version) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Validate a parsed (name, version) pair and normalize the version to its
+    PEP 440 canonical form. Returns (None, None) when the pair is unusable
+    (missing values, non-string values, or a version that is not valid
+    PEP 440).
+    """
+    if not isinstance(name, str) or not isinstance(version, str):
+        return None, None
+    canonical_version = _canonicalize_version(version)
+    if canonical_version is None:
+        return None, None
+    return name, canonical_version
+
+
+def _parse_pyproject_name_version(contents: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Reads the PEP 621 ``[project]`` name and version from pyproject.toml contents.
+
+    Returns (None, None) when no usable static name/version can be determined
+    (missing table, dynamic version, unparsable file, or a version that is not
+    valid PEP 440). The returned version is normalized to its PEP 440
+    canonical form so it matches the wheel filename produced by the build
+    backend. Uses stdlib
+    ``tomllib`` when available (Python 3.11+) and a minimal line-based parse
+    of the ``[project]`` section otherwise, so this keeps working on
+    Python 3.10. The line-based parse only accepts properly quoted scalars and
+    tolerates trailing comments.
+    """
+    if tomllib is not None:
+        try:
+            parsed = tomllib.loads(contents)
+        except tomllib.TOMLDecodeError as ex:
+            LOG.debug("Unable to parse pyproject.toml with tomllib: %s", ex)
+            return None, None
+        project = parsed.get("project")
+        if not isinstance(project, dict):
+            # `project = "something"` is valid TOML but not a table; do not
+            # assume shape on third-party input.
+            LOG.debug("pyproject.toml [project] is not a table; cannot read name/version")
+            return None, None
+        return _finalize_name_version(project.get("name"), project.get("version"))
+    name, version = None, None
+    in_project_section = False
+    for line in contents.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("["):
+            # tolerate trailing comments on the header, e.g. "[project]  # main"
+            in_project_section = stripped.split("#")[0].strip() == "[project]"
+            continue
+        if not in_project_section or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, _, value = stripped.partition("=")
+        match = QUOTED_VALUE.match(value.strip())
+        if not match:
+            # Skip anything that is not a quoted scalar (e.g. dynamic = ["version"])
+            continue
+        value = match.group(2)
+        if key.strip() == "name" and not name:
+            name = value or None
+        elif key.strip() == "version" and not version:
+            version = value or None
+    return _finalize_name_version(name, version)
 
 
 class InvalidSourceDistributionNameError(PackagerError):
@@ -727,7 +831,11 @@ class SDistMetadataFetcher(object):
                 LOG.debug("Error while searching for existing .egg-info directories: %s", e)
 
             if not self._osutils.file_exists(pkg_info_path):
-                LOG.warning(
+                # This used to be a warning, but the caller may now recover via
+                # pyproject.toml metadata, in which case the build succeeds and
+                # a warning would be misleading. Keep it at debug; the caller
+                # logs an explicit message when recovery succeeds.
+                LOG.debug(
                     "Unable to find PKG-INFO file for package in %s. "
                     "This may be due to missing setuptools/distutils in Python 3.12+ "
                     "or an incomplete sdist package.",
@@ -754,6 +862,66 @@ class SDistMetadataFetcher(object):
         pkg_info_path = self._osutils.joinpath(package_dir, "PKG-INFO")
 
         return pkg_info_path
+
+    def _get_name_version_from_pyproject(self, package_dir: str) -> Tuple[str, str]:
+        """
+        Extracts the name and version from the PEP 621 [project] table of a
+        pyproject.toml file.
+
+        This is a last resort for sdists that carry no setup.py or PKG-INFO
+        metadata (e.g. PEP 517-only projects downloaded from git+https URLs),
+        where `setup.py egg_info` cannot produce any metadata.
+
+        Parameters
+        ----------
+        package_dir: str
+            The path of the unpacked sdist directory
+
+        Returns
+        -------
+        Tuple[str, str]
+            A tuple containing the name and version
+
+        Raises
+        ------
+        UnsupportedPackageError
+            If no usable static name/version can be read from pyproject.toml
+        """
+        pyproject_path = self._osutils.joinpath(package_dir, "pyproject.toml")
+        if not self._osutils.file_exists(pyproject_path):
+            self._warn_unrecoverable_metadata(package_dir)
+            raise UnsupportedPackageError(self._osutils.basename(package_dir))
+        try:
+            # utf-8-sig also tolerates a BOM so BOM-prefixed files still parse.
+            contents = self._osutils.get_file_contents(pyproject_path, binary=False, encoding="utf-8-sig")
+        except (OSError, UnicodeDecodeError) as ex:
+            LOG.debug("Unable to read %s: %s", pyproject_path, ex)
+            self._warn_unrecoverable_metadata(package_dir)
+            raise UnsupportedPackageError(self._osutils.basename(package_dir)) from ex
+        name, version = _parse_pyproject_name_version(contents)
+        if not name or not version:
+            self._warn_unrecoverable_metadata(package_dir)
+            raise UnsupportedPackageError(self._osutils.basename(package_dir))
+        LOG.debug("Using name/version from pyproject.toml [project] table: %s==%s", name, version)
+        return name, version
+
+    @staticmethod
+    def _warn_unrecoverable_metadata(package_dir: str) -> None:
+        """
+        Emits the user-visible diagnostic when no metadata source remains.
+
+        The PKG-INFO probe now logs at debug because the pyproject.toml
+        fallback may recover; this warning is emitted only at the point where
+        recovery definitively fails so `sam build` output still names the
+        likely cause instead of just the opaque UnsupportedPackageError.
+        """
+        LOG.warning(
+            "Unable to determine a static name/version for the package in %s. "
+            "No PKG-INFO metadata was available (this may be due to missing "
+            "setuptools/distutils in Python 3.12+) and pyproject.toml has no "
+            "static [project] name/version.",
+            package_dir,
+        )
 
     def _unpack_sdist_into_dir(self, sdist_path, unpack_dir):
         if sdist_path.endswith(".zip"):
@@ -820,9 +988,22 @@ class SDistMetadataFetcher(object):
         with self._osutils.tempdir() as tempdir:
             package_dir = self._unpack_sdist_into_dir(sdist_path, tempdir)
 
-            # get the name and version from the result setup.py
-            pkg_info_filepath = self._get_pkg_info_filepath(package_dir)
-            name, version = self._get_name_version(pkg_info_filepath)
+            try:
+                # get the name and version from the result setup.py
+                pkg_info_filepath = self._get_pkg_info_filepath(package_dir)
+                name, version = self._get_name_version(pkg_info_filepath)
+            except UnsupportedPackageError:
+                # PEP 517-only sdists (e.g. downloaded from a git+https
+                # requirement) may carry no setup.py or PKG-INFO metadata for
+                # `setup.py egg_info` to read, which fails outright in Python
+                # 3.12+ build environments where setuptools is not installed.
+                # Fall back to the PEP 621 [project] metadata in pyproject.toml.
+                name, version = self._get_name_version_from_pyproject(package_dir)
+                LOG.info(
+                    "Recovered name/version for package in %s from pyproject.toml "
+                    "[project] table; PKG-INFO metadata was unavailable.",
+                    package_dir,
+                )
 
             # return values if it is not the default values
             if not self._is_default_setuptools_values(name, version):
