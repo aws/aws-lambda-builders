@@ -2,12 +2,16 @@ import os
 import tempfile
 import shutil
 import platform
+import unittest
 from tarfile import ExtractError
 
 from unittest import TestCase
 
 from aws_lambda_builders.utils import copytree, get_goarch, extract_tarfile
-from tests.testing_utils import read_link_without_junction_prefix
+from tests.testing_utils import read_link_without_junction_prefix, symlinks_supported
+
+SYMLINKS_SUPPORTED = symlinks_supported()
+SYMLINKS_UNSUPPORTED_REASON = "Creating symlinks requires Administrator privileges or Developer Mode on this platform"
 
 
 class TestCopyTree(TestCase):
@@ -65,6 +69,7 @@ class TestCopyTree(TestCase):
         self.assertEqual(get_goarch("x86_64"), "amd64")
         self.assertEqual(get_goarch(""), "amd64")
 
+    @unittest.skipUnless(SYMLINKS_SUPPORTED, SYMLINKS_UNSUPPORTED_REASON)
     def test_must_maintain_symlinks_if_enabled(self):
         # set up symlinked file and directory
         source_target_file_path = file(self.source, "targetfile.txt")
@@ -92,6 +97,7 @@ class TestCopyTree(TestCase):
         dest_symlink_dir_target = read_link_without_junction_prefix(dest_symlink_file_path)
         self.assertEqual(dest_symlink_dir_target, source_target_file_path)
 
+    @unittest.skipUnless(SYMLINKS_SUPPORTED, SYMLINKS_UNSUPPORTED_REASON)
     def test_must_not_maintain_symlinks_by_default(self):
         # set up symlinked file and directory
         source_target_file_path = file(self.source, "targetfile.txt")

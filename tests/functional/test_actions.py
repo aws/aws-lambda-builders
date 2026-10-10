@@ -1,13 +1,17 @@
 import os
 from pathlib import Path
 import tempfile
+import unittest
 from unittest import TestCase
 from parameterized import parameterized
 
 
 from aws_lambda_builders.actions import CopyDependenciesAction, LinkSinglePathAction, MoveDependenciesAction
 from aws_lambda_builders.utils import copytree
-from tests.testing_utils import read_link_without_junction_prefix
+from tests.testing_utils import read_link_without_junction_prefix, symlinks_supported
+
+SYMLINKS_SUPPORTED = symlinks_supported()
+SYMLINKS_UNSUPPORTED_REASON = "Creating symlinks requires Administrator privileges or Developer Mode on this platform"
 
 
 class TestCopyDependenciesAction(TestCase):
@@ -32,6 +36,7 @@ class TestCopyDependenciesAction(TestCase):
 
             self.assertEqual(set(os.listdir(test_folder)), set(os.listdir(target)))
 
+    @unittest.skipUnless(SYMLINKS_SUPPORTED, SYMLINKS_UNSUPPORTED_REASON)
     def test_must_maintain_symlinks_if_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             source_dir = os.path.join(tmpdir, "source")
@@ -56,6 +61,7 @@ class TestCopyDependenciesAction(TestCase):
             destination_node_modules_target = read_link_without_junction_prefix(destination_node_modules)
             self.assertEqual(destination_node_modules_target, source_node_modules)
 
+    @unittest.skipUnless(SYMLINKS_SUPPORTED, SYMLINKS_UNSUPPORTED_REASON)
     def test_must_not_maintain_symlinks_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             source_dir = os.path.join(tmpdir, "source")
@@ -78,6 +84,7 @@ class TestCopyDependenciesAction(TestCase):
 
 
 class TestLinkSinglePathAction(TestCase):
+    @unittest.skipUnless(SYMLINKS_SUPPORTED, SYMLINKS_UNSUPPORTED_REASON)
     def test_link_directory(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             source_dir = os.path.join(tmpdir, "source")
