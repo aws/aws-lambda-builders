@@ -115,8 +115,8 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 
 **Smart Lock File Detection:**
 - Look for requirements.txt first
-- When `pyproject.toml` is the manifest, automatically checks for `uv.lock` in the same directory
-- If `uv.lock` exists alongside `pyproject.toml`, uses lock-based build for precise dependencies
+- When `pyproject.toml` is the manifest, resolves the workspace root (the project directory for standalone projects) and checks for `uv.lock` there
+- If `uv.lock` exists at that root, uses lock-based build for precise dependencies
 - If no `uv.lock`, uses standard pyproject.toml build with UV's lock and export workflow
 
 **Important:** `uv.lock` is NOT a standalone manifest - it's a lock file that enhances `pyproject.toml` builds when present.
@@ -277,7 +277,7 @@ The workflow uses intelligent manifest detection:
 3. `pyproject.toml` - Modern Python project manifest
 
 **Smart Lock File Enhancement:**
-- When `pyproject.toml` is used, automatically detects `uv.lock` in the same directory
+- When `pyproject.toml` is used, automatically detects `uv.lock` at the resolved workspace or project root
 - If `uv.lock` exists, uses lock-based build for reproducible dependencies
 - If no `uv.lock`, uses standard pyproject.toml workflow with UV's lock and export
 
@@ -303,6 +303,39 @@ Note: `requirements.in` (pip-tools format) is not supported to keep the implemen
 - **UvInstallationError**: UV installation/setup failures
 - **UvBuildError**: Package build failures
 - **LockFileError**: Lock file parsing or validation errors
+
+#### Workspace Resolution Failure Policy
+
+Workspace discovery runs before the lock-file lookup for every `pyproject.toml` build.
+The compatibility fallback to the project directory is deliberately limited to two cases:
+
+- A plain `X.Y.Z` UV version is numerically below `0.9.9`; the workspace command is not invoked.
+- The workspace command exits unsuccessfully and stderr contains `unrecognized subcommand 'workspace'`.
+
+Both cases log at DEBUG. They additionally emit a WARNING only if a `pyproject.toml`
+in the project directory or an ancestor contains a `tool.uv.workspace` table. This is
+only a diagnostic hint: `members` and `exclude` are not evaluated, so the warning does
+not assert membership or change the chosen root or build path. Unreadable or invalid
+TOML is logged at DEBUG and skipped. The helper lazily imports `tomllib`, or optional
+`tomli` on Python 3.10. If neither is available, it logs at DEBUG and skips configuration
+inspection; no TOML parser is required to build dependencies.
+This preserves the previous behavior for standalone projects
+using unsupported UV versions; it does not provide workspace support for those versions.
+Unknown or prerelease version strings are tested by invoking the workspace command rather
+than assuming support or lack of support.
+
+All other command failures raise `UvBuildError` with the diagnostic, and a successful exit
+with empty or whitespace-only output also raises because it supplies no root directory.
+These outcomes do not establish that the project is outside a workspace. Falling back could
+miss an existing workspace-root lock, trigger lock generation, or resolve local dependencies
+from the wrong directory.
+
+This intentionally favors stopping on uncertain workspace discovery over continuing a
+potentially incorrect build. Consequently, a standalone project that previously built may
+now stop if workspace discovery fails for an unknown reason. That compatibility limitation
+is accepted rather than treating permission, configuration, or process-start failures as
+evidence that the workspace command is unsupported. The original diagnostic is surfaced
+instead of recommending an upgrade for an unknown cause.
 
 #### Platform Compatibility Matrix
 | Python Version | x86_64 | arm64 | Status |

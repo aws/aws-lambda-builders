@@ -1,4 +1,6 @@
 import os
+import tempfile
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -122,11 +124,12 @@ class TestUvRunner(TestCase):
         self.assertIn("pip", args_called)
         self.assertIn("install", args_called)
         self.assertIn("-r", args_called)
-        self.assertIn("/path/to/requirements.txt", args_called)
+        self.assertEqual(args_called[args_called.index("-r") + 1], os.path.abspath("/path/to/requirements.txt"))
 
     def test_install_requirements_resolves_relative_target_to_absolute(self):
-        # UV runs with cwd=project_dir, so a relative --target must be resolved to an absolute path
-        # first, otherwise dependencies land under the source dir instead of the build root.
+        # UV runs from project_dir or workspace_dir,
+        # so a relative --target must be resolved to an absolute path first,
+        # otherwise dependencies land under the source dir instead of the build root.
         self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
 
         self.uv_runner.install_requirements(
@@ -184,11 +187,23 @@ class TestUvRunner(TestCase):
         with self.assertRaises(UvInstallationError):
             self.uv_runner.install_requirements(requirements_path="/path/to/requirements.txt", target_dir="/target")
 
+    def test_install_requirements_resolves_relative_requirements_path(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "", "")
+        self.uv_runner.install_requirements(
+            requirements_path=os.path.join("app", "requirements.txt"),
+            target_dir="/target",
+            cwd="/workspace",
+        )
+
+        args = self.mock_subprocess_uv.run_uv_command.call_args.args[0]
+        self.assertEqual(args[args.index("-r") + 1], os.path.abspath(os.path.join("app", "requirements.txt")))
+
 
 class TestPythonUvDependencyBuilder(TestCase):
     def setUp(self):
         self.mock_osutils = Mock()
         self.mock_uv_runner = Mock()
+        self.mock_uv_runner.uv_version = "0.9.9"
         self.builder = PythonUvDependencyBuilder(
             osutils=self.mock_osutils, runtime="python3.9", uv_runner=self.mock_uv_runner
         )
@@ -209,21 +224,29 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.assertIn("Runtime is required", str(context.exception))
 
     def test_build_from_lock_file(self):
-        # Mock the uv command for export
-        self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+        # Mock the uv commands
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, b"", b""),  # export
+            (0, "/workspace\n", b""),  # workspace dir
+        ]
 
-        self.builder._build_from_lock_file(
-            lock_path="/path/to/uv.lock",
-            target_dir="/target",
-            scratch_dir="/scratch",
-            python_version="3.9",
-            architecture=X86_64,
-            config=UvConfig(),
-        )
+        with patch("os.path.dirname", return_value="/path/to"):
+            self.builder._build_from_lock_file(
+                lock_path="/path/to/uv.lock",
+                target_dir="/target",
+                scratch_dir="/scratch",
+                python_version="3.9",
+                architecture=X86_64,
+                config=UvConfig(),
+            )
 
-        # Should call export then install_requirements
-        self.mock_uv_runner._uv.run_uv_command.assert_called_once()
+        # Should call export and workspace dir then install_requirements
+        assert self.mock_uv_runner._uv.run_uv_command.call_count == 2
         self.mock_uv_runner.install_requirements.assert_called_once()
+
+        # Verify install_requirements is called from workspace root
+        assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
+        assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
 
     def test_build_from_requirements(self):
         self.builder._build_from_requirements(
@@ -236,6 +259,28 @@ class TestPythonUvDependencyBuilder(TestCase):
         )
 
         self.mock_uv_runner.install_requirements.assert_called_once()
+
+    def test_build_from_lock_file_shares_absolute_requirements_path(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, "/workspace\n", "")]
+        self.builder._build_from_lock_file(
+            lock_path="/workspace/app/uv.lock",
+            target_dir="/target",
+            scratch_dir="scratch",
+            python_version="3.9",
+            architecture=X86_64,
+            config=UvConfig(),
+        )
+
+        export_call = next(
+            call for call in self.mock_uv_runner._uv.run_uv_command.call_args_list if call.args[0][0] == "export"
+        )
+        export_args = export_call.args[0]
+        requirements_path = os.path.abspath(os.path.join("scratch", "lock_requirements.txt"))
+        self.assertEqual(export_args[export_args.index("--output-file") + 1], requirements_path)
+        self.assertEqual(export_call.kwargs["cwd"], "/workspace/app")
+        install_args = self.mock_uv_runner.install_requirements.call_args.kwargs
+        self.assertEqual(install_args["requirements_path"], requirements_path)
+        self.assertEqual(install_args["cwd"], "/workspace")
 
     def test_build_dependencies_with_requirements_txt(self):
         with patch("os.path.basename", return_value="requirements.txt"):
@@ -267,16 +312,18 @@ class TestPythonUvDependencyBuilder(TestCase):
 
     def test_build_dependencies_pyproject_with_uv_lock(self):
         """Test that pyproject.toml with uv.lock present uses lock-based build."""
-        # Mock the uv export command
-        self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+        # Mock the uv commands
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, "/workspace\n", ""),  # workspace dir
+            (0, "", ""),  # export
+        ]
 
         with (
             patch("os.path.basename", return_value="pyproject.toml"),
             patch("os.path.dirname", return_value=os.path.join("path", "to")),
             patch("os.path.exists") as mock_exists,
         ):
-
-            # Mock that uv.lock exists alongside pyproject.toml
+            # Mock that uv.lock exists at the workspace root
             mock_exists.return_value = True
 
             self.builder.build_dependencies(
@@ -286,17 +333,229 @@ class TestPythonUvDependencyBuilder(TestCase):
                 architecture=X86_64,
             )
 
-        # Should use export + install_requirements (for cross-platform support)
-        self.mock_uv_runner._uv.run_uv_command.assert_called_once()  # export
+        # Should use export + workspace dir + install_requirements (for cross-platform support)
+        assert self.mock_uv_runner._uv.run_uv_command.call_count == 2
         self.mock_uv_runner.install_requirements.assert_called_once()
 
+        # Verify install_requirements is called from workspace root
+        assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == os.path.join("path", "to")
+        assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
+
         # Verify it checked for uv.lock in the right location
-        mock_exists.assert_called_with(os.path.join("path", "to", "uv.lock"))
+        mock_exists.assert_called_with(os.path.join("/workspace", "uv.lock"))
 
         # Verify export excludes PEP 735 default dependency-groups (dev/test deps
         # must not land in Lambda zips).
-        export_args = self.mock_uv_runner._uv.run_uv_command.call_args[0][0]
+        export_args = next(
+            call.args[0]
+            for call in self.mock_uv_runner._uv.run_uv_command.call_args_list
+            if call.args[0][0] == "export"
+        )
         self.assertIn("--no-default-groups", export_args)
+        self.assertIn("--no-editable", export_args)
+        self.assertEqual(
+            [call.args[0][0] for call in self.mock_uv_runner._uv.run_uv_command.call_args_list],
+            ["workspace", "export"],
+        )
+
+    def test_resolve_workspace_dir_logs_debug_for_old_uv(self):
+        # Bound discovery so manifests above the test directory cannot affect logging.
+        with tempfile.TemporaryDirectory() as project_dir, patch("os.path.dirname", return_value=project_dir):
+            for version in ("0.8.17", "0.9.8"):
+                with self.subTest(version=version):
+                    self.mock_uv_runner.uv_version = version
+                    with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="DEBUG") as logs:
+                        self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
+                    self.mock_uv_runner._uv.run_uv_command.assert_not_called()
+                    self.assertIn(project_dir, logs.output[0])
+                    self.assertIn("uv >= 0.9.9", logs.output[0])
+                    self.assertTrue(all(record.levelname == "DEBUG" for record in logs.records))
+
+    def test_resolve_workspace_dir_probes_supported_or_unknown_versions(self):
+        for version in ("0.9.9", "0.9.10", "0.10.0", "1.0.0", None, "", "unknown", "0.9.9rc1"):
+            for rc, stdout, stderr in ((0, "/workspace\n", ""), (1, "", "Permission denied")):
+                with self.subTest(version=version, rc=rc):
+                    self.mock_uv_runner.reset_mock()
+                    self.mock_uv_runner.uv_version = version
+                    self.mock_uv_runner._uv.run_uv_command.return_value = (rc, stdout, stderr)
+                    with self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"):
+                        if rc == 0:
+                            self.assertEqual(self.builder._resolve_workspace_dir("/workspace/app"), "/workspace")
+                        else:
+                            with self.assertRaises(UvBuildError) as error:
+                                self.builder._resolve_workspace_dir("/workspace/app")
+                            self.assertIn(stderr, str(error.exception))
+                    self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(
+                        ["workspace", "dir"], cwd="/workspace/app"
+                    )
+
+    def test_resolve_workspace_dir_falls_back_for_explicitly_unsupported_command(self):
+        # Bound discovery so manifests above the test directory cannot affect logging.
+        with tempfile.TemporaryDirectory() as project_dir, patch("os.path.dirname", return_value=project_dir):
+            for version in ("0.9.9", "0.10.0", None, "", "unknown", "0.9.8+dev", "0.9.0-alpha.1", "0.9.9rc1"):
+                with self.subTest(version=version):
+                    self.mock_uv_runner.reset_mock()
+                    self.mock_uv_runner.uv_version = version
+                    self.mock_uv_runner._uv.run_uv_command.return_value = (
+                        2,
+                        "",
+                        "error: unrecognized subcommand 'workspace'",
+                    )
+                    with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="DEBUG") as logs:
+                        self.assertEqual(self.builder._resolve_workspace_dir(project_dir), project_dir)
+                    self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(
+                        ["workspace", "dir"], cwd=project_dir
+                    )
+                    self.assertIn(project_dir, logs.output[0])
+                    self.assertTrue(all(record.levelname == "DEBUG" for record in logs.records))
+
+    def test_workspace_fallback_warning_is_only_a_configuration_hint(self):
+        for unsupported_by_version in (True, False):
+            for location in ("app", "."):
+                with self.subTest(old_version=unsupported_by_version, location=location):
+                    with tempfile.TemporaryDirectory() as root:
+                        project = Path(root, "app")
+                        project.mkdir()
+                        manifest = Path(root, location, "pyproject.toml")
+                        manifest.write_text('[tool.uv.workspace]\nmembers = ["other"]\nexclude = ["app"]\n')
+                        self.mock_uv_runner.uv_version = "0.9.8" if unsupported_by_version else None
+                        self.mock_uv_runner._uv.run_uv_command.return_value = (
+                            2,
+                            "",
+                            "unrecognized subcommand 'workspace'",
+                        )
+                        with self.assertLogs(
+                            "aws_lambda_builders.workflows.python_uv.packager", level="WARNING"
+                        ) as logs:
+                            self.assertEqual(self.builder._resolve_workspace_dir(str(project)), str(project))
+                        self.assertIn(str(manifest), logs.output[0])
+                        self.assertIn("If this project is a member", logs.output[0])
+                        self.assertIn("upgrade uv", logs.output[0])
+                        self.assertEqual(len(logs.records), 1)
+
+    def test_workspace_fallback_without_toml_parser(self):
+        self.mock_uv_runner.uv_version = "0.9.8"
+        with (
+            patch.dict("sys.modules", {"tomllib": None, "tomli": None}),
+            patch("builtins.open") as open_file,
+            self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="DEBUG") as logs,
+        ):
+            self.assertEqual(self.builder._resolve_workspace_dir("/project"), "/project")
+        open_file.assert_not_called()
+        self.mock_uv_runner._uv.run_uv_command.assert_not_called()
+        self.assertTrue(all(record.levelname == "DEBUG" for record in logs.records))
+        self.assertIn("no TOML parser", logs.output[-1])
+
+    def test_workspace_hint_uses_optional_tomli(self):
+        parser = Mock()
+        parser.load.return_value = {"tool": {"uv": {"workspace": {}}}}
+        with (
+            patch.dict("sys.modules", {"tomllib": None, "tomli": parser}),
+            patch("builtins.open"),
+            self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+        ):
+            self.builder._log_workspace_fallback("/project")
+        parser.load.assert_called_once()
+
+    def test_workspace_hint_skips_non_table_values_and_continues_to_parent(self):
+        for content in (
+            'tool = "text"\n',
+            'tool = ["uv"]\n',
+            "[tool]\nuv = 5\n",
+            '[tool]\nuv = "workspace"\n',
+            '[tool]\nuv = ["workspace"]\n',
+            "[tool.uv]\nworkspace = false\n",
+            '[tool.uv]\nworkspace = "text"\n',
+            "[tool.uv]\nworkspace = []\n",
+            "[[tool.uv.workspace]]\n",
+        ):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as root:
+                project = Path(root, "app")
+                project.mkdir()
+                Path(project, "pyproject.toml").write_text(content)
+                # Stop at the temporary root so unrelated manifests outside the test cannot warn.
+                real_dirname = os.path.dirname
+                with patch("os.path.dirname", side_effect=lambda path: root if path == root else real_dirname(path)):
+                    with self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"):
+                        self.builder._log_workspace_fallback(str(project))
+
+                    parent_manifest = Path(root, "pyproject.toml")
+                    parent_manifest.write_text("[tool.uv.workspace]\n")
+                    with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+                        self.builder._log_workspace_fallback(str(project))
+                    self.assertEqual(len(logs.records), 1)
+                    self.assertIn(str(parent_manifest), logs.output[0])
+
+    def test_workspace_hint_ignores_comments_and_invalid_or_unreadable_toml(self):
+        for content in ("# [tool.uv.workspace]\n", "[invalid", '[tool]\nuv = "text"\n'):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as root:
+                Path(root, "pyproject.toml").write_text(content)
+                with (
+                    patch("os.path.dirname", return_value=root),
+                    self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+                ):
+                    self.builder._log_workspace_fallback(root)
+        with (
+            patch("builtins.open", side_effect=PermissionError("denied")),
+            self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+        ):
+            self.builder._log_workspace_fallback("/project")
+
+    def test_workspace_resolution_failure_stops_build(self):
+        project_dir = os.path.join("path", "to")
+        for rc, stdout, stderr in (
+            (1, "", "Permission denied"),
+            (2, "", "Failed to parse pyproject.toml"),
+            (1, "", "[Errno 2] No such file or directory: 'uv'"),
+            (2, "", "unrecognized subcommand 'other'"),
+            (1, "/workspace", "Failed to read workspace"),
+            (1, "", ""),
+            (0, "", ""),
+            (0, "", "unrecognized subcommand 'workspace'"),
+            (0, " \n\t", ""),
+        ):
+            with self.subTest(rc=rc, stdout=stdout, stderr=stderr):
+                self.mock_uv_runner.reset_mock()
+                self.mock_uv_runner._uv.run_uv_command.return_value = (rc, stdout, stderr)
+                with (
+                    patch("os.path.exists") as exists,
+                    self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"),
+                    self.assertRaises(UvBuildError) as error,
+                ):
+                    self.builder._handle_pyproject_build(
+                        os.path.join(project_dir, "pyproject.toml"), "/target", "/scratch", "3.9", X86_64, UvConfig()
+                    )
+                self.assertIn(project_dir, str(error.exception))
+                self.assertIn(stderr or "returned no workspace path", str(error.exception))
+                exists.assert_not_called()
+                self.mock_uv_runner._uv.run_uv_command.assert_called_once_with(["workspace", "dir"], cwd=project_dir)
+                self.mock_uv_runner.install_requirements.assert_not_called()
+
+    def test_resolve_workspace_dir_returns_path_without_warning(self):
+        self.mock_uv_runner._uv.run_uv_command.return_value = (0, "/workspace\n", "")
+        with self.assertNoLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING"):
+            self.assertEqual(self.builder._resolve_workspace_dir("/workspace/app"), "/workspace")
+
+    def test_build_dependencies_without_workspace_command(self):
+        self.mock_uv_runner.uv_version = "0.9.8"
+        project_dir = os.path.join("path", "to")
+        for has_lock in (True, False):
+            with self.subTest(has_lock=has_lock):
+                self.mock_uv_runner.reset_mock()
+                self.mock_uv_runner._uv.run_uv_command.side_effect = [
+                    *([] if has_lock else [(0, "", "")]),
+                    (0, "", ""),
+                ]
+                with patch("os.path.exists", return_value=has_lock) as exists:
+                    self.builder.build_dependencies(
+                        artifacts_dir_path="/artifacts",
+                        scratch_dir_path="/scratch",
+                        manifest_path=os.path.join(project_dir, "pyproject.toml"),
+                    )
+                exists.assert_called_once_with(os.path.join(project_dir, "uv.lock"))
+                commands = [call.args[0][0] for call in self.mock_uv_runner._uv.run_uv_command.call_args_list]
+                self.assertEqual(commands, ["export"] if has_lock else ["lock", "export"])
+                self.assertEqual(self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"], project_dir)
 
     def test_build_dependencies_pyproject_without_uv_lock(self):
         """Test that pyproject.toml without uv.lock uses standard pyproject build."""
@@ -308,7 +567,11 @@ class TestPythonUvDependencyBuilder(TestCase):
             # Mock that uv.lock does NOT exist alongside pyproject.toml
             mock_exists.return_value = False
 
-            self.mock_uv_runner._uv.run_uv_command.return_value = (0, b"", b"")
+            self.mock_uv_runner._uv.run_uv_command.side_effect = [
+                (0, os.path.join("path", "to"), ""),
+                (0, "", ""),
+                (0, "", ""),
+            ]
             self.builder.build_dependencies(
                 artifacts_dir_path="/artifacts",
                 scratch_dir_path="/scratch",
