@@ -8,5 +8,5 @@ parameterized==0.9.0
 pyelftools~=0.33 # Used to verify the generated Go binary architecture in integration tests (utils.py)
 
 # formatter
-black==26.5.1
+black==26.10.1
 ruff==0.16.5
