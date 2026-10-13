@@ -1,5 +1,6 @@
 import os
 import platform
+import stat
 import tempfile
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
 
 from aws_lambda_builders import utils
-from aws_lambda_builders.utils import decode
+from aws_lambda_builders.utils import decode, which
 
 
 class Test_create_symlink_or_copy(TestCase):
@@ -268,3 +269,46 @@ class TestIsWithinDirectory(TestCase):
     @patch("aws_lambda_builders.utils.os.path.commonpath", side_effect=ValueError("different drives"))
     def test_paths_on_different_drives_are_not_within(self, _):
         self.assertFalse(utils._is_within_directory("C:\\my\\path", "D:\\file"))
+
+
+class TestWhich(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        root = Path(self.temp_dir.name)
+        self.working_dir = root / "working"
+        self.path_dir = root / "bin"
+        self.working_dir.mkdir()
+        self.path_dir.mkdir()
+        self.original_cwd = os.getcwd()
+        os.chdir(self.working_dir)
+
+    def tearDown(self):
+        os.chdir(self.original_cwd)
+        self.temp_dir.cleanup()
+
+    @staticmethod
+    def _create_executable(path):
+        path.write_text("")
+        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+
+    @patch("aws_lambda_builders.utils.sys")
+    def test_windows_lookup_uses_only_search_paths(self, mock_sys):
+        mock_sys.platform = "win32"
+        self._create_executable(self.working_dir / "tool.CMD")
+        self._create_executable(self.path_dir / "tool.CMD")
+        env = {"PATH": str(self.path_dir), "PATHEXT": os.pathsep.join([".EXE", ".CMD"])}
+
+        with patch.dict(os.environ, env):
+            self.assertEqual(which("tool"), [os.path.abspath(self.path_dir / "tool.CMD")])
+
+    def test_ignores_empty_path_entries(self):
+        self._create_executable(self.working_dir / "tool")
+
+        with patch.dict(os.environ, {"PATH": str(self.path_dir) + os.pathsep}):
+            self.assertEqual(which("tool"), [])
+
+    def test_returns_absolute_paths(self):
+        self._create_executable(self.working_dir / "tool")
+
+        with patch.dict(os.environ, {"PATH": str(self.path_dir)}):
+            self.assertEqual(which("tool", executable_search_paths=["."]), [os.path.join(os.getcwd(), "tool")])

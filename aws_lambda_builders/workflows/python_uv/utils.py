@@ -5,10 +5,10 @@ Commonly used utilities for Python UV workflow
 import logging
 import os
 import re
-import shutil
 import subprocess
 from typing import List, Optional
 
+from aws_lambda_builders.utils import which
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils as BaseOSUtils
 
 LOG = logging.getLogger(__name__)
@@ -26,7 +26,10 @@ class OSUtils(BaseOSUtils):
 
     def which(self, executable):
         """Find executable in PATH."""
-        return shutil.which(executable)
+        paths = which(executable)
+        if isinstance(paths, str):
+            return paths
+        return paths[0] if paths else None
 
     def run_subprocess(self, cmd, cwd=None, env=None):
         """Run subprocess and return result."""
