@@ -63,3 +63,5 @@ class SubprocessDotnetCLI(object):
 
         if p.returncode != 0:
             raise DotnetCLIExecutionError(message=decode(err))
+
+        return decode(out)
