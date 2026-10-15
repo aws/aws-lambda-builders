@@ -1,3 +1,5 @@
+import os
+import tempfile
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch
@@ -13,6 +15,7 @@ from aws_lambda_builders.actions import (
     CleanUpAction,
     DependencyManager,
     LinkSinglePathAction,
+    LinkSourceAction,
 )
 
 
@@ -263,6 +266,65 @@ class TestDependencyManager(TestCase):
     @staticmethod
     def _convert_strings_to_paths(source_dest_list):
         return map(lambda item: (Path(item[0]), Path(item[1])), source_dest_list)
+
+
+class TestLinkSourceAction(TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.source_dir = Path(self._tmp.name, "deps")
+        self.dest_dir = Path(self._tmp.name, "artifacts")
+        (self.source_dir / "somepkg").mkdir(parents=True)
+        (self.source_dir / "somepkg" / "__init__.py").write_text("hello")
+        (self.source_dir / "six.py").write_text("six")
+        self.dest_dir.mkdir()
+
+    def _execute(self):
+        LinkSourceAction(str(self.source_dir), str(self.dest_dir)).execute()
+
+    def _assert_linked(self):
+        for name in ("somepkg", "six.py"):
+            destination = self.dest_dir / name
+            self.assertTrue(destination.is_symlink(), f"{name} should be a symlink")
+            self.assertEqual(os.path.realpath(destination), str((self.source_dir / name).resolve()))
+        self.assertEqual((self.dest_dir / "somepkg" / "__init__.py").read_text(), "hello")
+
+    def test_links_into_an_empty_destination(self):
+        self._execute()
+        self._assert_linked()
+
+    def test_replaces_a_real_directory_left_by_an_earlier_copying_build(self):
+        # A build that copied dependencies leaves real directories behind. Without --clean they
+        # survive into the next build, and os.remove() cannot remove a directory.
+        stale = self.dest_dir / "somepkg"
+        stale.mkdir()
+        (stale / "__init__.py").write_text("stale")
+        (self.dest_dir / "six.py").write_text("stale")
+
+        self._execute()
+        self._assert_linked()
+
+    def test_replaces_a_dangling_symlink(self):
+        # A dangling symlink is not exists(), so it used to be left in place and os.symlink then
+        # raised FileExistsError, which create_symlink_or_copy swallowed into a full copy.
+        (self.dest_dir / "six.py").symlink_to(self._tmp.name + "/gone")
+        self.assertFalse((self.dest_dir / "six.py").exists())
+
+        self._execute()
+        self._assert_linked()
+
+    def test_is_idempotent(self):
+        self._execute()
+        self._execute()
+        self._assert_linked()
+
+    def test_skips_a_source_that_does_not_exist(self):
+        # CopySourceAction warns and continues here; the layer path must not turn that into a failure.
+        missing = Path(self._tmp.name, "never-created")
+
+        LinkSourceAction(str(missing), str(self.dest_dir)).execute()
+
+        self.assertEqual(os.listdir(self.dest_dir), [])
 
 
 class TestLinkSinglePathAction(TestCase):

@@ -15,6 +15,30 @@ from aws_lambda_builders.architecture import ARM64
 LOG = logging.getLogger(__name__)
 
 
+def _materialize_symlinked_destination(destination: str) -> None:
+    """
+    Replace a symlinked destination with a real copy of what it points at.
+
+    A linking build leaves symlinks into the shared dependencies directory. Copying into one would
+    follow the link and write outside the destination tree, mutating a cache that later builds
+    reuse. Materialising it first keeps the merge where the caller asked for it, which is what a
+    copying build did.
+    """
+    if not os.path.islink(destination):
+        return
+
+    LOG.debug("Replacing symlinked destination %s with a real copy before copying into it", destination)
+    link_target = os.path.realpath(destination)
+    os.unlink(destination)
+
+    if os.path.isdir(link_target):
+        copytree(link_target, destination)
+    elif os.path.isfile(link_target):
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        shutil.copy2(link_target, destination)
+    # A dangling link leaves nothing to preserve; the caller creates the destination itself.
+
+
 def copytree(
     source: str,
     destination: str,
@@ -47,6 +71,8 @@ def copytree(
     if not os.path.exists(source):
         LOG.warning("Skipping copy operation since source %s does not exist", source)
         return
+
+    _materialize_symlinked_destination(destination)
 
     if not os.path.exists(destination):
         LOG.debug("Creating target folders at %s", destination)
@@ -86,6 +112,10 @@ def copytree(
         elif os.path.isdir(new_source):
             copytree(new_source, new_destination, ignore=ignore, include=include, maintain_symlinks=maintain_symlinks)
         else:
+            # copy2 opens the destination for writing and would follow a symlink into the shared
+            # dependencies directory; it replaces the whole file, so unlinking loses nothing.
+            if os.path.islink(new_destination):
+                os.unlink(new_destination)
             LOG.debug("Copying source file (%s) to destination (%s)", new_source, new_destination)
             shutil.copy2(new_source, new_destination)
 
@@ -210,7 +240,21 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
             "consider enabling the necessary settings or privileges on your system to support symbolic links.",
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
-        copytree(source, destination)
+        if os.path.islink(destination):
+            # A leftover link is one reason os.symlink raised: the guard above misses a dangling one,
+            # which is not exists(). Copying through it would write outside the destination tree.
+            LOG.debug("Removing existing symlink at destination %s before copying", destination)
+            os.unlink(destination)
+        # A dependencies directory holds top-level files as well as packages (six.py, *.pth), and
+        # copytree assumes its source is a directory -- it would makedirs a folder named six.py and
+        # then raise NotADirectoryError on listdir.
+        if os.path.isdir(source):
+            copytree(source, destination)
+        elif os.path.isfile(source):
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            shutil.copy2(source, destination)
+        else:
+            LOG.warning("Skipping copy operation since source %s does not exist", source)
 
 
 def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, os.PathLike]) -> bool:
