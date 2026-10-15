@@ -5,6 +5,7 @@ from unittest.mock import Mock, call, patch
 from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
+from aws_lambda_builders.exceptions import SharedDependenciesInstallNotSupportedError
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
@@ -196,3 +197,63 @@ class TestLambdaBuilder_build(TestCase):
             os_mock.makedirs.assert_not_called()
         else:
             os_mock.makedirs.assert_called_once_with("scratch_dir")
+
+
+class TestLambdaBuilder_install_shared_dependencies(TestCase):
+    # other test modules clear the workflow registry, so these tests resolve the workflow class
+    # through a patched get_workflow rather than depending on registry state
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.install_shared_dependencies")
+    def test_dispatches_to_the_nodejs_workflow(self, installer_mock, get_workflow_mock):
+        from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
+
+        get_workflow_mock.return_value = NodejsNpmWorkflow
+        builder = LambdaBuilder("nodejs", "npm", None)
+
+        builder.install_shared_dependencies("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+        installer_mock.assert_called_once_with("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    @patch(
+        "aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow.install_shared_dependencies"
+    )
+    def test_the_esbuild_workflow_also_declares_the_shared_install(self, installer_mock, get_workflow_mock):
+        from aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow import NodejsNpmEsbuildWorkflow
+
+        get_workflow_mock.return_value = NodejsNpmEsbuildWorkflow
+        builder = LambdaBuilder("nodejs", "npm-esbuild", None)
+
+        builder.install_shared_dependencies("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+        installer_mock.assert_called_once_with("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.install_shared_dependencies")
+    def test_forwards_no_flags_as_none_rather_than_dropping_the_argument(self, installer_mock, get_workflow_mock):
+        # the workflow decides what an absent flag means, so the argument must always reach it
+        from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
+
+        get_workflow_mock.return_value = NodejsNpmWorkflow
+        builder = LambdaBuilder("nodejs", "npm", None)
+
+        builder.install_shared_dependencies("/monorepo")
+
+        installer_mock.assert_called_once_with("/monorepo", experimental_flags=None)
+
+    def test_the_esbuild_workflow_shares_the_nodejs_implementation(self):
+        from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
+        from aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow import NodejsNpmEsbuildWorkflow
+
+        self.assertIs(
+            NodejsNpmEsbuildWorkflow.install_shared_dependencies, NodejsNpmWorkflow.install_shared_dependencies
+        )
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    def test_raises_the_typed_error_for_a_workflow_without_shared_installs(self, get_workflow_mock):
+        get_workflow_mock.return_value = type("NoSharedInstallWorkflow", (), {"NAME": "NoSharedInstall"})
+        builder = LambdaBuilder("python", "pip", None)
+
+        with self.assertRaises(SharedDependenciesInstallNotSupportedError):
+            builder.install_shared_dependencies("/monorepo")

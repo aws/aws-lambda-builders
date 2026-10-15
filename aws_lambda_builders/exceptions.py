@@ -72,3 +72,24 @@ class WorkflowUnknownError(LambdaBuilderError):
     """
 
     MESSAGE = "{workflow_name}:{action_name} - {reason}"
+
+
+class SharedDependenciesInstallNotSupportedError(LambdaBuilderError):
+    """
+    Raised when the selected workflow has no notion of dependencies shared by
+    every package under one project root
+    """
+
+    MESSAGE = (
+        "Workflow for capability '{capabilities}' does not support installing shared dependencies "
+        "for a whole project root"
+    )
+
+
+class SharedDependenciesInstallError(LambdaBuilderError):
+    """
+    Raised when the shared dependency install itself failed; the caller can fall
+    back to per-function installs
+    """
+
+    MESSAGE = "Installing shared dependencies in {project_root} failed: {reason}"
