@@ -205,7 +205,7 @@ config = {
     "no_cache": False,                       # Disable caching
     "prerelease": "disallow",                # Handle pre-release versions
     "resolution": "highest",                 # Resolution strategy
-    "compile_bytecode": True,                # Compile .pyc files
+    "compile_bytecode": True,                # Compile unchecked-hash .pyc with the target Python when enabled
     "exclude_newer": None,                   # Exclude packages newer than date
     "generate_hashes": False,                # Generate package hashes
 }

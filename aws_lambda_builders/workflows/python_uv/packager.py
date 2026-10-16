@@ -54,6 +54,17 @@ class SubprocessUv:
             pass
         return None
 
+    def find_python(self, python_version: str) -> Optional[str]:
+        """Find an already-installed interpreter matching the requested Python version."""
+        rc, stdout, stderr = self.run_uv_command(
+            ["python", "find", "--no-project", "--no-python-downloads", python_version]
+        )
+        if rc == 0 and stdout:
+            return stdout.strip()
+        diagnostic = (stderr or "").strip() or (stdout or "").strip() or "no diagnostic output"
+        LOG.warning("Could not locate target Python %s via uv (exit code %d): %s", python_version, rc, diagnostic)
+        return None
+
     def run_uv_command(self, args: List[str], cwd: Optional[str] = None, env: Optional[Dict[str, str]] = None) -> tuple:
         """
         Execute UV command with given arguments.
@@ -133,14 +144,32 @@ class UvRunner:
         # Resolve --target to an absolute path: UV runs with cwd set to the project directory, so a
         # relative target (e.g. the incremental-build dependencies dir) would otherwise be created
         # under the source directory instead of the build root.
-        args.extend(["--target", os.path.abspath(target_dir)])
+        target_dir = os.path.abspath(target_dir)
+        args.extend(["--target", target_dir])
 
-        # Add configuration arguments
+        target_python = None
+        if config.compile_bytecode:
+            if python_version:
+                target_python = self._uv.find_python(python_version)
+            else:
+                LOG.warning("Target Python version is unavailable; skipping bytecode compilation")
+
+        # Add configuration arguments that are independent of interpreter selection.
         args.extend(config.to_uv_args())
 
         # Add platform-specific arguments
         if python_version:
             args.extend(["--python-version", python_version])
+
+            # Use the exact interpreter found by UV instead of repeating a version request that
+            # could resolve differently when the install command runs.
+            if target_python:
+                args.extend(["--python", target_python])
+
+        # UV currently produces timestamp-based bytecode. SAM packages files with normalized
+        # timestamps, so that bytecode would be rejected by the Lambda runtime after deployment.
+        # Keep UV compilation disabled and generate unchecked-hash bytecode below instead.
+        args.append("--no-compile-bytecode")
 
         if platform and architecture:
             # UV pip install uses --python-platform format
@@ -161,6 +190,34 @@ class UvRunner:
             raise UvInstallationError(reason=f"UV pip install failed: {stderr}")
 
         LOG.debug("UV pip install completed successfully: %s", stdout)
+
+        if target_python:
+            self._compile_bytecode(target_python, target_dir)
+
+    def _compile_bytecode(self, python_executable: str, target_dir: str) -> None:
+        """Compile reusable bytecode with the interpreter selected for the target runtime."""
+        command = [
+            python_executable,
+            "-m",
+            "compileall",
+            "-f",
+            "-q",
+            "--invalidation-mode",
+            "unchecked-hash",
+            target_dir,
+        ]
+        LOG.debug("Compiling unchecked-hash bytecode: %s", " ".join(command))
+        rc, stdout, stderr = self._osutils.run_subprocess(command)
+        if rc != 0:
+            diagnostic = stderr.strip() or stdout.strip() or "no diagnostic output"
+            LOG.warning(
+                "Could not compile unchecked-hash bytecode with target Python (exit code %d): %s",
+                rc,
+                diagnostic,
+            )
+            return
+
+        LOG.debug("Python bytecode compilation completed successfully: %s", stdout)
 
 
 class PythonUvDependencyBuilder:
