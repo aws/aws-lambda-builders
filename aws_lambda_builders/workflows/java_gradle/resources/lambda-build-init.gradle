@@ -24,7 +24,7 @@ gradle.taskGraph.afterTask{ t ->
         return;
     }
 
-    def artifactJars = t.project.configurations.archives.artifacts.files.files
+    def artifactJars = t.project.configurations.archives.artifacts.findAll { it.extension == 'jar' }*.file
 
     def runtimeCpJars = t.project.configurations.runtimeClasspath.files
 

@@ -2,6 +2,16 @@ plugins {
     id 'java'
 }
 
+task extraArchive(type: Zip) {
+    from 'src/main/java'
+}
+
+artifacts {
+    archives extraArchive
+}
+
+build.dependsOn extraArchive
+
 repositories {
     mavenCentral()
 }
