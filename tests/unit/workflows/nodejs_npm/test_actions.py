@@ -9,6 +9,7 @@ from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.workflows.nodejs_npm.actions import (
+    NodejsNpmUpdateAction,
     NodejsNpmLinkDependencyClosureAction,
     NodejsNpmPackAction,
     NodejsNpmInstallAction,
@@ -444,6 +445,75 @@ class TestNodejsNpmLinkDependencyClosureAction(TestCase):
             "the function's own copy is what its code resolves, so it wins over the hoisted one",
         )
 
+    def test_the_fallback_leaves_out_packages_the_lockfile_marks_dev(self):
+        # the shared install at a workspace root keeps dev dependencies on purpose, so the tree the
+        # fallback ships from has them in it; the per-function install never put them there
+        self._package("endpoints/fn", "@mono/fn")
+        self._package("node_modules/lodash", "lodash")
+        self._package("node_modules/esbuild", "esbuild")
+        self._hidden_lockfile(
+            3,
+            {
+                "": {"workspaces": ["endpoints/fn"], "devDependencies": {"esbuild": "^0.20.0"}},
+                "node_modules/lodash": {"version": "4.17.21"},
+                "node_modules/esbuild": {"version": "0.20.0", "dev": True},
+            },
+        )
+        # the lockfile is readable but says nothing about this install dir, so the closure cannot be
+        # derived from it and npm cannot answer either - the fallback's own reachable case
+        self.subprocess_npm.resolve_dependency_closure.return_value = None
+
+        self._action().execute()
+
+        self.assertEqual(self._linked(), {"lodash"})
+
+    def test_the_fallback_leaves_out_a_transitive_dev_dependency(self):
+        # a lockfile marks every entry only reachable through a devDependency, not just the declared one
+        self._package("endpoints/fn", "@mono/fn")
+        self._package("node_modules/esbuild", "esbuild")
+        self._package("node_modules/dev-only-transitive", "dev-only-transitive")
+        self._hidden_lockfile(
+            3,
+            {
+                "": {"devDependencies": {"esbuild": "^0.20.0"}},
+                "node_modules/esbuild": {"version": "0.20.0", "dev": True},
+                "node_modules/dev-only-transitive": {"version": "1.0.0", "dev": True},
+            },
+        )
+        self.subprocess_npm.resolve_dependency_closure.return_value = None
+
+        self._action().execute()
+
+        self.assertFalse(
+            os.path.lexists(os.path.join(self.artifacts_dir, "node_modules")),
+            "every installed package was dev-only, so there is nothing to ship",
+        )
+
+    def test_the_fallback_uses_the_manifests_when_no_lockfile_can_be_read(self):
+        # no lockfile at all: the declared dev dependencies of the root and the member are still known
+        self._package("node_modules/lodash", "lodash")
+        self._package("node_modules/esbuild", "esbuild")
+        self._package("endpoints/fn/node_modules/jest", "jest")
+        with open(os.path.join(self.root, "package.json"), "w") as manifest:
+            json.dump({"name": "monorepo", "devDependencies": {"esbuild": "^0.20.0"}}, manifest)
+        with open(os.path.join(self.install_dir, "package.json"), "w") as manifest:
+            json.dump({"name": "@mono/fn", "devDependencies": {"jest": "^29.0.0"}}, manifest)
+        self.subprocess_npm.resolve_dependency_closure.return_value = None
+
+        self._action().execute()
+
+        self.assertEqual(self._linked(), {"lodash"})
+
+    def test_the_fallback_still_ships_everything_when_nothing_says_what_is_dev(self):
+        # the per-function path pruned dev at install time, so with no dev evidence a superset is right
+        self._package("node_modules/lodash", "lodash")
+        self._package("node_modules/ms", "ms")
+        self.subprocess_npm.resolve_dependency_closure.return_value = None
+
+        self._action().execute()
+
+        self.assertEqual(self._linked(), {"lodash", "ms"})
+
     def test_the_fallback_links_nothing_rather_than_a_dangling_node_modules(self):
         # os.symlink succeeds against a missing target, so linking an absent tree used to leave a
         # node_modules pointing nowhere - worse than the no-op, because the artifacts copy then follows it
@@ -527,3 +597,31 @@ class TestNodejsNpmLinkDependencyClosureAction(TestCase):
         self._action().execute()
 
         self.assertEqual(self._linked(), {"mystery"})
+
+
+class TestNodejsNpmInstallActionOmitDev(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_keeps_dev_dependencies_when_omit_dev_is_false(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmInstallAction(
+            "workspace-root", subprocess_npm=subprocess_npm, install_links=True, omit_dev=False
+        )
+
+        action.execute()
+
+        subprocess_npm.run.assert_called_with(
+            ["install", "-q", "--no-audit", "--no-save", "--install-links"], cwd="workspace-root"
+        )
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.npm.SubprocessNpm")
+    def test_update_keeps_dev_dependencies_when_omit_dev_is_false(self, SubprocessNpmMock):
+        subprocess_npm = SubprocessNpmMock.return_value
+
+        action = NodejsNpmUpdateAction("workspace-root", subprocess_npm=subprocess_npm, omit_dev=False)
+
+        action.execute()
+
+        subprocess_npm.run.assert_called_with(
+            ["update", "--no-audit", "--no-save", "--no-package-lock", "--install-links"], cwd="workspace-root"
+        )

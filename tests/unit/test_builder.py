@@ -5,6 +5,7 @@ from unittest.mock import Mock, call, patch
 from parameterized import parameterized
 
 from aws_lambda_builders.builder import LambdaBuilder
+from aws_lambda_builders.exceptions import SharedProjectNotSupportedError
 from aws_lambda_builders.registry import DEFAULT_REGISTRY
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
@@ -196,3 +197,87 @@ class TestLambdaBuilder_build(TestCase):
             os_mock.makedirs.assert_not_called()
         else:
             os_mock.makedirs.assert_called_once_with("scratch_dir")
+
+
+class TestLambdaBuilder_prepare_shared_project(TestCase):
+    # other test modules clear the workflow registry, so these tests resolve the workflow class
+    # through a patched get_workflow rather than depending on registry state
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.prepare_shared_project")
+    def test_dispatches_to_the_nodejs_workflow(self, prepare_mock, get_workflow_mock):
+        from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
+
+        get_workflow_mock.return_value = NodejsNpmWorkflow
+        builder = LambdaBuilder("nodejs", "npm", None)
+
+        builder.prepare_shared_project("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+        prepare_mock.assert_called_once_with("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow.prepare_shared_project")
+    def test_the_esbuild_workflow_also_declares_the_shared_project_hook(self, prepare_mock, get_workflow_mock):
+        from aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow import NodejsNpmEsbuildWorkflow
+
+        get_workflow_mock.return_value = NodejsNpmEsbuildWorkflow
+        builder = LambdaBuilder("nodejs", "npm-esbuild", None)
+
+        builder.prepare_shared_project("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+        prepare_mock.assert_called_once_with("/monorepo", experimental_flags=["experimentalNodejsMonorepo"])
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.prepare_shared_project")
+    def test_forwards_no_flags_as_none_rather_than_dropping_the_argument(self, prepare_mock, get_workflow_mock):
+        # the workflow decides what an absent flag means, so the argument must always reach it
+        from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
+
+        get_workflow_mock.return_value = NodejsNpmWorkflow
+        builder = LambdaBuilder("nodejs", "npm", None)
+
+        builder.prepare_shared_project("/monorepo")
+
+        prepare_mock.assert_called_once_with("/monorepo", experimental_flags=None)
+
+    def test_the_esbuild_workflow_shares_the_nodejs_implementation(self):
+        from aws_lambda_builders.workflows.nodejs_npm.workflow import NodejsNpmWorkflow
+        from aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow import NodejsNpmEsbuildWorkflow
+
+        self.assertIs(NodejsNpmEsbuildWorkflow.prepare_shared_project, NodejsNpmWorkflow.prepare_shared_project)
+
+    @patch("aws_lambda_builders.builder.get_workflow")
+    def test_raises_the_typed_error_for_a_workflow_without_a_shared_project_hook(self, get_workflow_mock):
+        # a real workflow that does not override the hook, so this pins the BaseWorkflow default rather
+        # than a stand-in: the refusal has to hold for a workflow nobody thought about shared projects for
+        from aws_lambda_builders.workflows.python_pip.workflow import PythonPipWorkflow
+
+        get_workflow_mock.return_value = PythonPipWorkflow
+        builder = LambdaBuilder("python", "pip", None)
+
+        with self.assertRaises(SharedProjectNotSupportedError):
+            builder.prepare_shared_project("/monorepo")
+
+    def test_the_default_refusal_names_the_workflow_capability(self):
+        # the message is what a caller logs when it falls back, so it has to say which workflow declined
+        from aws_lambda_builders.workflows.python_pip.workflow import PythonPipWorkflow
+
+        with self.assertRaises(SharedProjectNotSupportedError) as raised:
+            PythonPipWorkflow.prepare_shared_project("/monorepo")
+
+        self.assertIn("python", str(raised.exception))
+
+    def test_every_workflow_answers_the_shared_project_hook(self):
+        # LambdaBuilder calls this unconditionally now, so a workflow that did not answer it would
+        # raise AttributeError - which is not a LambdaBuilderError, so a caller holding a fallback
+        # open for exactly this case would crash instead
+        import aws_lambda_builders.workflows  # noqa: F401  (registers every bundled workflow)
+        from aws_lambda_builders.workflow import BaseWorkflow
+
+        subclasses = BaseWorkflow.__subclasses__()
+        self.assertGreater(len(subclasses), 1)
+        for workflow_cls in subclasses:
+            self.assertTrue(
+                callable(getattr(workflow_cls, "prepare_shared_project", None)),
+                f"{workflow_cls.__name__} does not answer prepare_shared_project",
+            )
