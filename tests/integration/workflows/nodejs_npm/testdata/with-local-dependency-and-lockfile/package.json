@@ -1,0 +1,16 @@
+{
+  "name": "with-local-dependency-and-lockfile",
+  "version": "1.0.0",
+  "description": "",
+  "files": [
+    "included.js"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "main": "included.js",
+  "dependencies": {
+    "local-dependency": "file:../npm-deps",
+    "minimal-request-promise": "^1.3.0"
+  }
+}
