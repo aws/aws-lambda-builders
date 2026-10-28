@@ -132,16 +132,82 @@ class LinkSourceAction(BaseAction):
         self._dest_dir = dest_dir
 
     def execute(self):
+        # Match CopySourceAction, which this replaces for layers: a dependencies directory that was
+        # never created (download_dependencies=False against a missing cache) is skipped, not fatal.
+        if not os.path.isdir(self._source_dir):
+            LOG.warning("Skipping link operation since source %s does not exist", self._source_dir)
+            return
+
         source_files = set(os.listdir(self._source_dir))
 
         for source_file in source_files:
             source_path = Path(self._source_dir, source_file)
             destination_path = Path(self._dest_dir, source_file)
-            if destination_path.exists():
+            if destination_path.is_symlink() or destination_path.is_file():
+                # is_symlink() is checked first and deliberately: a dangling symlink is not
+                # exists(), so the previous exists() check left it in place and os.symlink then
+                # failed with FileExistsError.
                 os.remove(destination_path)
+            elif destination_path.is_dir():
+                # A real directory left behind by an earlier copying build. os.remove cannot remove
+                # it, and leaving it would shadow the symlink we are about to create.
+                shutil.rmtree(destination_path)
             else:
                 os.makedirs(destination_path.parent, exist_ok=True)
             utils.create_symlink_or_copy(str(source_path), str(destination_path))
+
+        self._prune_dangling_links(source_files)
+
+    def _prune_dangling_links(self, source_files):
+        """
+        Remove links this action left behind for sources that have since disappeared.
+
+        The loop above only visits names present in the source directory, so a dependency dropped
+        from the manifest keeps its destination entry from the previous build. While that entry was
+        a copied directory it was merely stale; as a link into a dependencies directory that has
+        been cleaned it dangles, and a dangling link is not a directory -- os.walk yields it among
+        the *files*, where both zipfile.write and tarfile.add(dereference=True) raise
+        FileNotFoundError instead of skipping it.
+
+        Only broken links pointing back into our own source directory are removed, so a link that
+        another consumer put in the destination (nodejs_npm_esbuild links into a scratch_dir that
+        already holds copied source) is left alone.
+        """
+        if not os.path.isdir(self._dest_dir):
+            return
+
+        for name in set(os.listdir(self._dest_dir)) - source_files:
+            stale_path = Path(self._dest_dir, name)
+            if not stale_path.is_symlink() or stale_path.exists():
+                continue
+            if not self._points_into_source(stale_path):
+                continue
+            LOG.debug("Removing %s: a link to a source that no longer exists", stale_path)
+            os.remove(stale_path)
+
+    def _points_into_source(self, link_path):
+        """
+        Is this link one we created, i.e. does it name a direct child of our source directory?
+
+        Read with os.readlink rather than os.path.realpath. For a BROKEN link the two disagree by
+        platform: POSIX realpath expands the recorded target whether or not it exists, while
+        Windows falls back to _getfinalpathname_nonstrict, which resolves as much of the path as
+        exists and joins the rest -- for a dangling link that is the link's own path, so the
+        recorded target is never consulted and every comparison against the source directory
+        fails. Windows CI is the gate that catches a regression here.
+
+        samefile() does the comparison because it is immune to the ways two spellings of one
+        directory differ (8.3 short names such as RUNNER~1, case, a symlinked temp root).
+        """
+        target = os.readlink(link_path)
+        if not os.path.isabs(target):
+            # A relative target is recorded verbatim and is meaningless without its link's parent.
+            target = os.path.join(os.path.dirname(link_path), target)
+
+        target_parent = os.path.dirname(os.path.normpath(target))
+        if not os.path.isdir(target_parent):
+            return False
+        return os.path.samefile(target_parent, self._source_dir)
 
 
 class LinkSinglePathAction(BaseAction):
