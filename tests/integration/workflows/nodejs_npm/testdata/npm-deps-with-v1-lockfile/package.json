@@ -1,0 +1,18 @@
+{
+  "name": "npmdepswithv1lockfile",
+  "version": "1.0.0",
+  "description": "",
+  "files": [
+    "included.js"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "APACHE2.0",
+  "main": "included.js",
+  "dependencies": {
+    "minimal-request-promise": "^1.3.0"
+  },
+  "devDependencies": {
+    "ms": "^2.1.3"
+  }
+}

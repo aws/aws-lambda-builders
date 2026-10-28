@@ -1,0 +1,10 @@
+{
+  "name": "@nodejs-workspaces-monorepo/other",
+  "version": "1.0.0",
+  "license": "APACHE2.0",
+  "main": "included.js",
+  "files": ["included.js"],
+  "dependencies": {
+    "ms": "^2.1.3"
+  }
+}

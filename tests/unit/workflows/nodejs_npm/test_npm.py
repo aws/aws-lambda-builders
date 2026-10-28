@@ -80,3 +80,47 @@ class TestSubprocessNpm(TestCase):
             self.under_test.run([])
 
         self.assertEqual(raised.exception.args[0], "requires at least one arg")
+
+
+class TestSubprocessNpmResolveProjectRoot(TestCase):
+    @patch("aws_lambda_builders.workflows.nodejs_npm.utils.OSUtils")
+    def setUp(self, OSUtilMock):
+        self.osutils = OSUtilMock.return_value
+        self.osutils.pipe = "PIPE"
+        self.under_test = SubprocessNpm(self.osutils, npm_exe="npm")
+
+    def test_asks_npm_for_the_prefix_and_strips_the_trailing_newline(self):
+        self.osutils.popen.side_effect = [FakePopen(out=b"/repo\n")]
+
+        self.assertEqual(self.under_test.resolve_project_root("/repo/endpoints/a"), "/repo")
+        self.osutils.popen.assert_called_with(["npm", "prefix"], cwd="/repo/endpoints/a", stderr="PIPE", stdout="PIPE")
+
+    def test_asks_npm_once_per_directory(self):
+        # both the lockfile lookup and the artifacts link need this answer for the same directory, and
+        # every extra call is another npm process in a build that already runs one per function
+        self.osutils.popen.side_effect = [FakePopen(out=b"/repo\n")]
+
+        self.assertEqual(self.under_test.resolve_project_root("/repo/endpoints/a"), "/repo")
+        self.assertEqual(self.under_test.resolve_project_root("/repo/endpoints/a"), "/repo")
+
+        self.assertEqual(self.osutils.popen.call_count, 1)
+
+    def test_asks_again_for_a_different_directory(self):
+        self.osutils.popen.side_effect = [FakePopen(out=b"/repo\n"), FakePopen(out=b"/other\n")]
+
+        self.assertEqual(self.under_test.resolve_project_root("/repo/endpoints/a"), "/repo")
+        self.assertEqual(self.under_test.resolve_project_root("/other"), "/other")
+
+    def test_returns_none_when_npm_fails(self):
+        self.osutils.popen.side_effect = [FakePopen(err=b"boom!", retcode=1)]
+
+        self.assertIsNone(self.under_test.resolve_project_root("/repo/endpoints/a"))
+
+    def test_caches_the_failure_too(self):
+        # a second npm process would fail the same way; the caller falls back either way
+        self.osutils.popen.side_effect = [FakePopen(err=b"boom!", retcode=1)]
+
+        self.assertIsNone(self.under_test.resolve_project_root("/repo/endpoints/a"))
+        self.assertIsNone(self.under_test.resolve_project_root("/repo/endpoints/a"))
+
+        self.assertEqual(self.osutils.popen.call_count, 1)
