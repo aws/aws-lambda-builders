@@ -344,6 +344,30 @@ class TestLinkSourceAction(TestCase):
             for name in files:
                 self.assertTrue(Path(root, name).exists(), f"{name} is a broken link")
 
+    def test_prunes_a_link_whose_recorded_target_is_relative(self):
+        # os.readlink returns a relative target verbatim, so it means nothing without the link's
+        # own parent. Without that join the containment check rejects the link and it survives.
+        self._execute()
+        (self.dest_dir / "somepkg").unlink()
+        os.symlink(os.path.join("..", "deps", "somepkg"), self.dest_dir / "somepkg")
+        shutil.rmtree(self.source_dir / "somepkg")
+        self.assertTrue((self.dest_dir / "somepkg").is_symlink())
+
+        self._execute()
+
+        self.assertNotIn("somepkg", os.listdir(self.dest_dir))
+
+    def test_keeps_a_broken_link_whose_target_tree_is_gone_entirely(self):
+        # samefile() raises FileNotFoundError when either side is missing, so a link into a tree
+        # that has been removed wholesale must be rejected before the comparison, not during it.
+        orphan = self.dest_dir / "orphan"
+        orphan.symlink_to(Path(self._tmp.name, "removed-tree", "pkg"))
+
+        self._execute()
+
+        self.assertTrue(orphan.is_symlink())
+        self._assert_linked()
+
     def test_keeps_a_broken_link_pointing_outside_the_source_directory(self):
         # nodejs_npm_esbuild links into a scratch_dir that already holds copied source. An entry
         # this action did not create is not ours to reconcile, even when it is broken.

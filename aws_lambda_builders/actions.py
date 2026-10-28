@@ -176,19 +176,38 @@ class LinkSourceAction(BaseAction):
         if not os.path.isdir(self._dest_dir):
             return
 
-        source_root = Path(self._source_dir).resolve()
-
         for name in set(os.listdir(self._dest_dir)) - source_files:
             stale_path = Path(self._dest_dir, name)
             if not stale_path.is_symlink() or stale_path.exists():
                 continue
-            # realpath() resolves a broken link to where it points rather than raising, which is
-            # what we need to compare against; Path.resolve() would be fine too, but the intent is
-            # the recorded target, not a path that must exist.
-            if not Path(os.path.realpath(stale_path)).is_relative_to(source_root):
+            if not self._points_into_source(stale_path):
                 continue
             LOG.debug("Removing %s: a link to a source that no longer exists", stale_path)
             os.remove(stale_path)
+
+    def _points_into_source(self, link_path):
+        """
+        Is this link one we created, i.e. does it name a direct child of our source directory?
+
+        Read with os.readlink rather than os.path.realpath. For a BROKEN link the two disagree by
+        platform: POSIX realpath expands the recorded target whether or not it exists, while
+        Windows falls back to _getfinalpathname_nonstrict, which resolves as much of the path as
+        exists and joins the rest -- for a dangling link that is the link's own path, so the
+        recorded target is never consulted and every comparison against the source directory
+        fails. Windows CI is the gate that catches a regression here.
+
+        samefile() does the comparison because it is immune to the ways two spellings of one
+        directory differ (8.3 short names such as RUNNER~1, case, a symlinked temp root).
+        """
+        target = os.readlink(link_path)
+        if not os.path.isabs(target):
+            # A relative target is recorded verbatim and is meaningless without its link's parent.
+            target = os.path.join(os.path.dirname(link_path), target)
+
+        target_parent = os.path.dirname(os.path.normpath(target))
+        if not os.path.isdir(target_parent):
+            return False
+        return os.path.samefile(target_parent, self._source_dir)
 
 
 class LinkSinglePathAction(BaseAction):
