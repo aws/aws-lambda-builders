@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from unittest import TestCase
@@ -325,6 +326,71 @@ class TestLinkSourceAction(TestCase):
         LinkSourceAction(str(missing), str(self.dest_dir)).execute()
 
         self.assertEqual(os.listdir(self.dest_dir), [])
+
+    def test_prunes_a_link_to_a_dependency_dropped_from_the_manifest(self):
+        # The link loop only visits names still in the source, so a dependency dropped from the
+        # manifest keeps its link from the previous build. It dangles once the dependencies dir is
+        # cleaned, and both zipfile.write and tarfile.add(dereference=True) raise FileNotFoundError
+        # on a broken link rather than skipping it.
+        self._execute()
+        shutil.rmtree(self.source_dir / "somepkg")
+        self.assertTrue((self.dest_dir / "somepkg").is_symlink())
+
+        self._execute()
+
+        self.assertNotIn("somepkg", os.listdir(self.dest_dir))
+        self.assertTrue((self.dest_dir / "six.py").is_symlink())
+        for root, _, files in os.walk(self.dest_dir, followlinks=True):
+            for name in files:
+                self.assertTrue(Path(root, name).exists(), f"{name} is a broken link")
+
+    def test_keeps_a_broken_link_pointing_outside_the_source_directory(self):
+        # nodejs_npm_esbuild links into a scratch_dir that already holds copied source. An entry
+        # this action did not create is not ours to reconcile, even when it is broken.
+        foreign = self.dest_dir / "foreign"
+        foreign.symlink_to(Path(self._tmp.name, "elsewhere"))
+
+        self._execute()
+
+        self.assertTrue(foreign.is_symlink())
+        self._assert_linked()
+
+    def test_leaves_a_real_stale_entry_from_a_dropped_dependency(self):
+        # Only broken links are ours to reconcile. A real directory left by an earlier copying
+        # build is stale but still packages and runs, which is how it behaved before this change;
+        # pruning build artifacts a build did not produce belongs to the caller, not this action.
+        stale = self.dest_dir / "dropped"
+        stale.mkdir()
+        (stale / "__init__.py").write_text("stale")
+
+        self._execute()
+
+        self.assertTrue(stale.is_dir())
+        self.assertEqual((stale / "__init__.py").read_text(), "stale")
+
+    def test_keeps_a_working_link_into_the_source_tree_under_another_name(self):
+        # Only BROKEN links are reconciled. A link that still resolves is serving someone, even
+        # when it points into our source tree under a name the source directory does not list.
+        alias = self.dest_dir / "alias.py"
+        alias.symlink_to(self.source_dir / "somepkg" / "__init__.py")
+        self.assertTrue(alias.exists())
+
+        self._execute()
+
+        self.assertTrue(alias.is_symlink())
+        self.assertEqual(alias.read_text(), "hello")
+
+    def test_tolerates_an_empty_source_and_a_destination_that_was_never_created(self):
+        # With at least one source file the link loop creates the destination on the way past, so
+        # this is the only ordering that reaches the prune step with no destination directory: an
+        # empty dependencies dir (pip downloaded nothing) and a first build.
+        empty_source = Path(self._tmp.name, "empty-deps")
+        empty_source.mkdir()
+        dest = Path(self._tmp.name, "artifacts-2")
+
+        LinkSourceAction(str(empty_source), str(dest)).execute()
+
+        self.assertFalse(dest.exists())
 
 
 class TestLinkSinglePathAction(TestCase):

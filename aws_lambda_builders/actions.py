@@ -156,6 +156,40 @@ class LinkSourceAction(BaseAction):
                 os.makedirs(destination_path.parent, exist_ok=True)
             utils.create_symlink_or_copy(str(source_path), str(destination_path))
 
+        self._prune_dangling_links(source_files)
+
+    def _prune_dangling_links(self, source_files):
+        """
+        Remove links this action left behind for sources that have since disappeared.
+
+        The loop above only visits names present in the source directory, so a dependency dropped
+        from the manifest keeps its destination entry from the previous build. While that entry was
+        a copied directory it was merely stale; as a link into a dependencies directory that has
+        been cleaned it dangles, and a dangling link is not a directory -- os.walk yields it among
+        the *files*, where both zipfile.write and tarfile.add(dereference=True) raise
+        FileNotFoundError instead of skipping it.
+
+        Only broken links pointing back into our own source directory are removed, so a link that
+        another consumer put in the destination (nodejs_npm_esbuild links into a scratch_dir that
+        already holds copied source) is left alone.
+        """
+        if not os.path.isdir(self._dest_dir):
+            return
+
+        source_root = Path(self._source_dir).resolve()
+
+        for name in set(os.listdir(self._dest_dir)) - source_files:
+            stale_path = Path(self._dest_dir, name)
+            if not stale_path.is_symlink() or stale_path.exists():
+                continue
+            # realpath() resolves a broken link to where it points rather than raising, which is
+            # what we need to compare against; Path.resolve() would be fine too, but the intent is
+            # the recorded target, not a path that must exist.
+            if not Path(os.path.realpath(stale_path)).is_relative_to(source_root):
+                continue
+            LOG.debug("Removing %s: a link to a source that no longer exists", stale_path)
+            os.remove(stale_path)
+
 
 class LinkSinglePathAction(BaseAction):
     NAME = "LinkSource"
