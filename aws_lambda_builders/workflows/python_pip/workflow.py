@@ -127,7 +127,20 @@ class PythonPipWorkflow(BaseWorkflow):
             # The links are absolute, so they only resolve on the machine that built them. SAM CLI's
             # container build (`sam build --use-container`) never sends a dependencies_dir over
             # JSON-RPC, so it cannot reach this branch; a caller that does must share the path.
-            if self.is_building_layer and is_experimental_build_improvements_enabled(self.experimental_flags):
+            #
+            # Parent packages are the one layer configuration that must keep copying.
+            # PythonCreateParentPackagesAction runs last and calls mkdir(parents=True) on
+            # artifacts_dir/<first segment>/..., which follows a link of that name straight into
+            # dependencies_dir and then renames the source files in there -- writing the build's
+            # own files into the cache that later --cached builds reuse. SAM CLI reaches this for a
+            # layer whose metadata carries BuildProperties.ParentPackageMode (app_builder.py's
+            # _get_build_options is called for layers too), so copying here is what keeps the
+            # dependencies directory read-only to this workflow.
+            if (
+                self.is_building_layer
+                and not self._should_create_parent_packages()
+                and is_experimental_build_improvements_enabled(self.experimental_flags)
+            ):
                 self._actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
             else:
                 self._actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))

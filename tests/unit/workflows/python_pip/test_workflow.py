@@ -227,6 +227,32 @@ class TestPythonPipWorkflow(TestCase):
         self.assertIsInstance(actions_for(is_building_layer=True)[2], LinkSourceAction)
         self.assertIsInstance(actions_for(is_building_layer=False)[2], CopySourceAction)
 
+    def test_a_layer_wanting_parent_packages_copies_instead_of_linking(self):
+        """PythonCreateParentPackagesAction runs last and mkdir()s through artifacts_dir/<first
+        segment>/..., so a link of that name leads straight into dependencies_dir and the source
+        files are renamed into the cache that --cached reuses. Copying keeps the cache read-only."""
+
+        def actions_for(options):
+            osutils_mock = Mock(spec=self.osutils)
+            osutils_mock.file_exists.return_value = True
+            return PythonPipWorkflow(
+                "source",
+                "artifacts",
+                "scratch_dir",
+                "manifest",
+                runtime="python3.9",
+                osutils=osutils_mock,
+                dependencies_dir="dep",
+                download_dependencies=True,
+                experimental_flags=[EXPERIMENTAL_FLAG_BUILD_PERFORMANCE],
+                is_building_layer=True,
+                options=options,
+            ).actions
+
+        self.assertIsInstance(actions_for({"parent_python_packages": "google.cloud"})[2], CopySourceAction)
+        # Any other option leaves the optimisation in place.
+        self.assertIsInstance(actions_for({"artifact_executable_name": "app"})[2], LinkSourceAction)
+
     @patch("aws_lambda_builders.workflows.python_pip.workflow.PythonPipBuildAction")
     def test_must_build_with_architecture(self, PythonPipBuildActionMock):
         self.workflow = PythonPipWorkflow(
