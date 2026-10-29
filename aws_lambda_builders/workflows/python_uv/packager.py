@@ -4,6 +4,7 @@ UV-based Python dependency packager for AWS Lambda
 
 import logging
 import os
+import re
 from typing import Dict, List, Optional
 
 from aws_lambda_builders.architecture import ARM64, X86_64
@@ -127,12 +128,12 @@ class UvRunner:
 
         args = ["pip", "install"]
 
-        # Add requirements file
-        args.extend(["-r", requirements_path])
+        # Resolve the requirements file before UV changes to the project or workspace directory
+        args.extend(["-r", os.path.abspath(requirements_path)])
 
-        # Resolve --target to an absolute path: UV runs with cwd set to the project directory, so a
-        # relative target (e.g. the incremental-build dependencies dir) would otherwise be created
-        # under the source directory instead of the build root.
+        # Resolve --target to an absolute path: UV runs from the project or workspace directory,
+        # so a relative target (e.g. the incremental-build dependencies dir) would otherwise be
+        # created under the UV's cwd instead of the build root.
         args.extend(["--target", os.path.abspath(target_dir)])
 
         # Add configuration arguments
@@ -261,19 +262,108 @@ class PythonUvDependencyBuilder:
         """
         Smart pyproject.toml handler that checks for uv.lock.
 
-        If uv.lock exists alongside pyproject.toml, use lock-based build for more precise dependency resolution.
+        If uv.lock exists, use lock-based build for more precise dependency resolution.
         Otherwise, use standard pyproject.toml build.
         """
-        manifest_dir = os.path.dirname(manifest_path)
-        uv_lock_path = os.path.join(manifest_dir, "uv.lock")
+        project_dir = os.path.dirname(manifest_path)
+        workspace_dir = self._resolve_workspace_dir(project_dir)
+        uv_lock_path = os.path.join(workspace_dir, "uv.lock")
 
         if os.path.exists(uv_lock_path):
-            LOG.info("Found uv.lock alongside pyproject.toml - using lock-based build for precise dependencies")
+            LOG.info("Found uv.lock at %s - using lock-based build for precise dependencies", uv_lock_path)
             # Use lock file for more precise builds
-            self._build_from_lock_file(uv_lock_path, target_dir, scratch_dir, python_version, architecture, config)
+            self._build_from_lock_file(
+                uv_lock_path,
+                target_dir,
+                scratch_dir,
+                python_version,
+                architecture,
+                config,
+                project_dir=project_dir,
+                workspace_dir=workspace_dir,
+            )
         else:
             # Standard pyproject.toml build
-            self._build_from_pyproject(manifest_path, target_dir, scratch_dir, python_version, architecture, config)
+            self._build_from_pyproject(
+                manifest_path,
+                target_dir,
+                scratch_dir,
+                python_version,
+                architecture,
+                config,
+                workspace_dir=workspace_dir,
+            )
+
+    def _resolve_workspace_dir(self, project_dir: str) -> str:
+        """Find the workspace root, falling back for UV versions without this command."""
+        version = self._uv_runner.uv_version
+        # Only interpret plain release versions. Probe the command for unknown
+        # or prerelease versions instead of assuming whether it is supported.
+        if version and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+            if tuple(int(part) for part in version.split(".")) < (0, 9, 9):
+                self._log_workspace_fallback(project_dir)
+                return project_dir
+
+        rc, stdout, stderr = self._uv_runner._uv.run_uv_command(["workspace", "dir"], cwd=project_dir)
+        workspace_dir = stdout.strip() if rc == 0 else ""
+        if workspace_dir:
+            return workspace_dir
+        if rc != 0 and "unrecognized subcommand 'workspace'" in stderr:
+            self._log_workspace_fallback(project_dir)
+            return project_dir
+        # Other failures do not establish that this is a standalone project. Stop
+        # rather than risk missing a workspace lock and regenerating it, or installing
+        # workspace-relative dependencies from the wrong directory. This deliberately
+        # also stops standalone builds when discovery fails. A successful exit with
+        # empty output is still a failure to discover the root, not evidence of no workspace.
+        reason = stderr.strip() or f"uv workspace dir returned no workspace path (exit code {rc})"
+        raise UvBuildError(reason=f"Could not determine the UV workspace root for {project_dir}: {reason}")
+
+    def _log_workspace_fallback(self, project_dir: str) -> None:
+        """Use workspace configuration only as a warning hint, not as a root or membership decision."""
+        LOG.debug(
+            "This UV build does not support `uv workspace dir` (requires uv >= 0.9.9); "
+            "falling back to project directory %s.",
+            project_dir,
+        )
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            try:
+                import tomli as tomllib
+            except ModuleNotFoundError:
+                LOG.debug("Skipping workspace configuration hint: no TOML parser is available.")
+                return
+
+        directory = os.path.abspath(project_dir)
+        while True:
+            manifest = os.path.join(directory, "pyproject.toml")
+            try:
+                with open(manifest, "rb") as file:
+                    config = tomllib.load(file)
+                # Ancestor manifests may contain valid TOML with unrelated value types.
+                # Only an actual table is a workspace hint; diagnostics must not fail the build.
+                tool_config = config.get("tool")
+                uv_config = tool_config.get("uv") if isinstance(tool_config, dict) else None
+                has_uv_workspace_table = isinstance(uv_config, dict) and isinstance(uv_config.get("workspace"), dict)
+                if has_uv_workspace_table:
+                    LOG.warning(
+                        "UV does not support `uv workspace dir` (requires uv >= 0.9.9), and workspace "
+                        "configuration was found in %s. Falling back to project directory %s. "
+                        "If this project is a member of that workspace, upgrade uv. "
+                        "Workspace members and exclusions have not been evaluated.",
+                        manifest,
+                        project_dir,
+                    )
+                    return
+            except FileNotFoundError:
+                pass
+            except (OSError, ValueError) as error:
+                LOG.debug("Could not inspect workspace configuration in %s: %s", manifest, error)
+            parent = os.path.dirname(directory)
+            if parent == directory:
+                return
+            directory = parent
 
     def _is_requirements_file(self, filename: str) -> bool:
         """
@@ -305,6 +395,8 @@ class PythonUvDependencyBuilder:
         python_version: str,
         architecture: str,
         config: UvConfig,
+        project_dir: Optional[str] = None,
+        workspace_dir: Optional[str] = None,
     ) -> None:
         """Build dependencies from uv.lock file.
 
@@ -315,10 +407,12 @@ class PythonUvDependencyBuilder:
         LOG.info("Building from UV lock file")
 
         try:
-            project_dir = os.path.dirname(lock_path)
+            if project_dir is None:
+                project_dir = os.path.dirname(lock_path)
 
             # Export lock file to requirements.txt for platform-specific install
-            temp_requirements = os.path.join(scratch_dir, "lock_requirements.txt")
+            # Export and install may run from different directories in a workspace
+            temp_requirements = os.path.abspath(os.path.join(scratch_dir, "lock_requirements.txt"))
             export_args = [
                 "export",
                 "--format",
@@ -326,6 +420,8 @@ class PythonUvDependencyBuilder:
                 "--no-emit-project",  # Don't include the project itself, only dependencies
                 "--no-hashes",  # Skip hashes for cleaner output (optional)
                 "--no-default-groups",  # Exclude PEP 735 default groups (e.g. dev/test) from Lambda zips
+                # Install package bodies instead of editable .pth links, which break in Lambda zips.
+                "--no-editable",
                 "--output-file",
                 temp_requirements,
                 # We want to specify the version because `uv export` might default to using a different one
@@ -338,6 +434,11 @@ class PythonUvDependencyBuilder:
             if rc != 0:
                 raise LockFileError(reason=f"Failed to export lock file: {stderr}")
 
+            # Export selects the member's dependencies, but exported local paths
+            # are relative to the workspace root.
+            if workspace_dir is None:
+                workspace_dir = self._resolve_workspace_dir(project_dir)
+
             # Install with platform targeting
             self._uv_runner.install_requirements(
                 requirements_path=temp_requirements,
@@ -345,7 +446,7 @@ class PythonUvDependencyBuilder:
                 config=config,
                 python_version=python_version,
                 platform="linux",
-                cwd=project_dir,
+                cwd=workspace_dir,
                 architecture=architecture,
             )
         except LockFileError:
@@ -361,6 +462,7 @@ class PythonUvDependencyBuilder:
         python_version: str,
         architecture: str,
         config: UvConfig,
+        workspace_dir: Optional[str] = None,
     ) -> None:
         """Build dependencies from pyproject.toml file using UV's native workflow."""
         LOG.info("Building from pyproject.toml using UV lock and export")
@@ -378,8 +480,19 @@ class PythonUvDependencyBuilder:
                 raise UvBuildError(reason=f"UV lock failed: {stderr}")
 
             # Reuse lock file build logic
-            lock_path = os.path.join(project_dir, "uv.lock")
-            self._build_from_lock_file(lock_path, target_dir, scratch_dir, python_version, architecture, config)
+            if workspace_dir is None:
+                workspace_dir = self._resolve_workspace_dir(project_dir)
+            lock_path = os.path.join(workspace_dir, "uv.lock")
+            self._build_from_lock_file(
+                lock_path,
+                target_dir,
+                scratch_dir,
+                python_version,
+                architecture,
+                config,
+                project_dir=project_dir,
+                workspace_dir=workspace_dir,
+            )
 
         except Exception as e:
             raise UvBuildError(reason=f"Failed to build from pyproject.toml: {str(e)}")
