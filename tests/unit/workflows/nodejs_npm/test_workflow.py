@@ -829,6 +829,155 @@ class TestNodejsNpmWorkflowGetLockfilePath(TestCase):
         self.assertIsInstance(action, NodejsNpmUpdateAction)
 
 
+class TestNodejsNpmWorkflowInSourceDevDependencies(TestCase):
+    """
+    An in-source install at a workspace member reconciles the monorepo root's hoisted tree, so
+    --omit=dev there deletes the ROOT's own devDependencies out of the customer's node_modules:
+    aws/aws-sam-cli#6491. These pin which installs stop passing it, and which keep passing it.
+    """
+
+    def setUp(self):
+        self.osutils = OSUtils()
+        self.tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp_dir, True)
+        self.subprocess_npm = Mock()
+
+    def _touch(self, *path_parts):
+        file_path = os.path.join(self.tmp_dir, *path_parts)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "w") as f:
+            f.write("{}")
+        return file_path
+
+    def _npm_prefix_is(self, *path_parts):
+        self.subprocess_npm.resolve_project_root.return_value = os.path.join(self.tmp_dir, *path_parts)
+
+    def _install_action(
+        self,
+        install_dir,
+        is_building_in_source=True,
+        experimental_flags=("experimentalNodejsMonorepo",),
+        omit_dev=True,
+    ):
+        return NodejsNpmWorkflow.get_install_action(
+            source_dir=os.path.join(self.tmp_dir, install_dir),
+            install_dir=os.path.join(self.tmp_dir, install_dir),
+            subprocess_npm=self.subprocess_npm,
+            osutils=self.osutils,
+            build_options=None,
+            is_building_in_source=is_building_in_source,
+            experimental_flags=list(experimental_flags),
+            omit_dev=omit_dev,
+        )
+
+    def test_a_workspace_member_install_keeps_dev_dependencies(self):
+        # npm reports the monorepo root for a member, so the install reconciles a tree the build does
+        # not own and must not prune
+        self._touch("package.json")
+        self._touch("endpoints", "a", "package.json")
+        self._npm_prefix_is()
+
+        action = self._install_action(install_dir=os.path.join("endpoints", "a"))
+
+        self.assertIsInstance(action, NodejsNpmUpdateAction)
+        self.assertFalse(action.omit_dev)
+
+    def test_the_lockfile_install_at_a_member_keeps_dev_dependencies_too(self):
+        # the same decision has to hold on the other branch of get_install_action
+        self._touch("package.json")
+        self._touch("package-lock.json")
+        self._touch("endpoints", "a", "package.json")
+        self._npm_prefix_is()
+
+        action = self._install_action(install_dir=os.path.join("endpoints", "a"))
+
+        self.assertIsInstance(action, NodejsNpmInstallAction)
+        self.assertFalse(action.omit_dev)
+
+    def test_a_standalone_project_still_omits_dev(self):
+        # npm's project root is the install directory itself: there is no enclosing tree to damage, and
+        # pruning keeps dev dependencies out of the artifacts the cheap way
+        self._touch("fn", "package.json")
+        self._npm_prefix_is("fn")
+
+        action = self._install_action(install_dir="fn")
+
+        self.assertTrue(action.omit_dev)
+
+    def test_without_the_flag_a_member_install_still_omits_dev(self):
+        # the rollout guarantee: no behaviour change until the caller opts in
+        self._touch("package.json")
+        self._touch("endpoints", "a", "package.json")
+        self._npm_prefix_is()
+
+        action = self._install_action(install_dir=os.path.join("endpoints", "a"), experimental_flags=())
+
+        self.assertTrue(action.omit_dev)
+
+    def test_a_build_that_is_not_in_source_still_omits_dev(self):
+        # that install lands in a scratch directory the build does own, so pruning is right there and
+        # npm is not even asked where the project root is
+        self._touch("package.json")
+        self._touch("endpoints", "a", "package.json")
+        self._npm_prefix_is()
+
+        action = self._install_action(install_dir=os.path.join("endpoints", "a"), is_building_in_source=False)
+
+        self.assertTrue(action.omit_dev)
+        self.subprocess_npm.resolve_project_root.assert_not_called()
+
+    def test_omit_dev_false_is_left_alone(self):
+        # the shared install at a workspace root already passes False; nothing here may turn it back on
+        self._touch("package.json")
+        self._npm_prefix_is()
+
+        action = self._install_action(install_dir=".", omit_dev=False)
+
+        self.assertFalse(action.omit_dev)
+
+    def test_an_unanswerable_project_root_still_omits_dev(self):
+        # npm could not be asked, so there is no evidence of an enclosing tree and the old behaviour stands
+        self._touch("fn", "package.json")
+        self.subprocess_npm.resolve_project_root.return_value = None
+
+        action = self._install_action(install_dir="fn")
+
+        self.assertTrue(action.omit_dev)
+
+
+class TestNodejsNpmWorkflowEnclosingProjectRoot(TestCase):
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp_dir, True)
+        self.subprocess_npm = Mock()
+
+    def test_reports_a_root_above_the_install_dir(self):
+        member = os.path.join(self.tmp_dir, "endpoints", "a")
+        self.subprocess_npm.resolve_project_root.return_value = self.tmp_dir
+
+        self.assertEqual(NodejsNpmWorkflow.enclosing_project_root(member, self.subprocess_npm), self.tmp_dir)
+
+    def test_reports_none_when_the_install_dir_is_the_root(self):
+        self.subprocess_npm.resolve_project_root.return_value = self.tmp_dir
+
+        self.assertIsNone(NodejsNpmWorkflow.enclosing_project_root(self.tmp_dir, self.subprocess_npm))
+
+    def test_reports_none_when_npm_could_not_be_asked(self):
+        self.subprocess_npm.resolve_project_root.return_value = None
+
+        self.assertIsNone(NodejsNpmWorkflow.enclosing_project_root(self.tmp_dir, self.subprocess_npm))
+
+    def test_a_path_that_differs_only_by_case_or_separator_is_the_root(self):
+        # npm answers with the resolved path while the caller may hold another spelling of it; comparing
+        # the strings raw would read the same directory as an enclosing root and keep dev dependencies
+        # in a standalone project
+        spelled_differently = os.path.join(self.tmp_dir, "fn", "..", "fn")
+        os.makedirs(os.path.join(self.tmp_dir, "fn"), exist_ok=True)
+        self.subprocess_npm.resolve_project_root.return_value = os.path.join(self.tmp_dir, "fn")
+
+        self.assertIsNone(NodejsNpmWorkflow.enclosing_project_root(spelled_differently, self.subprocess_npm))
+
+
 class TestNodejsNpmWorkflowTestActionNotice(TestCase):
     """
     NodejsNpmTestAction rides along with the install, so a build that installs nothing runs no tests.
