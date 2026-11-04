@@ -64,6 +64,25 @@ class TestDecode(TestCase):
 
     @patch("aws_lambda_builders.utils.locale")
     def test_is_able_to_decode_non_utf8_locale(self, mock_locale):
+        mock_locale.getencoding.return_value = "iso-8859-1"
+        message = "hello\n\n ß".encode("iso-8859-1")
+        response = decode(message)
+        self.assertEqual(response, "hello\n\n ß")
+
+    @patch("aws_lambda_builders.utils.locale")
+    def test_uses_locale_encoding_when_utf8_mode_is_enabled(self, mock_locale):
+        # Python 3.15 enables UTF-8 mode by default (PEP 686): getpreferredencoding() reports
+        # utf-8 while the locale (and the output of external tools) still uses another encoding
+        mock_locale.getpreferredencoding.return_value = "utf-8"
+        mock_locale.getencoding.return_value = "iso-8859-1"
+        message = "hello\n\n ß".encode("iso-8859-1")
+        response = decode(message)
+        self.assertEqual(response, "hello\n\n ß")
+
+    @patch("aws_lambda_builders.utils.locale")
+    def test_falls_back_to_preferred_encoding_without_getencoding(self, mock_locale):
+        # locale.getencoding() only exists on Python 3.11+
+        del mock_locale.getencoding
         mock_locale.getpreferredencoding.return_value = "iso-8859-1"
         message = "hello\n\n ß".encode("iso-8859-1")
         response = decode(message)
@@ -73,3 +92,25 @@ class TestDecode(TestCase):
         message = "hello".encode("utf-8")
         response = decode(message)
         self.assertEqual(response, "hello")
+
+
+class TestIsWithinDirectory(TestCase):
+    def test_target_inside_directory(self):
+        self.assertTrue(utils._is_within_directory("/my/path", "/my/path/file"))
+
+    def test_directory_is_within_itself(self):
+        self.assertTrue(utils._is_within_directory("/my/path", "/my/path"))
+
+    def test_target_outside_directory(self):
+        self.assertFalse(utils._is_within_directory("/my/path", "/another/path/file"))
+
+    def test_sibling_directory_sharing_name_prefix_is_not_within(self):
+        # "/my/pathological" shares a string prefix with "/my/path" but is not inside it
+        self.assertFalse(utils._is_within_directory("/my/path", "/my/pathological/file"))
+
+    def test_escaping_with_parent_reference_is_not_within(self):
+        self.assertFalse(utils._is_within_directory("/my/path", "/my/path/../other/file"))
+
+    @patch("aws_lambda_builders.utils.os.path.commonpath", side_effect=ValueError("different drives"))
+    def test_paths_on_different_drives_are_not_within(self, _):
+        self.assertFalse(utils._is_within_directory("C:\\my\\path", "D:\\file"))

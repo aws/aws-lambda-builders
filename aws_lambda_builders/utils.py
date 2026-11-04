@@ -218,9 +218,13 @@ def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, 
     abs_directory = os.path.abspath(directory)
     abs_target = os.path.abspath(target)
 
-    prefix = os.path.commonprefix([abs_directory, abs_target])
-
-    return prefix == abs_directory
+    try:
+        # commonpath compares whole path components; commonprefix compares characters,
+        # which would wrongly treat "/tmp/ab/x" as being inside "/tmp/a".
+        return os.path.commonpath([abs_directory, abs_target]) == abs_directory
+    except ValueError:
+        # Raised for paths on different drives (Windows): they cannot be nested
+        return False
 
 
 def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str, os.PathLike]) -> None:
@@ -236,6 +240,19 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
 
         tar.extractall(unpack_dir)
+
+
+def _locale_encoding() -> str:
+    """
+    Returns the encoding of the current locale.
+
+    Python 3.15 enables UTF-8 mode by default (PEP 686), which makes ``locale.getpreferredencoding()``
+    return "utf-8" regardless of the locale. Output of external tools (pip, npm, maven, ...) is still
+    produced in the locale encoding, so prefer ``locale.getencoding()`` (Python 3.11+), which ignores
+    UTF-8 mode.
+    """
+    getencoding = getattr(locale, "getencoding", None)
+    return getencoding() if getencoding else locale.getpreferredencoding()
 
 
 def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
@@ -258,5 +275,5 @@ def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
     str
        Decoded string with unrecognized characters replaced with a replacement character
     """
-    encoding = encoding or locale.getpreferredencoding()
+    encoding = encoding or _locale_encoding()
     return to_decode.decode(encoding, errors="replace").strip()
