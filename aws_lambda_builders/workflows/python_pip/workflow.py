@@ -116,26 +116,10 @@ class PythonPipWorkflow(BaseWorkflow):
         if self.dependencies_dir and self.combine_dependencies:
             # when copying downloaded dependencies back to artifacts folder, don't exclude anything
             #
-            # Symlinking is only safe for layers. A layer's artifacts are packed into a tarball
-            # (which dereferences symlinks) before they reach the local invoke container, whereas a
-            # function's artifacts are bind-mounted at /var/task, where a symlink pointing outside
-            # the mount dangles unless the caller passes `sam local invoke --mount-symlinks`. That
-            # option does not exist on `sam local start-api` / `start-lambda`, so linking function
-            # dependencies would break those commands -- which is why this was disabled wholesale in
-            # https://github.com/aws/aws-lambda-builders/pull/391. Keep copying for functions.
-            #
-            # The links are absolute, so they only resolve on the machine that built them. SAM CLI's
-            # container build (`sam build --use-container`) never sends a dependencies_dir over
-            # JSON-RPC, so it cannot reach this branch; a caller that does must share the path.
-            #
-            # Parent packages are the one layer configuration that must keep copying.
-            # PythonCreateParentPackagesAction runs last and calls mkdir(parents=True) on
-            # artifacts_dir/<first segment>/..., which follows a link of that name straight into
-            # dependencies_dir and then renames the source files in there -- writing the build's
-            # own files into the cache that later --cached builds reuse. SAM CLI reaches this for a
-            # layer whose metadata carries BuildProperties.ParentPackageMode (app_builder.py's
-            # _get_build_options is called for layers too), so copying here is what keeps the
-            # dependencies directory read-only to this workflow.
+            # Link only for layers: function artifacts are bind-mounted by sam local, where links
+            # outside the mount dangle (see #391). Parent packages keep copying because
+            # PythonCreateParentPackagesAction would write through a link into dependencies_dir.
+            # Links are absolute; sam build --use-container never passes a dependencies_dir.
             if (
                 self.is_building_layer
                 and not self._should_create_parent_packages()
