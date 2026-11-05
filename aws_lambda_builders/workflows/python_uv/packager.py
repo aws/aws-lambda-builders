@@ -269,6 +269,9 @@ class PythonUvDependencyBuilder:
 
         if os.path.exists(uv_lock_path):
             LOG.info("Found uv.lock alongside pyproject.toml - using lock-based build for precise dependencies")
+            LOG.warning(
+                "Using uv.lock without checking pyproject.toml for changes. Run `uv lock` after dependency changes."
+            )
             # Use lock file for more precise builds
             self._build_from_lock_file(uv_lock_path, target_dir, scratch_dir, python_version, architecture, config)
         else:

@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from unittest import TestCase, skipIf
 
-from parameterized import parameterized_class
+from parameterized import parameterized, parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -97,8 +97,9 @@ class TestPythonUvWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
 
+    @parameterized.expand([(False,), (True,)])
     @skipIf(which("uv") is None, "uv not available")
-    def test_workflow_preserves_existing_lock_options(self):
+    def test_workflow_preserves_existing_lock_options(self, changed_manifest):
         with tempfile.TemporaryDirectory() as source_dir:
             manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
             manifest_path.write_text(
@@ -114,17 +115,27 @@ class TestPythonUvWorkflow(TestCase):
             lock_path = pathlib.Path(source_dir) / "uv.lock"
             lock_contents = lock_path.read_bytes()
             self.assertIn(b"exclude-newer", lock_contents)
+            if changed_manifest:
+                manifest_path.write_text(
+                    manifest_path.read_text(encoding="utf-8").replace(
+                        "dependencies = []", 'dependencies = ["six==1.16.0"]'
+                    ),
+                    encoding="utf-8",
+                )
 
-            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
-                source_dir,
-                self.artifacts_dir,
-                self.scratch_dir,
-                str(manifest_path),
-                runtime="python3.13",
-                experimental_flags=self.experimental_flags,
-            )
+            with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    source_dir,
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    str(manifest_path),
+                    runtime="python3.13",
+                    experimental_flags=self.experimental_flags,
+                )
 
             self.assertEqual(lock_path.read_bytes(), lock_contents)
+            self.assertIn("Run `uv lock` after dependency changes", "\n".join(logs.output))
+            self.assertFalse((pathlib.Path(self.artifacts_dir) / "six.py").exists())
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_with_dependencies_dir(self):
