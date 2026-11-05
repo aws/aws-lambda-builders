@@ -4,9 +4,10 @@ import shutil
 import sys
 import platform
 import tempfile
+import zipfile
 from unittest import TestCase, skipIf
 
-from parameterized import parameterized_class
+from parameterized import parameterized, parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -75,6 +76,45 @@ class TestPythonUvWorkflow(TestCase):
         expected_files = self.test_data_files.union({"six.py", "six-1.16.0.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
+
+    @parameterized.expand([(False,), (True,)])
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_installs_local_wheel_from_requirements_directory(self, relative_paths):
+        # Keep paths on the checkout's drive so relative paths also work on Windows.
+        with tempfile.TemporaryDirectory(dir=os.getcwd()) as directory:
+            root = pathlib.Path(directory)
+            source_dir = root / "function"
+            source_dir.mkdir()
+            wheel_path = source_dir / "local_demo-1.0.0-py3-none-any.whl"
+            module = "VALUE = 'from function directory'\n"
+            with zipfile.ZipFile(wheel_path, "w") as wheel:
+                wheel.writestr("local_demo.py", module)
+                wheel.writestr(
+                    "local_demo-1.0.0.dist-info/METADATA",
+                    "Metadata-Version: 2.1\nName: local-demo\nVersion: 1.0.0\n",
+                )
+                wheel.writestr(
+                    "local_demo-1.0.0.dist-info/WHEEL",
+                    "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+                )
+                wheel.writestr("local_demo-1.0.0.dist-info/RECORD", "")
+            manifest_path = source_dir / "requirements.txt"
+            manifest_path.write_text(f"./{wheel_path.name}\n", encoding="utf-8")
+            artifacts_dir = root / "artifacts"
+            scratch_dir = root / "scratch"
+            paths = [source_dir, artifacts_dir, scratch_dir, manifest_path]
+            paths = [os.path.relpath(path) if relative_paths else str(path) for path in paths]
+            original_cwd = os.getcwd()
+
+            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                *paths,
+                runtime="python3.13",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertEqual((artifacts_dir / "local_demo.py").read_text(encoding="utf-8"), module)
+            self.assertFalse((source_dir / "artifacts").exists())
+            self.assertEqual(os.getcwd(), original_cwd)
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_uses_pyproject_toml_file(self):
