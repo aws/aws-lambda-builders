@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 
 from aws_lambda_builders.architecture import X86_64
 from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvBuildError, UvInstallationError
@@ -224,6 +224,29 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Should call export then install_requirements
         self.mock_uv_runner._uv.run_uv_command.assert_called_once()
         self.mock_uv_runner.install_requirements.assert_called_once()
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args.args[0]
+        self.assertIn("--locked", export_args)
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b'[options]\nresolution-mode="lowest-direct"\nprerelease-mode="allow"\n'
+        b'fork-strategy="fewest"\nexclude-newer="2024-01-01T00:00:00Z"\n',
+    )
+    def test_lock_export_reuses_recorded_resolver_options(self, mock_file):
+        self.assertEqual(
+            self.builder._lock_export_options("uv.lock"),
+            [
+                "--resolution",
+                "lowest-direct",
+                "--prerelease",
+                "allow",
+                "--fork-strategy",
+                "fewest",
+                "--exclude-newer",
+                "2024-01-01T00:00:00Z",
+            ],
+        )
 
     def test_build_from_requirements(self):
         self.builder._build_from_requirements(

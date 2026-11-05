@@ -297,6 +297,32 @@ class PythonUvDependencyBuilder:
 
         return False
 
+    @staticmethod
+    def _lock_export_options(lock_path: str) -> List[str]:
+        """Reuse the resolver settings that produced the lock when checking it for export."""
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            import tomli as tomllib
+
+        try:
+            with open(lock_path, "rb") as lock_file:
+                options = tomllib.load(lock_file).get("options", {})
+        except FileNotFoundError:
+            # Leave missing-lock diagnostics to UV.
+            return []
+
+        args = []
+        for option, flag in (
+            ("resolution-mode", "--resolution"),
+            ("prerelease-mode", "--prerelease"),
+            ("fork-strategy", "--fork-strategy"),
+            ("exclude-newer", "--exclude-newer"),
+        ):
+            if option in options:
+                args.extend([flag, options[option]])
+        return args
+
     def _build_from_lock_file(
         self,
         lock_path: str,
@@ -321,6 +347,7 @@ class PythonUvDependencyBuilder:
             temp_requirements = os.path.join(scratch_dir, "lock_requirements.txt")
             export_args = [
                 "export",
+                "--locked",  # Reject stale locks rather than rewriting them or omitting new dependencies
                 "--format",
                 "requirements.txt",
                 "--no-emit-project",  # Don't include the project itself, only dependencies
@@ -333,6 +360,7 @@ class PythonUvDependencyBuilder:
                 "--python",
                 python_version,
             ]
+            export_args.extend(self._lock_export_options(lock_path))
 
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(export_args, cwd=project_dir)
             if rc != 0:

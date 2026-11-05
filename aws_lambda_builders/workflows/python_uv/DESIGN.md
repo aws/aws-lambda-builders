@@ -125,6 +125,9 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 
 **For pyproject.toml with uv.lock present:**
 - Use `uv export` to convert lock file to requirements.txt format
+- Export with `--locked`, reusing the lock's resolution mode, prerelease mode, fork strategy, and `exclude-newer`
+  cutoff so export validates rather than rewrites the existing lock. Stale locks fail the build;
+  run `uv lock` explicitly after dependency changes.
 - Install using `uv pip install` with platform targeting (--python-platform)
 - Provides reproducible builds with locked dependency versions AND cross-platform support
 
