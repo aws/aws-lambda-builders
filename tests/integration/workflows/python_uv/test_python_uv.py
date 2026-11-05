@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import sys
 import platform
+import subprocess
 import tempfile
 from unittest import TestCase, skipIf
 
@@ -95,6 +96,35 @@ class TestPythonUvWorkflow(TestCase):
         expected_files = self.test_data_files.union({"six.py", "six-1.16.0.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_preserves_existing_lock_options(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
+            manifest_path.write_text(
+                '[project]\nname = "locked-demo"\nversion = "1.0.0"\nrequires-python = ">=3.13"\ndependencies = []\n',
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [shutil.which("uv"), "lock", "--offline", "--python", "3.13", "--exclude-newer", "2024-01-01"],
+                cwd=source_dir,
+                check=True,
+                capture_output=True,
+            )
+            lock_path = pathlib.Path(source_dir) / "uv.lock"
+            lock_contents = lock_path.read_bytes()
+            self.assertIn(b"exclude-newer", lock_contents)
+
+            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                str(manifest_path),
+                runtime="python3.13",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertEqual(lock_path.read_bytes(), lock_contents)
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_with_dependencies_dir(self):

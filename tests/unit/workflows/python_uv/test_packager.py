@@ -224,6 +224,8 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Should call export then install_requirements
         self.mock_uv_runner._uv.run_uv_command.assert_called_once()
         self.mock_uv_runner.install_requirements.assert_called_once()
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args.args[0]
+        self.assertIn("--frozen", export_args)
 
     def test_build_from_requirements(self):
         self.builder._build_from_requirements(

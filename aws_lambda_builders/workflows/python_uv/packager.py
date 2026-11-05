@@ -321,6 +321,7 @@ class PythonUvDependencyBuilder:
             temp_requirements = os.path.join(scratch_dir, "lock_requirements.txt")
             export_args = [
                 "export",
+                "--frozen",  # Preserve the existing resolution and lock options during export
                 "--format",
                 "requirements.txt",
                 "--no-emit-project",  # Don't include the project itself, only dependencies
