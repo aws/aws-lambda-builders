@@ -6,6 +6,7 @@ import platform
 import subprocess
 import tempfile
 from unittest import TestCase, skipIf
+from unittest.mock import patch
 
 from parameterized import parameterized, parameterized_class
 
@@ -107,7 +108,21 @@ class TestPythonUvWorkflow(TestCase):
                 encoding="utf-8",
             )
             subprocess.run(
-                [shutil.which("uv"), "lock", "--offline", "--python", "3.13", "--exclude-newer", "2024-01-01"],
+                [
+                    shutil.which("uv"),
+                    "lock",
+                    "--offline",
+                    "--python",
+                    "3.13",
+                    "--exclude-newer",
+                    "2024-01-01",
+                    "--resolution",
+                    "lowest-direct",
+                    "--prerelease",
+                    "allow",
+                    "--fork-strategy",
+                    "fewest",
+                ],
                 cwd=source_dir,
                 check=True,
                 capture_output=True,
@@ -116,14 +131,20 @@ class TestPythonUvWorkflow(TestCase):
             lock_contents = lock_path.read_bytes()
             self.assertIn(b"exclude-newer", lock_contents)
             if changed_manifest:
+                dependency_dir = pathlib.Path(source_dir) / "dep"
+                dependency_dir.mkdir()
+                (dependency_dir / "pyproject.toml").write_text(
+                    '[project]\nname = "local-dep"\nversion = "1.0.0"\n', encoding="utf-8"
+                )
                 manifest_path.write_text(
                     manifest_path.read_text(encoding="utf-8").replace(
-                        "dependencies = []", 'dependencies = ["six==1.16.0"]'
-                    ),
+                        "dependencies = []", 'dependencies = ["local-dep"]'
+                    )
+                    + '\n[tool.uv.sources]\nlocal-dep = {path = "dep"}\n',
                     encoding="utf-8",
                 )
 
-            with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+            def build():
                 LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
                     source_dir,
                     self.artifacts_dir,
@@ -133,9 +154,14 @@ class TestPythonUvWorkflow(TestCase):
                     experimental_flags=self.experimental_flags,
                 )
 
+            with patch.dict(os.environ, {"UV_OFFLINE": "1"}):
+                if changed_manifest:
+                    with self.assertRaisesRegex(WorkflowFailedError, "--locked"):
+                        build()
+                else:
+                    build()
+
             self.assertEqual(lock_path.read_bytes(), lock_contents)
-            self.assertIn("Run `uv lock` after dependency changes", "\n".join(logs.output))
-            self.assertFalse((pathlib.Path(self.artifacts_dir) / "six.py").exists())
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_with_dependencies_dir(self):
