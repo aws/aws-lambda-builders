@@ -115,8 +115,16 @@ class PythonPipWorkflow(BaseWorkflow):
         # folder
         if self.dependencies_dir and self.combine_dependencies:
             # when copying downloaded dependencies back to artifacts folder, don't exclude anything
-            # symlinking python dependencies is disabled for now since it is breaking sam local commands
-            if False and is_experimental_build_improvements_enabled(self.experimental_flags):
+            #
+            # Link only for layers: function artifacts are bind-mounted by sam local, where links
+            # outside the mount dangle (see #391). Parent packages keep copying because
+            # PythonCreateParentPackagesAction would write through a link into dependencies_dir.
+            # Links are absolute; sam build --use-container never passes a dependencies_dir.
+            if (
+                self.is_building_layer
+                and not self._should_create_parent_packages()
+                and is_experimental_build_improvements_enabled(self.experimental_flags)
+            ):
                 self._actions.append(LinkSourceAction(self.dependencies_dir, artifacts_dir))
             else:
                 self._actions.append(CopySourceAction(self.dependencies_dir, artifacts_dir))
