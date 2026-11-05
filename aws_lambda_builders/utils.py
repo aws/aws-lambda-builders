@@ -2,6 +2,7 @@
 Common utilities for the library
 """
 
+import codecs
 import locale
 import logging
 import os
@@ -244,15 +245,33 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
 
 def _locale_encoding() -> str:
     """
-    Returns the encoding of the current locale.
+    Returns the encoding to decode the output of external tools (pip, npm, maven, ...) with.
 
-    Python 3.15 enables UTF-8 mode by default (PEP 686), which makes ``locale.getpreferredencoding()``
-    return "utf-8" regardless of the locale. Output of external tools (pip, npm, maven, ...) is still
-    produced in the locale encoding, so prefer ``locale.getencoding()`` (Python 3.11+), which ignores
-    UTF-8 mode.
+    Before Python 3.15, ``locale.getpreferredencoding()`` returned the locale encoding, or "utf-8" when
+    UTF-8 mode was enabled (explicitly, or automatically for the C/POSIX locale, PEP 540). Python 3.15
+    enables UTF-8 mode by default (PEP 686), so ``getpreferredencoding()`` now returns "utf-8" even for
+    non-UTF-8 locales such as a Windows ANSI code page, while external tools still write in that encoding.
+    This keeps the pre-3.15 behaviour:
+
+    - UTF-8 mode explicitly requested (PYTHONUTF8=1 or -X utf8): utf-8
+    - otherwise the locale encoding (``locale.getencoding()``, Python 3.11+), except that an ASCII locale
+      (C/POSIX) is decoded as utf-8, a superset of ASCII
     """
     getencoding = getattr(locale, "getencoding", None)
-    return getencoding() if getencoding else locale.getpreferredencoding()
+    if getencoding is None:
+        # Python < 3.11: UTF-8 mode is never on by default, so this is the historical behaviour
+        return locale.getpreferredencoding()
+
+    if os.environ.get("PYTHONUTF8") == "1" or sys._xoptions.get("utf8") in (True, "1"):
+        return "utf-8"
+
+    encoding = getencoding()
+    try:
+        if codecs.lookup(encoding).name == "ascii":
+            return "utf-8"
+    except LookupError:
+        return "utf-8"
+    return encoding
 
 
 def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
