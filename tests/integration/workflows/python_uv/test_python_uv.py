@@ -4,9 +4,11 @@ import shutil
 import sys
 import platform
 import tempfile
+import zipfile
 from unittest import TestCase, skipIf
+from unittest.mock import patch
 
-from parameterized import parameterized_class
+from parameterized import parameterized, parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
@@ -75,6 +77,56 @@ class TestPythonUvWorkflow(TestCase):
         expected_files = self.test_data_files.union({"six.py", "six-1.16.0.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
+
+    @parameterized.expand(
+        [
+            ("python3.11", "x86_64", "x86_64", 17, 28),
+            ("python3.11", "arm64", "aarch64", 17, 28),
+            ("python3.12", "x86_64", "x86_64", 34, 35),
+            ("python3.12", "arm64", "aarch64", 34, 35),
+        ]
+    )
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_selects_lambda_compatible_wheel(self, runtime, architecture, wheel_arch, supported, too_new):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            source_dir = root / "function"
+            source_dir.mkdir()
+            wheelhouse = root / "wheelhouse"
+            wheelhouse.mkdir()
+            for glibc_minor in (supported, too_new):
+                tag = f"py3-none-manylinux_2_{glibc_minor}_{wheel_arch}"
+                with zipfile.ZipFile(wheelhouse / f"platform_demo-1.0.0-{tag}.whl", "w") as wheel:
+                    wheel.writestr("platform_demo.py", f"GLIBC_MINOR = {glibc_minor}\n")
+                    wheel.writestr(
+                        "platform_demo-1.0.0.dist-info/METADATA",
+                        "Metadata-Version: 2.1\nName: platform-demo\nVersion: 1.0.0\n",
+                    )
+                    wheel.writestr(
+                        "platform_demo-1.0.0.dist-info/WHEEL",
+                        f"Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: {tag}\n",
+                    )
+                    wheel.writestr("platform_demo-1.0.0.dist-info/RECORD", "")
+            manifest_path = source_dir / "requirements.txt"
+            manifest_path.write_text("platform-demo==1.0.0\n", encoding="utf-8")
+            with patch.dict(
+                os.environ,
+                {"UV_NO_INDEX": "1", "UV_OFFLINE": "1", "UV_FIND_LINKS": wheelhouse.as_uri()},
+            ):
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    str(source_dir),
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    str(manifest_path),
+                    runtime=runtime,
+                    architecture=architecture,
+                    experimental_flags=self.experimental_flags,
+                )
+
+            self.assertEqual(
+                (pathlib.Path(self.artifacts_dir) / "platform_demo.py").read_text(encoding="utf-8"),
+                f"GLIBC_MINOR = {supported}\n",
+            )
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_uses_pyproject_toml_file(self):

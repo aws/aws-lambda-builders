@@ -145,7 +145,9 @@ the `--python-platform` flag for cross-platform wheel selection.
 #### Step 3: Configure Lambda-compatible installation
 
 UV is configured with Lambda-specific settings:
-- Target platform: `linux` (Amazon Linux 2)
+- Target platform: explicit manylinux targets, independent of the build host's glibc.
+  Python 3.8-3.11 use `manylinux_2_17` (the AL2-compatible download target used by the pip workflow);
+  Python 3.12+ use `manylinux_2_34` for Amazon Linux 2023.
 - Target architecture: `x86_64` or `aarch64` 
 - Python version matching Lambda runtime
 - Prefer wheels over source distributions for faster builds
