@@ -224,6 +224,11 @@ and across successive builds. Pointing UV at the build's scratch directory inste
 discard the cache every time, because that directory is deleted when the build finishes — every
 function would then re-download its entire dependency set on every build.
 
+The one exception is a default cache location that can't be created, such as `/.cache/uv` for a
+container build run as a host uid with no home directory (`sam build --use-container
+--mount-with WRITE`). Then the build uses `uv-cache` under the scratch directory and logs a
+warning. Nothing is lost there, because such a container starts with an empty cache anyway.
+
 ### Compatibility with Existing Workflows
 
 The UV workflow is designed to be a drop-in replacement for the pip workflow:

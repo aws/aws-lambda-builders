@@ -2,6 +2,7 @@
 UV-based Python dependency packager for AWS Lambda
 """
 
+import copy
 import logging
 import os
 from typing import Dict, List, Optional
@@ -94,6 +95,13 @@ class UvRunner:
     def uv_version(self) -> Optional[str]:
         """Get UV version."""
         return self._uv.get_uv_version()
+
+    def cache_dir(self) -> Optional[str]:
+        """Get the cache directory UV would use, or None if UV can't report it."""
+        rc, stdout, _ = self._uv.run_uv_command(["cache", "dir"])
+        if rc != 0 or not stdout:
+            return None
+        return stdout.strip()
 
     def install_requirements(
         self,
@@ -203,6 +211,7 @@ class PythonUvDependencyBuilder:
 
         if config is None:
             config = UvConfig()
+        config = self._with_writable_cache(config, scratch_dir_path)
 
         # Determine Python version from runtime
         python_version = self._extract_python_version(self.runtime)
@@ -225,6 +234,22 @@ class PythonUvDependencyBuilder:
         except Exception as e:
             LOG.error("Failed to build dependencies: %s", str(e))
             raise
+
+    def _with_writable_cache(self, config: UvConfig, scratch_dir: str) -> UvConfig:
+        """Use a cache under scratch_dir only when UV's own cache can't be created.
+
+        For example, a container build run as a host uid that has no home directory.
+        """
+        if config.cache_dir or config.no_cache:
+            return config
+        cache_dir = self._uv_runner.cache_dir()
+        if not cache_dir or _can_create_dir(cache_dir):
+            return config
+        fallback = os.path.join(scratch_dir, "uv-cache")
+        LOG.warning("UV cache directory %s is not writable, using %s for this build", cache_dir, fallback)
+        config = copy.copy(config)
+        config.cache_dir = fallback
+        return config
 
     def _get_manifest_handler(self, manifest_name: str):
         """Get the appropriate handler function for a manifest file.
@@ -332,7 +357,7 @@ class PythonUvDependencyBuilder:
                 # This is important for dependencies that use different versions depending on python version
                 "--python",
                 python_version,
-            ]
+            ] + config.cache_args()
 
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(export_args, cwd=project_dir)
             if rc != 0:
@@ -422,3 +447,13 @@ class PythonUvDependencyBuilder:
             return runtime.replace("python", "")
 
         return runtime
+
+
+def _can_create_dir(path: str) -> bool:
+    """Whether path exists as a writable directory or could be created."""
+    while not os.path.exists(path):
+        parent = os.path.dirname(path)
+        if parent == path:
+            return False
+        path = parent
+    return os.path.isdir(path) and os.access(path, os.W_OK)
