@@ -203,56 +203,6 @@ class TestPythonPipWorkflow(TestCase):
         self.assertIsInstance(self.workflow.actions[1], PythonPipBuildAction)
         self.assertIsInstance(self.workflow.actions[2], CopySourceAction)
 
-    def test_layer_links_dependencies_while_function_copies_them(self):
-        """The layer/function distinction is the whole reason linking is safe at all, so assert the
-        contrast on inputs that are otherwise identical -- otherwise a future change that drops
-        is_building_layer still passes every other test in this class."""
-
-        def actions_for(is_building_layer):
-            osutils_mock = Mock(spec=self.osutils)
-            osutils_mock.file_exists.return_value = True
-            return PythonPipWorkflow(
-                "source",
-                "artifacts",
-                "scratch_dir",
-                "manifest",
-                runtime="python3.9",
-                osutils=osutils_mock,
-                dependencies_dir="dep",
-                download_dependencies=True,
-                experimental_flags=[EXPERIMENTAL_FLAG_BUILD_PERFORMANCE],
-                is_building_layer=is_building_layer,
-            ).actions
-
-        self.assertIsInstance(actions_for(is_building_layer=True)[2], LinkSourceAction)
-        self.assertIsInstance(actions_for(is_building_layer=False)[2], CopySourceAction)
-
-    def test_a_layer_wanting_parent_packages_copies_instead_of_linking(self):
-        """PythonCreateParentPackagesAction runs last and mkdir()s through artifacts_dir/<first
-        segment>/..., so a link of that name leads straight into dependencies_dir and the source
-        files are renamed into the cache that --cached reuses. Copying keeps the cache read-only."""
-
-        def actions_for(options):
-            osutils_mock = Mock(spec=self.osutils)
-            osutils_mock.file_exists.return_value = True
-            return PythonPipWorkflow(
-                "source",
-                "artifacts",
-                "scratch_dir",
-                "manifest",
-                runtime="python3.9",
-                osutils=osutils_mock,
-                dependencies_dir="dep",
-                download_dependencies=True,
-                experimental_flags=[EXPERIMENTAL_FLAG_BUILD_PERFORMANCE],
-                is_building_layer=True,
-                options=options,
-            ).actions
-
-        self.assertIsInstance(actions_for({"parent_python_packages": "google.cloud"})[2], CopySourceAction)
-        # Any other option leaves the optimisation in place.
-        self.assertIsInstance(actions_for({"artifact_executable_name": "app"})[2], LinkSourceAction)
-
     @patch("aws_lambda_builders.workflows.python_pip.workflow.PythonPipBuildAction")
     def test_must_build_with_architecture(self, PythonPipBuildActionMock):
         self.workflow = PythonPipWorkflow(
@@ -274,3 +224,34 @@ class TestPythonPipWorkflow(TestCase):
             architecture="ARM64",
         )
         self.assertEqual(2, len(self.workflow.actions))
+
+
+class TestPythonPipWorkflowLinkingGate(TestCase):
+    """Cases that pin their own flags and layer setting, so they run once."""
+
+    def _actions(self, is_building_layer, options=None):
+        osutils_mock = Mock(spec=OSUtils())
+        osutils_mock.file_exists.return_value = True
+        return PythonPipWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "manifest",
+            runtime="python3.9",
+            osutils=osutils_mock,
+            dependencies_dir="dep",
+            download_dependencies=True,
+            experimental_flags=[EXPERIMENTAL_FLAG_BUILD_PERFORMANCE],
+            is_building_layer=is_building_layer,
+            options=options,
+        ).actions
+
+    def test_layer_links_dependencies_while_function_copies_them(self):
+        self.assertIsInstance(self._actions(is_building_layer=True)[2], LinkSourceAction)
+        self.assertIsInstance(self._actions(is_building_layer=False)[2], CopySourceAction)
+
+    def test_a_layer_wanting_parent_packages_copies_instead_of_linking(self):
+        parent = {"parent_python_packages": "google.cloud"}
+        self.assertIsInstance(self._actions(is_building_layer=True, options=parent)[2], CopySourceAction)
+        other = {"artifact_executable_name": "app"}
+        self.assertIsInstance(self._actions(is_building_layer=True, options=other)[2], LinkSourceAction)

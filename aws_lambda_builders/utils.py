@@ -237,11 +237,12 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
             "consider enabling the necessary settings or privileges on your system to support symbolic links.",
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
-        # A dangling link at the destination also makes os.symlink raise; don't copy through it.
+        # A broken link at the destination is one reason os.symlink fails. Remove it so the copy
+        # below doesn't write through it.
         if os.path.islink(destination):
             LOG.debug("Removing existing symlink at destination %s before copying", destination)
             os.unlink(destination)
-        # The source may be a top-level file such as six.py.
+        # copytree only handles directories; a dependency can also be a single file (six.py).
         if os.path.isdir(source):
             copytree(source, destination)
         elif os.path.isfile(source):

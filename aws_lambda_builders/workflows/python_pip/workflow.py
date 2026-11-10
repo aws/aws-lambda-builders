@@ -116,10 +116,10 @@ class PythonPipWorkflow(BaseWorkflow):
         if self.dependencies_dir and self.combine_dependencies:
             # when copying downloaded dependencies back to artifacts folder, don't exclude anything
             #
-            # Link only for layers: function artifacts are bind-mounted by sam local, where links
-            # outside the mount dangle (see #391). Parent packages keep copying because
-            # PythonCreateParentPackagesAction would write through a link into dependencies_dir.
-            # Links are absolute; sam build --use-container never passes a dependencies_dir.
+            # Symlink instead of copy only when building a layer. sam local mounts a function's
+            # build folder into the container, where links pointing outside it break (#391).
+            # A layer that creates parent packages also copies, so that step can't write into
+            # dependencies_dir through a link.
             if (
                 self.is_building_layer
                 and not self._should_create_parent_packages()
