@@ -62,14 +62,81 @@ class TestDecode(TestCase):
         response = decode(message, "iso-8859-1")
         self.assertEqual(response, "hello\n\n ß")
 
-    @patch("aws_lambda_builders.utils.locale")
-    def test_is_able_to_decode_non_utf8_locale(self, mock_locale):
-        mock_locale.getpreferredencoding.return_value = "iso-8859-1"
-        message = "hello\n\n ß".encode("iso-8859-1")
-        response = decode(message)
-        self.assertEqual(response, "hello\n\n ß")
-
     def test_succeeds_with_utf8_encoding(self):
         message = "hello".encode("utf-8")
         response = decode(message)
         self.assertEqual(response, "hello")
+
+
+@patch.dict("aws_lambda_builders.utils.os.environ", {}, clear=True)
+@patch("aws_lambda_builders.utils.sys._xoptions", {})
+@patch("aws_lambda_builders.utils.locale")
+class TestDecodeLocaleEncoding(TestCase):
+    LATIN1 = "hello\n\n ß".encode("iso-8859-1")
+    UTF8 = "café ✓".encode("utf-8")
+
+    def test_uses_locale_encoding(self, mock_locale):
+        mock_locale.getencoding.return_value = "iso-8859-1"
+        self.assertEqual(decode(self.LATIN1), "hello\n\n ß")
+
+    def test_uses_locale_encoding_when_utf8_mode_is_on_by_default(self, mock_locale):
+        # Python 3.15 enables UTF-8 mode by default (PEP 686): getpreferredencoding() reports
+        # utf-8 while the locale (and the output of external tools) still uses another encoding
+        mock_locale.getpreferredencoding.return_value = "utf-8"
+        mock_locale.getencoding.return_value = "cp1252"
+        self.assertEqual(decode(self.LATIN1), "hello\n\n ß")
+
+    def test_ascii_c_locale_decodes_as_utf8(self, mock_locale):
+        # C/POSIX locale: Python auto-enables UTF-8 mode (PEP 540) and the locale encoding is ASCII
+        for ascii_name in ("ANSI_X3.4-1968", "US-ASCII", "ascii"):
+            with self.subTest(ascii_name):
+                mock_locale.getencoding.return_value = ascii_name
+                self.assertEqual(decode(self.UTF8), "café ✓")
+
+    def test_explicit_pythonutf8_env_decodes_as_utf8(self, mock_locale):
+        mock_locale.getencoding.return_value = "cp1252"
+        with patch.dict("aws_lambda_builders.utils.os.environ", {"PYTHONUTF8": "1"}):
+            self.assertEqual(decode(self.UTF8), "café ✓")
+
+    def test_pythonutf8_disabled_uses_locale_encoding(self, mock_locale):
+        mock_locale.getencoding.return_value = "cp1252"
+        with patch.dict("aws_lambda_builders.utils.os.environ", {"PYTHONUTF8": "0"}):
+            self.assertEqual(decode(self.LATIN1), "hello\n\n ß")
+
+    def test_explicit_x_utf8_option_decodes_as_utf8(self, mock_locale):
+        mock_locale.getencoding.return_value = "cp1252"
+        for value in (True, "1"):
+            with self.subTest(value), patch("aws_lambda_builders.utils.sys._xoptions", {"utf8": value}):
+                self.assertEqual(decode(self.UTF8), "café ✓")
+
+    def test_unknown_locale_encoding_decodes_as_utf8(self, mock_locale):
+        mock_locale.getencoding.return_value = "not-a-real-codec"
+        self.assertEqual(decode(self.UTF8), "café ✓")
+
+    def test_falls_back_to_preferred_encoding_without_getencoding(self, mock_locale):
+        # locale.getencoding() only exists on Python 3.11+
+        del mock_locale.getencoding
+        mock_locale.getpreferredencoding.return_value = "iso-8859-1"
+        self.assertEqual(decode(self.LATIN1), "hello\n\n ß")
+
+
+class TestIsWithinDirectory(TestCase):
+    def test_target_inside_directory(self):
+        self.assertTrue(utils._is_within_directory("/my/path", "/my/path/file"))
+
+    def test_directory_is_within_itself(self):
+        self.assertTrue(utils._is_within_directory("/my/path", "/my/path"))
+
+    def test_target_outside_directory(self):
+        self.assertFalse(utils._is_within_directory("/my/path", "/another/path/file"))
+
+    def test_sibling_directory_sharing_name_prefix_is_not_within(self):
+        # "/my/pathological" shares a string prefix with "/my/path" but is not inside it
+        self.assertFalse(utils._is_within_directory("/my/path", "/my/pathological/file"))
+
+    def test_escaping_with_parent_reference_is_not_within(self):
+        self.assertFalse(utils._is_within_directory("/my/path", "/my/path/../other/file"))
+
+    @patch("aws_lambda_builders.utils.os.path.commonpath", side_effect=ValueError("different drives"))
+    def test_paths_on_different_drives_are_not_within(self, _):
+        self.assertFalse(utils._is_within_directory("C:\\my\\path", "D:\\file"))

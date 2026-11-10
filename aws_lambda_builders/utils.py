@@ -2,6 +2,7 @@
 Common utilities for the library
 """
 
+import codecs
 import locale
 import logging
 import os
@@ -218,9 +219,13 @@ def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, 
     abs_directory = os.path.abspath(directory)
     abs_target = os.path.abspath(target)
 
-    prefix = os.path.commonprefix([abs_directory, abs_target])
-
-    return prefix == abs_directory
+    try:
+        # commonpath compares whole path components; commonprefix compares characters,
+        # which would wrongly treat "/tmp/ab/x" as being inside "/tmp/a".
+        return os.path.commonpath([abs_directory, abs_target]) == abs_directory
+    except ValueError:
+        # Raised for paths on different drives (Windows): they cannot be nested
+        return False
 
 
 def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str, os.PathLike]) -> None:
@@ -236,6 +241,37 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
 
         tar.extractall(unpack_dir)
+
+
+def _locale_encoding() -> str:
+    """
+    Returns the encoding to decode the output of external tools (pip, npm, maven, ...) with.
+
+    Before Python 3.15, ``locale.getpreferredencoding()`` returned the locale encoding, or "utf-8" when
+    UTF-8 mode was enabled (explicitly, or automatically for the C/POSIX locale, PEP 540). Python 3.15
+    enables UTF-8 mode by default (PEP 686), so ``getpreferredencoding()`` now returns "utf-8" even for
+    non-UTF-8 locales such as a Windows ANSI code page, while external tools still write in that encoding.
+    This keeps the pre-3.15 behaviour:
+
+    - UTF-8 mode explicitly requested (PYTHONUTF8=1 or -X utf8): utf-8
+    - otherwise the locale encoding (``locale.getencoding()``, Python 3.11+), except that an ASCII locale
+      (C/POSIX) is decoded as utf-8, a superset of ASCII
+    """
+    getencoding = getattr(locale, "getencoding", None)
+    if getencoding is None:
+        # Python < 3.11: UTF-8 mode is never on by default, so this is the historical behaviour
+        return locale.getpreferredencoding()
+
+    if os.environ.get("PYTHONUTF8") == "1" or sys._xoptions.get("utf8") in (True, "1"):
+        return "utf-8"
+
+    encoding = getencoding()
+    try:
+        if codecs.lookup(encoding).name == "ascii":
+            return "utf-8"
+    except LookupError:
+        return "utf-8"
+    return encoding
 
 
 def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
@@ -258,5 +294,5 @@ def decode(to_decode: bytes, encoding: Optional[str] = None) -> str:
     str
        Decoded string with unrecognized characters replaced with a replacement character
     """
-    encoding = encoding or locale.getpreferredencoding()
+    encoding = encoding or _locale_encoding()
     return to_decode.decode(encoding, errors="replace").strip()
