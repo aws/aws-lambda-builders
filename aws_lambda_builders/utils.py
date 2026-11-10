@@ -16,6 +16,28 @@ from aws_lambda_builders.architecture import ARM64
 LOG = logging.getLogger(__name__)
 
 
+def _materialize_symlinked_destination(destination: str) -> None:
+    """
+    Replace a symlinked destination with a real copy of its target, so copying into it
+    does not write into the shared dependencies directory.
+
+    :type destination: str
+    :param destination: path that may be a symlink
+    """
+    if not os.path.islink(destination):
+        return
+
+    LOG.debug("Replacing symlinked destination %s with a real copy before copying into it", destination)
+    link_target = os.path.realpath(destination)
+    os.unlink(destination)
+
+    if os.path.isdir(link_target):
+        copytree(link_target, destination)
+    elif os.path.isfile(link_target):
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        shutil.copy2(link_target, destination)
+
+
 def copytree(
     source: str,
     destination: str,
@@ -48,6 +70,8 @@ def copytree(
     if not os.path.exists(source):
         LOG.warning("Skipping copy operation since source %s does not exist", source)
         return
+
+    _materialize_symlinked_destination(destination)
 
     if not os.path.exists(destination):
         LOG.debug("Creating target folders at %s", destination)
@@ -87,6 +111,9 @@ def copytree(
         elif os.path.isdir(new_source):
             copytree(new_source, new_destination, ignore=ignore, include=include, maintain_symlinks=maintain_symlinks)
         else:
+            # copy2 would write through a symlinked destination.
+            if os.path.islink(new_destination):
+                os.unlink(new_destination)
             LOG.debug("Copying source file (%s) to destination (%s)", new_source, new_destination)
             shutil.copy2(new_source, new_destination)
 
@@ -211,7 +238,19 @@ def create_symlink_or_copy(source: str, destination: str) -> None:
             "consider enabling the necessary settings or privileges on your system to support symbolic links.",
             exc_info=ex if LOG.isEnabledFor(logging.DEBUG) else None,
         )
-        copytree(source, destination)
+        # A broken link at the destination is one reason os.symlink fails. Remove it so the copy
+        # below doesn't write through it.
+        if os.path.islink(destination):
+            LOG.debug("Removing existing symlink at destination %s before copying", destination)
+            os.unlink(destination)
+        # copytree only handles directories; a dependency can also be a single file (six.py).
+        if os.path.isdir(source):
+            copytree(source, destination)
+        elif os.path.isfile(source):
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            shutil.copy2(source, destination)
+        else:
+            LOG.warning("Skipping copy operation since source %s does not exist", source)
 
 
 def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, os.PathLike]) -> bool:
