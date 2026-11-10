@@ -207,6 +207,30 @@ class TestPythonUvWorkflow(TestCase):
             self.assertIn(expected_file, output_files)
 
     @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_detects_uv_project_over_requirements_files(self):
+        """Without a manifest path, a locked uv project wins over requirements.txt and requirements-dev.txt"""
+        with tempfile.TemporaryDirectory() as source_dir:
+            for name in ("pyproject.toml", "uv.lock"):
+                shutil.copy(os.path.join(self.TEST_DATA_FOLDER, name), source_dir)
+            # Either file would fail the build if it were picked instead of pyproject.toml
+            for name in ("requirements.txt", "requirements-dev.txt"):
+                with open(os.path.join(source_dir, name), "w") as f:
+                    f.write("this-package-does-not-exist-lambda-builders==1.0\n")
+
+            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "no-manifest-given"),
+                runtime="python3.12",
+                experimental_flags=self.experimental_flags,
+            )
+
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertIn("six.py", output_files)
+        self.assertIn("six-1.16.0.dist-info", output_files)
+
+    @skipIf(which("uv") is None, "uv not available")
     def test_workflow_builds_with_arm64_architecture(self):
         """Test that UV builds for ARM64 architecture"""
         builder = LambdaBuilder(

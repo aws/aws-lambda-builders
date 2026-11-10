@@ -2,12 +2,15 @@
 Commonly used utilities for Python UV workflow
 """
 
+import logging
 import os
 import shutil
 import subprocess
 from typing import List, Optional
 
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils as BaseOSUtils
+
+LOG = logging.getLogger(__name__)
 
 EXPERIMENTAL_FLAG_BUILD_PERFORMANCE = "experimentalBuildPerformance"
 
@@ -37,10 +40,13 @@ def detect_uv_manifest(source_dir: str) -> Optional[str]:
 
     Note: uv.lock is NOT a manifest - it's a lock file that accompanies pyproject.toml.
     UV workflows support these manifest types:
-    1. requirements.txt and variants - traditional pip-style manifests
-    2. pyproject.toml - may have accompanying uv.lock
+    1. pyproject.toml - may have accompanying uv.lock
+    2. requirements.txt (or requirements-prod.txt) - traditional pip-style manifests
 
-    We favor requirements.txt because it is possible to have both, but the pyproject could just be project metadata.
+    A pyproject.toml wins when it is the uv project: it has a uv.lock beside it or declares
+    dependencies in its [project] table. Otherwise it may only hold metadata or tool settings,
+    so requirements.txt is used when present. Development and test requirements files are never
+    used, because their contents do not belong in a Lambda deployment package.
 
     Args:
         source_dir: Directory to search for manifest files
@@ -48,24 +54,46 @@ def detect_uv_manifest(source_dir: str) -> Optional[str]:
     Returns:
         Path to the detected manifest file, or None if not found
     """
-    # Check for requirements.txt variants (in order of preference)
-    requirements_variants = [
-        "requirements.txt",
-        "requirements-dev.txt",
-        "requirements-test.txt",
-        "requirements-prod.txt",
-    ]
+    pyproject_path = os.path.join(source_dir, "pyproject.toml")
+    has_pyproject = os.path.isfile(pyproject_path)
+    if has_pyproject and _is_uv_project(source_dir, pyproject_path):
+        return pyproject_path
 
-    for requirements_file in requirements_variants:
+    for requirements_file in ("requirements.txt", "requirements-prod.txt"):
         requirements_path = os.path.join(source_dir, requirements_file)
         if os.path.isfile(requirements_path):
             return requirements_path
 
-    pyproject_path = os.path.join(source_dir, "pyproject.toml")
-    if os.path.isfile(pyproject_path):
+    if has_pyproject:
         return pyproject_path
 
     return None
+
+
+def _is_uv_project(source_dir: str, pyproject_path: str) -> bool:
+    """Whether pyproject.toml, not a requirements file, describes this function's dependencies."""
+    if os.path.isfile(os.path.join(source_dir, "uv.lock")):
+        return True
+
+    try:
+        import tomllib
+    except ModuleNotFoundError:  # Python 3.10
+        try:
+            import tomli as tomllib
+        except ModuleNotFoundError:
+            LOG.debug("No TOML parser available; preferring requirements files over %s", pyproject_path)
+            return False
+
+    try:
+        with open(pyproject_path, "rb") as pyproject_file:
+            project = tomllib.load(pyproject_file).get("project")
+    except (OSError, ValueError) as error:  # tomllib.TOMLDecodeError subclasses ValueError
+        LOG.debug("Could not read %s: %s", pyproject_path, error)
+        return False
+
+    if not isinstance(project, dict):
+        return False
+    return "dependencies" in project or "dependencies" in project.get("dynamic", [])
 
 
 def get_uv_version(uv_executable: str, osutils: OSUtils) -> Optional[str]:

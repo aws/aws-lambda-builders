@@ -271,10 +271,14 @@ CAPABILITY = Capability(
 
 The workflow uses intelligent manifest detection:
 
-**Supported Manifests (in order of preference):**
-1. `requirements.txt` - Standard pip format
-2. `requirements-*.txt` - Environment-specific variants (dev, test, prod, etc.)
-3. `pyproject.toml` - Modern Python project manifest
+**Auto-detection (when no manifest path is given), in order of preference:**
+1. `pyproject.toml`, when it is the uv project: a `uv.lock` sits beside it, or its `[project]` table declares `dependencies` (including `dynamic = ["dependencies"]`)
+2. `requirements.txt`, then `requirements-prod.txt`
+3. `pyproject.toml` without declared dependencies (metadata or tool settings only)
+
+`requirements-dev.txt` and `requirements-test.txt` are never auto-detected: development and test dependencies do not belong in a Lambda package. They can still be passed as an explicit manifest path.
+
+On Python 3.10 without `tomli`, declared dependencies cannot be read, so only a `uv.lock` makes `pyproject.toml` win over a requirements file.
 
 **Smart Lock File Enhancement:**
 - When `pyproject.toml` is used, automatically detects `uv.lock` in the same directory
