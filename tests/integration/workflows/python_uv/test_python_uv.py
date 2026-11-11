@@ -98,13 +98,14 @@ class TestPythonUvWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
 
-    @parameterized.expand([(False,), (True,)])
+    @parameterized.expand([(cutoff, changed) for cutoff in ("2024-01-01", "30 days") for changed in (False, True)])
     @skipIf(which("uv") is None, "uv not available")
-    def test_workflow_preserves_existing_lock_options(self, changed_manifest):
+    def test_workflow_preserves_existing_lock_options(self, cutoff, changed_manifest):
         with tempfile.TemporaryDirectory() as source_dir:
             manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
             manifest_path.write_text(
-                '[project]\nname = "locked-demo"\nversion = "1.0.0"\nrequires-python = ">=3.13"\ndependencies = []\n',
+                '[project]\nname = "locked-demo"\nversion = "1.0.0"\nrequires-python = ">=3.13"\ndependencies = []\n'
+                f'\n[tool.uv]\nexclude-newer = "{cutoff}"\n',
                 encoding="utf-8",
             )
             subprocess.run(
@@ -114,8 +115,6 @@ class TestPythonUvWorkflow(TestCase):
                     "--offline",
                     "--python",
                     "3.13",
-                    "--exclude-newer",
-                    "2024-01-01",
                     "--resolution",
                     "lowest-direct",
                     "--prerelease",
@@ -130,6 +129,8 @@ class TestPythonUvWorkflow(TestCase):
             lock_path = pathlib.Path(source_dir) / "uv.lock"
             lock_contents = lock_path.read_bytes()
             self.assertIn(b"exclude-newer", lock_contents)
+            if cutoff == "30 days":
+                self.assertIn(b'exclude-newer-span = "P30D"', lock_contents)
             if changed_manifest:
                 dependency_dir = pathlib.Path(source_dir) / "dep"
                 dependency_dir.mkdir()

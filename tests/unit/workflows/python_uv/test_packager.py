@@ -248,6 +248,14 @@ class TestPythonUvDependencyBuilder(TestCase):
             ],
         )
 
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b'[options]\nexclude-newer="0001-01-01T00:00:00Z"\nexclude-newer-span="P30D"\n',
+    )
+    def test_lock_export_prefers_relative_cutoff_over_placeholder(self, mock_file):
+        self.assertEqual(self.builder._lock_export_options("uv.lock"), ["--exclude-newer", "P30D"])
+
     def test_build_from_requirements(self):
         self.builder._build_from_requirements(
             requirements_path="/path/to/requirements.txt",

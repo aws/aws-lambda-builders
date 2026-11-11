@@ -312,6 +312,10 @@ class PythonUvDependencyBuilder:
             # Leave missing-lock diagnostics to UV.
             return []
 
+        # Relative cutoffs also store a placeholder date for backwards compatibility.
+        if "exclude-newer-span" in options:
+            options["exclude-newer"] = options["exclude-newer-span"]
+
         args = []
         for option, flag in (
             ("resolution-mode", "--resolution"),

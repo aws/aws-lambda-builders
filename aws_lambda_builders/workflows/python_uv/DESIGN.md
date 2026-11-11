@@ -128,6 +128,8 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 - Export with `--locked`, reusing the lock's resolution mode, prerelease mode, fork strategy, and `exclude-newer`
   cutoff so export validates rather than rewrites the existing lock. Stale locks fail the build;
   run `uv lock` explicitly after dependency changes.
+- For relative cutoffs, replay `exclude-newer-span` instead of the lock's placeholder `exclude-newer` date.
+  Python 3.10 uses the runtime dependency `tomli` to read lock options; Python 3.11+ uses `tomllib`.
 - Install using `uv pip install` with platform targeting (--python-platform)
 - Provides reproducible builds with locked dependency versions AND cross-platform support
 
