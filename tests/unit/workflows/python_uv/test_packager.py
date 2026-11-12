@@ -169,9 +169,12 @@ class TestUvRunner(TestCase):
         self.assertIn("install", args_called)
         self.assertIn("-r", args_called)
         self.assertIn("/path/to/requirements.txt", args_called)
-        self.mock_subprocess_uv.find_python.assert_called_once_with("3.9")
+        self.assertIn("--no-compile-bytecode", args_called)
+        # Bytecode is opt-in: the default config must not look up a Python or run compileall.
+        self.mock_subprocess_uv.find_python.assert_not_called()
+        self.mock_osutils.run_subprocess.assert_not_called()
 
-    def test_install_requirements_compiles_unchecked_hash_bytecode_by_default(self):
+    def test_install_requirements_compiles_unchecked_hash_bytecode_when_enabled(self):
         self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
         self.mock_subprocess_uv.find_python.return_value = "/usr/bin/python3.13"
         self.mock_osutils.run_subprocess.return_value = (0, "", "")
@@ -179,6 +182,7 @@ class TestUvRunner(TestCase):
         self.uv_runner.install_requirements(
             requirements_path="/path/to/requirements.txt",
             target_dir="/target",
+            config=UvConfig(compile_bytecode=True),
             python_version="3.13",
         )
 

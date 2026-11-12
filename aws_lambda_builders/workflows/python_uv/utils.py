@@ -113,7 +113,7 @@ class UvConfig:
         no_cache: bool = False,
         prerelease: str = "disallow",
         resolution: str = "highest",
-        compile_bytecode: bool = True,
+        compile_bytecode: bool = False,
         exclude_newer: Optional[str] = None,
         generate_hashes: bool = False,
     ):
