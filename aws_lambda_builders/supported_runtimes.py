@@ -14,6 +14,7 @@ NODEJS_RUNTIMES = [
     "nodejs20.x",
     "nodejs22.x",
     "nodejs24.x",
+    "nodejs26.x",
 ]
 
 # Python runtimes
@@ -25,6 +26,7 @@ PYTHON_RUNTIMES = [
     "python3.12",
     "python3.13",
     "python3.14",
+    "python3.15",
 ]
 
 # Ruby runtimes

@@ -1,0 +1,10 @@
+{
+  "name": "@nodejs-workspaces-monorepo/shared",
+  "version": "1.0.0",
+  "license": "APACHE2.0",
+  "main": "index.js",
+  "files": ["index.js"],
+  "peerDependencies": {
+    "fake-http-request": "^1.4.0"
+  }
+}
