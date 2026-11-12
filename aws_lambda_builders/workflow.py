@@ -15,6 +15,7 @@ from aws_lambda_builders.binary_path import BinaryPath
 from aws_lambda_builders.exceptions import (
     MisMatchRuntimeError,
     RuntimeValidatorError,
+    SharedProjectNotSupportedError,
     WorkflowFailedError,
     WorkflowUnknownError,
 )
@@ -182,6 +183,20 @@ class BaseWorkflow(object, metaclass=_WorkflowMetaClass):
 
     # The directory where the workflow builds/installs by default, each workflow should define this.
     DEFAULT_BUILD_DIR = None
+
+    @classmethod
+    def prepare_shared_project(cls, project_root, experimental_flags=None):
+        """
+        Do once, at the given project root, the work every function under it shares.
+
+        Part of the workflow contract so that LambdaBuilder can delegate to it unconditionally; a
+        workflow with no shared-project concept inherits this refusal. Override it where several
+        functions built from one project root can share a step - for the nodejs workflows, the
+        dependency tree npm hoists to a workspace root.
+
+        :raises aws_lambda_builders.exceptions.SharedProjectNotSupportedError: always, by default
+        """
+        raise SharedProjectNotSupportedError(capabilities=cls.CAPABILITY)
 
     def __init__(
         self,
