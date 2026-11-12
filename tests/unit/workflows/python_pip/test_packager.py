@@ -139,6 +139,9 @@ class TestGetLambdaAbi(object):
     def test_get_lambda_abi_python314(self):
         assert "cp314" == get_lambda_abi("python3.14")
 
+    def test_get_lambda_abi_python315(self):
+        assert "cp315" == get_lambda_abi("python3.15")
+
     def test_get_lambda_abi_unsupported_version(self):
         with pytest.raises(UnsupportedPythonVersion):
             get_lambda_abi("python2.7")

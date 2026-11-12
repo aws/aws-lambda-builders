@@ -171,5 +171,30 @@ class LambdaBuilder(object):
 
         return workflow.run()
 
+    def prepare_shared_project(self, project_root, experimental_flags=None):
+        """
+        Do once, at the given project root, the work every function under it shares - for the nodejs
+        workflows, installing the dependency tree npm hoists there. Run it once, then call build()
+        per function with download_dependencies=False.
+
+        :type project_root: str
+        :param project_root:
+            Path to the project root shared by the functions about to be built
+
+        :type experimental_flags: list
+        :param experimental_flags:
+            The same flags the per-function build() calls get; a workflow may gate this on one
+
+        :raises aws_lambda_builders.exceptions.SharedProjectNotSupportedError:
+            when the selected workflow has no shared-project concept
+        :raises aws_lambda_builders.exceptions.SharedProjectPreparationError:
+            when the preparation fails; both are LambdaBuilderError, so a caller can catch that and
+            fall back to building each function on its own
+        """
+        LOG.debug(
+            "Preparing shared project root '%s' with workflow '%s'", project_root, self.selected_workflow_cls.NAME
+        )
+        self.selected_workflow_cls.prepare_shared_project(project_root, experimental_flags=experimental_flags)
+
     def _clear_workflows(self):
         DEFAULT_REGISTRY.clear()

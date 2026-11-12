@@ -132,16 +132,65 @@ class LinkSourceAction(BaseAction):
         self._dest_dir = dest_dir
 
     def execute(self):
+        # Match CopySourceAction: a missing source is skipped, not fatal.
+        if not os.path.isdir(self._source_dir):
+            LOG.warning("Skipping link operation since source %s does not exist", self._source_dir)
+            return
+
         source_files = set(os.listdir(self._source_dir))
 
         for source_file in source_files:
             source_path = Path(self._source_dir, source_file)
             destination_path = Path(self._dest_dir, source_file)
-            if destination_path.exists():
+            # is_symlink() first: a dangling link is not exists().
+            if destination_path.is_symlink() or destination_path.is_file():
                 os.remove(destination_path)
+            elif destination_path.is_dir():
+                # Left by an earlier copying build.
+                shutil.rmtree(destination_path)
             else:
                 os.makedirs(destination_path.parent, exist_ok=True)
             utils.create_symlink_or_copy(str(source_path), str(destination_path))
+
+        self._prune_dangling_links(source_files)
+
+    def _prune_dangling_links(self, source_files):
+        """
+        Remove broken links into the source directory whose source no longer exists.
+
+        :type source_files: set
+        :param source_files: names currently in the source directory
+        """
+        if not os.path.isdir(self._dest_dir):
+            return
+
+        for name in set(os.listdir(self._dest_dir)) - source_files:
+            stale_path = Path(self._dest_dir, name)
+            if not stale_path.is_symlink() or stale_path.exists():
+                continue
+            if not self._points_into_source(stale_path):
+                continue
+            LOG.debug("Removing %s: a link to a source that no longer exists", stale_path)
+            os.remove(stale_path)
+
+    def _points_into_source(self, link_path):
+        """
+        Return True if the link targets a direct child of the source directory.
+
+        Uses os.readlink, not os.path.realpath, which does not follow a broken link on Windows.
+
+        :type link_path: pathlib.Path
+        :param link_path: the symlink to check
+        :rtype: bool
+        """
+        target = os.readlink(link_path)
+        if not os.path.isabs(target):
+            target = os.path.join(os.path.dirname(link_path), target)
+
+        target_parent = os.path.dirname(os.path.normpath(target))
+        if not os.path.isdir(target_parent):
+            return False
+        return os.path.samefile(target_parent, self._source_dir)
 
 
 class LinkSinglePathAction(BaseAction):

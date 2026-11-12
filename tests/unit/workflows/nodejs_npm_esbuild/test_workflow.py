@@ -317,6 +317,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             osutils=ANY,
             build_options=None,
             is_building_in_source=False,
+            experimental_flags=[],
         )
 
     @patch("aws_lambda_builders.workflows.nodejs_npm_esbuild.workflow.NodejsNpmEsbuildWorkflow._get_esbuild_subprocess")
@@ -347,9 +348,29 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
                 download_dependencies=False,
             )
 
+    def test_no_download_dependencies_and_no_dependencies_dir_is_allowed_building_in_source(self):
+        # the dependencies already sit in the source tree - installed by the developer or once per
+        # workspace root by LambdaBuilder.prepare_shared_project - so the build only bundles
+        self.osutils.file_exists.side_effect = [True]
+
+        workflow = NodejsNpmEsbuildWorkflow(
+            "source",
+            "artifacts",
+            "scratch_dir",
+            "source/manifest",
+            osutils=self.osutils,
+            download_dependencies=False,
+            build_in_source=True,
+        )
+
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], EsbuildBundleAction)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
-    def test_build_in_source(self, install_links_mock):
+    def test_build_in_source(self, install_links_mock, get_lockfile_path_mock):
         install_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = os.path.join("source", "package-lock.json")
 
         source_dir = "source"
         workflow = NodejsNpmEsbuildWorkflow(
@@ -359,14 +380,37 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             manifest_path="source/manifest",
             osutils=self.osutils,
             build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
         )
 
         self.assertEqual(len(workflow.actions), 2)
 
-        self.assertIsInstance(workflow.actions[0], NodejsNpmUpdateAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertTrue(workflow.actions[0].install_links)
         self.assertEqual(workflow.actions[0].install_dir, source_dir)
         self.assertIsInstance(workflow.actions[1], EsbuildBundleAction)
         self.assertEqual(workflow.actions[1]._working_directory, source_dir)
+
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
+    def test_build_in_source_without_lockfile(self, install_links_mock, get_lockfile_path_mock):
+        # the flag is on so the lookup is reached; what selects the update is the missing lockfile
+        install_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = None
+
+        source_dir = "source"
+        workflow = NodejsNpmEsbuildWorkflow(
+            source_dir=source_dir,
+            artifacts_dir="artifacts",
+            scratch_dir="scratch_dir",
+            manifest_path="source/manifest",
+            osutils=self.osutils,
+            build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
+        )
+
+        self.assertIsInstance(workflow.actions[0], NodejsNpmUpdateAction)
+        self.assertEqual(workflow.actions[0].install_dir, source_dir)
 
     def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest(self):
         self.osutils.dirname.return_value = "not_source"
@@ -389,11 +433,13 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.assertEqual(workflow.actions[2].install_dir, "scratch_dir")
         self.assertIsInstance(workflow.actions[3], EsbuildBundleAction)
 
+    @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.get_lockfile_path")
     @patch("aws_lambda_builders.workflows.nodejs_npm.workflow.NodejsNpmWorkflow.can_use_install_links")
     def test_workflow_sets_up_npm_actions_with_download_dependencies_without_dependencies_dir_external_manifest_and_build_in_source(
-        self, install_links_mock
+        self, install_links_mock, get_lockfile_path_mock
     ):
         install_links_mock.return_value = True
+        get_lockfile_path_mock.return_value = os.path.join("not_source", "package-lock.json")
 
         self.osutils.dirname.return_value = "not_source"
 
@@ -404,11 +450,13 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             manifest_path="not_source/manifest",
             osutils=self.osutils,
             build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
         )
 
         self.assertEqual(len(workflow.actions), 3)
 
-        self.assertIsInstance(workflow.actions[0], NodejsNpmUpdateAction)
+        self.assertIsInstance(workflow.actions[0], NodejsNpmInstallAction)
+        self.assertTrue(workflow.actions[0].install_links)
         self.assertEqual(workflow.actions[0].install_dir, "not_source")
         self.assertIsInstance(workflow.actions[1], LinkSinglePathAction)
         self.assertEqual(workflow.actions[1]._source, os.path.join("not_source", "node_modules"))
@@ -431,6 +479,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             manifest_path="source/manifest",
             osutils=self.osutils,
             build_in_source=True,
+            experimental_flags=["experimentalNodejsMonorepo"],
             dependencies_dir="dep",
         )
 
@@ -443,6 +492,7 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
             osutils=ANY,
             build_options=ANY,
             is_building_in_source=False,
+            experimental_flags=["experimentalNodejsMonorepo"],
         )
 
     @parameterized.expand(
