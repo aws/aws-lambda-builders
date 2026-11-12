@@ -103,6 +103,7 @@ jobs:
           - 20
           - 22
           - 24
+          - 26
         exclude:
           # Node 22.22.2 ships broken npm missing promise-retry, preventing
           # upgrade to npm 11. See: https://github.com/npm/cli/issues/9151
@@ -143,6 +144,7 @@ jobs:
           - 20
           - 22
           - 24
+          - 26
         exclude:
           # Node 22.22.2 ships broken npm missing promise-retry, preventing
           # upgrade to npm 11. See: https://github.com/npm/cli/issues/9151
