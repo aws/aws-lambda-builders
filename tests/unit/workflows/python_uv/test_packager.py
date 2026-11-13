@@ -265,8 +265,13 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Should call export and workspace dir then install_requirements
         assert self.mock_uv_runner._uv.run_uv_command.call_count == 2
         self.mock_uv_runner.install_requirements.assert_called_once()
-        export_args = self.mock_uv_runner._uv.run_uv_command.call_args.args[0]
+        # The export is the first uv call; the second is `uv workspace dir`
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0].args[0]
         self.assertIn("--locked", export_args)
+
+        # Verify install_requirements is called from workspace root
+        assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
+        assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
 
     @patch(
         "builtins.open",
@@ -325,10 +330,6 @@ class TestPythonUvDependencyBuilder(TestCase):
             self.builder._lock_export_options("uv.lock"),
             ["--exclude-newer-package", "six=P30D", "--exclude-newer-package", "idna=2022-01-02T00:00:00Z"],
         )
-
-        # Verify install_requirements is called from workspace root
-        assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
-        assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
 
     def test_build_from_requirements(self):
         requirements_path = os.path.join("function", "requirements.txt")
