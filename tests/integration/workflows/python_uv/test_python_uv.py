@@ -3,14 +3,18 @@ import pathlib
 import shutil
 import sys
 import platform
+import subprocess
 import tempfile
+import zipfile
 from unittest import TestCase, skipIf
+from unittest.mock import patch
 
-from parameterized import parameterized_class
+from parameterized import parameterized, parameterized_class
 
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.utils import which
+from aws_lambda_builders.workflows.python_uv.packager import PythonUvDependencyBuilder
 from aws_lambda_builders.workflows.python_uv.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE
 
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -76,6 +80,95 @@ class TestPythonUvWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
 
+    @parameterized.expand(
+        [
+            ("python3.11", "x86_64", "x86_64", 17, 28),
+            ("python3.11", "arm64", "aarch64", 17, 28),
+            ("python3.12", "x86_64", "x86_64", 34, 35),
+            ("python3.12", "arm64", "aarch64", 34, 35),
+        ]
+    )
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_selects_lambda_compatible_wheel(self, runtime, architecture, wheel_arch, supported, too_new):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            source_dir = root / "function"
+            source_dir.mkdir()
+            wheelhouse = root / "wheelhouse"
+            wheelhouse.mkdir()
+            for glibc_minor in (supported, too_new):
+                tag = f"py3-none-manylinux_2_{glibc_minor}_{wheel_arch}"
+                with zipfile.ZipFile(wheelhouse / f"platform_demo-1.0.0-{tag}.whl", "w") as wheel:
+                    wheel.writestr("platform_demo.py", f"GLIBC_MINOR = {glibc_minor}\n")
+                    wheel.writestr(
+                        "platform_demo-1.0.0.dist-info/METADATA",
+                        "Metadata-Version: 2.1\nName: platform-demo\nVersion: 1.0.0\n",
+                    )
+                    wheel.writestr(
+                        "platform_demo-1.0.0.dist-info/WHEEL",
+                        f"Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: {tag}\n",
+                    )
+                    wheel.writestr("platform_demo-1.0.0.dist-info/RECORD", "")
+            manifest_path = source_dir / "requirements.txt"
+            manifest_path.write_text("platform-demo==1.0.0\n", encoding="utf-8")
+            with patch.dict(
+                os.environ,
+                {"UV_NO_INDEX": "1", "UV_OFFLINE": "1", "UV_FIND_LINKS": wheelhouse.as_uri()},
+            ):
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    str(source_dir),
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    str(manifest_path),
+                    runtime=runtime,
+                    architecture=architecture,
+                    experimental_flags=self.experimental_flags,
+                )
+
+            self.assertEqual(
+                (pathlib.Path(self.artifacts_dir) / "platform_demo.py").read_text(encoding="utf-8"),
+                f"GLIBC_MINOR = {supported}\n",
+            )
+
+    @parameterized.expand([(False,), (True,)])
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_installs_local_wheel_from_requirements_directory(self, relative_paths):
+        # Keep paths on the checkout's drive so relative paths also work on Windows.
+        with tempfile.TemporaryDirectory(dir=os.getcwd()) as directory:
+            root = pathlib.Path(directory)
+            source_dir = root / "function"
+            source_dir.mkdir()
+            wheel_path = source_dir / "local_demo-1.0.0-py3-none-any.whl"
+            module = "VALUE = 'from function directory'\n"
+            with zipfile.ZipFile(wheel_path, "w") as wheel:
+                wheel.writestr("local_demo.py", module)
+                wheel.writestr(
+                    "local_demo-1.0.0.dist-info/METADATA",
+                    "Metadata-Version: 2.1\nName: local-demo\nVersion: 1.0.0\n",
+                )
+                wheel.writestr(
+                    "local_demo-1.0.0.dist-info/WHEEL",
+                    "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+                )
+                wheel.writestr("local_demo-1.0.0.dist-info/RECORD", "")
+            manifest_path = source_dir / "requirements.txt"
+            manifest_path.write_text(f"./{wheel_path.name}\n", encoding="utf-8")
+            artifacts_dir = root / "artifacts"
+            scratch_dir = root / "scratch"
+            paths = [source_dir, artifacts_dir, scratch_dir, manifest_path]
+            paths = [os.path.relpath(path) if relative_paths else str(path) for path in paths]
+            original_cwd = os.getcwd()
+
+            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                *paths,
+                runtime="python3.13",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertEqual((artifacts_dir / "local_demo.py").read_text(encoding="utf-8"), module)
+            self.assertFalse((source_dir / "artifacts").exists())
+            self.assertEqual(os.getcwd(), original_cwd)
+
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_uses_pyproject_toml_file(self):
         builder = LambdaBuilder(
@@ -95,6 +188,86 @@ class TestPythonUvWorkflow(TestCase):
         expected_files = self.test_data_files.union({"six.py", "six-1.16.0.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
+
+    @parameterized.expand(
+        [
+            (cutoff, package_cutoff, changed)
+            for cutoff, package_cutoff in (
+                ("2024-01-01", None),
+                ("30 days", None),
+                ("2024-01-01", "2023-01-01"),
+                ("2024-01-01", "30 days"),
+            )
+            for changed in (False, True)
+        ]
+    )
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_preserves_existing_lock_options(self, cutoff, package_cutoff, changed_manifest):
+        with tempfile.TemporaryDirectory() as source_dir:
+            manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
+            manifest_path.write_text(
+                '[project]\nname = "locked-demo"\nversion = "1.0.0"\nrequires-python = ">=3.13"\ndependencies = []\n'
+                f'\n[tool.uv]\nexclude-newer = "{cutoff}"\n',
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [
+                    shutil.which("uv"),
+                    "lock",
+                    "--offline",
+                    "--python",
+                    "3.13",
+                    "--resolution",
+                    "lowest-direct",
+                    "--prerelease",
+                    "allow",
+                    "--fork-strategy",
+                    "fewest",
+                ]
+                + (["--exclude-newer-package", f"six={package_cutoff}"] if package_cutoff else []),
+                cwd=source_dir,
+                check=True,
+                capture_output=True,
+            )
+            lock_path = pathlib.Path(source_dir) / "uv.lock"
+            lock_contents = lock_path.read_bytes()
+            self.assertIn(b"exclude-newer", lock_contents)
+            if cutoff == "30 days":
+                self.assertIn(b'exclude-newer-span = "P30D"', lock_contents)
+            if package_cutoff:
+                self.assertIn(b"[options.exclude-newer-package]", lock_contents)
+            if changed_manifest:
+                dependency_dir = pathlib.Path(source_dir) / "dep"
+                dependency_dir.mkdir()
+                (dependency_dir / "pyproject.toml").write_text(
+                    '[project]\nname = "local-dep"\nversion = "1.0.0"\n', encoding="utf-8"
+                )
+                manifest_path.write_text(
+                    manifest_path.read_text(encoding="utf-8").replace(
+                        "dependencies = []", 'dependencies = ["local-dep"]'
+                    )
+                    + '\n[tool.uv.sources]\nlocal-dep = {path = "dep"}\n',
+                    encoding="utf-8",
+                )
+
+            def build():
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    source_dir,
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    str(manifest_path),
+                    runtime="python3.13",
+                    experimental_flags=self.experimental_flags,
+                )
+
+            with patch.dict(os.environ, {"UV_OFFLINE": "1"}):
+                if changed_manifest:
+                    with self.assertRaisesRegex(WorkflowFailedError, "--locked"):
+                        build()
+                else:
+                    build()
+
+            self.assertEqual(lock_path.read_bytes(), lock_contents)
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_with_dependencies_dir(self):
@@ -207,6 +380,34 @@ class TestPythonUvWorkflow(TestCase):
             self.assertIn(expected_file, output_files)
 
     @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_uses_lock_file_with_require_hashes(self):
+        """A project that sets [tool.uv.pip] require-hashes builds from its lock file"""
+        source_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, source_dir)
+        shutil.copy(os.path.join(self.TEST_DATA_FOLDER, "uv.lock"), source_dir)
+        manifest = os.path.join(source_dir, "pyproject.toml")
+        with open(self.manifest_path_pyproject) as src, open(manifest, "w") as dst:
+            dst.write(src.read() + "\n[tool.uv.pip]\nrequire-hashes = true\n")
+
+        builder = LambdaBuilder(
+            language="python",
+            dependency_manager="uv",
+            application_framework=None,
+        )
+        builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest,
+            runtime="python3.12",
+            experimental_flags=self.experimental_flags,
+        )
+
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertIn("six.py", output_files)
+        self.assertIn("six-1.16.0.dist-info", output_files)
+
+    @skipIf(which("uv") is None, "uv not available")
     def test_workflow_builds_with_arm64_architecture(self):
         """Test that UV builds for ARM64 architecture"""
         builder = LambdaBuilder(
@@ -297,3 +498,62 @@ class TestPythonUvWorkflow(TestCase):
 
         finally:
             shutil.rmtree(temp_source_dir)
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_builds_with_dependencies_within_workspace(self):
+        with tempfile.TemporaryDirectory() as workspace_dir:
+            shutil.copytree(os.path.join(self.TEST_DATA_FOLDER, "workspace"), workspace_dir, dirs_exist_ok=True)
+            os.unlink(os.path.join(workspace_dir, "uv.lock"))
+            source_dir = os.path.join(workspace_dir, "app")
+            # Both UV commands must resolve relative scratch paths against the builder's cwd
+            try:
+                scratch_dir = os.path.relpath(self.scratch_dir)
+            except ValueError:
+                # Windows cannot express relative paths across different drives
+                scratch_dir = self.scratch_dir
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                scratch_dir,
+                os.path.join(source_dir, "pyproject.toml"),
+                runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertTrue(os.path.isfile(os.path.join(workspace_dir, "uv.lock")))
+            self.assertTrue(os.path.isfile(os.path.join(self.scratch_dir, "lock_requirements.txt")))
+            self.assertFalse(os.path.exists(os.path.join(self.scratch_dir, "uv-cache")))
+            self.assertFalse(os.path.exists(os.path.join(source_dir, "uv.lock")))
+            for filename in ("__init__.py", "py.typed"):
+                installed = pathlib.Path(self.artifacts_dir, "workspace_lib", filename)
+                original = pathlib.Path(workspace_dir, "lib", "src", "workspace_lib", filename)
+                self.assertEqual(installed.read_bytes(), original.read_bytes())
+            self.assertTrue(os.path.isdir(os.path.join(self.artifacts_dir, "workspace_lib-0.1.0.dist-info")))
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("*.pth")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_reuses_existing_workspace_lock(self):
+        with tempfile.TemporaryDirectory() as workspace_dir:
+            shutil.copytree(os.path.join(self.TEST_DATA_FOLDER, "workspace"), workspace_dir, dirs_exist_ok=True)
+            source_dir = os.path.join(workspace_dir, "app")
+            lock_path = pathlib.Path(workspace_dir, "uv.lock")
+            self.assertTrue(lock_path.is_file())
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            with patch.object(
+                PythonUvDependencyBuilder, "_build_from_pyproject", side_effect=AssertionError("Must reuse root lock")
+            ):
+                builder.build(
+                    source_dir,
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    os.path.join(source_dir, "pyproject.toml"),
+                    runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                    experimental_flags=self.experimental_flags,
+                )
+            # uv export may update lock serialization; only the builder's reuse path matters here.
+            self.assertTrue(lock_path.is_file())
+            self.assertFalse(os.path.exists(os.path.join(source_dir, "uv.lock")))
+            self.assertTrue(pathlib.Path(self.artifacts_dir, "workspace_lib", "__init__.py").is_file())
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).glob("workspace_app-*.dist-info")), [])
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("*.pth")), [])

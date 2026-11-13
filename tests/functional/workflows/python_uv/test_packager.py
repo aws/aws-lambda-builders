@@ -45,6 +45,10 @@ class FakeUv(object):
         except IndexError:
             pass
 
+        if args == ["workspace", "dir"] and self._return_tuple[0] == 0:
+            # These fixtures are standalone projects. Real UV returns the project
+            # directory as text, rather than the canned output of another command.
+            return 0, os.path.abspath(cwd) + "\n", ""
         return self._return_tuple
 
     def set_return_tuple(self, rc, out, err):
@@ -137,6 +141,7 @@ def uv_runner(osutils):
     subprocess_uv = SubprocessUv(osutils=osutils)
     # Replace the real UV with our fake one
     subprocess_uv.run_uv_command = fake_uv.run_uv_command
+    subprocess_uv.get_uv_version = lambda: "0.9.9"
     uv_runner = UvRunner(uv_subprocess=subprocess_uv, osutils=osutils)
     return fake_uv, uv_runner
 
@@ -396,6 +401,10 @@ version = "4.2.0"
                 config=UvConfig(),
             )
 
+        # An existing lock must take the export path without invoking uv lock.
+        assert not fake_uv._calls["lock"]
+        assert fake_uv._calls["export"][0][2] == appdir
+        assert fake_uv._calls["pip"][0][2] == appdir
         # Verify lock file was used (it should still exist)
         assert os.path.exists(lock_path)
         fake_uv.validate()
