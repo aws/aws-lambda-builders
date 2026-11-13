@@ -248,16 +248,26 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.mock_uv_runner.install_requirements.assert_called_once()
 
     def test_build_from_requirements(self):
+        requirements_path = os.path.join("function", "requirements.txt")
+        config = UvConfig()
         self.builder._build_from_requirements(
-            requirements_path="/path/to/requirements.txt",
+            requirements_path=requirements_path,
             target_dir="/target",
             scratch_dir="/scratch",
             python_version="3.9",
             architecture=X86_64,
-            config=UvConfig(),
+            config=config,
         )
 
-        self.mock_uv_runner.install_requirements.assert_called_once()
+        self.mock_uv_runner.install_requirements.assert_called_once_with(
+            requirements_path=os.path.abspath(requirements_path),
+            target_dir="/target",
+            config=config,
+            python_version="3.9",
+            platform="linux",
+            architecture=X86_64,
+            cwd=os.path.dirname(os.path.abspath(requirements_path)),
+        )
 
     def test_build_dependencies_with_requirements_txt(self):
         with patch("os.path.basename", return_value="requirements.txt"):

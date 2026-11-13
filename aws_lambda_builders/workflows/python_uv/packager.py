@@ -408,6 +408,8 @@ class PythonUvDependencyBuilder:
         LOG.info("Building from requirements file")
 
         try:
+            # Resolve the manifest before running UV from its directory for local dependencies.
+            requirements_path = os.path.abspath(requirements_path)
             self._uv_runner.install_requirements(
                 requirements_path=requirements_path,
                 target_dir=target_dir,
@@ -415,6 +417,7 @@ class PythonUvDependencyBuilder:
                 python_version=python_version,
                 platform="linux",
                 architecture=architecture,
+                cwd=os.path.dirname(requirements_path),
             )
         except Exception as e:
             raise UvBuildError(reason=f"Failed to build from requirements: {str(e)}")
