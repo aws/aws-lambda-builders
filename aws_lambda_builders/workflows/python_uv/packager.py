@@ -116,11 +116,10 @@ class UvRunner:
         """
         Install requirements using UV pip interface.
 
-        No ``--cache-dir`` is passed unless the caller supplies one, so UV uses its own
-        default cache location. That cache outlives a single build, letting UV reuse
-        previously downloaded dependencies across functions and across builds. Pointing UV
-        at a per-build directory instead would discard the cache every time, since the
-        build's scratch directory is deleted when the build finishes.
+        Cache options come from ``config``. Normally that leaves UV on its own default cache,
+        which outlives a single build so UV can reuse downloads across functions and builds.
+        Only when that default can't be created does the builder point ``config`` at a
+        cache under the build's scratch directory, which is discarded after the build.
 
         Args:
             requirements_path: Path to requirements.txt file
@@ -403,6 +402,8 @@ class PythonUvDependencyBuilder:
             lock_args = ["lock", "--no-progress"]
             if python_version:
                 lock_args.extend(["--python", python_version])
+            # uv lock also needs a writable cache, same as export and pip install.
+            lock_args.extend(config.cache_args())
 
             project_dir = os.path.dirname(pyproject_path)
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(lock_args, cwd=project_dir)
