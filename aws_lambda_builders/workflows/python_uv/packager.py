@@ -425,7 +425,6 @@ class PythonUvDependencyBuilder:
                 "--format",
                 "requirements.txt",
                 "--no-emit-project",  # Don't include the project itself, only dependencies
-                "--no-hashes",  # Skip hashes for cleaner output (optional)
                 "--no-default-groups",  # Exclude PEP 735 default groups (e.g. dev/test) from Lambda zips
                 # Install package bodies instead of editable .pth links, which break in Lambda zips.
                 "--no-editable",
