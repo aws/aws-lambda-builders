@@ -2,7 +2,9 @@ import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from aws_lambda_builders.architecture import X86_64
+from parameterized import parameterized
+
+from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvBuildError, UvInstallationError
 from aws_lambda_builders.workflows.python_uv.packager import PythonUvDependencyBuilder, SubprocessUv, UvRunner
 from aws_lambda_builders.workflows.python_uv.utils import UvConfig
@@ -138,6 +140,26 @@ class TestUvRunner(TestCase):
         target_value = args_called[args_called.index("--target") + 1]
         self.assertTrue(os.path.isabs(target_value), f"--target should be absolute, got: {target_value}")
         self.assertEqual(target_value, os.path.abspath(os.path.join(".aws-sam", "deps", "abc-123")))
+
+    @parameterized.expand(
+        [
+            ("3.11", X86_64, "x86_64-manylinux_2_17"),
+            ("3.11", ARM64, "aarch64-manylinux_2_17"),
+            ("3.12", X86_64, "x86_64-manylinux_2_34"),
+            ("3.12", ARM64, "aarch64-manylinux_2_34"),
+        ]
+    )
+    def test_install_requirements_targets_lambda_platform(self, python_version, architecture, expected_platform):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "", "")
+        self.uv_runner.install_requirements(
+            requirements_path="requirements.txt",
+            target_dir="artifacts",
+            python_version=python_version,
+            platform="linux",
+            architecture=architecture,
+        )
+        args = self.mock_subprocess_uv.run_uv_command.call_args.args[0]
+        self.assertEqual(args[args.index("--python-platform") + 1], expected_platform)
 
     def test_install_requirements_does_not_pass_cache_dir_by_default(self):
         # No --cache-dir means UV uses its own persistent cache, so dependencies downloaded for
