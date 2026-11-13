@@ -678,7 +678,7 @@ class TestPythonUvDependencyBuilder(TestCase):
         # The project may set its own cache-dir, so the probe has to run there.
         self.mock_uv_runner.cache_dir.assert_called_once_with(cwd="/path/to")
         passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
-        self.assertEqual(passed_config.cache_dir, os.path.join("/scratch", "uv-cache"))
+        self.assertEqual(passed_config.cache_dir, os.path.abspath(os.path.join("/scratch", "uv-cache")))
         self.assertIsNone(config.cache_dir)
 
     @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=False)
