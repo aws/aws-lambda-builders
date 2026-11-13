@@ -24,7 +24,7 @@ class FakeUv(object):
         self._calls = defaultdict(lambda: [])
         self._call_history = []
         self._side_effects = defaultdict(lambda: [])
-        self._return_tuple = (0, b"", b"")
+        self._return_tuple = (0, "", "")
 
     def run_uv_command(self, args, cwd=None, env=None):
         """Mock UV command execution"""
@@ -44,6 +44,10 @@ class FakeUv(object):
         except IndexError:
             pass
 
+        if args == ["workspace", "dir"] and self._return_tuple[0] == 0:
+            # These fixtures are standalone projects. Real UV returns the project
+            # directory as text, rather than the canned output of another command.
+            return 0, os.path.abspath(cwd) + "\n", ""
         return self._return_tuple
 
     def set_return_tuple(self, rc, out, err):
@@ -136,6 +140,7 @@ def uv_runner(osutils):
     subprocess_uv = SubprocessUv(osutils=osutils)
     # Replace the real UV with our fake one
     subprocess_uv.run_uv_command = fake_uv.run_uv_command
+    subprocess_uv.get_uv_version = lambda: "0.9.9"
     uv_runner = UvRunner(uv_subprocess=subprocess_uv, osutils=osutils)
     return fake_uv, uv_runner
 
@@ -191,7 +196,7 @@ dev-dependencies = []
         )
 
         # Set up fake UV to return success
-        fake_uv.set_return_tuple(0, b"Successfully installed requests boto3", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed requests boto3", "")
 
         # Mock the package installation
         site_packages = os.path.join(appdir, "site-packages")
@@ -233,7 +238,7 @@ dev-dependencies = []
         )
 
         # Set up fake UV sync operation
-        fake_uv.set_return_tuple(0, b"Resolved 2 packages", b"")
+        fake_uv.set_return_tuple(0, "Resolved 2 packages", "")
         fake_uv.sync_dependencies(expected_args=["sync", "--python", "3.13"], packages=reqs, project_dir=appdir)
 
         site_packages = os.path.join(appdir, "site-packages")
@@ -263,7 +268,7 @@ dev-dependencies = []
             reqs, tmpdir, runner, manifest_type="requirements"
         )
 
-        fake_uv.set_return_tuple(0, b"Successfully installed cryptography", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed cryptography", "")
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
@@ -304,8 +309,8 @@ dev-dependencies = []
         )
 
         # Set up fake UV to return failure
-        error_msg = b"ERROR: Could not find a version that satisfies the requirement"
-        fake_uv.set_return_tuple(1, b"", error_msg)
+        error_msg = "ERROR: Could not find a version that satisfies the requirement"
+        fake_uv.set_return_tuple(1, "", error_msg)
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
@@ -328,7 +333,7 @@ dev-dependencies = []
             reqs, tmpdir, runner, manifest_type="requirements"
         )
 
-        fake_uv.set_return_tuple(0, b"Successfully installed flask", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed flask", "")
 
         # Test with custom configuration
         config = UvConfig(
@@ -380,7 +385,7 @@ version = "4.2.0"
         with open(lock_path, "w") as f:
             f.write(lock_content)
 
-        fake_uv.set_return_tuple(0, b"Using existing lock file", b"")
+        fake_uv.set_return_tuple(0, "Using existing lock file", "")
         fake_uv.sync_dependencies(expected_args=["sync", "--python", "3.13"], packages=reqs, project_dir=appdir)
 
         site_packages = os.path.join(appdir, "site-packages")
@@ -395,6 +400,10 @@ version = "4.2.0"
                 config=UvConfig(),
             )
 
+        # An existing lock must take the export path without invoking uv lock.
+        assert not fake_uv._calls["lock"]
+        assert fake_uv._calls["export"][0][2] == appdir
+        assert fake_uv._calls["pip"][0][2] == appdir
         # Verify lock file was used (it should still exist)
         assert os.path.exists(lock_path)
         fake_uv.validate()
@@ -407,7 +416,7 @@ version = "4.2.0"
             reqs, tmpdir, runner, manifest_type="requirements"
         )
 
-        fake_uv.set_return_tuple(0, b"Successfully installed requests numpy pyyaml", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed requests numpy pyyaml", "")
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
@@ -447,7 +456,7 @@ version = "4.2.0"
 
         builder = PythonUvDependencyBuilder(osutils=OSUtils(), runtime="python3.13", uv_runner=runner)
 
-        fake_uv.set_return_tuple(0, b"Successfully installed pytest coverage", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed pytest coverage", "")
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
@@ -493,7 +502,7 @@ version = "4.2.0"
             reqs, tmpdir, runner, manifest_type="pyproject"
         )
 
-        fake_uv.set_return_tuple(0, f"Resolved {len(reqs)} packages".encode(), b"")
+        fake_uv.set_return_tuple(0, f"Resolved {len(reqs)} packages", "")
         fake_uv.sync_dependencies(expected_args=["sync", "--python", "3.13"], packages=reqs, project_dir=appdir)
 
         site_packages = os.path.join(appdir, "site-packages")
@@ -526,7 +535,7 @@ version = "4.2.0"
         )
 
         # UV should handle conflicts gracefully or fail with clear error
-        fake_uv.set_return_tuple(1, b"", b"No solution found when resolving dependencies")
+        fake_uv.set_return_tuple(1, "", "No solution found when resolving dependencies")
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
@@ -557,7 +566,7 @@ version = "4.2.0"
             osutils=OSUtils(), runtime="python3.11", uv_runner=runner  # Different Python version
         )
 
-        fake_uv.set_return_tuple(0, b"Successfully installed typing-extensions", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed typing-extensions", "")
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
@@ -593,7 +602,7 @@ version = "4.2.0"
         # Configure to allow prereleases
         config = UvConfig(prerelease="allow")
 
-        fake_uv.set_return_tuple(0, b"Successfully installed django", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed django", "")
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
@@ -628,7 +637,7 @@ version = "4.2.0"
         # Configure to generate/verify hashes
         config = UvConfig(generate_hashes=True)
 
-        fake_uv.set_return_tuple(0, b"Successfully installed certifi", b"")
+        fake_uv.set_return_tuple(0, "Successfully installed certifi", "")
 
         site_packages = os.path.join(appdir, "site-packages")
         os.makedirs(site_packages, exist_ok=True)
