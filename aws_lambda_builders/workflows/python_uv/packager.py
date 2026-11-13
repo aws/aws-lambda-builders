@@ -97,9 +97,13 @@ class UvRunner:
         """Get UV version."""
         return self._uv.get_uv_version()
 
-    def cache_dir(self) -> Optional[str]:
-        """Get the cache directory UV would use, or None if UV can't report it."""
-        rc, stdout, _ = self._uv.run_uv_command(["cache", "dir"])
+    def cache_dir(self, cwd: Optional[str] = None) -> Optional[str]:
+        """Get the cache directory UV would use, or None if UV can't report it.
+
+        Ask from the project directory: a project can set its own cache-dir in
+        ``[tool.uv]``, and UV only reads that when it runs there.
+        """
+        rc, stdout, _ = self._uv.run_uv_command(["cache", "dir"], cwd)
         if rc != 0 or not stdout:
             return None
         return stdout.strip()
@@ -218,7 +222,7 @@ class PythonUvDependencyBuilder:
 
         if config is None:
             config = UvConfig()
-        config = self._with_writable_cache(config, scratch_dir_path)
+        config = self._with_writable_cache(config, scratch_dir_path, os.path.dirname(manifest_path))
 
         # Determine Python version from runtime
         python_version = self._extract_python_version(self.runtime)
@@ -242,17 +246,18 @@ class PythonUvDependencyBuilder:
             LOG.error("Failed to build dependencies: %s", str(e))
             raise
 
-    def _with_writable_cache(self, config: UvConfig, scratch_dir: str) -> UvConfig:
+    def _with_writable_cache(self, config: UvConfig, scratch_dir: str, project_dir: str) -> UvConfig:
         """Use a cache under scratch_dir only when UV's own cache can't be created.
 
         For example, a container build run as a host uid that has no home directory.
         """
         if config.cache_dir or config.no_cache:
             return config
-        cache_dir = self._uv_runner.cache_dir()
+        cache_dir = self._uv_runner.cache_dir(cwd=project_dir)
         if not cache_dir or _can_create_dir(cache_dir):
             return config
-        fallback = os.path.join(scratch_dir, "uv-cache")
+        # Absolute, because UV runs from the project and the workspace root in turn.
+        fallback = os.path.abspath(os.path.join(scratch_dir, "uv-cache"))
         LOG.warning("UV cache directory %s is not writable, using %s for this build", cache_dir, fallback)
         config = copy.copy(config)
         config.cache_dir = fallback

@@ -113,7 +113,13 @@ class TestUvRunner(TestCase):
         self.mock_subprocess_uv.run_uv_command.return_value = (0, "/home/user/.cache/uv\n", "")
 
         self.assertEqual(self.uv_runner.cache_dir(), "/home/user/.cache/uv")
-        self.mock_subprocess_uv.run_uv_command.assert_called_once_with(["cache", "dir"])
+        self.mock_subprocess_uv.run_uv_command.assert_called_once_with(["cache", "dir"], None)
+
+    def test_cache_dir_asks_from_the_project_directory(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "/project/.uv-cache\n", "")
+
+        self.assertEqual(self.uv_runner.cache_dir(cwd="/project"), "/project/.uv-cache")
+        self.mock_subprocess_uv.run_uv_command.assert_called_once_with(["cache", "dir"], "/project")
 
     def test_cache_dir_is_none_when_uv_fails(self):
         self.mock_subprocess_uv.run_uv_command.return_value = (2, "", "error")
@@ -669,9 +675,27 @@ class TestPythonUvDependencyBuilder(TestCase):
             )
 
         mock_can_create.assert_called_once_with("/.cache/uv")
+        # The project may set its own cache-dir, so the probe has to run there.
+        self.mock_uv_runner.cache_dir.assert_called_once_with(cwd="/path/to")
         passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
         self.assertEqual(passed_config.cache_dir, os.path.join("/scratch", "uv-cache"))
         self.assertIsNone(config.cache_dir)
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=False)
+    def test_build_dependencies_scratch_cache_is_absolute(self, mock_can_create):
+        """UV runs from the project and the workspace root, so a relative path would move."""
+        self.mock_uv_runner.cache_dir.return_value = "/.cache/uv"
+
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+            )
+
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertEqual(passed_config.cache_dir, os.path.abspath(os.path.join("scratch", "uv-cache")))
 
     @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=True)
     def test_build_dependencies_keeps_default_cache_when_writable(self, mock_can_create):
