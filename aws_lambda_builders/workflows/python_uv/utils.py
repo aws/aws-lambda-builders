@@ -44,7 +44,7 @@ def detect_uv_manifest(source_dir: str) -> Optional[str]:
     2. requirements.txt (or requirements-prod.txt) - traditional pip-style manifests
 
     A pyproject.toml wins when it is the uv project: it has a uv.lock beside it or declares
-    dependencies in its [project] table. Otherwise it may only hold metadata or tool settings,
+    non-empty dependencies in its [project] table. Otherwise it may only hold metadata or tool settings,
     so requirements.txt is used when present. Development and test requirements files are never
     used, because their contents do not belong in a Lambda deployment package.
 
@@ -93,7 +93,8 @@ def _is_uv_project(source_dir: str, pyproject_path: str) -> bool:
 
     if not isinstance(project, dict):
         return False
-    return "dependencies" in project or "dependencies" in project.get("dynamic", [])
+    # Empty (uv init) or dynamic dependencies usually live in requirements.txt, so let it win.
+    return bool(project.get("dependencies"))
 
 
 def get_uv_version(uv_executable: str, osutils: OSUtils) -> Optional[str]:

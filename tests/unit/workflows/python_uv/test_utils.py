@@ -76,11 +76,21 @@ class TestDetectUvManifest(TestCase):
             (
                 "pyproject declares empty dependencies",
                 {"pyproject.toml": "[project]\nname = 'test'\ndependencies = []\n"},
-                "pyproject.toml",
+                "requirements.txt",
             ),
             (
                 "pyproject has dynamic dependencies",
                 {"pyproject.toml": "[project]\nname = 'test'\ndynamic = ['dependencies']\n"},
+                "requirements.txt",
+            ),
+            (
+                "pyproject has non-list dynamic",
+                {"pyproject.toml": "[project]\nname = 'test'\ndynamic = 'dependencies'\n"},
+                "requirements.txt",
+            ),
+            (
+                "empty dependencies with uv.lock",
+                {"pyproject.toml": "[project]\nname = 'test'\ndependencies = []\n", "uv.lock": "version = 1\n"},
                 "pyproject.toml",
             ),
             (

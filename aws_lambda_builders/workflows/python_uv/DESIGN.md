@@ -274,9 +274,9 @@ CAPABILITY = Capability(
 The workflow uses intelligent manifest detection:
 
 **Auto-detection (when no manifest path is given), in order of preference:**
-1. `pyproject.toml`, when it is the uv project: a `uv.lock` sits beside it, or its `[project]` table declares `dependencies` (including `dynamic = ["dependencies"]`)
+1. `pyproject.toml`, when it is the uv project: a `uv.lock` sits beside it, or its `[project]` table declares a non-empty `dependencies` list
 2. `requirements.txt`, then `requirements-prod.txt`
-3. `pyproject.toml` without declared dependencies (metadata or tool settings only)
+3. `pyproject.toml` otherwise (metadata or tool settings only, empty `dependencies`, or `dynamic` dependencies)
 
 `requirements-dev.txt` and `requirements-test.txt` are never auto-detected: development and test dependencies do not belong in a Lambda package. They can still be passed as an explicit manifest path.
 
