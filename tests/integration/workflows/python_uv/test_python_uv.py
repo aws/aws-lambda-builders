@@ -5,6 +5,7 @@ import sys
 import platform
 import subprocess
 import tempfile
+import zipfile
 from unittest import TestCase, skipIf
 from unittest.mock import patch
 
@@ -77,6 +78,95 @@ class TestPythonUvWorkflow(TestCase):
         expected_files = self.test_data_files.union({"six.py", "six-1.16.0.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
+
+    @parameterized.expand(
+        [
+            ("python3.11", "x86_64", "x86_64", 17, 28),
+            ("python3.11", "arm64", "aarch64", 17, 28),
+            ("python3.12", "x86_64", "x86_64", 34, 35),
+            ("python3.12", "arm64", "aarch64", 34, 35),
+        ]
+    )
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_selects_lambda_compatible_wheel(self, runtime, architecture, wheel_arch, supported, too_new):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            source_dir = root / "function"
+            source_dir.mkdir()
+            wheelhouse = root / "wheelhouse"
+            wheelhouse.mkdir()
+            for glibc_minor in (supported, too_new):
+                tag = f"py3-none-manylinux_2_{glibc_minor}_{wheel_arch}"
+                with zipfile.ZipFile(wheelhouse / f"platform_demo-1.0.0-{tag}.whl", "w") as wheel:
+                    wheel.writestr("platform_demo.py", f"GLIBC_MINOR = {glibc_minor}\n")
+                    wheel.writestr(
+                        "platform_demo-1.0.0.dist-info/METADATA",
+                        "Metadata-Version: 2.1\nName: platform-demo\nVersion: 1.0.0\n",
+                    )
+                    wheel.writestr(
+                        "platform_demo-1.0.0.dist-info/WHEEL",
+                        f"Wheel-Version: 1.0\nRoot-Is-Purelib: false\nTag: {tag}\n",
+                    )
+                    wheel.writestr("platform_demo-1.0.0.dist-info/RECORD", "")
+            manifest_path = source_dir / "requirements.txt"
+            manifest_path.write_text("platform-demo==1.0.0\n", encoding="utf-8")
+            with patch.dict(
+                os.environ,
+                {"UV_NO_INDEX": "1", "UV_OFFLINE": "1", "UV_FIND_LINKS": wheelhouse.as_uri()},
+            ):
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    str(source_dir),
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    str(manifest_path),
+                    runtime=runtime,
+                    architecture=architecture,
+                    experimental_flags=self.experimental_flags,
+                )
+
+            self.assertEqual(
+                (pathlib.Path(self.artifacts_dir) / "platform_demo.py").read_text(encoding="utf-8"),
+                f"GLIBC_MINOR = {supported}\n",
+            )
+
+    @parameterized.expand([(False,), (True,)])
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_installs_local_wheel_from_requirements_directory(self, relative_paths):
+        # Keep paths on the checkout's drive so relative paths also work on Windows.
+        with tempfile.TemporaryDirectory(dir=os.getcwd()) as directory:
+            root = pathlib.Path(directory)
+            source_dir = root / "function"
+            source_dir.mkdir()
+            wheel_path = source_dir / "local_demo-1.0.0-py3-none-any.whl"
+            module = "VALUE = 'from function directory'\n"
+            with zipfile.ZipFile(wheel_path, "w") as wheel:
+                wheel.writestr("local_demo.py", module)
+                wheel.writestr(
+                    "local_demo-1.0.0.dist-info/METADATA",
+                    "Metadata-Version: 2.1\nName: local-demo\nVersion: 1.0.0\n",
+                )
+                wheel.writestr(
+                    "local_demo-1.0.0.dist-info/WHEEL",
+                    "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+                )
+                wheel.writestr("local_demo-1.0.0.dist-info/RECORD", "")
+            manifest_path = source_dir / "requirements.txt"
+            manifest_path.write_text(f"./{wheel_path.name}\n", encoding="utf-8")
+            artifacts_dir = root / "artifacts"
+            scratch_dir = root / "scratch"
+            paths = [source_dir, artifacts_dir, scratch_dir, manifest_path]
+            paths = [os.path.relpath(path) if relative_paths else str(path) for path in paths]
+            original_cwd = os.getcwd()
+
+            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                *paths,
+                runtime="python3.13",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertEqual((artifacts_dir / "local_demo.py").read_text(encoding="utf-8"), module)
+            self.assertFalse((source_dir / "artifacts").exists())
+            self.assertEqual(os.getcwd(), original_cwd)
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_uses_pyproject_toml_file(self):
