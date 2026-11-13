@@ -98,9 +98,20 @@ class TestPythonUvWorkflow(TestCase):
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
 
-    @parameterized.expand([(cutoff, changed) for cutoff in ("2024-01-01", "30 days") for changed in (False, True)])
+    @parameterized.expand(
+        [
+            (cutoff, package_cutoff, changed)
+            for cutoff, package_cutoff in (
+                ("2024-01-01", None),
+                ("30 days", None),
+                ("2024-01-01", "2023-01-01"),
+                ("2024-01-01", "30 days"),
+            )
+            for changed in (False, True)
+        ]
+    )
     @skipIf(which("uv") is None, "uv not available")
-    def test_workflow_preserves_existing_lock_options(self, cutoff, changed_manifest):
+    def test_workflow_preserves_existing_lock_options(self, cutoff, package_cutoff, changed_manifest):
         with tempfile.TemporaryDirectory() as source_dir:
             manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
             manifest_path.write_text(
@@ -121,7 +132,8 @@ class TestPythonUvWorkflow(TestCase):
                     "allow",
                     "--fork-strategy",
                     "fewest",
-                ],
+                ]
+                + (["--exclude-newer-package", f"six={package_cutoff}"] if package_cutoff else []),
                 cwd=source_dir,
                 check=True,
                 capture_output=True,
@@ -131,6 +143,8 @@ class TestPythonUvWorkflow(TestCase):
             self.assertIn(b"exclude-newer", lock_contents)
             if cutoff == "30 days":
                 self.assertIn(b'exclude-newer-span = "P30D"', lock_contents)
+            if package_cutoff:
+                self.assertIn(b"[options.exclude-newer-package]", lock_contents)
             if changed_manifest:
                 dependency_dir = pathlib.Path(source_dir) / "dep"
                 dependency_dir.mkdir()

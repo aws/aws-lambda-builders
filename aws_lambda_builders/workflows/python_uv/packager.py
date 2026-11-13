@@ -325,6 +325,11 @@ class PythonUvDependencyBuilder:
         ):
             if option in options:
                 args.extend([flag, options[option]])
+        for package, cutoff in options.get("exclude-newer-package", {}).items():
+            value = cutoff
+            if isinstance(cutoff, dict):
+                value = cutoff["span"] if "span" in cutoff else cutoff["timestamp"]
+            args.extend(["--exclude-newer-package", f"{package}={value}"])
         return args
 
     def _build_from_lock_file(

@@ -256,6 +256,35 @@ class TestPythonUvDependencyBuilder(TestCase):
     def test_lock_export_prefers_relative_cutoff_over_placeholder(self, mock_file):
         self.assertEqual(self.builder._lock_export_options("uv.lock"), ["--exclude-newer", "P30D"])
 
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b'[options.exclude-newer-package]\nsix="2023-01-02T00:00:00Z"\nidna="2022-01-02T00:00:00Z"\n',
+    )
+    def test_lock_export_replays_absolute_package_cutoffs(self, mock_file):
+        self.assertEqual(
+            self.builder._lock_export_options("uv.lock"),
+            [
+                "--exclude-newer-package",
+                "six=2023-01-02T00:00:00Z",
+                "--exclude-newer-package",
+                "idna=2022-01-02T00:00:00Z",
+            ],
+        )
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b"[options.exclude-newer-package]\n"
+        b'six={timestamp="0001-01-01T00:00:00Z",span="P30D"}\n'
+        b'idna={timestamp="2022-01-02T00:00:00Z"}\n',
+    )
+    def test_lock_export_prefers_package_span_over_placeholder(self, mock_file):
+        self.assertEqual(
+            self.builder._lock_export_options("uv.lock"),
+            ["--exclude-newer-package", "six=P30D", "--exclude-newer-package", "idna=2022-01-02T00:00:00Z"],
+        )
+
     def test_build_from_requirements(self):
         self.builder._build_from_requirements(
             requirements_path="/path/to/requirements.txt",
