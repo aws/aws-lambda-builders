@@ -8,7 +8,7 @@ from typing import Optional
 from aws_lambda_builders.actions import ActionFailedError, BaseAction, Purpose
 from aws_lambda_builders.architecture import X86_64
 
-from .exceptions import MissingUvError, UvBuildError, UvInstallationError
+from .exceptions import LockFileError, MissingUvError, UvBuildError, UvInstallationError
 from .packager import PythonUvDependencyBuilder, SubprocessUv, UvRunner
 from .utils import OSUtils, UvConfig
 
@@ -72,5 +72,5 @@ class PythonUvBuildAction(BaseAction):
                 architecture=self.architecture,
                 config=self.config,
             )
-        except (MissingUvError, UvInstallationError, UvBuildError) as ex:
+        except (LockFileError, MissingUvError, UvInstallationError, UvBuildError) as ex:
             raise ActionFailedError(str(ex))

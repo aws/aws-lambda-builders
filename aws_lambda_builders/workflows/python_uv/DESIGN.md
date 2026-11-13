@@ -125,6 +125,13 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 
 **For pyproject.toml with uv.lock present:**
 - Use `uv export` to convert lock file to requirements.txt format
+- Export with `--locked`, reusing the lock's resolution mode, prerelease mode, fork strategy, and `exclude-newer`
+  cutoff so export validates rather than rewrites the existing lock. Stale locks fail the build;
+  run `uv lock` explicitly after dependency changes.
+- For relative cutoffs, replay `exclude-newer-span` instead of the lock's placeholder `exclude-newer` date.
+  Python 3.10 uses the runtime dependency `tomli` to read lock options; Python 3.11+ uses `tomllib`.
+- Replay each `options.exclude-newer-package` entry with `--exclude-newer-package`, preferring its `span`
+  over the placeholder `timestamp` for relative per-package cutoffs.
 - Install using `uv pip install` with platform targeting (--python-platform)
 - Provides reproducible builds with locked dependency versions AND cross-platform support
 
