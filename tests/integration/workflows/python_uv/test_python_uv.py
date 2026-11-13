@@ -380,6 +380,34 @@ class TestPythonUvWorkflow(TestCase):
             self.assertIn(expected_file, output_files)
 
     @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_uses_lock_file_with_require_hashes(self):
+        """A project that sets [tool.uv.pip] require-hashes builds from its lock file"""
+        source_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, source_dir)
+        shutil.copy(os.path.join(self.TEST_DATA_FOLDER, "uv.lock"), source_dir)
+        manifest = os.path.join(source_dir, "pyproject.toml")
+        with open(self.manifest_path_pyproject) as src, open(manifest, "w") as dst:
+            dst.write(src.read() + "\n[tool.uv.pip]\nrequire-hashes = true\n")
+
+        builder = LambdaBuilder(
+            language="python",
+            dependency_manager="uv",
+            application_framework=None,
+        )
+        builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest,
+            runtime="python3.12",
+            experimental_flags=self.experimental_flags,
+        )
+
+        output_files = set(os.listdir(self.artifacts_dir))
+        self.assertIn("six.py", output_files)
+        self.assertIn("six-1.16.0.dist-info", output_files)
+
+    @skipIf(which("uv") is None, "uv not available")
     def test_workflow_builds_with_arm64_architecture(self):
         """Test that UV builds for ARM64 architecture"""
         builder = LambdaBuilder(
