@@ -4,7 +4,9 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from aws_lambda_builders.architecture import X86_64
+from parameterized import parameterized
+
+from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvBuildError, UvInstallationError
 from aws_lambda_builders.workflows.python_uv.packager import PythonUvDependencyBuilder, SubprocessUv, UvRunner
 from aws_lambda_builders.workflows.python_uv.utils import UvConfig
@@ -142,6 +144,26 @@ class TestUvRunner(TestCase):
         self.assertTrue(os.path.isabs(target_value), f"--target should be absolute, got: {target_value}")
         self.assertEqual(target_value, os.path.abspath(os.path.join(".aws-sam", "deps", "abc-123")))
 
+    @parameterized.expand(
+        [
+            ("3.11", X86_64, "x86_64-manylinux_2_17"),
+            ("3.11", ARM64, "aarch64-manylinux_2_17"),
+            ("3.12", X86_64, "x86_64-manylinux_2_34"),
+            ("3.12", ARM64, "aarch64-manylinux_2_34"),
+        ]
+    )
+    def test_install_requirements_targets_lambda_platform(self, python_version, architecture, expected_platform):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "", "")
+        self.uv_runner.install_requirements(
+            requirements_path="requirements.txt",
+            target_dir="artifacts",
+            python_version=python_version,
+            platform="linux",
+            architecture=architecture,
+        )
+        args = self.mock_subprocess_uv.run_uv_command.call_args.args[0]
+        self.assertEqual(args[args.index("--python-platform") + 1], expected_platform)
+
     def test_install_requirements_does_not_pass_cache_dir_by_default(self):
         # No --cache-dir means UV uses its own persistent cache, so dependencies downloaded for
         # one function are reused by the next function and by later builds. Passing a per-build
@@ -249,16 +271,26 @@ class TestPythonUvDependencyBuilder(TestCase):
         assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
 
     def test_build_from_requirements(self):
+        requirements_path = os.path.join("function", "requirements.txt")
+        config = UvConfig()
         self.builder._build_from_requirements(
-            requirements_path="/path/to/requirements.txt",
+            requirements_path=requirements_path,
             target_dir="/target",
             scratch_dir="/scratch",
             python_version="3.9",
             architecture=X86_64,
-            config=UvConfig(),
+            config=config,
         )
 
-        self.mock_uv_runner.install_requirements.assert_called_once()
+        self.mock_uv_runner.install_requirements.assert_called_once_with(
+            requirements_path=os.path.abspath(requirements_path),
+            target_dir="/target",
+            config=config,
+            python_version="3.9",
+            platform="linux",
+            architecture=X86_64,
+            cwd=os.path.dirname(os.path.abspath(requirements_path)),
+        )
 
     def test_build_from_lock_file_shares_absolute_requirements_path(self):
         self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, "/workspace\n", "")]

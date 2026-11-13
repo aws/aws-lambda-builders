@@ -153,7 +153,14 @@ class UvRunner:
 
             platform_key = (platform, architecture)
             if platform_key in platform_mapping:
-                args.extend(["--python-platform", platform_mapping[platform_key]])
+                python_platform = platform_mapping[platform_key]
+                if python_version:
+                    version_info = tuple(int(part) for part in python_version.split(".")[:2])
+                    # Match Lambda's AL2/AL2023 manylinux targets, not the build host's glibc.
+                    manylinux_version = "2_34" if version_info >= (3, 12) else "2_17"
+                    target_arch = "aarch64" if architecture == ARM64 else "x86_64"
+                    python_platform = f"{target_arch}-manylinux_{manylinux_version}"
+                args.extend(["--python-platform", python_platform])
 
         # Execute UV pip install
         rc, stdout, stderr = self._uv.run_uv_command(args, cwd)
@@ -514,6 +521,8 @@ class PythonUvDependencyBuilder:
         LOG.info("Building from requirements file")
 
         try:
+            # Resolve the manifest before running UV from its directory for local dependencies.
+            requirements_path = os.path.abspath(requirements_path)
             self._uv_runner.install_requirements(
                 requirements_path=requirements_path,
                 target_dir=target_dir,
@@ -521,6 +530,7 @@ class PythonUvDependencyBuilder:
                 python_version=python_version,
                 platform="linux",
                 architecture=architecture,
+                cwd=os.path.dirname(requirements_path),
             )
         except Exception as e:
             raise UvBuildError(reason=f"Failed to build from requirements: {str(e)}")
