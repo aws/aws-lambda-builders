@@ -702,18 +702,25 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.mock_uv_runner.cache_dir.assert_not_called()
 
     def test_build_from_lock_file_passes_cache_dir_to_export(self):
-        self.mock_uv_runner._uv.run_uv_command.return_value = (0, "", "")
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, "", ""),  # export
+            (0, "/workspace\n", ""),  # workspace dir
+        ]
 
         self.builder._build_from_lock_file(
             "/path/to/uv.lock", "/target", "/scratch", "3.12", X86_64, UvConfig(cache_dir="/scratch/uv-cache")
         )
 
-        export_args = self.mock_uv_runner._uv.run_uv_command.call_args[0][0]
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0][0][0]
         self.assertEqual(export_args[0], "export")
         self.assertEqual(export_args[export_args.index("--cache-dir") + 1], "/scratch/uv-cache")
 
     def test_build_from_pyproject_passes_cache_dir_to_lock(self):
-        self.mock_uv_runner._uv.run_uv_command.return_value = (0, "", "")
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, "", ""),  # lock
+            (0, "/workspace\n", ""),  # workspace dir
+            (0, "", ""),  # export
+        ]
 
         self.builder._build_from_pyproject(
             "/path/to/pyproject.toml", "/target", "/scratch", "3.12", X86_64, UvConfig(cache_dir="/scratch/uv-cache")
