@@ -147,6 +147,15 @@ class UvConfig:
         self.exclude_newer = exclude_newer
         self.generate_hashes = generate_hashes
 
+    def cache_args(self) -> List[str]:
+        """Convert the cache options to UV command line arguments."""
+        args = []
+        if self.cache_dir:
+            args.extend(["--cache-dir", self.cache_dir])
+        if self.no_cache:
+            args.append("--no-cache")
+        return args
+
     def to_uv_args(self) -> List[str]:
         """Convert configuration to UV command line arguments."""
         args = []
@@ -157,11 +166,7 @@ class UvConfig:
         for extra_url in self.extra_index_urls:
             args.extend(["--extra-index-url", extra_url])
 
-        if self.cache_dir:
-            args.extend(["--cache-dir", self.cache_dir])
-
-        if self.no_cache:
-            args.append("--no-cache")
+        args.extend(self.cache_args())
 
         if self.prerelease != "disallow":
             args.extend(["--prerelease", self.prerelease])
