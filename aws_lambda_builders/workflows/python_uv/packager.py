@@ -6,7 +6,7 @@ import copy
 import logging
 import os
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 
@@ -24,6 +24,7 @@ class SubprocessUv:
             osutils = OSUtils()
         self._osutils = osutils
         self._uv_executable = self._find_uv_executable()
+        self._warnings_seen: Set[str] = set()
 
     def _find_uv_executable(self) -> str:
         """Find UV executable in PATH."""
@@ -76,8 +77,27 @@ class SubprocessUv:
         LOG.debug("UV command return code: %d", rc)
         LOG.debug("UV stdout: %s", stdout)
         LOG.debug("UV stderr: %s", stderr)
+        self._log_warnings(stderr)
 
         return rc, stdout, stderr
+
+    def _log_warnings(self, stderr: Optional[str]) -> None:
+        """Log each `warning:` block uv prints, once per build; uv repeats some on every command."""
+        blocks: List[List[str]] = []
+        current = None
+        for line in (stderr or "").splitlines():
+            if line.startswith("warning:"):
+                current = [line]
+                blocks.append(current)
+            elif current is not None and line[:1] in (" ", "\t"):
+                current.append(line)  # uv indents a warning's continuation lines
+            else:
+                current = None
+        for block in blocks:
+            message = "\n".join(block)
+            if message not in self._warnings_seen:
+                self._warnings_seen.add(message)
+                LOG.warning("uv %s", message)
 
 
 class UvRunner:
@@ -458,6 +478,28 @@ class PythonUvDependencyBuilder:
             args.extend(["--exclude-newer-package", f"{package}={value}"])
         return args
 
+    @staticmethod
+    def _check_prune_names(lock_path: str, prune: List[str]) -> None:
+        """Fail on prune names missing from the lock; `uv export --prune` ignores them silently."""
+        if not prune:
+            return
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            import tomli as tomllib
+
+        try:
+            with open(lock_path, "rb") as lock_file:
+                packages = tomllib.load(lock_file).get("package", [])
+        except FileNotFoundError:
+            # Leave missing-lock diagnostics to UV.
+            return
+
+        locked = {package.get("name") for package in packages if isinstance(package, dict)}
+        missing = [name for name in prune if re.sub(r"[-_.]+", "-", name).lower() not in locked]
+        if missing:
+            raise LockFileError(reason=f"Build option uv_prune names packages not in {lock_path}: {', '.join(missing)}")
+
     def _build_from_lock_file(
         self,
         lock_path: str,
@@ -480,6 +522,7 @@ class PythonUvDependencyBuilder:
         try:
             if project_dir is None:
                 project_dir = os.path.dirname(lock_path)
+            self._check_prune_names(lock_path, config.prune)
 
             # Export lock file to requirements.txt for platform-specific install
             # Export and install may run from different directories in a workspace
@@ -500,6 +543,7 @@ class PythonUvDependencyBuilder:
                 "--python",
                 python_version,
             ]
+            export_args.extend(config.to_export_args())
             export_args.extend(self._lock_export_options(lock_path))
             export_args.extend(config.cache_args())
 
