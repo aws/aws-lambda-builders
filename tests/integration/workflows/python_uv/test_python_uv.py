@@ -197,6 +197,7 @@ class TestPythonUvWorkflow(TestCase):
                 ("30 days", None),
                 ("2024-01-01", "2023-01-01"),
                 ("2024-01-01", "30 days"),
+                ("2024-01-01", "false"),
             )
             for changed in (False, True)
         ]
@@ -268,6 +269,32 @@ class TestPythonUvWorkflow(TestCase):
                     build()
 
             self.assertEqual(lock_path.read_bytes(), lock_contents)
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_honors_package_opt_out_from_cutoff(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
+            # six 1.17.0 was released in December 2024, well after the global cutoff.
+            manifest_path.write_text(
+                '[project]\nname = "opt-out-demo"\nversion = "1.0.0"\nrequires-python = ">=3.13"\n'
+                'dependencies = ["six"]\n'
+                '\n[tool.uv]\nexclude-newer = "2020-01-01"\nexclude-newer-package = { six = false }\n',
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [shutil.which("uv"), "lock", "--python", "3.13"], cwd=source_dir, check=True, capture_output=True
+            )
+
+            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                str(manifest_path),
+                runtime="python3.13",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertIn("six-1.17.0.dist-info", os.listdir(self.artifacts_dir))
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_with_dependencies_dir(self):

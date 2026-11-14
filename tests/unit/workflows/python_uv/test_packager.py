@@ -331,6 +331,17 @@ class TestPythonUvDependencyBuilder(TestCase):
             ["--exclude-newer-package", "six=P30D", "--exclude-newer-package", "idna=2022-01-02T00:00:00Z"],
         )
 
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b'[options.exclude-newer-package]\nsix=false\nidna="2022-01-02T00:00:00Z"\n',
+    )
+    def test_lock_export_replays_package_opt_out_as_lowercase_false(self, mock_file):
+        self.assertEqual(
+            self.builder._lock_export_options("uv.lock"),
+            ["--exclude-newer-package", "six=false", "--exclude-newer-package", "idna=2022-01-02T00:00:00Z"],
+        )
+
     def test_build_from_requirements(self):
         requirements_path = os.path.join("function", "requirements.txt")
         config = UvConfig()
