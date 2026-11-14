@@ -3,3 +3,6 @@
 # TODO: Consider moving this dependency directly into the `python_pip` workflow module
 setuptools
 wheel
+# Used to normalize PEP 621 versions to PEP 440 canonical form when reading
+# name/version from pyproject.toml
+packaging
