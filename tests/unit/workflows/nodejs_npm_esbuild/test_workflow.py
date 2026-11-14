@@ -44,7 +44,10 @@ class TestNodejsNpmEsbuildWorkflow(TestCase):
         self.osutils = OSUtilMock.return_value
         self.osutils.pipe = "PIPE"
         self.popen = FakePopen()
-        self.osutils.popen.side_effect = [self.popen]
+        # one per npm invocation, however many the workflow makes: a list of exactly one encodes the
+        # call count of the day, and a build that asks npm one more question fails with StopIteration
+        # somewhere unrelated to what the test is about
+        self.osutils.popen.side_effect = lambda *args, **kwargs: self.popen
         self.osutils.dirname.return_value = "source"
         self.osutils.is_windows.side_effect = [False]
         self.osutils.joinpath.side_effect = lambda a, b: "{}/{}".format(a, b)

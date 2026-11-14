@@ -161,16 +161,14 @@ class NodejsNpmWorkflow(BaseWorkflow):
         if is_building_in_source and (self.download_dependencies or not self.dependencies_dir):
             # npm hoists a workspace member's dependencies to the monorepo root, so nothing appears beside
             # the function and the artifacts link found no source: aws/aws-lambda-builders#933. Only a
-            # project root outside the install directory redirects it, compared through normcase for
-            # Windows. Gated on experimentalNodejsMonorepo while this rolls out.
+            # project root outside the install directory redirects it. Gated on
+            # experimentalNodejsMonorepo while this rolls out.
             project_root = (
-                subprocess_npm.resolve_project_root(install_dir)
+                NodejsNpmWorkflow.enclosing_project_root(install_dir, subprocess_npm)
                 if is_nodejs_monorepo_support_enabled(self.experimental_flags)
                 else None
             )
-            if project_root and os.path.normcase(os.path.realpath(project_root)) != os.path.normcase(
-                os.path.realpath(install_dir)
-            ):
+            if project_root:
                 LOG.debug(
                     "NODEJS npm installs into %s rather than %s; linking this function's own dependencies",
                     project_root,
@@ -204,6 +202,36 @@ class NodejsNpmWorkflow(BaseWorkflow):
             )
 
         self.actions += self._actions_for_cleanup
+
+    @staticmethod
+    def enclosing_project_root(install_dir: str, subprocess_npm: SubprocessNpm) -> Optional[str]:
+        """
+        The npm project root ABOVE install_dir, or None when install_dir is that root itself.
+
+        A workspace member is the case this answers: npm keeps one lockfile and one hoisted
+        node_modules at the monorepo root, so an install run in the member reconciles the root's
+        whole tree. Anywhere else npm's project root is the directory itself and there is nothing
+        above it to be careful about. Compared through normcase for Windows, and through realpath
+        because npm answers with the resolved path while the caller may hold another spelling.
+
+        Parameters
+        ----------
+        install_dir : str
+            the directory the install will run in
+        subprocess_npm : SubprocessNpm
+            An instance of the NPM process wrapper
+
+        Returns
+        -------
+        Optional[str]
+            the enclosing project root, or None when there is none or npm could not be asked
+        """
+        project_root = subprocess_npm.resolve_project_root(install_dir)
+        if not project_root:
+            return None
+        if os.path.normcase(os.path.realpath(project_root)) == os.path.normcase(os.path.realpath(install_dir)):
+            return None
+        return project_root
 
     def _warn_if_tests_were_expected(self, install_dir):
         """
@@ -308,7 +336,8 @@ class NodejsNpmWorkflow(BaseWorkflow):
             experimentalNodejsMonorepo while it rolls out
         omit_dev : bool
             Passes --omit=dev if True, by default True. False is for the shared install at a workspace
-            root, whose own dev dependencies must survive the install.
+            root, whose own dev dependencies must survive the install. True is also downgraded here for
+            an in-source install that would reconcile an enclosing workspace root, for the same reason.
 
         Returns
         -------
@@ -321,6 +350,24 @@ class NodejsNpmWorkflow(BaseWorkflow):
         npm_ci_option = False
         if build_options and isinstance(build_options, dict):
             npm_ci_option = build_options.get("use_npm_ci", False)
+
+        # An in-source install at a workspace MEMBER reconciles the monorepo root's hoisted tree, and
+        # --omit=dev there deletes the ROOT's own dev dependencies out of the customer's node_modules -
+        # typescript, the test runner, the bundler - leaving them to run `npm ci` after every build:
+        # aws/aws-sam-cli#6491. Pruning a tree this build does not own is not worth it, and it buys the
+        # artifacts nothing: the production closure is resolved at the link step, which leaves dev
+        # dependencies out by itself. The shared install already passes omit_dev=False for the same
+        # reason; this covers the per-function installs that still run, --cached builds among them.
+        if omit_dev and is_building_in_source and is_nodejs_monorepo_support_enabled(experimental_flags):
+            enclosing_root = NodejsNpmWorkflow.enclosing_project_root(install_dir, subprocess_npm)
+            if enclosing_root:
+                LOG.debug(
+                    "NODEJS an install in %s reconciles the tree at %s; keeping dev dependencies so it "
+                    "does not prune a tree it does not own",
+                    install_dir,
+                    enclosing_root,
+                )
+                omit_dev = False
 
         if omit_dev:
             LOG.debug(
