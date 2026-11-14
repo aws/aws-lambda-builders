@@ -101,6 +101,22 @@ class TestJavaGradle(TestCase):
 
         self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, expected_files))
 
+    def test_build_single_build_excludes_non_jar_archives(self):
+        source_dir = join(self.SINGLE_BUILD_TEST_DATA_DIR, self.runtime, "with-deps-gradlew")
+        manifest_path = join(source_dir, "build.gradle")
+        self.builder.build(
+            source_dir,
+            self.artifacts_dir,
+            self.scratch_dir,
+            manifest_path,
+            runtime=self.runtime,
+            executable_search_paths=[source_dir],
+        )
+        expected_files = [join("aws", "lambdabuilders", "Main.class"), join("lib", "annotations-2.1.0.jar")]
+
+        self.assertTrue(does_folder_contain_all_files(self.artifacts_dir, expected_files))
+        self.assertFalse(os.path.exists(join(self.artifacts_dir, "aws", "lambdabuilders", "Main.java")))
+
     def test_build_multi_build_with_deps_lambda1(self):
         parent_dir = join(self.MULTI_BUILD_TEST_DATA_DIR, self.runtime, "with-deps")
         manifest_path = join(parent_dir, "lambda1", "build.gradle")
