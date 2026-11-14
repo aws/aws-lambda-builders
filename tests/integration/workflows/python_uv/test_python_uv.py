@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import sys
 import platform
+import subprocess
 import tempfile
 import zipfile
 from unittest import TestCase, skipIf
@@ -187,6 +188,86 @@ class TestPythonUvWorkflow(TestCase):
         expected_files = self.test_data_files.union({"six.py", "six-1.16.0.dist-info"})
         output_files = set(os.listdir(self.artifacts_dir))
         self.assertEqual(expected_files.intersection(output_files), expected_files)
+
+    @parameterized.expand(
+        [
+            (cutoff, package_cutoff, changed)
+            for cutoff, package_cutoff in (
+                ("2024-01-01", None),
+                ("30 days", None),
+                ("2024-01-01", "2023-01-01"),
+                ("2024-01-01", "30 days"),
+            )
+            for changed in (False, True)
+        ]
+    )
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_preserves_existing_lock_options(self, cutoff, package_cutoff, changed_manifest):
+        with tempfile.TemporaryDirectory() as source_dir:
+            manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
+            manifest_path.write_text(
+                '[project]\nname = "locked-demo"\nversion = "1.0.0"\nrequires-python = ">=3.13"\ndependencies = []\n'
+                f'\n[tool.uv]\nexclude-newer = "{cutoff}"\n',
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [
+                    shutil.which("uv"),
+                    "lock",
+                    "--offline",
+                    "--python",
+                    "3.13",
+                    "--resolution",
+                    "lowest-direct",
+                    "--prerelease",
+                    "allow",
+                    "--fork-strategy",
+                    "fewest",
+                ]
+                + (["--exclude-newer-package", f"six={package_cutoff}"] if package_cutoff else []),
+                cwd=source_dir,
+                check=True,
+                capture_output=True,
+            )
+            lock_path = pathlib.Path(source_dir) / "uv.lock"
+            lock_contents = lock_path.read_bytes()
+            self.assertIn(b"exclude-newer", lock_contents)
+            if cutoff == "30 days":
+                self.assertIn(b'exclude-newer-span = "P30D"', lock_contents)
+            if package_cutoff:
+                self.assertIn(b"[options.exclude-newer-package]", lock_contents)
+            if changed_manifest:
+                dependency_dir = pathlib.Path(source_dir) / "dep"
+                dependency_dir.mkdir()
+                (dependency_dir / "pyproject.toml").write_text(
+                    '[project]\nname = "local-dep"\nversion = "1.0.0"\n', encoding="utf-8"
+                )
+                manifest_path.write_text(
+                    manifest_path.read_text(encoding="utf-8").replace(
+                        "dependencies = []", 'dependencies = ["local-dep"]'
+                    )
+                    + '\n[tool.uv.sources]\nlocal-dep = {path = "dep"}\n',
+                    encoding="utf-8",
+                )
+
+            def build():
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    source_dir,
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    str(manifest_path),
+                    runtime="python3.13",
+                    experimental_flags=self.experimental_flags,
+                )
+
+            with patch.dict(os.environ, {"UV_OFFLINE": "1"}):
+                if changed_manifest:
+                    with self.assertRaisesRegex(WorkflowFailedError, "--locked"):
+                        build()
+                else:
+                    build()
+
+            self.assertEqual(lock_path.read_bytes(), lock_contents)
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_with_dependencies_dir(self):

@@ -2,7 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 
 from parameterized import parameterized
 
@@ -265,10 +265,71 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Should call export and workspace dir then install_requirements
         assert self.mock_uv_runner._uv.run_uv_command.call_count == 2
         self.mock_uv_runner.install_requirements.assert_called_once()
+        # The export is the first uv call; the second is `uv workspace dir`
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0].args[0]
+        self.assertIn("--locked", export_args)
 
         # Verify install_requirements is called from workspace root
         assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
         assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b'[options]\nresolution-mode="lowest-direct"\nprerelease-mode="allow"\n'
+        b'fork-strategy="fewest"\nexclude-newer="2024-01-01T00:00:00Z"\n',
+    )
+    def test_lock_export_reuses_recorded_resolver_options(self, mock_file):
+        self.assertEqual(
+            self.builder._lock_export_options("uv.lock"),
+            [
+                "--resolution",
+                "lowest-direct",
+                "--prerelease",
+                "allow",
+                "--fork-strategy",
+                "fewest",
+                "--exclude-newer",
+                "2024-01-01T00:00:00Z",
+            ],
+        )
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b'[options]\nexclude-newer="0001-01-01T00:00:00Z"\nexclude-newer-span="P30D"\n',
+    )
+    def test_lock_export_prefers_relative_cutoff_over_placeholder(self, mock_file):
+        self.assertEqual(self.builder._lock_export_options("uv.lock"), ["--exclude-newer", "P30D"])
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b'[options.exclude-newer-package]\nsix="2023-01-02T00:00:00Z"\nidna="2022-01-02T00:00:00Z"\n',
+    )
+    def test_lock_export_replays_absolute_package_cutoffs(self, mock_file):
+        self.assertEqual(
+            self.builder._lock_export_options("uv.lock"),
+            [
+                "--exclude-newer-package",
+                "six=2023-01-02T00:00:00Z",
+                "--exclude-newer-package",
+                "idna=2022-01-02T00:00:00Z",
+            ],
+        )
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data=b"[options.exclude-newer-package]\n"
+        b'six={timestamp="0001-01-01T00:00:00Z",span="P30D"}\n'
+        b'idna={timestamp="2022-01-02T00:00:00Z"}\n',
+    )
+    def test_lock_export_prefers_package_span_over_placeholder(self, mock_file):
+        self.assertEqual(
+            self.builder._lock_export_options("uv.lock"),
+            ["--exclude-newer-package", "six=P30D", "--exclude-newer-package", "idna=2022-01-02T00:00:00Z"],
+        )
 
     def test_build_from_requirements(self):
         requirements_path = os.path.join("function", "requirements.txt")
