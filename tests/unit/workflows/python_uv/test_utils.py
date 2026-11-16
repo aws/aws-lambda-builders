@@ -1,7 +1,10 @@
 import os
+import sys
 import tempfile
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+from parameterized import parameterized
 
 from aws_lambda_builders.workflows.python_uv.utils import (
     OSUtils,
@@ -60,30 +63,92 @@ class TestDetectUvManifest(TestCase):
             result = detect_uv_manifest(temp_dir)
             self.assertEqual(result, pyproject_path)
 
-    def test_detect_uv_manifest_pyproject_priority(self):
+    @parameterized.expand(
+        [
+            # (files in the function directory, expected manifest)
+            ("metadata-only pyproject", {"pyproject.toml": "[project]\nname = 'test'\n"}, "requirements.txt"),
+            ("tool-only pyproject", {"pyproject.toml": "[tool.ruff]\nline-length = 120\n"}, "requirements.txt"),
+            (
+                "pyproject declares dependencies",
+                {"pyproject.toml": "[project]\nname = 'test'\ndependencies = ['six']\n"},
+                "pyproject.toml",
+            ),
+            (
+                "pyproject declares empty dependencies",
+                {"pyproject.toml": "[project]\nname = 'test'\ndependencies = []\n"},
+                "requirements.txt",
+            ),
+            (
+                "pyproject has dynamic dependencies",
+                {"pyproject.toml": "[project]\nname = 'test'\ndynamic = ['dependencies']\n"},
+                "requirements.txt",
+            ),
+            (
+                "pyproject has non-list dynamic",
+                {"pyproject.toml": "[project]\nname = 'test'\ndynamic = 'dependencies'\n"},
+                "requirements.txt",
+            ),
+            (
+                "empty dependencies with uv.lock",
+                {"pyproject.toml": "[project]\nname = 'test'\ndependencies = []\n", "uv.lock": "version = 1\n"},
+                "pyproject.toml",
+            ),
+            (
+                "uv.lock beside pyproject",
+                {"pyproject.toml": "[project]\nname = 'test'\n", "uv.lock": "version = 1\n"},
+                "pyproject.toml",
+            ),
+            ("unparseable pyproject", {"pyproject.toml": "[project\n"}, "requirements.txt"),
+        ]
+    )
+    def test_detect_uv_manifest_pyproject_and_requirements(self, _name, files, expected):
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create multiple manifest files
-            pyproject_path = os.path.join(temp_dir, "pyproject.toml")
-            req_path = os.path.join(temp_dir, "requirements.txt")
+            files = {"requirements.txt": "requests==2.28.0\n", **files}
+            for name, content in files.items():
+                with open(os.path.join(temp_dir, name), "w") as f:
+                    f.write(content)
 
-            with open(pyproject_path, "w") as f:
-                f.write("[project]\nname = 'test'\n")
+            self.assertEqual(detect_uv_manifest(temp_dir), os.path.join(temp_dir, expected))
+
+    def test_detect_uv_manifest_without_toml_parser_keeps_requirements(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(os.path.join(temp_dir, "pyproject.toml"), "w") as f:
+                f.write("[project]\nname = 'test'\ndependencies = ['six']\n")
+            req_path = os.path.join(temp_dir, "requirements.txt")
             with open(req_path, "w") as f:
                 f.write("requests==2.28.0\n")
 
-            result = detect_uv_manifest(temp_dir)
-            # pyproject.toml should have priority over requirements.txt
-            self.assertEqual(result, req_path)
+            # Python 3.10 without tomli: the declared dependencies cannot be read
+            with patch.dict(sys.modules, {"tomllib": None, "tomli": None}):
+                self.assertEqual(detect_uv_manifest(temp_dir), req_path)
 
-    def test_detect_uv_manifest_requirements_variants(self):
+    @parameterized.expand([("requirements-dev.txt",), ("requirements-test.txt",)])
+    def test_detect_uv_manifest_ignores_dev_and_test_requirements(self, requirements_file):
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create requirements-dev.txt
-            req_dev_path = os.path.join(temp_dir, "requirements-dev.txt")
-            with open(req_dev_path, "w") as f:
+            with open(os.path.join(temp_dir, requirements_file), "w") as f:
                 f.write("pytest==7.0.0\n")
 
-            result = detect_uv_manifest(temp_dir)
-            self.assertEqual(result, req_dev_path)
+            self.assertIsNone(detect_uv_manifest(temp_dir))
+
+    def test_detect_uv_manifest_pyproject_over_dev_requirements(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pyproject_path = os.path.join(temp_dir, "pyproject.toml")
+            with open(pyproject_path, "w") as f:
+                f.write("[project]\nname = 'test'\n")
+            with open(os.path.join(temp_dir, "requirements-dev.txt"), "w") as f:
+                f.write("pytest==7.0.0\n")
+
+            self.assertEqual(detect_uv_manifest(temp_dir), pyproject_path)
+
+    def test_detect_uv_manifest_prod_requirements(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            req_prod_path = os.path.join(temp_dir, "requirements-prod.txt")
+            with open(req_prod_path, "w") as f:
+                f.write("requests==2.28.0\n")
+            with open(os.path.join(temp_dir, "requirements-dev.txt"), "w") as f:
+                f.write("pytest==7.0.0\n")
+
+            self.assertEqual(detect_uv_manifest(temp_dir), req_prod_path)
 
 
 class TestGetUvVersion(TestCase):
