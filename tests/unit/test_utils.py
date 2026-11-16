@@ -1,6 +1,7 @@
 import os
 import platform
 import stat
+import sys
 import tempfile
 from pathlib import Path
 
@@ -291,6 +292,16 @@ class TestWhich(TestCase):
         path.write_text("")
         path.chmod(path.stat().st_mode | stat.S_IXUSR)
 
+    @staticmethod
+    def _tool_file_and_env():
+        """
+        Return the file name that which("tool") looks for on this platform, and the environment it needs.
+        On Windows, which() only tries the name with each PATHEXT extension.
+        """
+        if sys.platform == "win32":
+            return "tool.CMD", {"PATHEXT": os.pathsep.join([".EXE", ".CMD"])}
+        return "tool", {}
+
     @patch("aws_lambda_builders.utils.sys")
     def test_windows_lookup_uses_only_search_paths(self, mock_sys):
         mock_sys.platform = "win32"
@@ -302,13 +313,17 @@ class TestWhich(TestCase):
             self.assertEqual(which("tool"), [os.path.abspath(self.path_dir / "tool.CMD")])
 
     def test_ignores_empty_path_entries(self):
-        self._create_executable(self.working_dir / "tool")
+        tool_file, env = self._tool_file_and_env()
+        self._create_executable(self.working_dir / tool_file)
+        env["PATH"] = str(self.path_dir) + os.pathsep
 
-        with patch.dict(os.environ, {"PATH": str(self.path_dir) + os.pathsep}):
+        with patch.dict(os.environ, env):
             self.assertEqual(which("tool"), [])
 
     def test_returns_absolute_paths(self):
-        self._create_executable(self.working_dir / "tool")
+        tool_file, env = self._tool_file_and_env()
+        self._create_executable(self.working_dir / tool_file)
+        env["PATH"] = str(self.path_dir)
 
-        with patch.dict(os.environ, {"PATH": str(self.path_dir)}):
-            self.assertEqual(which("tool", executable_search_paths=["."]), [os.path.join(os.getcwd(), "tool")])
+        with patch.dict(os.environ, env):
+            self.assertEqual(which("tool", executable_search_paths=["."]), [os.path.join(os.getcwd(), tool_file)])
