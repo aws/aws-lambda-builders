@@ -473,7 +473,10 @@ class PythonUvDependencyBuilder:
                 args.extend([flag, options[option]])
         for package, cutoff in options.get("exclude-newer-package", {}).items():
             value = cutoff
-            if isinstance(cutoff, dict):
+            if cutoff is False:
+                # UV only accepts the lowercase TOML spelling for an opt-out.
+                value = "false"
+            elif isinstance(cutoff, dict):
                 value = cutoff["span"] if "span" in cutoff else cutoff["timestamp"]
             args.extend(["--exclude-newer-package", f"{package}={value}"])
         return args
