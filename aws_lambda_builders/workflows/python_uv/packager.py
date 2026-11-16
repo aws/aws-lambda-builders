@@ -2,6 +2,7 @@
 UV-based Python dependency packager for AWS Lambda
 """
 
+import copy
 import logging
 import os
 import re
@@ -96,6 +97,17 @@ class UvRunner:
         """Get UV version."""
         return self._uv.get_uv_version()
 
+    def cache_dir(self, cwd: Optional[str] = None) -> Optional[str]:
+        """Get the cache directory UV would use, or None if UV can't report it.
+
+        Ask from the project directory: a project can set its own cache-dir in
+        ``[tool.uv]``, and UV only reads that when it runs there.
+        """
+        rc, stdout, _ = self._uv.run_uv_command(["cache", "dir"], cwd)
+        if rc != 0 or not stdout:
+            return None
+        return stdout.strip()
+
     def install_requirements(
         self,
         requirements_path: str,
@@ -109,11 +121,10 @@ class UvRunner:
         """
         Install requirements using UV pip interface.
 
-        No ``--cache-dir`` is passed unless the caller supplies one, so UV uses its own
-        default cache location. That cache outlives a single build, letting UV reuse
-        previously downloaded dependencies across functions and across builds. Pointing UV
-        at a per-build directory instead would discard the cache every time, since the
-        build's scratch directory is deleted when the build finishes.
+        Cache options come from ``config``. Normally that leaves UV on its own default cache,
+        which outlives a single build so UV can reuse downloads across functions and builds.
+        Only when that default can't be created does the builder point ``config`` at a
+        cache under the build's scratch directory, which is discarded after the build.
 
         Args:
             requirements_path: Path to requirements.txt file
@@ -211,6 +222,7 @@ class PythonUvDependencyBuilder:
 
         if config is None:
             config = UvConfig()
+        config = self._with_writable_cache(config, scratch_dir_path, os.path.dirname(manifest_path))
 
         # Determine Python version from runtime
         python_version = self._extract_python_version(self.runtime)
@@ -233,6 +245,23 @@ class PythonUvDependencyBuilder:
         except Exception as e:
             LOG.error("Failed to build dependencies: %s", str(e))
             raise
+
+    def _with_writable_cache(self, config: UvConfig, scratch_dir: str, project_dir: str) -> UvConfig:
+        """Use a cache under scratch_dir only when UV's own cache can't be created.
+
+        For example, a container build run as a host uid that has no home directory.
+        """
+        if config.cache_dir or config.no_cache:
+            return config
+        cache_dir = self._uv_runner.cache_dir(cwd=project_dir)
+        if not cache_dir or _can_create_dir(cache_dir):
+            return config
+        # Absolute, because UV runs from the project and the workspace root in turn.
+        fallback = os.path.abspath(os.path.join(scratch_dir, "uv-cache"))
+        LOG.warning("UV cache directory %s is not writable, using %s for this build", cache_dir, fallback)
+        config = copy.copy(config)
+        config.cache_dir = fallback
+        return config
 
     def _get_manifest_handler(self, manifest_name: str):
         """Get the appropriate handler function for a manifest file.
@@ -472,6 +501,7 @@ class PythonUvDependencyBuilder:
                 python_version,
             ]
             export_args.extend(self._lock_export_options(lock_path))
+            export_args.extend(config.cache_args())
 
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(export_args, cwd=project_dir)
             if rc != 0:
@@ -516,6 +546,8 @@ class PythonUvDependencyBuilder:
             lock_args = ["lock", "--no-progress"]
             if python_version:
                 lock_args.extend(["--python", python_version])
+            # uv lock also needs a writable cache, same as export and pip install.
+            lock_args.extend(config.cache_args())
 
             project_dir = os.path.dirname(pyproject_path)
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(lock_args, cwd=project_dir)
@@ -581,3 +613,13 @@ class PythonUvDependencyBuilder:
             return runtime.replace("python", "")
 
         return runtime
+
+
+def _can_create_dir(path: str) -> bool:
+    """Whether path exists as a writable directory or could be created."""
+    while not os.path.exists(path):
+        parent = os.path.dirname(path)
+        if parent == path:
+            return False
+        path = parent
+    return os.path.isdir(path) and os.access(path, os.W_OK)

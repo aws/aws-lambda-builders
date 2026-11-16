@@ -1,14 +1,20 @@
 import os
+import shutil
 import tempfile
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from unittest.mock import Mock, mock_open, patch
 
 from parameterized import parameterized
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvBuildError, UvInstallationError
-from aws_lambda_builders.workflows.python_uv.packager import PythonUvDependencyBuilder, SubprocessUv, UvRunner
+from aws_lambda_builders.workflows.python_uv.packager import (
+    PythonUvDependencyBuilder,
+    SubprocessUv,
+    UvRunner,
+    _can_create_dir,
+)
 from aws_lambda_builders.workflows.python_uv.utils import UvConfig
 
 
@@ -102,6 +108,23 @@ class TestUvRunner(TestCase):
         self.mock_subprocess_uv.uv_executable = "/usr/bin/uv"
         self.mock_osutils = Mock()
         self.uv_runner = UvRunner(uv_subprocess=self.mock_subprocess_uv, osutils=self.mock_osutils)
+
+    def test_cache_dir_reports_uv_cache_dir(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "/home/user/.cache/uv\n", "")
+
+        self.assertEqual(self.uv_runner.cache_dir(), "/home/user/.cache/uv")
+        self.mock_subprocess_uv.run_uv_command.assert_called_once_with(["cache", "dir"], None)
+
+    def test_cache_dir_asks_from_the_project_directory(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "/project/.uv-cache\n", "")
+
+        self.assertEqual(self.uv_runner.cache_dir(cwd="/project"), "/project/.uv-cache")
+        self.mock_subprocess_uv.run_uv_command.assert_called_once_with(["cache", "dir"], "/project")
+
+    def test_cache_dir_is_none_when_uv_fails(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (2, "", "error")
+
+        self.assertIsNone(self.uv_runner.cache_dir())
 
     def test_uv_version_property(self):
         self.mock_subprocess_uv.get_uv_version.return_value = "0.6.16"
@@ -225,6 +248,7 @@ class TestPythonUvDependencyBuilder(TestCase):
     def setUp(self):
         self.mock_osutils = Mock()
         self.mock_uv_runner = Mock()
+        self.mock_uv_runner.cache_dir.return_value = None
         self.mock_uv_runner.uv_version = "0.9.9"
         self.builder = PythonUvDependencyBuilder(
             osutils=self.mock_osutils, runtime="python3.9", uv_runner=self.mock_uv_runner
@@ -697,6 +721,100 @@ class TestPythonUvDependencyBuilder(TestCase):
         passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
         self.assertIsNone(passed_config.cache_dir)
 
+    @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=False)
+    def test_build_dependencies_uses_scratch_cache_when_default_is_not_writable(self, mock_can_create):
+        self.mock_uv_runner.cache_dir.return_value = "/.cache/uv"
+        config = UvConfig()
+
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="/scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+                config=config,
+            )
+
+        mock_can_create.assert_called_once_with("/.cache/uv")
+        # The project may set its own cache-dir, so the probe has to run there.
+        self.mock_uv_runner.cache_dir.assert_called_once_with(cwd="/path/to")
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertEqual(passed_config.cache_dir, os.path.abspath(os.path.join("/scratch", "uv-cache")))
+        self.assertIsNone(config.cache_dir)
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=False)
+    def test_build_dependencies_scratch_cache_is_absolute(self, mock_can_create):
+        """UV runs from the project and the workspace root, so a relative path would move."""
+        self.mock_uv_runner.cache_dir.return_value = "/.cache/uv"
+
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+            )
+
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertEqual(passed_config.cache_dir, os.path.abspath(os.path.join("scratch", "uv-cache")))
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=True)
+    def test_build_dependencies_keeps_default_cache_when_writable(self, mock_can_create):
+        self.mock_uv_runner.cache_dir.return_value = "/home/user/.cache/uv"
+
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="/scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+            )
+
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertIsNone(passed_config.cache_dir)
+
+    @parameterized.expand([(UvConfig(cache_dir="/custom/cache"),), (UvConfig(no_cache=True),)])
+    def test_build_dependencies_does_not_probe_cache_when_configured(self, config):
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="/scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+                config=config,
+            )
+
+        self.mock_uv_runner.cache_dir.assert_not_called()
+
+    def test_build_from_lock_file_passes_cache_dir_to_export(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, "", ""),  # export
+            (0, "/workspace\n", ""),  # workspace dir
+        ]
+
+        self.builder._build_from_lock_file(
+            "/path/to/uv.lock", "/target", "/scratch", "3.12", X86_64, UvConfig(cache_dir="/scratch/uv-cache")
+        )
+
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0][0][0]
+        self.assertEqual(export_args[0], "export")
+        self.assertEqual(export_args[export_args.index("--cache-dir") + 1], "/scratch/uv-cache")
+
+    def test_build_from_pyproject_passes_cache_dir_to_lock(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, "", ""),  # lock
+            (0, "/workspace\n", ""),  # workspace dir
+            (0, "", ""),  # export
+        ]
+
+        self.builder._build_from_pyproject(
+            "/path/to/pyproject.toml", "/target", "/scratch", "3.12", X86_64, UvConfig(cache_dir="/scratch/uv-cache")
+        )
+
+        lock_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0][0][0]
+        self.assertEqual(lock_args[0], "lock")
+        self.assertEqual(lock_args[lock_args.index("--cache-dir") + 1], "/scratch/uv-cache")
+
     def test_build_dependencies_respects_existing_cache_dir(self):
         """Test that existing cache_dir in config is respected."""
         config = UvConfig(cache_dir="/custom/cache")
@@ -735,3 +853,25 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.assertFalse(self.builder._is_requirements_file("requirements.txt.bak"))
         self.assertFalse(self.builder._is_requirements_file("requirements-"))
         self.assertFalse(self.builder._is_requirements_file("requirements-.txt"))
+
+
+class TestCanCreateDir(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        os.chmod(self.temp_dir, 0o700)
+        shutil.rmtree(self.temp_dir)
+
+    def test_missing_dir_under_writable_parent(self):
+        self.assertTrue(_can_create_dir(os.path.join(self.temp_dir, "a", "b")))
+
+    def test_existing_file_is_not_a_dir(self):
+        path = os.path.join(self.temp_dir, "file")
+        open(path, "w").close()
+        self.assertFalse(_can_create_dir(path))
+
+    @skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0), "needs POSIX permissions as non-root")
+    def test_missing_dir_under_read_only_parent(self):
+        os.chmod(self.temp_dir, 0o500)
+        self.assertFalse(_can_create_dir(os.path.join(self.temp_dir, ".cache", "uv")))
