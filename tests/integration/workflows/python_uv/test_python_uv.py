@@ -581,3 +581,96 @@ class TestPythonUvWorkflow(TestCase):
             self.assertTrue(pathlib.Path(self.artifacts_dir, "workspace_lib", "__init__.py").is_file())
             self.assertEqual(list(pathlib.Path(self.artifacts_dir).glob("workspace_app-*.dist-info")), [])
             self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("*.pth")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_applies_build_options(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            pathlib.Path(source_dir, "pyproject.toml").write_text(
+                '[project]\nname = "optsapp"\nversion = "0.1.0"\nrequires-python = ">=3.9"\n'
+                'dependencies = ["six==1.16.0"]\n\n'
+                '[project.optional-dependencies]\ndns = ["idna==3.10"]\n\n'
+                '[dependency-groups]\nlambda = ["toml==0.10.2"]\nother = ["pyasn1==0.6.1"]\n\n'
+                '[build-system]\nrequires = ["uv_build>=0.8,<1"]\nbuild-backend = "uv_build"\n'
+            )
+            package_dir = pathlib.Path(source_dir, "src", "optsapp")
+            package_dir.mkdir(parents=True)
+            package_dir.joinpath("__init__.py").write_text("VALUE = 1\n")
+
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "pyproject.toml"),
+                runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                experimental_flags=self.experimental_flags,
+                options={"uv_groups": ["lambda"], "uv_extras": ["dns"]},
+            )
+
+        artifacts = pathlib.Path(self.artifacts_dir)
+        self.assertTrue(artifacts.joinpath("six.py").is_file())
+        self.assertTrue(artifacts.joinpath("toml", "__init__.py").is_file())
+        self.assertTrue(artifacts.joinpath("idna", "__init__.py").is_file())
+        self.assertEqual(list(artifacts.glob("pyasn1*")), [])
+        # Only dependencies are exported; the project itself is not installed
+        self.assertEqual(list(artifacts.glob("optsapp-*.dist-info")), [])
+        self.assertEqual(list(artifacts.rglob("*.pth")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_prunes_runtime_provided_packages(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            pathlib.Path(source_dir, "pyproject.toml").write_text(
+                '[project]\nname = "pruneapp"\nversion = "0.1.0"\nrequires-python = ">=3.9"\n'
+                'dependencies = ["boto3==1.35.0", "requests==2.32.3"]\n'
+            )
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            build_args = (source_dir, self.artifacts_dir, self.scratch_dir, os.path.join(source_dir, "pyproject.toml"))
+            runtime = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
+            builder.build(
+                *build_args,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+                options={"uv_prune": ["boto3"]},
+            )
+
+            artifacts = pathlib.Path(self.artifacts_dir)
+            for pruned in ("boto3", "botocore", "s3transfer", "jmespath"):
+                self.assertEqual(list(artifacts.glob(f"{pruned}*")), [], pruned)
+            # urllib3 stays because requests also needs it
+            self.assertTrue(artifacts.joinpath("requests", "__init__.py").is_file())
+            self.assertTrue(artifacts.joinpath("urllib3", "__init__.py").is_file())
+
+            with self.assertRaises(WorkflowFailedError) as ctx:
+                builder.build(
+                    *build_args,
+                    runtime=runtime,
+                    experimental_flags=self.experimental_flags,
+                    options={"uv_prune": ["not-a-locked-package"]},
+                )
+            self.assertIn("uv_prune names packages not in", str(ctx.exception))
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_shows_uv_warnings(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            # An unknown [tool.uv] key makes uv ignore every setting in the file; only a warning says so
+            pathlib.Path(source_dir, "pyproject.toml").write_text(
+                '[project]\nname = "warnapp"\nversion = "0.1.0"\nrequires-python = ">=3.9"\n'
+                'dependencies = ["six==1.16.0"]\n\n[tool.uv]\nbogus-key = true\n'
+            )
+            with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    source_dir,
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    os.path.join(source_dir, "pyproject.toml"),
+                    runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                    experimental_flags=self.experimental_flags,
+                )
+
+        warnings = [record.getMessage() for record in logs.records if "bogus-key" in record.getMessage()]
+        # uv repeats it on lock, export and install; the build shows it once
+        self.assertEqual(len(warnings), 1, warnings)
+        self.assertTrue(warnings[0].startswith("uv warning: Failed to parse `pyproject.toml`"), warnings[0])
+        self.assertIn("unknown field `bogus-key`", warnings[0])
+        self.assertIn("six.py", os.listdir(self.artifacts_dir))

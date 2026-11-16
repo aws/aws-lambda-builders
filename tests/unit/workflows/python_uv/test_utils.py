@@ -219,3 +219,18 @@ class TestUvConfig(TestCase):
         config = UvConfig(generate_hashes=True)
         args = config.to_uv_args()
         self.assertIn("--generate-hashes", args)
+
+    def test_uv_config_export_args_default_is_empty(self):
+        self.assertEqual(UvConfig().to_export_args(), [])
+
+    def test_uv_config_export_args_with_build_options(self):
+        config = UvConfig(groups=["lambda", "aws"], extras=["fast"])
+        self.assertEqual(config.to_export_args(), ["--group", "lambda", "--group", "aws", "--extra", "fast"])
+        self.assertEqual(UvConfig(all_extras=True).to_export_args(), ["--all-extras"])
+        # Export selection flags must never leak into `uv pip install`
+        self.assertEqual(config.to_uv_args(), [])
+
+    def test_uv_config_export_args_with_prune(self):
+        config = UvConfig(prune=["boto3", "botocore"])
+        self.assertEqual(config.to_export_args(), ["--prune", "boto3", "--prune", "botocore"])
+        self.assertEqual(config.to_uv_args(), [])

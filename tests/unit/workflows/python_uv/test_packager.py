@@ -8,7 +8,12 @@ from unittest.mock import Mock, mock_open, patch
 from parameterized import parameterized
 
 from aws_lambda_builders.architecture import ARM64, X86_64
-from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvBuildError, UvInstallationError
+from aws_lambda_builders.workflows.python_uv.exceptions import (
+    LockFileError,
+    MissingUvError,
+    UvBuildError,
+    UvInstallationError,
+)
 from aws_lambda_builders.workflows.python_uv.packager import (
     PythonUvDependencyBuilder,
     SubprocessUv,
@@ -76,6 +81,47 @@ class TestSubprocessUv(TestCase):
 
         self.assertEqual(rc, 0)
         mock_osutils.run_subprocess.assert_called_once_with([windows_uv_path, "--version"], cwd=None, env=None)
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_run_uv_command_logs_uv_warnings_once(self, mock_osutils_class):
+        mock_osutils = Mock()
+        mock_osutils.which.return_value = "/usr/bin/uv"
+        stderr = (
+            "warning: Failed to parse `pyproject.toml` during settings discovery:\n"
+            "  unknown field `bogus`\n"
+            "\n"
+            "Resolved 2 packages in 1ms\n"
+            "  indented progress line\n"
+            "warning: second\n"
+            "error: not a warning\n"
+        )
+        mock_osutils.run_subprocess.side_effect = [(0, "", stderr), (2, "", stderr)]
+        mock_osutils_class.return_value = mock_osutils
+
+        subprocess_uv = SubprocessUv()
+        with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+            subprocess_uv.run_uv_command(["lock"])
+            rc, _, returned_stderr = subprocess_uv.run_uv_command(["export"])
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            [
+                "uv warning: Failed to parse `pyproject.toml` during settings discovery:\n  unknown field `bogus`",
+                "uv warning: second",
+            ],
+        )
+        self.assertEqual((rc, returned_stderr), (2, stderr))
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_run_uv_command_without_warnings_logs_none(self, mock_osutils_class):
+        mock_osutils = Mock()
+        mock_osutils.which.return_value = "/usr/bin/uv"
+        mock_osutils.run_subprocess.return_value = (0, "", "Resolved 1 package\n  warning: indented, not uv's\n")
+        mock_osutils_class.return_value = mock_osutils
+
+        with patch("aws_lambda_builders.workflows.python_uv.packager.LOG") as mock_log:
+            SubprocessUv().run_uv_command(["lock"])
+        mock_log.warning.assert_not_called()
 
     @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
     def test_get_uv_version_success(self, mock_osutils_class):
@@ -296,6 +342,47 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Verify install_requirements is called from workspace root
         assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
         assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
+        self.assertIn("--no-emit-project", export_args)
+
+    def test_build_from_lock_file_passes_build_options_to_export(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, "/workspace\n", "")]
+        config = UvConfig(groups=["lambda"], extras=["fast"])
+
+        self.builder._build_from_lock_file("/path/to/uv.lock", "/target", "/scratch", "3.9", X86_64, config)
+
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0].args[0]
+        self.assertIn("--no-emit-project", export_args)
+        self.assertIn("--no-editable", export_args)
+        self.assertEqual(export_args[export_args.index("--group") + 1], "lambda")
+        self.assertEqual(export_args[export_args.index("--extra") + 1], "fast")
+
+    def test_build_from_lock_file_prunes_locked_packages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock_path = os.path.join(tmp, "uv.lock")
+            Path(lock_path).write_text(
+                'version = 1\n[[package]]\nname = "boto3"\n[[package]]\nname = "python-dateutil"\n'
+            )
+            self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, tmp + "\n", "")]
+            config = UvConfig(prune=["Boto3", "python_dateutil"])
+
+            self.builder._build_from_lock_file(lock_path, "/target", "/scratch", "3.9", X86_64, config)
+
+            export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0].args[0]
+            pruned = [export_args[i + 1] for i, arg in enumerate(export_args) if arg == "--prune"]
+            self.assertEqual(pruned, ["Boto3", "python_dateutil"])
+
+    def test_build_from_lock_file_rejects_prune_name_not_in_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock_path = os.path.join(tmp, "uv.lock")
+            Path(lock_path).write_text('version = 1\n[[package]]\nname = "boto3"\n')
+            config = UvConfig(prune=["boto3", "botocor"])
+
+            with self.assertRaises(LockFileError) as ctx:
+                self.builder._build_from_lock_file(lock_path, "/target", "/scratch", "3.9", X86_64, config)
+
+            self.assertIn("uv_prune names packages not in", str(ctx.exception))
+            self.assertIn("botocor", str(ctx.exception))
+            self.mock_uv_runner._uv.run_uv_command.assert_not_called()
 
     @patch(
         "builtins.open",
