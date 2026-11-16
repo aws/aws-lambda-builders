@@ -1,9 +1,13 @@
+import os
+import shutil
+import tempfile
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from parameterized import parameterized_class
+from parameterized import parameterized, parameterized_class
 
 from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
+from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction
 from aws_lambda_builders.workflows.python_uv.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE, OSUtils
 from aws_lambda_builders.workflows.python_uv.workflow import PythonUvWorkflow
@@ -188,4 +192,88 @@ class TestPythonUvWorkflow(TestCase):
         mock_detect.assert_called_once_with("source")
         # Should have UV build action since manifest was detected
         self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], PythonUvBuildAction)
+
+
+class TestPythonUvWorkflowBuildOptions(TestCase):
+    def setUp(self):
+        self.source_dir = tempfile.mkdtemp()
+        self.pyproject = os.path.join(self.source_dir, "pyproject.toml")
+        self._write_pyproject('[build-system]\nrequires = ["uv_build"]\nbuild-backend = "uv_build"\n')
+
+    def tearDown(self):
+        shutil.rmtree(self.source_dir)
+
+    def _write_pyproject(self, extra=""):
+        with open(self.pyproject, "w") as f:
+            f.write('[project]\nname = "app"\nversion = "0.1.0"\n' + extra)
+
+    def _workflow(self, options, manifest=None, **kwargs):
+        return PythonUvWorkflow(
+            self.source_dir,
+            "artifacts",
+            "scratch_dir",
+            manifest or self.pyproject,
+            runtime="python3.12",
+            options=options,
+            **kwargs,
+        )
+
+    def test_options_are_passed_to_the_build_action(self):
+        workflow = self._workflow(
+            {
+                "build_logical_id": "Fn",
+                "uv_groups": ["lambda"],
+                "uv_extras": ["fast"],
+                "uv_prune": ["boto3"],
+            }
+        )
+        config = workflow.actions[0].config
+        self.assertEqual(config.groups, ["lambda"])
+        self.assertEqual(config.extras, ["fast"])
+        self.assertFalse(config.all_extras)
+        self.assertEqual(config.prune, ["boto3"])
+
+    def test_no_options_keep_defaults(self):
+        config = self._workflow(None).actions[0].config
+        self.assertEqual(config.to_export_args(), [])
+
+    @parameterized.expand(
+        [
+            ({"uv_groups": "lambda"}, "uv_groups must be a list of non-empty strings"),
+            ({"uv_extras": ["ok", 1]}, "uv_extras must be a list of non-empty strings"),
+            ({"uv_groups": [""]}, "uv_groups must be a list of non-empty strings"),
+            ({"uv_all_extras": "true"}, "uv_all_extras must be true or false"),
+            ({"uv_prune": "boto3"}, "uv_prune must be a list of non-empty strings"),
+            ({"uv_prune": [""]}, "uv_prune must be a list of non-empty strings"),
+            ({"uv_group": ["lambda"]}, "Unknown uv build option(s): uv_group"),
+            ({"uv_extras": ["x"], "uv_all_extras": True}, "uv_extras and uv_all_extras cannot be used together"),
+        ]
+    )
+    def test_invalid_options_fail(self, options, message):
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow(options)
+        self.assertTrue(str(ctx.exception).startswith("PythonUvBuilder:Validation - "), str(ctx.exception))
+        self.assertIn(message, str(ctx.exception))
+
+    def test_options_on_requirements_build_fail(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow({"uv_groups": ["lambda"]}, manifest=requirements)
+        self.assertIn(
+            "uv_groups need a pyproject.toml project, but this build uses requirements.txt", str(ctx.exception)
+        )
+
+    def test_prune_on_requirements_build_fails(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow({"uv_prune": ["boto3"]}, manifest=requirements)
+        self.assertIn("uv_prune need a pyproject.toml project", str(ctx.exception))
+
+    def test_default_valued_options_on_requirements_build_are_allowed(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        workflow = self._workflow({"uv_groups": [], "uv_all_extras": False}, manifest=requirements)
         self.assertIsInstance(workflow.actions[0], PythonUvBuildAction)

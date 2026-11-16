@@ -1,14 +1,25 @@
 import os
+import shutil
 import tempfile
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from unittest.mock import Mock, mock_open, patch
 
 from parameterized import parameterized
 
 from aws_lambda_builders.architecture import ARM64, X86_64
-from aws_lambda_builders.workflows.python_uv.exceptions import MissingUvError, UvBuildError, UvInstallationError
-from aws_lambda_builders.workflows.python_uv.packager import PythonUvDependencyBuilder, SubprocessUv, UvRunner
+from aws_lambda_builders.workflows.python_uv.exceptions import (
+    LockFileError,
+    MissingUvError,
+    UvBuildError,
+    UvInstallationError,
+)
+from aws_lambda_builders.workflows.python_uv.packager import (
+    PythonUvDependencyBuilder,
+    SubprocessUv,
+    UvRunner,
+    _can_create_dir,
+)
 from aws_lambda_builders.workflows.python_uv.utils import UvConfig
 
 
@@ -72,6 +83,47 @@ class TestSubprocessUv(TestCase):
         mock_osutils.run_subprocess.assert_called_once_with([windows_uv_path, "--version"], cwd=None, env=None)
 
     @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_run_uv_command_logs_uv_warnings_once(self, mock_osutils_class):
+        mock_osutils = Mock()
+        mock_osutils.which.return_value = "/usr/bin/uv"
+        stderr = (
+            "warning: Failed to parse `pyproject.toml` during settings discovery:\n"
+            "  unknown field `bogus`\n"
+            "\n"
+            "Resolved 2 packages in 1ms\n"
+            "  indented progress line\n"
+            "warning: second\n"
+            "error: not a warning\n"
+        )
+        mock_osutils.run_subprocess.side_effect = [(0, "", stderr), (2, "", stderr)]
+        mock_osutils_class.return_value = mock_osutils
+
+        subprocess_uv = SubprocessUv()
+        with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+            subprocess_uv.run_uv_command(["lock"])
+            rc, _, returned_stderr = subprocess_uv.run_uv_command(["export"])
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            [
+                "uv warning: Failed to parse `pyproject.toml` during settings discovery:\n  unknown field `bogus`",
+                "uv warning: second",
+            ],
+        )
+        self.assertEqual((rc, returned_stderr), (2, stderr))
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
+    def test_run_uv_command_without_warnings_logs_none(self, mock_osutils_class):
+        mock_osutils = Mock()
+        mock_osutils.which.return_value = "/usr/bin/uv"
+        mock_osutils.run_subprocess.return_value = (0, "", "Resolved 1 package\n  warning: indented, not uv's\n")
+        mock_osutils_class.return_value = mock_osutils
+
+        with patch("aws_lambda_builders.workflows.python_uv.packager.LOG") as mock_log:
+            SubprocessUv().run_uv_command(["lock"])
+        mock_log.warning.assert_not_called()
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager.OSUtils")
     def test_get_uv_version_success(self, mock_osutils_class):
         mock_osutils = Mock()
         mock_osutils.which.return_value = "/usr/bin/uv"
@@ -102,6 +154,23 @@ class TestUvRunner(TestCase):
         self.mock_subprocess_uv.uv_executable = "/usr/bin/uv"
         self.mock_osutils = Mock()
         self.uv_runner = UvRunner(uv_subprocess=self.mock_subprocess_uv, osutils=self.mock_osutils)
+
+    def test_cache_dir_reports_uv_cache_dir(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "/home/user/.cache/uv\n", "")
+
+        self.assertEqual(self.uv_runner.cache_dir(), "/home/user/.cache/uv")
+        self.mock_subprocess_uv.run_uv_command.assert_called_once_with(["cache", "dir"], None)
+
+    def test_cache_dir_asks_from_the_project_directory(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "/project/.uv-cache\n", "")
+
+        self.assertEqual(self.uv_runner.cache_dir(cwd="/project"), "/project/.uv-cache")
+        self.mock_subprocess_uv.run_uv_command.assert_called_once_with(["cache", "dir"], "/project")
+
+    def test_cache_dir_is_none_when_uv_fails(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (2, "", "error")
+
+        self.assertIsNone(self.uv_runner.cache_dir())
 
     def test_uv_version_property(self):
         self.mock_subprocess_uv.get_uv_version.return_value = "0.6.16"
@@ -225,6 +294,7 @@ class TestPythonUvDependencyBuilder(TestCase):
     def setUp(self):
         self.mock_osutils = Mock()
         self.mock_uv_runner = Mock()
+        self.mock_uv_runner.cache_dir.return_value = None
         self.mock_uv_runner.uv_version = "0.9.9"
         self.builder = PythonUvDependencyBuilder(
             osutils=self.mock_osutils, runtime="python3.9", uv_runner=self.mock_uv_runner
@@ -272,6 +342,47 @@ class TestPythonUvDependencyBuilder(TestCase):
         # Verify install_requirements is called from workspace root
         assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
         assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
+        self.assertIn("--no-emit-project", export_args)
+
+    def test_build_from_lock_file_passes_build_options_to_export(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, "/workspace\n", "")]
+        config = UvConfig(groups=["lambda"], extras=["fast"])
+
+        self.builder._build_from_lock_file("/path/to/uv.lock", "/target", "/scratch", "3.9", X86_64, config)
+
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0].args[0]
+        self.assertIn("--no-emit-project", export_args)
+        self.assertIn("--no-editable", export_args)
+        self.assertEqual(export_args[export_args.index("--group") + 1], "lambda")
+        self.assertEqual(export_args[export_args.index("--extra") + 1], "fast")
+
+    def test_build_from_lock_file_prunes_locked_packages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock_path = os.path.join(tmp, "uv.lock")
+            Path(lock_path).write_text(
+                'version = 1\n[[package]]\nname = "boto3"\n[[package]]\nname = "python-dateutil"\n'
+            )
+            self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, tmp + "\n", "")]
+            config = UvConfig(prune=["Boto3", "python_dateutil"])
+
+            self.builder._build_from_lock_file(lock_path, "/target", "/scratch", "3.9", X86_64, config)
+
+            export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0].args[0]
+            pruned = [export_args[i + 1] for i, arg in enumerate(export_args) if arg == "--prune"]
+            self.assertEqual(pruned, ["Boto3", "python_dateutil"])
+
+    def test_build_from_lock_file_rejects_prune_name_not_in_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            lock_path = os.path.join(tmp, "uv.lock")
+            Path(lock_path).write_text('version = 1\n[[package]]\nname = "boto3"\n')
+            config = UvConfig(prune=["boto3", "botocor"])
+
+            with self.assertRaises(LockFileError) as ctx:
+                self.builder._build_from_lock_file(lock_path, "/target", "/scratch", "3.9", X86_64, config)
+
+            self.assertIn("uv_prune names packages not in", str(ctx.exception))
+            self.assertIn("botocor", str(ctx.exception))
+            self.mock_uv_runner._uv.run_uv_command.assert_not_called()
 
     @patch(
         "builtins.open",
@@ -708,6 +819,100 @@ class TestPythonUvDependencyBuilder(TestCase):
         passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
         self.assertIsNone(passed_config.cache_dir)
 
+    @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=False)
+    def test_build_dependencies_uses_scratch_cache_when_default_is_not_writable(self, mock_can_create):
+        self.mock_uv_runner.cache_dir.return_value = "/.cache/uv"
+        config = UvConfig()
+
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="/scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+                config=config,
+            )
+
+        mock_can_create.assert_called_once_with("/.cache/uv")
+        # The project may set its own cache-dir, so the probe has to run there.
+        self.mock_uv_runner.cache_dir.assert_called_once_with(cwd="/path/to")
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertEqual(passed_config.cache_dir, os.path.abspath(os.path.join("/scratch", "uv-cache")))
+        self.assertIsNone(config.cache_dir)
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=False)
+    def test_build_dependencies_scratch_cache_is_absolute(self, mock_can_create):
+        """UV runs from the project and the workspace root, so a relative path would move."""
+        self.mock_uv_runner.cache_dir.return_value = "/.cache/uv"
+
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+            )
+
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertEqual(passed_config.cache_dir, os.path.abspath(os.path.join("scratch", "uv-cache")))
+
+    @patch("aws_lambda_builders.workflows.python_uv.packager._can_create_dir", return_value=True)
+    def test_build_dependencies_keeps_default_cache_when_writable(self, mock_can_create):
+        self.mock_uv_runner.cache_dir.return_value = "/home/user/.cache/uv"
+
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="/scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+            )
+
+        passed_config = self.mock_uv_runner.install_requirements.call_args[1]["config"]
+        self.assertIsNone(passed_config.cache_dir)
+
+    @parameterized.expand([(UvConfig(cache_dir="/custom/cache"),), (UvConfig(no_cache=True),)])
+    def test_build_dependencies_does_not_probe_cache_when_configured(self, config):
+        with patch("os.path.basename", return_value="requirements.txt"):
+            self.builder.build_dependencies(
+                artifacts_dir_path="/artifacts",
+                scratch_dir_path="/scratch",
+                manifest_path="/path/to/requirements.txt",
+                architecture=X86_64,
+                config=config,
+            )
+
+        self.mock_uv_runner.cache_dir.assert_not_called()
+
+    def test_build_from_lock_file_passes_cache_dir_to_export(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, "", ""),  # export
+            (0, "/workspace\n", ""),  # workspace dir
+        ]
+
+        self.builder._build_from_lock_file(
+            "/path/to/uv.lock", "/target", "/scratch", "3.12", X86_64, UvConfig(cache_dir="/scratch/uv-cache")
+        )
+
+        export_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0][0][0]
+        self.assertEqual(export_args[0], "export")
+        self.assertEqual(export_args[export_args.index("--cache-dir") + 1], "/scratch/uv-cache")
+
+    def test_build_from_pyproject_passes_cache_dir_to_lock(self):
+        self.mock_uv_runner._uv.run_uv_command.side_effect = [
+            (0, "", ""),  # lock
+            (0, "/workspace\n", ""),  # workspace dir
+            (0, "", ""),  # export
+        ]
+
+        self.builder._build_from_pyproject(
+            "/path/to/pyproject.toml", "/target", "/scratch", "3.12", X86_64, UvConfig(cache_dir="/scratch/uv-cache")
+        )
+
+        lock_args = self.mock_uv_runner._uv.run_uv_command.call_args_list[0][0][0]
+        self.assertEqual(lock_args[0], "lock")
+        self.assertEqual(lock_args[lock_args.index("--cache-dir") + 1], "/scratch/uv-cache")
+
     def test_build_dependencies_respects_existing_cache_dir(self):
         """Test that existing cache_dir in config is respected."""
         config = UvConfig(cache_dir="/custom/cache")
@@ -746,3 +951,25 @@ class TestPythonUvDependencyBuilder(TestCase):
         self.assertFalse(self.builder._is_requirements_file("requirements.txt.bak"))
         self.assertFalse(self.builder._is_requirements_file("requirements-"))
         self.assertFalse(self.builder._is_requirements_file("requirements-.txt"))
+
+
+class TestCanCreateDir(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        os.chmod(self.temp_dir, 0o700)
+        shutil.rmtree(self.temp_dir)
+
+    def test_missing_dir_under_writable_parent(self):
+        self.assertTrue(_can_create_dir(os.path.join(self.temp_dir, "a", "b")))
+
+    def test_existing_file_is_not_a_dir(self):
+        path = os.path.join(self.temp_dir, "file")
+        open(path, "w").close()
+        self.assertFalse(_can_create_dir(path))
+
+    @skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0), "needs POSIX permissions as non-root")
+    def test_missing_dir_under_read_only_parent(self):
+        os.chmod(self.temp_dir, 0o500)
+        self.assertFalse(_can_create_dir(os.path.join(self.temp_dir, ".cache", "uv")))

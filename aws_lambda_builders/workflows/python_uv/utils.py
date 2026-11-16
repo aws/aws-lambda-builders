@@ -136,6 +136,10 @@ class UvConfig:
         compile_bytecode: bool = True,
         exclude_newer: Optional[str] = None,
         generate_hashes: bool = False,
+        groups: Optional[List[str]] = None,
+        extras: Optional[List[str]] = None,
+        all_extras: bool = False,
+        prune: Optional[List[str]] = None,
     ):
         self.index_url = index_url
         self.extra_index_urls = extra_index_urls or []
@@ -146,6 +150,32 @@ class UvConfig:
         self.compile_bytecode = compile_bytecode
         self.exclude_newer = exclude_newer
         self.generate_hashes = generate_hashes
+        self.groups = groups or []
+        self.extras = extras or []
+        self.all_extras = all_extras
+        self.prune = prune or []
+
+    def to_export_args(self) -> List[str]:
+        """Convert the dependency selection to `uv export` arguments."""
+        args = []
+        for group in self.groups:
+            args.extend(["--group", group])
+        for extra in self.extras:
+            args.extend(["--extra", extra])
+        if self.all_extras:
+            args.append("--all-extras")
+        for package in self.prune:
+            args.extend(["--prune", package])
+        return args
+
+    def cache_args(self) -> List[str]:
+        """Convert the cache options to UV command line arguments."""
+        args = []
+        if self.cache_dir:
+            args.extend(["--cache-dir", self.cache_dir])
+        if self.no_cache:
+            args.append("--no-cache")
+        return args
 
     def to_uv_args(self) -> List[str]:
         """Convert configuration to UV command line arguments."""
@@ -157,11 +187,7 @@ class UvConfig:
         for extra_url in self.extra_index_urls:
             args.extend(["--extra-index-url", extra_url])
 
-        if self.cache_dir:
-            args.extend(["--cache-dir", self.cache_dir])
-
-        if self.no_cache:
-            args.append("--no-cache")
+        args.extend(self.cache_args())
 
         if self.prerelease != "disallow":
             args.extend(["--prerelease", self.prerelease])

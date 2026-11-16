@@ -220,6 +220,39 @@ config = {
 }
 ```
 
+### Build options
+
+`PythonUvWorkflow` reads these keys from the workflow `options` and passes them to `uv export`.
+SAM CLI maps them from `Metadata.BuildProperties`.
+
+| Option | SAM CLI property | Type | `uv export` effect |
+|---|---|---|---|
+| `uv_groups` | `UvGroups` | list of str | `--group <name>` per entry |
+| `uv_extras` | `UvExtras` | list of str | `--extra <name>` per entry |
+| `uv_all_extras` | `UvAllExtras` | bool | `--all-extras` |
+| `uv_prune` | `UvPrune` | list of str | `--prune <name>` per entry: drops the package and any dependency only it needs |
+
+Default groups stay excluded (`--no-default-groups`); `uv_groups` adds groups on top of that.
+`uv_prune` is meant for packages the Lambda runtime already ships, such as `boto3`. The function then
+uses the runtime's version, which AWS picks, not the version in `uv.lock`.
+The build fails with a clear message, instead of ignoring the option, when:
+- a value has the wrong type, or an unknown `uv_*` key is given;
+- `uv_extras` and `uv_all_extras` are combined;
+- an option is set on a `requirements.txt` build (they apply only to pyproject.toml / uv.lock projects);
+- a `uv_prune` name is not a package in `uv.lock`, which `uv export --prune` would otherwise ignore.
+
+### Settings from pyproject.toml
+
+The workflow runs `uv export` and `uv pip install` from the project, so uv reads its own settings there.
+Build-control settings in `[tool.uv]` (`no-build`, `no-build-package`, `no-binary`, `no-binary-package`) apply
+to both steps; `[tool.uv.pip]` settings (`no-build`, `no-binary`, `only-binary`) apply to the install. `UV_*`
+environment variables apply to every uv call. The workflow's own flags always win: the target platform and
+Python version come from the function's architecture and runtime, default groups are excluded, and nothing
+is installed editable. In a uv workspace only the workspace root's `pyproject.toml` settings are used; a
+member's `[tool.uv]` and `[tool.uv.pip]` tables are ignored. An unknown key in either table makes uv ignore
+every setting in that file. The build log shows uv's warning about it (the workflow logs every `warning:`
+that uv prints, once per build), so check the key names against uv's settings reference.
+
 ### Caching
 
 The workflow does not pass `--cache-dir` unless a caller supplies one, so UV uses its own
@@ -232,6 +265,11 @@ build, so UV reuses previously downloaded dependencies across functions within o
 and across successive builds. Pointing UV at the build's scratch directory instead would
 discard the cache every time, because that directory is deleted when the build finishes — every
 function would then re-download its entire dependency set on every build.
+
+The one exception is a default cache location that can't be created, such as `/.cache/uv` for a
+container build run as a host uid with no home directory (`sam build --use-container
+--mount-with WRITE`). Then the build uses `uv-cache` under the scratch directory and logs a
+warning. Nothing is lost there, because such a container starts with an empty cache anyway.
 
 ### Compatibility with Existing Workflows
 
