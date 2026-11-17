@@ -15,7 +15,7 @@ UV offers several advantages over pip:
 
 Similar to the Python PIP workflow, Python packaging for AWS Lambda presents unique challenges:
 
-1. **Platform compatibility**: Python packages often contain platform-specific code or compiled extensions that must be compatible with the AWS Lambda runtime environment (Amazon Linux 2)
+1. **Platform compatibility**: Python packages often contain platform-specific code or compiled extensions that must be compatible with the AWS Lambda runtime environment (Amazon Linux 2 for Python 3.8-3.11, Amazon Linux 2023 for Python 3.12+)
 
 2. **Architecture compatibility**: Packages must be compatible with the target Lambda architecture (x86_64 or arm64)
 
@@ -64,7 +64,8 @@ def build_dependencies(artifacts_dir_path,
 
     :type runtime: str
     :param runtime: Python version to build dependencies for. This can
-        be python3.8, python3.9, python3.10, python3.11, python3.12, or python3.13.
+        be python3.8, python3.9, python3.10, python3.11, python3.12, python3.13,
+        python3.14, or python3.15.
         These are currently the only supported values.
         Note: This parameter is passed to the PythonUvDependencyBuilder constructor.
 
@@ -104,22 +105,15 @@ builder.build_dependencies(
 
 The general algorithm for preparing a python package using UV for use on AWS Lambda follows a streamlined approach that leverages UV's advanced capabilities:
 
-#### Step 1: Smart manifest detection and dispatch
+#### Step 1: Pick the manifest
 
-The workflow uses a smart dispatch system that recognizes actual manifest files:
+An explicit manifest path is used as given. Without one, the workflow picks a manifest in the
+order listed under [Smart Manifest Detection and Dispatch](#smart-manifest-detection-and-dispatch).
 
-**Supported Manifests:**
-- `pyproject.toml` - Modern Python project manifest
-- `requirements.txt` - Traditional pip requirements file
-- `requirements-*.txt` - Environment-specific variants (dev, prod, test, etc.)
-
-**Smart Lock File Detection:**
-- Look for requirements.txt first
-- When `pyproject.toml` is the manifest, resolves the workspace root (the project directory for standalone projects) and checks for `uv.lock` there
-- If `uv.lock` exists at that root, uses lock-based build for precise dependencies
-- If no `uv.lock`, uses standard pyproject.toml build with UV's lock and export workflow
-
-**Important:** `uv.lock` is NOT a standalone manifest - it's a lock file that enhances `pyproject.toml` builds when present.
+When the manifest is `pyproject.toml`, the workflow resolves the workspace root (the project
+directory for a standalone project; see
+[Workspace Resolution Failure Policy](#workspace-resolution-failure-policy)) and uses a
+`uv.lock` found there. `uv.lock` is never a manifest on its own.
 
 #### Step 2: Build dependencies based on manifest type
 
@@ -136,12 +130,26 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 - Provides reproducible builds with locked dependency versions AND cross-platform support
 
 **For pyproject.toml without uv.lock:**
-- Use `uv lock` to create temporary lock file with resolved dependencies  
+- Run `uv lock` from the project directory. uv writes `uv.lock` there, or at the workspace root
+  for a workspace member, and the file stays in the source tree after the build
 - Use `uv export` to convert lock file to requirements.txt format
 - Install dependencies using `uv pip install` with platform targeting
 
+**Stale locks:** both pyproject.toml paths run `uv export --locked`, so a `uv.lock` that no longer
+matches `pyproject.toml` fails the build instead of being rewritten. A project without
+`requires-python` that was locked on one Python version can be stale on another runtime; set
+`requires-python` or run `uv lock` again.
+
+**Hashes:** the export keeps the lock's hashes, so a project that sets `require-hashes` in
+`[tool.uv.pip]` builds.
+
 **For requirements.txt files:**
 - Use `uv pip install` directly with Lambda-compatible settings
+- uv runs from the manifest's directory, so local paths in the file (such as `./libs/foo` or
+  `-e ../shared`) resolve from there
+
+**Local paths in lock builds:** exported local paths are relative to the workspace root, so
+`uv pip install` runs from the workspace root (the project directory for a standalone project).
 
 **Why export + pip install instead of uv sync?**
 `uv sync` doesn't support cross-platform builds (no --python-platform flag). Since Lambda
@@ -253,6 +261,13 @@ member's `[tool.uv]` and `[tool.uv.pip]` tables are ignored. An unknown key in e
 every setting in that file. The build log shows uv's warning about it (the workflow logs every `warning:`
 that uv prints, once per build), so check the key names against uv's settings reference.
 
+### uv warnings
+
+Every `warning:` block uv prints is logged at WARNING, once per build. Some are harmless, such as
+"Failed to hardlink files; falling back to full copy" when the cache and the target are on
+different file systems. The one to act on is an unknown key in `[tool.uv]` (or `[tool.uv.pip]`):
+uv then ignores every setting in that file.
+
 ### Caching
 
 The workflow does not pass `--cache-dir` unless a caller supplies one, so UV uses its own
@@ -291,7 +306,7 @@ The UV workflow consists of several key components that mirror the PIP workflow 
 2. **PythonUvBuildAction**: Action class that handles dependency resolution
 3. **UvRunner**: Wrapper around UV command execution
 4. **SubprocessUv**: Low-level UV subprocess interface
-6. **PythonUvDependencyBuilder**: High-level dependency builder orchestrator
+5. **PythonUvDependencyBuilder**: High-level dependency builder orchestrator
 
 #### File Structure
 ```
@@ -342,12 +357,16 @@ The workflow follows Python ecosystem standards for requirements files:
 - `requirements-prod.txt` - Production dependencies
 - `requirements-staging.txt` - Staging dependencies
 
+Only `requirements.txt` and `requirements-prod.txt` are auto-detected. The others are used only
+when passed as the manifest path.
+
 Note: `requirements.in` (pip-tools format) is not supported to keep the implementation simple and focused.
 
 #### UV Binary Requirements
 - UV must be available on the system PATH
 - Minimum UV version: 0.1.0 (to be determined based on feature requirements)
-- Fallback: Attempt to install UV using pip if not found (optional behavior)
+- Workspace discovery needs UV 0.9.9 or newer; older versions build from the project directory
+- A missing UV raises `MissingUvError`; the workflow does not install UV
 
 #### Error Handling Strategy
 - **MissingUvError**: UV binary not found on PATH (includes path information)
@@ -397,7 +416,8 @@ instead of recommending an upgrade for an unknown cause.
 | python3.11    | ✓      | ✓     | Supported |
 | python3.12    | ✓      | ✓     | Supported |
 | python3.13    | ✓      | ✓     | Supported |
-| python3.13    | ✓      | ✓     | Supported |
+| python3.14    | ✓      | ✓     | Supported |
+| python3.15    | ✓      | ✓     | Supported |
 
 #### Integration with Lambda Builders
 - Registers with the workflow registry automatically
