@@ -694,3 +694,31 @@ version = "4.2.0"
             header = f.read(8)
         # PEP 552 flags word: 0b01 = hash-based, source not checked (unchecked-hash).
         assert int.from_bytes(header[4:8], "little") == 1
+
+    def test_lock_export_uses_build_options(self, tmpdir, uv_runner, osutils):
+        """Build options select groups and extras"""
+        fake_uv, runner = uv_runner
+        appdir, builder, manifest_path = self._make_appdir_and_dependency_builder(
+            ["six"], tmpdir, runner, manifest_type="pyproject"
+        )
+        with open(os.path.join(appdir, "uv.lock"), "w") as f:
+            f.write('version = 1\nrequires-python = ">=3.8"\n')
+        config = UvConfig(groups=["lambda"], extras=["fast", "small"])
+
+        with osutils.tempdir() as scratch_dir:
+            builder.build_dependencies(
+                artifacts_dir_path=os.path.join(appdir, "site-packages"),
+                scratch_dir_path=scratch_dir,
+                manifest_path=manifest_path,
+                architecture=X86_64,
+                config=config,
+            )
+
+        export_args = fake_uv._calls["export"][0][0]
+        assert "--no-emit-project" in export_args
+        assert "--no-editable" in export_args
+        assert "--no-default-groups" in export_args
+        assert export_args[export_args.index("--group") :][:2] == ["--group", "lambda"]
+        assert [export_args[i + 1] for i, arg in enumerate(export_args) if arg == "--extra"] == ["fast", "small"]
+        (pip_args,) = (call[0] for call in fake_uv._calls["pip"])
+        assert "--group" not in pip_args and "--extra" not in pip_args
