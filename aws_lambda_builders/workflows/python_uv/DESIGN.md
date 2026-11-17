@@ -115,8 +115,8 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 
 **Smart Lock File Detection:**
 - Look for requirements.txt first
-- When `pyproject.toml` is the manifest, automatically checks for `uv.lock` in the same directory
-- If `uv.lock` exists alongside `pyproject.toml`, uses lock-based build for precise dependencies
+- When `pyproject.toml` is the manifest, resolves the workspace root (the project directory for standalone projects) and checks for `uv.lock` there
+- If `uv.lock` exists at that root, uses lock-based build for precise dependencies
 - If no `uv.lock`, uses standard pyproject.toml build with UV's lock and export workflow
 
 **Important:** `uv.lock` is NOT a standalone manifest - it's a lock file that enhances `pyproject.toml` builds when present.
@@ -125,6 +125,13 @@ The workflow uses a smart dispatch system that recognizes actual manifest files:
 
 **For pyproject.toml with uv.lock present:**
 - Use `uv export` to convert lock file to requirements.txt format
+- Export with `--locked`, reusing the lock's resolution mode, prerelease mode, fork strategy, and `exclude-newer`
+  cutoff so export validates rather than rewrites the existing lock. Stale locks fail the build;
+  run `uv lock` explicitly after dependency changes.
+- For relative cutoffs, replay `exclude-newer-span` instead of the lock's placeholder `exclude-newer` date.
+  Python 3.10 uses the runtime dependency `tomli` to read lock options; Python 3.11+ uses `tomllib`.
+- Replay each `options.exclude-newer-package` entry with `--exclude-newer-package`, preferring its `span`
+  over the placeholder `timestamp` for relative per-package cutoffs.
 - Install using `uv pip install` with platform targeting (--python-platform)
 - Provides reproducible builds with locked dependency versions AND cross-platform support
 
@@ -145,7 +152,9 @@ the `--python-platform` flag for cross-platform wheel selection.
 #### Step 3: Configure Lambda-compatible installation
 
 UV is configured with Lambda-specific settings:
-- Target platform: `linux` (Amazon Linux 2)
+- Target platform: explicit manylinux targets, independent of the build host's glibc.
+  Python 3.8-3.11 use `manylinux_2_17` (the AL2-compatible download target used by the pip workflow);
+  Python 3.12+ use `manylinux_2_34` for Amazon Linux 2023.
 - Target architecture: `x86_64` or `aarch64` 
 - Python version matching Lambda runtime
 - Prefer wheels over source distributions for faster builds
@@ -211,6 +220,39 @@ config = {
 }
 ```
 
+### Build options
+
+`PythonUvWorkflow` reads these keys from the workflow `options` and passes them to `uv export`.
+SAM CLI maps them from `Metadata.BuildProperties`.
+
+| Option | SAM CLI property | Type | `uv export` effect |
+|---|---|---|---|
+| `uv_groups` | `UvGroups` | list of str | `--group <name>` per entry |
+| `uv_extras` | `UvExtras` | list of str | `--extra <name>` per entry |
+| `uv_all_extras` | `UvAllExtras` | bool | `--all-extras` |
+| `uv_prune` | `UvPrune` | list of str | `--prune <name>` per entry: drops the package and any dependency only it needs |
+
+Default groups stay excluded (`--no-default-groups`); `uv_groups` adds groups on top of that.
+`uv_prune` is meant for packages the Lambda runtime already ships, such as `boto3`. The function then
+uses the runtime's version, which AWS picks, not the version in `uv.lock`.
+The build fails with a clear message, instead of ignoring the option, when:
+- a value has the wrong type, or an unknown `uv_*` key is given;
+- `uv_extras` and `uv_all_extras` are combined;
+- an option is set on a `requirements.txt` build (they apply only to pyproject.toml / uv.lock projects);
+- a `uv_prune` name is not a package in `uv.lock`, which `uv export --prune` would otherwise ignore.
+
+### Settings from pyproject.toml
+
+The workflow runs `uv export` and `uv pip install` from the project, so uv reads its own settings there.
+Build-control settings in `[tool.uv]` (`no-build`, `no-build-package`, `no-binary`, `no-binary-package`) apply
+to both steps; `[tool.uv.pip]` settings (`no-build`, `no-binary`, `only-binary`) apply to the install. `UV_*`
+environment variables apply to every uv call. The workflow's own flags always win: the target platform and
+Python version come from the function's architecture and runtime, default groups are excluded, and nothing
+is installed editable. In a uv workspace only the workspace root's `pyproject.toml` settings are used; a
+member's `[tool.uv]` and `[tool.uv.pip]` tables are ignored. An unknown key in either table makes uv ignore
+every setting in that file. The build log shows uv's warning about it (the workflow logs every `warning:`
+that uv prints, once per build), so check the key names against uv's settings reference.
+
 ### Caching
 
 The workflow does not pass `--cache-dir` unless a caller supplies one, so UV uses its own
@@ -223,6 +265,11 @@ build, so UV reuses previously downloaded dependencies across functions within o
 and across successive builds. Pointing UV at the build's scratch directory instead would
 discard the cache every time, because that directory is deleted when the build finishes — every
 function would then re-download its entire dependency set on every build.
+
+The one exception is a default cache location that can't be created, such as `/.cache/uv` for a
+container build run as a host uid with no home directory (`sam build --use-container
+--mount-with WRITE`). Then the build uses `uv-cache` under the scratch directory and logs a
+warning. Nothing is lost there, because such a container starts with an empty cache anyway.
 
 ### Compatibility with Existing Workflows
 
@@ -271,13 +318,17 @@ CAPABILITY = Capability(
 
 The workflow uses intelligent manifest detection:
 
-**Supported Manifests (in order of preference):**
-1. `requirements.txt` - Standard pip format
-2. `requirements-*.txt` - Environment-specific variants (dev, test, prod, etc.)
-3. `pyproject.toml` - Modern Python project manifest
+**Auto-detection (when no manifest path is given), in order of preference:**
+1. `pyproject.toml`, when it is the uv project: a `uv.lock` sits beside it, or its `[project]` table declares a non-empty `dependencies` list
+2. `requirements.txt`, then `requirements-prod.txt`
+3. `pyproject.toml` otherwise (metadata or tool settings only, empty `dependencies`, or `dynamic` dependencies)
+
+`requirements-dev.txt` and `requirements-test.txt` are never auto-detected: development and test dependencies do not belong in a Lambda package. They can still be passed as an explicit manifest path.
+
+On Python 3.10 without `tomli`, declared dependencies cannot be read, so only a `uv.lock` makes `pyproject.toml` win over a requirements file.
 
 **Smart Lock File Enhancement:**
-- When `pyproject.toml` is used, automatically detects `uv.lock` in the same directory
+- When `pyproject.toml` is used, automatically detects `uv.lock` at the resolved workspace or project root
 - If `uv.lock` exists, uses lock-based build for reproducible dependencies
 - If no `uv.lock`, uses standard pyproject.toml workflow with UV's lock and export
 
@@ -303,6 +354,39 @@ Note: `requirements.in` (pip-tools format) is not supported to keep the implemen
 - **UvInstallationError**: UV installation/setup failures
 - **UvBuildError**: Package build failures
 - **LockFileError**: Lock file parsing or validation errors
+
+#### Workspace Resolution Failure Policy
+
+Workspace discovery runs before the lock-file lookup for every `pyproject.toml` build.
+The compatibility fallback to the project directory is deliberately limited to two cases:
+
+- A plain `X.Y.Z` UV version is numerically below `0.9.9`; the workspace command is not invoked.
+- The workspace command exits unsuccessfully and stderr contains `unrecognized subcommand 'workspace'`.
+
+Both cases log at DEBUG. They additionally emit a WARNING only if a `pyproject.toml`
+in the project directory or an ancestor contains a `tool.uv.workspace` table. This is
+only a diagnostic hint: `members` and `exclude` are not evaluated, so the warning does
+not assert membership or change the chosen root or build path. Unreadable or invalid
+TOML is logged at DEBUG and skipped. The helper lazily imports `tomllib`, or optional
+`tomli` on Python 3.10. If neither is available, it logs at DEBUG and skips configuration
+inspection; no TOML parser is required to build dependencies.
+This preserves the previous behavior for standalone projects
+using unsupported UV versions; it does not provide workspace support for those versions.
+Unknown or prerelease version strings are tested by invoking the workspace command rather
+than assuming support or lack of support.
+
+All other command failures raise `UvBuildError` with the diagnostic, and a successful exit
+with empty or whitespace-only output also raises because it supplies no root directory.
+These outcomes do not establish that the project is outside a workspace. Falling back could
+miss an existing workspace-root lock, trigger lock generation, or resolve local dependencies
+from the wrong directory.
+
+This intentionally favors stopping on uncertain workspace discovery over continuing a
+potentially incorrect build. Consequently, a standalone project that previously built may
+now stop if workspace discovery fails for an unknown reason. That compatibility limitation
+is accepted rather than treating permission, configuration, or process-start failures as
+evidence that the workspace command is unsupported. The original diagnostic is surfaced
+instead of recommending an upgrade for an unknown cause.
 
 #### Platform Compatibility Matrix
 | Python Version | x86_64 | arm64 | Status |
