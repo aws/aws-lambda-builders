@@ -222,8 +222,13 @@ class UvRunner:
                     python_platform = f"{target_arch}-manylinux_{manylinux_version}"
                 args.extend(["--python-platform", python_platform])
 
+        # uv rejects --no-compile-bytecode when UV_COMPILE_BYTECODE is also set ("cannot be used
+        # with"), so drop the variable for this command; bytecode is handled by _compile_bytecode.
+        env = self._osutils.original_environ()
+        env.pop("UV_COMPILE_BYTECODE", None)
+
         # Execute UV pip install
-        rc, stdout, stderr = self._uv.run_uv_command(args, cwd)
+        rc, stdout, stderr = self._uv.run_uv_command(args, cwd, env=env)
 
         if rc != 0:
             raise UvInstallationError(reason=f"UV pip install failed: {stderr}")

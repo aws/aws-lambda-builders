@@ -247,6 +247,23 @@ class TestUvRunner(TestCase):
         self.mock_subprocess_uv.find_python.assert_not_called()
         self.mock_osutils.run_subprocess.assert_not_called()
 
+    def test_install_requirements_drops_uv_compile_bytecode_env(self):
+        # uv refuses --no-compile-bytecode when UV_COMPILE_BYTECODE is set in the environment.
+        self.mock_osutils.original_environ.return_value = {"UV_COMPILE_BYTECODE": "1", "PATH": "/usr/bin"}
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
+
+        self.uv_runner.install_requirements(
+            requirements_path="/path/to/requirements.txt",
+            target_dir="/target",
+            python_version="3.13",
+        )
+
+        args_called = self.mock_subprocess_uv.run_uv_command.call_args[0][0]
+        env_called = self.mock_subprocess_uv.run_uv_command.call_args.kwargs["env"]
+        self.assertIn("--no-compile-bytecode", args_called)
+        self.assertNotIn("UV_COMPILE_BYTECODE", env_called)
+        self.assertEqual(env_called["PATH"], "/usr/bin")
+
     def test_install_requirements_compiles_unchecked_hash_bytecode_when_enabled(self):
         self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
         self.mock_subprocess_uv.find_python.return_value = "/usr/bin/python3.13"
