@@ -678,6 +678,81 @@ class TestPythonUvWorkflow(TestCase):
             self.assertIn("uv_prune names packages not in", str(ctx.exception))
 
     @skipIf(which("uv") is None, "uv not available")
+    @patch.dict(os.environ, {"UV_COMPILE_BYTECODE": "1"})
+    def test_workflow_honors_uv_compile_bytecode_env_without_option(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as disabled_dir:
+            requirements = os.path.join(source_dir, "requirements.txt")
+            pathlib.Path(requirements).write_text("six==1.16.0\n")
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            runtime = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+            )
+            # Named for the target interpreter, e.g. six.cpython-312.pyc
+            tag = f"cpython-{sys.version_info.major}{sys.version_info.minor}"
+            pyc_files = list(pathlib.Path(self.artifacts_dir, "__pycache__").glob("six.*.pyc"))
+            self.assertEqual([pyc.name for pyc in pyc_files], [f"six.{tag}.pyc"])
+            # PEP 552 flags word: 1 = hash-based, unchecked
+            self.assertEqual(int.from_bytes(pyc_files[0].read_bytes()[4:8], "little"), 1)
+
+            # An explicit uv_compile_bytecode: false wins over the environment
+            builder.build(
+                source_dir,
+                disabled_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+                options={"uv_compile_bytecode": False},
+            )
+            self.assertTrue(pathlib.Path(disabled_dir, "six.py").is_file())
+            self.assertEqual(list(pathlib.Path(disabled_dir).rglob("__pycache__")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_compiles_unchecked_hash_bytecode_when_enabled(self):
+        with (
+            patch.dict(os.environ),
+            tempfile.TemporaryDirectory() as source_dir,
+            tempfile.TemporaryDirectory() as compiled_dir,
+        ):
+            os.environ.pop("UV_COMPILE_BYTECODE", None)
+            requirements = os.path.join(source_dir, "requirements.txt")
+            pathlib.Path(requirements).write_text("six==1.16.0\n")
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            runtime = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+            )
+            self.assertTrue(pathlib.Path(self.artifacts_dir, "six.py").is_file())
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("__pycache__")), [])
+
+            builder.build(
+                source_dir,
+                compiled_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+                options={"uv_compile_bytecode": True},
+            )
+            pyc_files = list(pathlib.Path(compiled_dir, "__pycache__").glob("six.*.pyc"))
+            self.assertEqual(len(pyc_files), 1)
+            # PEP 552 flags word: 1 = hash-based, unchecked
+            self.assertEqual(int.from_bytes(pyc_files[0].read_bytes()[4:8], "little"), 1)
+
+    @skipIf(which("uv") is None, "uv not available")
     def test_workflow_shows_uv_warnings(self):
         with tempfile.TemporaryDirectory() as source_dir:
             # An unknown [tool.uv] key makes uv ignore every setting in the file; only a warning says so
