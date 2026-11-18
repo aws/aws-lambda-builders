@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Set
 from aws_lambda_builders.architecture import ARM64, X86_64
 
 from .exceptions import LockFileError, MissingUvError, UvBuildError, UvInstallationError
-from .utils import OSUtils, UvConfig
+from .utils import OSUtils, UvConfig, normalize_package_name
 
 LOG = logging.getLogger(__name__)
 
@@ -561,7 +561,7 @@ class PythonUvDependencyBuilder:
             return
 
         locked = {package.get("name") for package in packages if isinstance(package, dict)}
-        missing = [name for name in prune if re.sub(r"[-_.]+", "-", name).lower() not in locked]
+        missing = [name for name in prune if normalize_package_name(name) not in locked]
         if missing:
             raise LockFileError(reason=f"Build option uv_prune names packages not in {lock_path}: {', '.join(missing)}")
 
