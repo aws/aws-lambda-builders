@@ -10,7 +10,7 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import PythonUvBuildAction
-from .utils import OSUtils, UvConfig, detect_uv_manifest
+from .utils import OSUtils, UvConfig, detect_uv_manifest, normalize_package_name
 
 LOG = logging.getLogger(__name__)
 
@@ -20,7 +20,28 @@ UV_OPTIONS = {
     "uv_extras": list,
     "uv_all_extras": bool,
     "uv_prune": list,
+    "uv_compile_bytecode": bool,
 }
+
+# Values uv accepts for UV_COMPILE_BYTECODE (clap's boolish parser, case-insensitive)
+UV_ENV_TRUE = ("1", "true", "t", "yes", "y", "on")
+UV_ENV_FALSE = ("0", "false", "f", "no", "n", "off")
+
+
+def _compile_bytecode_from_env():
+    """Honor UV_COMPILE_BYTECODE when the uv_compile_bytecode build option isn't given.
+
+    The builder drops the variable from `uv pip install` (it conflicts with --no-compile-bytecode),
+    so read the user's intent here and compile unchecked-hash bytecode instead.
+    """
+    value = os.environ.get("UV_COMPILE_BYTECODE")
+    if value is None or value.lower() in UV_ENV_FALSE:
+        return False
+    if value.lower() in UV_ENV_TRUE:
+        LOG.info("UV_COMPILE_BYTECODE=%s is set, compiling unchecked-hash bytecode for dependencies", value)
+        return True
+    LOG.warning("Ignoring UV_COMPILE_BYTECODE=%r: expected one of %s", value, ", ".join(UV_ENV_TRUE + UV_ENV_FALSE))
+    return False
 
 
 class PythonUvWorkflow(BaseWorkflow):
@@ -141,21 +162,52 @@ class PythonUvWorkflow(BaseWorkflow):
         if values.get("uv_all_extras") and values.get("uv_extras"):
             self._fail("Build options uv_extras and uv_all_extras cannot be used together")
 
+        # An explicit uv_compile_bytecode (true or false) wins over the environment
+        if "uv_compile_bytecode" not in values:
+            values["uv_compile_bytecode"] = _compile_bytecode_from_env()
+
         if not any(values.values()):
             return UvConfig()
 
-        if not manifest_path or os.path.basename(manifest_path) != "pyproject.toml":
+        # Bytecode is compiled after install, so it works for every manifest type;
+        # the other options shape `uv export` and need a pyproject.toml project.
+        export_options = {key: value for key, value in values.items() if key != "uv_compile_bytecode" and value}
+        if export_options and (not manifest_path or os.path.basename(manifest_path) != "pyproject.toml"):
             self._fail(
-                f"Build options {', '.join(sorted(values))} need a pyproject.toml project, "
+                f"Build options {', '.join(sorted(export_options))} need a pyproject.toml project, "
                 f"but this build uses {os.path.basename(manifest_path) if manifest_path else 'no manifest'}"
             )
+
+        # Only uv_prune needs the project name, and it's only set here with a pyproject.toml manifest
+        project_name = self._project_name(manifest_path) if values.get("uv_prune") else None
+        if project_name and any(
+            normalize_package_name(name) == normalize_package_name(project_name) for name in values["uv_prune"]
+        ):
+            self._fail(f"Build option uv_prune cannot name the project being built ({project_name})")
 
         return UvConfig(
             groups=values.get("uv_groups"),
             extras=values.get("uv_extras"),
             all_extras=values.get("uv_all_extras", False),
             prune=values.get("uv_prune"),
+            compile_bytecode=values.get("uv_compile_bytecode", False),
         )
+
+    @staticmethod
+    def _project_name(pyproject_path):
+        """[project].name of the function's own pyproject.toml, or None if it has none."""
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            import tomli as tomllib
+
+        try:
+            with open(pyproject_path, "rb") as pyproject_file:
+                project = tomllib.load(pyproject_file).get("project")
+        except (OSError, ValueError):  # Leave unreadable manifests to uv's own diagnostics
+            return None
+        name = project.get("name") if isinstance(project, dict) else None
+        return name if isinstance(name, str) else None
 
     def _setup_build_actions(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime, config=None):
         """

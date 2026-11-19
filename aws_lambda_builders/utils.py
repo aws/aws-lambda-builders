@@ -279,7 +279,10 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
             if not _is_within_directory(unpack_dir, member_path):
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
 
-        tar.extractall(unpack_dir)
+        if hasattr(tarfile, "data_filter"):
+            tar.extractall(unpack_dir, filter="data")
+        else:
+            tar.extractall(unpack_dir)
 
 
 def _locale_encoding() -> str:
