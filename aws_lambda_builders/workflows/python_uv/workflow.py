@@ -178,9 +178,10 @@ class PythonUvWorkflow(BaseWorkflow):
                 f"but this build uses {os.path.basename(manifest_path) if manifest_path else 'no manifest'}"
             )
 
-        project_name = self._project_name(manifest_path)
+        # Only uv_prune needs the project name, and it's only set here with a pyproject.toml manifest
+        project_name = self._project_name(manifest_path) if values.get("uv_prune") else None
         if project_name and any(
-            normalize_package_name(name) == normalize_package_name(project_name) for name in values.get("uv_prune", [])
+            normalize_package_name(name) == normalize_package_name(project_name) for name in values["uv_prune"]
         ):
             self._fail(f"Build option uv_prune cannot name the project being built ({project_name})")
 

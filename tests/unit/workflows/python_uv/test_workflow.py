@@ -257,6 +257,19 @@ class TestPythonUvWorkflowBuildOptions(TestCase):
         config = self._workflow({"uv_compile_bytecode": True}, manifest=requirements).actions[0].config
         self.assertTrue(config.compile_bytecode)
 
+    def test_compile_bytecode_without_manifest_builds_without_dependencies(self):
+        os.remove(self.pyproject)
+        workflow = self._workflow({"uv_compile_bytecode": True}, manifest=os.path.join(self.source_dir, "missing.txt"))
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+
+    def test_truthy_env_without_manifest_builds_without_dependencies(self):
+        os.environ["UV_COMPILE_BYTECODE"] = "1"
+        os.remove(self.pyproject)
+        workflow = self._workflow({"build_logical_id": "Fn"}, manifest=os.path.join(self.source_dir, "missing.txt"))
+        self.assertEqual(len(workflow.actions), 1)
+        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+
     def test_export_option_with_compile_bytecode_on_requirements_build_fails(self):
         requirements = os.path.join(self.source_dir, "requirements.txt")
         open(requirements, "w").close()
