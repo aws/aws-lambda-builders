@@ -4,6 +4,7 @@ Commonly used utilities for Python UV workflow
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 from typing import List, Optional
@@ -13,6 +14,11 @@ from aws_lambda_builders.workflows.python_pip.utils import OSUtils as BaseOSUtil
 LOG = logging.getLogger(__name__)
 
 EXPERIMENTAL_FLAG_BUILD_PERFORMANCE = "experimentalBuildPerformance"
+
+
+def normalize_package_name(name: str) -> str:
+    """PEP 503 normalized name, the form uv.lock stores package names in."""
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 class OSUtils(BaseOSUtils):
