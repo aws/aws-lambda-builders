@@ -1,6 +1,11 @@
+import os
 import sys
-from unittest import TestCase
+import tempfile
+from pathlib import Path
+from unittest import TestCase, skipIf
 from unittest.mock import ANY, MagicMock, Mock, patch
+
+from parameterized import parameterized
 
 from aws_lambda_builders.actions import ActionFailedError
 from aws_lambda_builders.architecture import ARM64, X86_64
@@ -229,3 +234,60 @@ class TestPythonCreateParentPackagesAction(TestCase):
         action.execute()
 
         self.mock_dest_file.rename.assert_called_once_with(self.target_dir / "baz")
+
+
+class TestPythonCreateParentPackagesActionFileSystem(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        root = Path(self.temp_dir.name)
+        self.source = root / "source"
+        self.dest = root / "dest"
+        self.other = root / "other"
+        for directory in (self.source, self.dest, self.other):
+            directory.mkdir()
+        for directory in (self.source, self.dest):
+            (directory / "app.py").write_text("")
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_moves_artifacts_into_parent_packages(self):
+        action = PythonCreateParentPackagesAction(
+            str(self.source), str(self.dest), options={PARENT_PYTHON_PKGS_KEY: "foo.bar"}
+        )
+
+        action.execute()
+
+        self.assertTrue((self.dest / "foo" / "bar" / "app.py").is_file())
+        self.assertFalse((self.dest / "app.py").exists())
+
+    @parameterized.expand(
+        [
+            ("absolute_path", "pkg"),
+            ("absolute_path_with_subpackage", "pkg.sub"),
+        ]
+    )
+    def test_fails_for_parent_packages_outside_build_directory(self, _name, suffix):
+        value = os.path.join(str(self.other), suffix)
+        action = PythonCreateParentPackagesAction(
+            str(self.source), str(self.dest), options={PARENT_PYTHON_PKGS_KEY: value}
+        )
+
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
+        self.assertTrue((self.dest / "app.py").is_file())
+        self.assertEqual(list(self.other.iterdir()), [])
+
+    @skipIf(sys.platform == "win32", "Creating symlinks requires elevated privileges on Windows")
+    def test_fails_for_parent_packages_through_linked_directory(self):
+        (self.dest / "foo").symlink_to(self.other, target_is_directory=True)
+        action = PythonCreateParentPackagesAction(
+            str(self.source), str(self.dest), options={PARENT_PYTHON_PKGS_KEY: "foo.bar"}
+        )
+
+        with self.assertRaises(ActionFailedError):
+            action.execute()
+
+        self.assertTrue((self.dest / "app.py").is_file())
+        self.assertEqual(list(self.other.iterdir()), [])
