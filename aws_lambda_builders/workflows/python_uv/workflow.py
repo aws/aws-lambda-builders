@@ -10,7 +10,7 @@ from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
 from .actions import PythonUvBuildAction
-from .utils import OSUtils, UvConfig, detect_uv_manifest
+from .utils import OSUtils, UvConfig, detect_uv_manifest, normalize_package_name
 
 LOG = logging.getLogger(__name__)
 
@@ -178,6 +178,12 @@ class PythonUvWorkflow(BaseWorkflow):
                 f"but this build uses {os.path.basename(manifest_path) if manifest_path else 'no manifest'}"
             )
 
+        project_name = self._project_name(manifest_path)
+        if project_name and any(
+            normalize_package_name(name) == normalize_package_name(project_name) for name in values.get("uv_prune", [])
+        ):
+            self._fail(f"Build option uv_prune cannot name the project being built ({project_name})")
+
         return UvConfig(
             groups=values.get("uv_groups"),
             extras=values.get("uv_extras"),
@@ -185,6 +191,22 @@ class PythonUvWorkflow(BaseWorkflow):
             prune=values.get("uv_prune"),
             compile_bytecode=values.get("uv_compile_bytecode", False),
         )
+
+    @staticmethod
+    def _project_name(pyproject_path):
+        """[project].name of the function's own pyproject.toml, or None if it has none."""
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            import tomli as tomllib
+
+        try:
+            with open(pyproject_path, "rb") as pyproject_file:
+                project = tomllib.load(pyproject_file).get("project")
+        except (OSError, ValueError):  # Leave unreadable manifests to uv's own diagnostics
+            return None
+        name = project.get("name") if isinstance(project, dict) else None
+        return name if isinstance(name, str) else None
 
     def _setup_build_actions(self, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime, config=None):
         """

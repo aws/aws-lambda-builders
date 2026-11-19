@@ -677,6 +677,16 @@ class TestPythonUvWorkflow(TestCase):
                 )
             self.assertIn("uv_prune names packages not in", str(ctx.exception))
 
+            # uv would export nothing and the build would pass with no dependencies
+            with self.assertRaises(WorkflowFailedError) as ctx:
+                builder.build(
+                    *build_args,
+                    runtime=runtime,
+                    experimental_flags=self.experimental_flags,
+                    options={"uv_prune": ["PruneApp"]},
+                )
+            self.assertIn("uv_prune cannot name the project being built (pruneapp)", str(ctx.exception))
+
     @skipIf(which("uv") is None, "uv not available")
     @patch.dict(os.environ, {"UV_COMPILE_BYTECODE": "1"})
     def test_workflow_honors_uv_compile_bytecode_env_without_option(self):

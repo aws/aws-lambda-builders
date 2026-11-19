@@ -224,19 +224,26 @@ class TestPythonUvWorkflowBuildOptions(TestCase):
             **kwargs,
         )
 
-    def test_options_are_passed_to_the_build_action(self):
+    @parameterized.expand(
+        [
+            ("named_extras", {"uv_extras": ["fast"]}, ["fast"], False),
+            # uv_extras and uv_all_extras cannot be combined, so all_extras gets its own case
+            ("all_extras", {"uv_all_extras": True}, [], True),
+        ]
+    )
+    def test_options_are_passed_to_the_build_action(self, _, extras_options, extras, all_extras):
         workflow = self._workflow(
             {
                 "build_logical_id": "Fn",
                 "uv_groups": ["lambda"],
-                "uv_extras": ["fast"],
                 "uv_prune": ["boto3"],
+                **extras_options,
             }
         )
         config = workflow.actions[0].config
         self.assertEqual(config.groups, ["lambda"])
-        self.assertEqual(config.extras, ["fast"])
-        self.assertFalse(config.all_extras)
+        self.assertEqual(config.extras, extras)
+        self.assertEqual(config.all_extras, all_extras)
         self.assertEqual(config.prune, ["boto3"])
         self.assertFalse(config.compile_bytecode)
 
@@ -291,6 +298,34 @@ class TestPythonUvWorkflowBuildOptions(TestCase):
             config = self._workflow(None).actions[0].config
         self.assertFalse(config.compile_bytecode)
         self.assertIn(f"Ignoring UV_COMPILE_BYTECODE={value!r}", "\n".join(logs.output))
+
+    @parameterized.expand(
+        [("app", "app"), ("app", "App"), ("my-app", "my_app"), ("My_App", "my.app"), ("my-app", "My--App")]
+    )
+    def test_prune_of_the_project_itself_fails(self, project_name, prune_name):
+        with open(self.pyproject, "w") as f:
+            f.write(f'[project]\nname = "{project_name}"\nversion = "0.1.0"\n')
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow({"uv_prune": ["boto3", prune_name]})
+        self.assertTrue(str(ctx.exception).startswith("PythonUvBuilder:Validation - "), str(ctx.exception))
+        self.assertIn("uv_prune cannot name the project being built", str(ctx.exception))
+
+    def test_prune_of_a_similar_name_is_allowed(self):
+        workflow = self._workflow({"uv_prune": ["app-core"]})
+        self.assertEqual(workflow.actions[0].config.prune, ["app-core"])
+
+    @parameterized.expand(
+        [
+            ("[tool.uv.workspace]\nmembers = []\n",),  # virtual workspace root, no [project]
+            ("[project\n",),  # unreadable; uv reports it
+            ("[project]\nversion = 1\n",),  # no name
+        ]
+    )
+    def test_prune_without_a_project_name_is_left_to_uv(self, content):
+        with open(self.pyproject, "w") as f:
+            f.write(content)
+        workflow = self._workflow({"uv_prune": ["app"]})
+        self.assertEqual(workflow.actions[0].config.prune, ["app"])
 
     def test_no_options_keep_defaults(self):
         config = self._workflow(None).actions[0].config
