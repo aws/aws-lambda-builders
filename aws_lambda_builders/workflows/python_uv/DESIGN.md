@@ -239,6 +239,7 @@ SAM CLI maps them from `Metadata.BuildProperties`.
 | `uv_extras` | `UvExtras` | list of str | `--extra <name>` per entry |
 | `uv_all_extras` | `UvAllExtras` | bool | `--all-extras` |
 | `uv_prune` | `UvPrune` | list of str | `--prune <name>` per entry: drops the package and any dependency only it needs |
+| `uv_compile_bytecode` | `UvCompileBytecode` | bool | none; after install, runs `compileall --invalidation-mode unchecked-hash` with the target Python (also for `requirements.txt` builds) |
 
 Default groups stay excluded (`--no-default-groups`); `uv_groups` adds groups on top of that.
 `uv_prune` is meant for packages the Lambda runtime already ships, such as `boto3`. The function then
@@ -246,15 +247,32 @@ uses the runtime's version, which AWS picks, not the version in `uv.lock`.
 The build fails with a clear message, instead of ignoring the option, when:
 - a value has the wrong type, or an unknown `uv_*` key is given;
 - `uv_extras` and `uv_all_extras` are combined;
-- an option is set on a `requirements.txt` build (they apply only to pyproject.toml / uv.lock projects);
+- an option other than `uv_compile_bytecode` is set on a `requirements.txt` build (they apply only to
+  pyproject.toml / uv.lock projects);
 - a `uv_prune` name is not a package in `uv.lock`, which `uv export --prune` would otherwise ignore.
+
+### Bytecode
+
+uv writes timestamp-based `.pyc` files, which the Lambda runtime rejects once SAM normalizes file
+timestamps in the deployment package. So the workflow always passes `--no-compile-bytecode` to
+`uv pip install`, removes `UV_COMPILE_BYTECODE` from that command's environment (uv refuses the flag and
+the variable together), and, when bytecode is enabled, runs the target Python
+(`uv python find --no-project --no-python-downloads <version>`) as
+`python -m compileall -f -q --invalidation-mode unchecked-hash` over the install directory.
+
+Bytecode is enabled by `uv_compile_bytecode: true`. When that option isn't given, a truthy
+`UV_COMPILE_BYTECODE` in the build environment enables it too, and the build logs that at INFO. Values are
+read the way uv reads them, case-insensitively: `1`, `true`, `t`, `yes`, `y`, `on` enable it; `0`, `false`,
+`f`, `no`, `n`, `off` leave it off; any other value logs a warning and leaves it off. An explicit
+`uv_compile_bytecode: false` always wins over the variable. If the target Python isn't installed, or the
+runtime gives no version, the build logs a warning and ships no bytecode instead of failing.
 
 ### Settings from pyproject.toml
 
 The workflow runs `uv export` and `uv pip install` from the project, so uv reads its own settings there.
 Build-control settings in `[tool.uv]` (`no-build`, `no-build-package`, `no-binary`, `no-binary-package`) apply
 to both steps; `[tool.uv.pip]` settings (`no-build`, `no-binary`, `only-binary`) apply to the install. `UV_*`
-environment variables apply to every uv call. The workflow's own flags always win: the target platform and
+environment variables apply to every uv call, except `UV_COMPILE_BYTECODE` (see Bytecode). The workflow's own flags always win: the target platform and
 Python version come from the function's architecture and runtime, default groups are excluded, and nothing
 is installed editable. In a uv workspace only the workspace root's `pyproject.toml` settings are used; a
 member's `[tool.uv]` and `[tool.uv.pip]` tables are ignored. An unknown key in either table makes uv ignore
