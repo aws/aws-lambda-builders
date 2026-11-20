@@ -9,7 +9,7 @@ from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, C
 from aws_lambda_builders.exceptions import WorkflowFailedError
 from aws_lambda_builders.workflow import BaseWorkflow, BuildDirectory, BuildInSourceSupport, Capability
 
-from .actions import PythonUvBuildAction
+from .actions import PythonUvBuildAction, PythonUvCompileSourceAction
 from .utils import OSUtils, UvConfig, detect_uv_manifest, normalize_package_name
 
 LOG = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def _compile_bytecode_from_env():
     if value is None or value.lower() in UV_ENV_FALSE:
         return False
     if value.lower() in UV_ENV_TRUE:
-        LOG.info("UV_COMPILE_BYTECODE=%s is set, compiling unchecked-hash bytecode for dependencies", value)
+        LOG.info("UV_COMPILE_BYTECODE=%s is set, compiling unchecked-hash bytecode", value)
         return True
     LOG.warning("Ignoring UV_COMPILE_BYTECODE=%r: expected one of %s", value, ", ".join(UV_ENV_TRUE + UV_ENV_FALSE))
     return False
@@ -256,8 +256,14 @@ class PythonUvWorkflow(BaseWorkflow):
                 )
             )
 
-        # Always copy source code (final step)
+        # Always copy source code
         self.actions.append(CopySourceAction(source_dir, artifacts_dir, excludes=self.EXCLUDED_FILES))
+
+        # The dependency build compiles what it installs; the source is only in place now
+        if config and config.compile_bytecode:
+            self.actions.append(
+                PythonUvCompileSourceAction(source_dir, artifacts_dir, runtime, excludes=self.EXCLUDED_FILES)
+            )
 
     def get_resolvers(self):
         """
