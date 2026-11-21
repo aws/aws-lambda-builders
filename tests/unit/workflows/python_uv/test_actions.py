@@ -29,9 +29,11 @@ class TestPythonUvCompileSourceAction(TestCase):
             Path(root, "app.py").touch()
             Path(root, "pkg").mkdir()
             Path(root, "requirements.txt").touch()
-        # Excluded from the copy, so not part of the function's source
-        Path(self.source_dir, "venv").mkdir()
-        Path(self.source_dir, "app.egg-info").mkdir()
+        # Excluded from the copy, so not part of the function's source, even where the
+        # artifacts directory has an entry of the same name
+        for root in (self.source_dir, self.artifacts_dir):
+            Path(root, "venv").mkdir()
+            Path(root, "app.egg-info").mkdir()
         # Installed dependencies, already compiled by the dependency build
         Path(self.artifacts_dir, "six.py").touch()
         Path(self.artifacts_dir, "requests").mkdir()
