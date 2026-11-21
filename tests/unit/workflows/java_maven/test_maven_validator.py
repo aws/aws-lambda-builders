@@ -78,6 +78,14 @@ class TestMavenBinaryValidator(TestCase):
         validator.validate(runtime_path=self.runtime_path)
         self.mock_log.warning.assert_called_with(MavenValidator.VERSION_STRING_WARNING, self.runtime_path)
 
+    def test_does_not_fail_on_non_utf8_output(self):
+        # e.g. a cp1252 "Maven home" path printed before the Java version line on Windows
+        version_string = "Maven home: C:\\Users\\Jos\xe9\\maven\nJava version: 1.8.0, vendor: Oracle".encode("cp1252")
+        self.mock_os_utils.popen.side_effect = [FakePopen(stdout=version_string)]
+        validator = MavenValidator(self.runtime, self.architecture, os_utils=self.mock_os_utils, log=self.mock_log)
+        self.assertEqual(validator.validate(runtime_path=self.runtime_path), self.runtime_path)
+        self.mock_log.warning.assert_not_called()
+
     def test_runtime_validate_unsupported_language_fail_open(self):
         validator = MavenValidator(runtime="java2.0", architecture="arm64")
         with self.assertRaises(UnsupportedRuntimeError):
