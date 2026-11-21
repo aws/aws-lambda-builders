@@ -105,7 +105,7 @@ def copytree(
             continue
 
         if os.path.islink(new_source) and maintain_symlinks:
-            linkto = os.readlink(new_source)
+            linkto = os.path.join(os.path.dirname(new_source), os.readlink(new_source))
             create_symlink_or_copy(linkto, new_destination)
             shutil.copystat(new_source, new_destination, follow_symlinks=False)
         elif os.path.isdir(new_source):
