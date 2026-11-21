@@ -29,12 +29,15 @@ class TestRelativeSourceSymlinks(TestCase):
             else:
                 target.write_text("original target")
                 decoy.write_text("wrong target")
-            (physical_source / "dependency").symlink_to("../target", target_is_directory=kind == "directory")
+            (physical_source / "dependency").symlink_to(
+                os.path.join("..", "target"), target_is_directory=kind == "directory"
+            )
 
             source = physical_source
             if source_alias:
                 source = root / "alias"
                 source.symlink_to(physical_source, target_is_directory=True)
+            self.assertTrue((source / "dependency").samefile(target))
             empty_source = root / "source"
             empty_source.mkdir()
             destination = root / "destination"
