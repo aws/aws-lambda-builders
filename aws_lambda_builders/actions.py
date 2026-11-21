@@ -236,7 +236,7 @@ class CopyDependenciesAction(BaseAction):
         for dependencies_source, new_destination in deps_manager.yield_source_dest():
             if os.path.islink(dependencies_source) and self.maintain_symlinks:
                 os.makedirs(os.path.dirname(new_destination), exist_ok=True)
-                linkto = os.path.join(os.path.dirname(dependencies_source), os.readlink(dependencies_source))
+                linkto = utils._get_symlink_target(dependencies_source)
                 create_symlink_or_copy(linkto, new_destination)
                 shutil.copystat(dependencies_source, new_destination, follow_symlinks=False)
             elif os.path.isdir(dependencies_source):

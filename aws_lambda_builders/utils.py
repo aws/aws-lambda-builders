@@ -3,6 +3,7 @@ Common utilities for the library
 """
 
 import codecs
+import errno
 import locale
 import logging
 import os
@@ -105,7 +106,7 @@ def copytree(
             continue
 
         if os.path.islink(new_source) and maintain_symlinks:
-            linkto = os.path.join(os.path.dirname(new_source), os.readlink(new_source))
+            linkto = _get_symlink_target(new_source)
             create_symlink_or_copy(linkto, new_destination)
             shutil.copystat(new_source, new_destination, follow_symlinks=False)
         elif os.path.isdir(new_source):
@@ -221,6 +222,32 @@ def get_goarch(architecture):
         returns a valid GO Architecture value
     """
     return "arm64" if architecture == ARM64 else "amd64"
+
+
+def _get_symlink_target(source: str, _seen: Optional[Set[str]] = None) -> str:
+    """Anchor a link target without resolving links within the target itself."""
+    target = os.readlink(source)
+    if os.name != "nt" or os.path.isabs(target):
+        return os.path.join(os.path.dirname(source), target)
+
+    parent = os.path.dirname(os.path.abspath(source))
+    target = os.path.normpath(target)
+    seen = _seen if _seen is not None else set()
+    # Windows normalizes target components before following directory links.
+    # Expand source-parent symlinks crossed by '..', while keeping junction parents logical.
+    while target == os.pardir or target.startswith(os.pardir + os.sep):
+        while os.path.islink(parent):
+            key = os.path.normcase(os.path.abspath(parent))
+            if key in seen:
+                raise OSError(errno.ELOOP, "Source-parent symlink cycle", parent)
+            seen.add(key)
+            parent = _get_symlink_target(parent, seen)
+        next_parent = os.path.dirname(parent)
+        if next_parent == parent:
+            raise OSError(errno.EINVAL, "Symlink target escapes its volume root", source)
+        parent = next_parent
+        target = target[len(os.pardir) :].lstrip(os.sep) or os.curdir
+    return os.path.join(parent, target)
 
 
 def create_symlink_or_copy(source: str, destination: str) -> None:
