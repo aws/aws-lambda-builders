@@ -366,6 +366,35 @@ class TestUvRunner(TestCase):
         self.assertIn("Could not compile unchecked-hash bytecode with target Python (exit code 1)", logs.output[0])
         self.assertIn("compile error", logs.output[0])
 
+    def test_compile_bytecode_compiles_the_given_paths_with_the_target_python(self):
+        self.mock_subprocess_uv.find_python.return_value = "/usr/bin/python3.13"
+        self.mock_osutils.run_subprocess.return_value = (0, "", "")
+
+        self.uv_runner.compile_bytecode("3.13", ["/artifacts/app.py", "/artifacts/pkg"])
+
+        self.mock_subprocess_uv.find_python.assert_called_once_with("3.13")
+        self.mock_osutils.run_subprocess.assert_called_once_with(
+            [
+                "/usr/bin/python3.13",
+                "-m",
+                "compileall",
+                "-f",
+                "-q",
+                "--invalidation-mode",
+                "unchecked-hash",
+                "/artifacts/app.py",
+                "/artifacts/pkg",
+            ]
+        )
+
+    @parameterized.expand([("no_target_python", "3.13"), ("no_python_version", None)])
+    def test_compile_bytecode_skips_when_the_target_python_is_unknown(self, _, python_version):
+        self.mock_subprocess_uv.find_python.return_value = None
+
+        self.uv_runner.compile_bytecode(python_version, ["/artifacts/app.py"])
+
+        self.mock_osutils.run_subprocess.assert_not_called()
+
     def test_install_requirements_resolves_relative_target_to_absolute(self):
         # UV runs from project_dir or workspace_dir,
         # so a relative --target must be resolved to an absolute path first,
