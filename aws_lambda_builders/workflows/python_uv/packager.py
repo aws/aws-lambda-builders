@@ -185,12 +185,7 @@ class UvRunner:
         target_dir = os.path.abspath(target_dir)
         args.extend(["--target", target_dir])
 
-        target_python = None
-        if config.compile_bytecode:
-            if python_version:
-                target_python = self._uv.find_python(python_version)
-            else:
-                LOG.warning("Target Python version is unavailable; skipping bytecode compilation")
+        target_python = self._find_target_python(python_version) if config.compile_bytecode else None
 
         # Add configuration arguments that are independent of interpreter selection.
         args.extend(config.to_uv_args())
@@ -244,7 +239,20 @@ class UvRunner:
         if target_python:
             self._compile_bytecode(target_python, target_dir)
 
-    def _compile_bytecode(self, python_executable: str, target_dir: str) -> None:
+    def compile_bytecode(self, python_version: Optional[str], paths: List[str]) -> None:
+        """Compile unchecked-hash bytecode for the given files and directories with the target Python."""
+        target_python = self._find_target_python(python_version)
+        if target_python:
+            self._compile_bytecode(target_python, *paths)
+
+    def _find_target_python(self, python_version: Optional[str]) -> Optional[str]:
+        """Find the interpreter that compiles bytecode for the target runtime, or None if there isn't one."""
+        if not python_version:
+            LOG.warning("Target Python version is unavailable; skipping bytecode compilation")
+            return None
+        return self._uv.find_python(python_version)
+
+    def _compile_bytecode(self, python_executable: str, *paths: str) -> None:
         """Compile reusable bytecode with the interpreter selected for the target runtime."""
         command = [
             python_executable,
@@ -254,7 +262,7 @@ class UvRunner:
             "-q",
             "--invalidation-mode",
             "unchecked-hash",
-            target_dir,
+            *paths,
         ]
         LOG.debug("Compiling unchecked-hash bytecode: %s", " ".join(command))
         rc, stdout, stderr = self._osutils.run_subprocess(command)

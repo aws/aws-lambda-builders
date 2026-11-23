@@ -763,6 +763,9 @@ class TestPythonUvWorkflow(TestCase):
             os.environ.pop("UV_COMPILE_BYTECODE", None)
             requirements = os.path.join(source_dir, "requirements.txt")
             pathlib.Path(requirements).write_text("six==1.16.0\n")
+            pathlib.Path(source_dir, "app.py").write_text("import six\n")
+            pathlib.Path(source_dir, "pkg").mkdir()
+            pathlib.Path(source_dir, "pkg", "mod.py").write_text("VALUE = 1\n")
             builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
             runtime = f"python{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -786,10 +789,12 @@ class TestPythonUvWorkflow(TestCase):
                 experimental_flags=self.experimental_flags,
                 options={"uv_compile_bytecode": True},
             )
-            pyc_files = list(pathlib.Path(compiled_dir, "__pycache__").glob("six.*.pyc"))
-            self.assertEqual(len(pyc_files), 1)
-            # PEP 552 flags word: 1 = hash-based, unchecked
-            self.assertEqual(int.from_bytes(pyc_files[0].read_bytes()[4:8], "little"), 1)
+            # The dependency, and the function's own source (top level and in a package)
+            for pycache, module in (("__pycache__", "six"), ("__pycache__", "app"), ("pkg/__pycache__", "mod")):
+                pyc_files = list(pathlib.Path(compiled_dir, pycache).glob(f"{module}.*.pyc"))
+                self.assertEqual(len(pyc_files), 1, module)
+                # PEP 552 flags word: 1 = hash-based, unchecked
+                self.assertEqual(int.from_bytes(pyc_files[0].read_bytes()[4:8], "little"), 1, module)
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_shows_uv_warnings(self):
