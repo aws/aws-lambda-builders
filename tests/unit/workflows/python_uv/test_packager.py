@@ -243,9 +243,22 @@ class TestUvRunner(TestCase):
         self.assertIn("-r", args_called)
         self.assertEqual(args_called[args_called.index("-r") + 1], os.path.abspath("/path/to/requirements.txt"))
         self.assertIn("--no-compile-bytecode", args_called)
+        # A plain requirements file is resolved, so its dependencies get installed
+        self.assertNotIn("--no-deps", args_called)
         # Bytecode is opt-in: the default config must not look up a Python or run compileall.
         self.mock_subprocess_uv.find_python.assert_not_called()
         self.mock_osutils.run_subprocess.assert_not_called()
+
+    def test_install_requirements_no_deps(self):
+        self.mock_subprocess_uv.run_uv_command.return_value = (0, "success", "")
+
+        self.uv_runner.install_requirements(
+            requirements_path="/path/to/lock_requirements.txt", target_dir="/target", no_deps=True
+        )
+
+        args_called = self.mock_subprocess_uv.run_uv_command.call_args[0][0]
+        self.assertEqual(args_called[:2], ["pip", "install"])
+        self.assertIn("--no-deps", args_called)
 
     def test_install_requirements_drops_uv_compile_bytecode_env(self):
         # uv refuses --no-compile-bytecode when UV_COMPILE_BYTECODE is set in the environment.
@@ -541,6 +554,8 @@ class TestPythonUvDependencyBuilder(TestCase):
         assert self.mock_uv_runner._uv.run_uv_command.call_args.kwargs["cwd"] == "/path/to"
         assert self.mock_uv_runner.install_requirements.call_args.kwargs["cwd"] == "/workspace"
         self.assertIn("--no-emit-project", export_args)
+        # The export is the full locked closure; resolving again would undo uv_prune
+        self.assertIs(self.mock_uv_runner.install_requirements.call_args.kwargs["no_deps"], True)
 
     def test_build_from_lock_file_passes_build_options_to_export(self):
         self.mock_uv_runner._uv.run_uv_command.side_effect = [(0, "", ""), (0, "/workspace\n", "")]

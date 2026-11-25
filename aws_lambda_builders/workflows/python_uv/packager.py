@@ -148,6 +148,7 @@ class UvRunner:
         platform: Optional[str] = None,
         architecture: Optional[str] = None,
         cwd: Optional[str] = None,
+        no_deps: bool = False,
     ) -> None:
         """
         Install requirements using UV pip interface.
@@ -164,6 +165,8 @@ class UvRunner:
             python_version: Target Python version
             platform: Target platform
             architecture: Target architecture
+            no_deps: Install only the listed packages; set when the file is already a
+                complete closure, such as a ``uv export`` of the lock file
         """
         if config is None:
             config = UvConfig()
@@ -172,6 +175,9 @@ class UvRunner:
 
         # Resolve the requirements file before UV changes to the project or workspace directory
         args.extend(["-r", os.path.abspath(requirements_path)])
+
+        if no_deps:
+            args.append("--no-deps")
 
         # Resolve --target to an absolute path: UV runs from the project or workspace directory,
         # so a relative target (e.g. the incremental-build dependencies dir) would otherwise be
@@ -629,7 +635,8 @@ class PythonUvDependencyBuilder:
             if workspace_dir is None:
                 workspace_dir = self._resolve_workspace_dir(project_dir)
 
-            # Install with platform targeting
+            # Install with platform targeting. The export already lists every locked package the
+            # build needs, so don't resolve again: that would re-add packages removed by uv_prune.
             self._uv_runner.install_requirements(
                 requirements_path=temp_requirements,
                 target_dir=target_dir,
@@ -638,6 +645,7 @@ class PythonUvDependencyBuilder:
                 platform="linux",
                 cwd=workspace_dir,
                 architecture=architecture,
+                no_deps=True,
             )
         except LockFileError:
             raise

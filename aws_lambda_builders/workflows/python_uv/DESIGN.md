@@ -126,14 +126,16 @@ directory for a standalone project; see
   Python 3.10 uses the runtime dependency `tomli` to read lock options; Python 3.11+ uses `tomllib`.
 - Replay each `options.exclude-newer-package` entry with `--exclude-newer-package`, preferring its `span`
   over the placeholder `timestamp` for relative per-package cutoffs.
-- Install using `uv pip install` with platform targeting (--python-platform)
+- Install using `uv pip install --no-deps` with platform targeting (--python-platform). The export is
+  already the full locked closure, so uv must not resolve again: that would re-add packages removed by
+  `uv_prune` and could pick versions other than the locked ones
 - Provides reproducible builds with locked dependency versions AND cross-platform support
 
 **For pyproject.toml without uv.lock:**
 - Run `uv lock` from the project directory. uv writes `uv.lock` there, or at the workspace root
   for a workspace member, and the file stays in the source tree after the build
 - Use `uv export` to convert lock file to requirements.txt format
-- Install dependencies using `uv pip install` with platform targeting
+- Install dependencies using `uv pip install --no-deps` with platform targeting, as above
 
 **Stale locks:** both pyproject.toml paths run `uv export --locked`, so a `uv.lock` that no longer
 matches `pyproject.toml` fails the build instead of being rewritten. A project without

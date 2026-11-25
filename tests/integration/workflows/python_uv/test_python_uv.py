@@ -688,6 +688,35 @@ class TestPythonUvWorkflow(TestCase):
             self.assertIn("uv_prune cannot name the project being built (pruneapp)", str(ctx.exception))
 
     @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_prunes_transitive_dependency_of_kept_package(self):
+        """A pruned package that a kept package depends on must not be reinstalled from the export."""
+        with tempfile.TemporaryDirectory() as source_dir:
+            pathlib.Path(source_dir, "pyproject.toml").write_text(
+                '[project]\nname = "pruneapp"\nversion = "0.1.0"\nrequires-python = ">=3.9"\n'
+                'dependencies = ["aws-xray-sdk==2.14.0"]\n'
+            )
+            subprocess.run([shutil.which("uv"), "lock"], cwd=source_dir, check=True, capture_output=True)
+            self.assertTrue(pathlib.Path(source_dir, "uv.lock").is_file())
+
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "pyproject.toml"),
+                runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                experimental_flags=self.experimental_flags,
+                options={"uv_prune": ["botocore"]},
+            )
+
+        artifacts = pathlib.Path(self.artifacts_dir)
+        self.assertTrue(artifacts.joinpath("aws_xray_sdk", "__init__.py").is_file())
+        self.assertTrue(artifacts.joinpath("wrapt", "__init__.py").is_file())
+        # botocore and the dependencies only it needs stay out, though aws-xray-sdk requires botocore
+        for pruned in ("botocore", "jmespath", "dateutil", "python_dateutil", "six", "urllib3"):
+            self.assertEqual(list(artifacts.glob(f"{pruned}*")), [], pruned)
+
+    @skipIf(which("uv") is None, "uv not available")
     @patch.dict(os.environ, {"UV_COMPILE_BYTECODE": "1"})
     def test_workflow_honors_uv_compile_bytecode_env_without_option(self):
         with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as disabled_dir:
