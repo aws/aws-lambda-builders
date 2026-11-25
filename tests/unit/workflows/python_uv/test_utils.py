@@ -28,6 +28,11 @@ class TestOSUtils(TestCase):
         result = self.osutils.which("nonexistent_command_12345")
         self.assertIsNone(result)
 
+    @patch("aws_lambda_builders.workflows.python_uv.utils.which")
+    def test_which_returns_first_match(self, mock_which):
+        mock_which.return_value = ["/first/uv", "/second/uv"]
+        self.assertEqual(self.osutils.which("uv"), "/first/uv")
+
     def test_run_subprocess_success(self):
         rc, stdout, stderr = self.osutils.run_subprocess(["echo", "hello"])
         self.assertEqual(rc, 0)
