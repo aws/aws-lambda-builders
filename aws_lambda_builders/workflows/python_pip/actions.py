@@ -140,6 +140,12 @@ class PythonCreateParentPackagesAction(BaseAction):
         dest_path = Path(self.dest_dir)
 
         target_pkg_path = dest_path.joinpath(*pkg_parts)
+        if not self._is_within_directory(target_pkg_path, dest_path):
+            raise ActionFailedError(
+                f"Invalid parent packages value '{self.options.get(PARENT_PYTHON_PKGS_KEY)}'. "
+                "Parent packages must be a dot-separated list of package names, for example 'app.handlers'."
+            )
+
         try:
             target_pkg_path.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
@@ -164,3 +170,14 @@ class PythonCreateParentPackagesAction(BaseAction):
             return parent_python_pkgs.split(".")
 
         return None
+
+    @staticmethod
+    def _is_within_directory(path: Path, directory: Path) -> bool:
+        """
+        Returns True if the resolved path is the directory itself or located under it.
+        """
+        try:
+            path.resolve().relative_to(directory.resolve())
+        except ValueError:
+            return False
+        return True
