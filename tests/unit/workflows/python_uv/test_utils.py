@@ -28,6 +28,11 @@ class TestOSUtils(TestCase):
         result = self.osutils.which("nonexistent_command_12345")
         self.assertIsNone(result)
 
+    @patch("aws_lambda_builders.workflows.python_uv.utils.which")
+    def test_which_returns_first_match(self, mock_which):
+        mock_which.return_value = ["/first/uv", "/second/uv"]
+        self.assertEqual(self.osutils.which("uv"), "/first/uv")
+
     def test_run_subprocess_success(self):
         rc, stdout, stderr = self.osutils.run_subprocess(["echo", "hello"])
         self.assertEqual(rc, 0)
@@ -37,6 +42,25 @@ class TestOSUtils(TestCase):
     def test_run_subprocess_failure(self):
         rc, stdout, stderr = self.osutils.run_subprocess(["false"])
         self.assertEqual(rc, 1)
+
+    @patch("aws_lambda_builders.workflows.python_uv.utils.subprocess.run")
+    def test_run_subprocess_decodes_utf8_with_replacement(self, mock_run):
+        mock_run.return_value = Mock(returncode=0, stdout="success", stderr="")
+        env = {"UV_TEST": "1"}
+
+        result = self.osutils.run_subprocess(["uv", "--version"], cwd="/work", env=env)
+
+        self.assertEqual(result, (0, "success", ""))
+        mock_run.assert_called_once_with(
+            ["uv", "--version"],
+            cwd="/work",
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
 
 
 class TestDetectUvManifest(TestCase):
@@ -172,6 +196,7 @@ class TestUvConfig(TestCase):
         config = UvConfig()
         args = config.to_uv_args()
         self.assertEqual(args, [])
+        self.assertFalse(config.compile_bytecode)
 
     def test_uv_config_with_index_url(self):
         config = UvConfig(index_url="https://pypi.org/simple/")
@@ -219,3 +244,18 @@ class TestUvConfig(TestCase):
         config = UvConfig(generate_hashes=True)
         args = config.to_uv_args()
         self.assertIn("--generate-hashes", args)
+
+    def test_uv_config_export_args_default_is_empty(self):
+        self.assertEqual(UvConfig().to_export_args(), [])
+
+    def test_uv_config_export_args_with_build_options(self):
+        config = UvConfig(groups=["lambda", "aws"], extras=["fast"])
+        self.assertEqual(config.to_export_args(), ["--group", "lambda", "--group", "aws", "--extra", "fast"])
+        self.assertEqual(UvConfig(all_extras=True).to_export_args(), ["--all-extras"])
+        # Export selection flags must never leak into `uv pip install`
+        self.assertEqual(config.to_uv_args(), [])
+
+    def test_uv_config_export_args_with_prune(self):
+        config = UvConfig(prune=["boto3", "botocore"])
+        self.assertEqual(config.to_export_args(), ["--prune", "boto3", "--prune", "botocore"])
+        self.assertEqual(config.to_uv_args(), [])

@@ -197,6 +197,7 @@ class TestPythonUvWorkflow(TestCase):
                 ("30 days", None),
                 ("2024-01-01", "2023-01-01"),
                 ("2024-01-01", "30 days"),
+                ("2024-01-01", "false"),
             )
             for changed in (False, True)
         ]
@@ -268,6 +269,32 @@ class TestPythonUvWorkflow(TestCase):
                     build()
 
             self.assertEqual(lock_path.read_bytes(), lock_contents)
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_honors_package_opt_out_from_cutoff(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            manifest_path = pathlib.Path(source_dir) / "pyproject.toml"
+            # six 1.17.0 was released in December 2024, well after the global cutoff.
+            manifest_path.write_text(
+                '[project]\nname = "opt-out-demo"\nversion = "1.0.0"\nrequires-python = ">=3.13"\n'
+                'dependencies = ["six"]\n'
+                '\n[tool.uv]\nexclude-newer = "2020-01-01"\nexclude-newer-package = { six = false }\n',
+                encoding="utf-8",
+            )
+            subprocess.run(
+                [shutil.which("uv"), "lock", "--python", "3.13"], cwd=source_dir, check=True, capture_output=True
+            )
+
+            LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                str(manifest_path),
+                runtime="python3.13",
+                experimental_flags=self.experimental_flags,
+            )
+
+            self.assertIn("six-1.17.0.dist-info", os.listdir(self.artifacts_dir))
 
     @skipIf(which("uv") is None, "uv not available")
     def test_workflow_with_dependencies_dir(self):
@@ -581,3 +608,186 @@ class TestPythonUvWorkflow(TestCase):
             self.assertTrue(pathlib.Path(self.artifacts_dir, "workspace_lib", "__init__.py").is_file())
             self.assertEqual(list(pathlib.Path(self.artifacts_dir).glob("workspace_app-*.dist-info")), [])
             self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("*.pth")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_applies_build_options(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            pathlib.Path(source_dir, "pyproject.toml").write_text(
+                '[project]\nname = "optsapp"\nversion = "0.1.0"\nrequires-python = ">=3.9"\n'
+                'dependencies = ["six==1.16.0"]\n\n'
+                '[project.optional-dependencies]\ndns = ["idna==3.10"]\n\n'
+                '[dependency-groups]\nlambda = ["toml==0.10.2"]\nother = ["pyasn1==0.6.1"]\n\n'
+                '[build-system]\nrequires = ["uv_build>=0.8,<1"]\nbuild-backend = "uv_build"\n'
+            )
+            package_dir = pathlib.Path(source_dir, "src", "optsapp")
+            package_dir.mkdir(parents=True)
+            package_dir.joinpath("__init__.py").write_text("VALUE = 1\n")
+
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                os.path.join(source_dir, "pyproject.toml"),
+                runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                experimental_flags=self.experimental_flags,
+                options={"uv_groups": ["lambda"], "uv_extras": ["dns"]},
+            )
+
+        artifacts = pathlib.Path(self.artifacts_dir)
+        self.assertTrue(artifacts.joinpath("six.py").is_file())
+        self.assertTrue(artifacts.joinpath("toml", "__init__.py").is_file())
+        self.assertTrue(artifacts.joinpath("idna", "__init__.py").is_file())
+        self.assertEqual(list(artifacts.glob("pyasn1*")), [])
+        # Only dependencies are exported; the project itself is not installed
+        self.assertEqual(list(artifacts.glob("optsapp-*.dist-info")), [])
+        self.assertEqual(list(artifacts.rglob("*.pth")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_prunes_runtime_provided_packages(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            pathlib.Path(source_dir, "pyproject.toml").write_text(
+                '[project]\nname = "pruneapp"\nversion = "0.1.0"\nrequires-python = ">=3.9"\n'
+                'dependencies = ["boto3==1.35.0", "requests==2.32.3"]\n'
+            )
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            build_args = (source_dir, self.artifacts_dir, self.scratch_dir, os.path.join(source_dir, "pyproject.toml"))
+            runtime = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
+            builder.build(
+                *build_args,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+                options={"uv_prune": ["boto3"]},
+            )
+
+            artifacts = pathlib.Path(self.artifacts_dir)
+            for pruned in ("boto3", "botocore", "s3transfer", "jmespath"):
+                self.assertEqual(list(artifacts.glob(f"{pruned}*")), [], pruned)
+            # urllib3 stays because requests also needs it
+            self.assertTrue(artifacts.joinpath("requests", "__init__.py").is_file())
+            self.assertTrue(artifacts.joinpath("urllib3", "__init__.py").is_file())
+
+            with self.assertRaises(WorkflowFailedError) as ctx:
+                builder.build(
+                    *build_args,
+                    runtime=runtime,
+                    experimental_flags=self.experimental_flags,
+                    options={"uv_prune": ["not-a-locked-package"]},
+                )
+            self.assertIn("uv_prune names packages not in", str(ctx.exception))
+
+            # uv would export nothing and the build would pass with no dependencies
+            with self.assertRaises(WorkflowFailedError) as ctx:
+                builder.build(
+                    *build_args,
+                    runtime=runtime,
+                    experimental_flags=self.experimental_flags,
+                    options={"uv_prune": ["PruneApp"]},
+                )
+            self.assertIn("uv_prune cannot name the project being built (pruneapp)", str(ctx.exception))
+
+    @skipIf(which("uv") is None, "uv not available")
+    @patch.dict(os.environ, {"UV_COMPILE_BYTECODE": "1"})
+    def test_workflow_honors_uv_compile_bytecode_env_without_option(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as disabled_dir:
+            requirements = os.path.join(source_dir, "requirements.txt")
+            pathlib.Path(requirements).write_text("six==1.16.0\n")
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            runtime = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+            )
+            # Named for the target interpreter, e.g. six.cpython-312.pyc
+            tag = f"cpython-{sys.version_info.major}{sys.version_info.minor}"
+            pyc_files = list(pathlib.Path(self.artifacts_dir, "__pycache__").glob("six.*.pyc"))
+            self.assertEqual([pyc.name for pyc in pyc_files], [f"six.{tag}.pyc"])
+            # PEP 552 flags word: 1 = hash-based, unchecked
+            self.assertEqual(int.from_bytes(pyc_files[0].read_bytes()[4:8], "little"), 1)
+
+            # An explicit uv_compile_bytecode: false wins over the environment
+            builder.build(
+                source_dir,
+                disabled_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+                options={"uv_compile_bytecode": False},
+            )
+            self.assertTrue(pathlib.Path(disabled_dir, "six.py").is_file())
+            self.assertEqual(list(pathlib.Path(disabled_dir).rglob("__pycache__")), [])
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_compiles_unchecked_hash_bytecode_when_enabled(self):
+        with (
+            patch.dict(os.environ),
+            tempfile.TemporaryDirectory() as source_dir,
+            tempfile.TemporaryDirectory() as compiled_dir,
+        ):
+            os.environ.pop("UV_COMPILE_BYTECODE", None)
+            requirements = os.path.join(source_dir, "requirements.txt")
+            pathlib.Path(requirements).write_text("six==1.16.0\n")
+            pathlib.Path(source_dir, "app.py").write_text("import six\n")
+            pathlib.Path(source_dir, "pkg").mkdir()
+            pathlib.Path(source_dir, "pkg", "mod.py").write_text("VALUE = 1\n")
+            builder = LambdaBuilder(language="python", dependency_manager="uv", application_framework=None)
+            runtime = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
+            builder.build(
+                source_dir,
+                self.artifacts_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+            )
+            self.assertTrue(pathlib.Path(self.artifacts_dir, "six.py").is_file())
+            self.assertEqual(list(pathlib.Path(self.artifacts_dir).rglob("__pycache__")), [])
+
+            builder.build(
+                source_dir,
+                compiled_dir,
+                self.scratch_dir,
+                requirements,
+                runtime=runtime,
+                experimental_flags=self.experimental_flags,
+                options={"uv_compile_bytecode": True},
+            )
+            # The dependency, and the function's own source (top level and in a package)
+            for pycache, module in (("__pycache__", "six"), ("__pycache__", "app"), ("pkg/__pycache__", "mod")):
+                pyc_files = list(pathlib.Path(compiled_dir, pycache).glob(f"{module}.*.pyc"))
+                self.assertEqual(len(pyc_files), 1, module)
+                # PEP 552 flags word: 1 = hash-based, unchecked
+                self.assertEqual(int.from_bytes(pyc_files[0].read_bytes()[4:8], "little"), 1, module)
+
+    @skipIf(which("uv") is None, "uv not available")
+    def test_workflow_shows_uv_warnings(self):
+        with tempfile.TemporaryDirectory() as source_dir:
+            # An unknown [tool.uv] key makes uv ignore every setting in the file; only a warning says so
+            pathlib.Path(source_dir, "pyproject.toml").write_text(
+                '[project]\nname = "warnapp"\nversion = "0.1.0"\nrequires-python = ">=3.9"\n'
+                'dependencies = ["six==1.16.0"]\n\n[tool.uv]\nbogus-key = true\n'
+            )
+            with self.assertLogs("aws_lambda_builders.workflows.python_uv.packager", level="WARNING") as logs:
+                LambdaBuilder(language="python", dependency_manager="uv", application_framework=None).build(
+                    source_dir,
+                    self.artifacts_dir,
+                    self.scratch_dir,
+                    os.path.join(source_dir, "pyproject.toml"),
+                    runtime=f"python{sys.version_info.major}.{sys.version_info.minor}",
+                    experimental_flags=self.experimental_flags,
+                )
+
+        warnings = [record.getMessage() for record in logs.records if "bogus-key" in record.getMessage()]
+        # uv repeats it on lock, export and install; the build shows it once
+        self.assertEqual(len(warnings), 1, warnings)
+        self.assertTrue(warnings[0].startswith("uv warning: Failed to parse `pyproject.toml`"), warnings[0])
+        self.assertIn("unknown field `bogus-key`", warnings[0])
+        self.assertIn("six.py", os.listdir(self.artifacts_dir))

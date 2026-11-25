@@ -1,10 +1,12 @@
+import io
 import os
+import tarfile
 import tempfile
 import shutil
 import platform
 from tarfile import ExtractError
 
-from unittest import TestCase
+from unittest import TestCase, skipIf, skipUnless
 
 from aws_lambda_builders.utils import copytree, get_goarch, extract_tarfile
 from tests.testing_utils import read_link_without_junction_prefix
@@ -134,6 +136,59 @@ class TestExtractTarFile(TestCase):
         self.assertRaisesRegex(
             ExtractError, "Attempted Path Traversal in Tar File", extract_tarfile, test_tar, test_dir
         )
+
+
+@skipUnless(hasattr(tarfile, "data_filter"), "tarfile.data_filter needs Python 3.10.12+, 3.11.4+ or 3.12+")
+class TestExtractTarFileDataFilter(TestCase):
+    def setUp(self):
+        self.parent = tempfile.mkdtemp()
+        self.unpack_dir = os.path.join(self.parent, "unpack")
+        self.outside_dir = os.path.join(self.parent, "outside")
+        os.makedirs(self.unpack_dir)
+        os.makedirs(self.outside_dir)
+        self.tar_path = os.path.join(self.parent, "test.tar")
+
+    def tearDown(self):
+        shutil.rmtree(self.parent)
+
+    def _write_tar(self, members):
+        with tarfile.open(self.tar_path, "w") as tar:
+            for info, data in members:
+                tar.addfile(info, io.BytesIO(data) if data is not None else None)
+
+    def _file(self, name, data, mode=0o644):
+        info = tarfile.TarInfo(name)
+        info.size = len(data)
+        info.mode = mode
+        return info, data
+
+    def _symlink(self, name, target):
+        info = tarfile.TarInfo(name)
+        info.type = tarfile.SYMTYPE
+        info.linkname = target
+        return info, None
+
+    def test_rejects_file_written_through_symlink_outside_unpack_dir(self):
+        self._write_tar([self._symlink("link", self.outside_dir), self._file("link/file.txt", b"x")])
+
+        with self.assertRaises(tarfile.FilterError):
+            extract_tarfile(self.tar_path, self.unpack_dir)
+
+        self.assertEqual(os.listdir(self.outside_dir), [])
+
+    def test_rejects_relative_symlink_pointing_outside_unpack_dir(self):
+        self._write_tar([self._symlink("link", "../outside")])
+
+        with self.assertRaises(tarfile.FilterError):
+            extract_tarfile(self.tar_path, self.unpack_dir)
+
+    @skipIf(platform.system().lower() == "windows", "Windows has no executable mode bit")
+    def test_keeps_executable_bit(self):
+        self._write_tar([self._file("bin/run.sh", b"#!/bin/sh\n", mode=0o755)])
+
+        extract_tarfile(self.tar_path, self.unpack_dir)
+
+        self.assertTrue(os.access(os.path.join(self.unpack_dir, "bin", "run.sh"), os.X_OK))
 
 
 def file(*args):

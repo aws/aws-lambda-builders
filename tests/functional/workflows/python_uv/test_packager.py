@@ -1,4 +1,5 @@
 import os
+import sys
 from collections import defaultdict, namedtuple
 
 import pytest
@@ -658,3 +659,66 @@ version = "4.2.0"
         fake_uv.validate()
 
         assert "certifi" in installed_packages
+
+    def test_can_compile_unchecked_hash_bytecode_when_enabled(self, tmpdir, uv_runner, osutils):
+        """Opt-in bytecode uses the interpreter from `uv python find` and writes unchecked-hash .pyc"""
+        reqs = ["requests"]
+        fake_uv, runner = uv_runner
+        appdir, builder, manifest_path = self._make_appdir_and_dependency_builder(
+            reqs, tmpdir, runner, manifest_type="requirements"
+        )
+
+        # Every fake UV call returns this str; `uv python find` uses it as the interpreter path.
+        fake_uv.set_return_tuple(0, sys.executable, "")
+
+        site_packages = os.path.join(appdir, "site-packages")
+        os.makedirs(site_packages, exist_ok=True)
+        fake_uv.packages_to_install(expected_args=["pip", "install"], packages=reqs, install_location=site_packages)
+
+        with osutils.tempdir() as scratch_dir:
+            builder.build_dependencies(
+                artifacts_dir_path=site_packages,
+                scratch_dir_path=scratch_dir,
+                manifest_path=manifest_path,
+                architecture=X86_64,
+                config=UvConfig(compile_bytecode=True),
+            )
+
+        python_find_calls = [args for args, _, _ in fake_uv._calls["python"] if args[:2] == ["python", "find"]]
+        assert python_find_calls
+
+        cache_dir = os.path.join(site_packages, "requests", "__pycache__")
+        pyc_files = os.listdir(cache_dir)
+        assert pyc_files
+        with open(os.path.join(cache_dir, pyc_files[0]), "rb") as f:
+            header = f.read(8)
+        # PEP 552 flags word: 0b01 = hash-based, source not checked (unchecked-hash).
+        assert int.from_bytes(header[4:8], "little") == 1
+
+    def test_lock_export_uses_build_options(self, tmpdir, uv_runner, osutils):
+        """Build options select groups and extras"""
+        fake_uv, runner = uv_runner
+        appdir, builder, manifest_path = self._make_appdir_and_dependency_builder(
+            ["six"], tmpdir, runner, manifest_type="pyproject"
+        )
+        with open(os.path.join(appdir, "uv.lock"), "w") as f:
+            f.write('version = 1\nrequires-python = ">=3.8"\n')
+        config = UvConfig(groups=["lambda"], extras=["fast", "small"])
+
+        with osutils.tempdir() as scratch_dir:
+            builder.build_dependencies(
+                artifacts_dir_path=os.path.join(appdir, "site-packages"),
+                scratch_dir_path=scratch_dir,
+                manifest_path=manifest_path,
+                architecture=X86_64,
+                config=config,
+            )
+
+        export_args = fake_uv._calls["export"][0][0]
+        assert "--no-emit-project" in export_args
+        assert "--no-editable" in export_args
+        assert "--no-default-groups" in export_args
+        assert export_args[export_args.index("--group") :][:2] == ["--group", "lambda"]
+        assert [export_args[i + 1] for i, arg in enumerate(export_args) if arg == "--extra"] == ["fast", "small"]
+        (pip_args,) = (call[0] for call in fake_uv._calls["pip"])
+        assert "--group" not in pip_args and "--extra" not in pip_args

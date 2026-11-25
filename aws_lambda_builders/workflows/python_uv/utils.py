@@ -4,10 +4,11 @@ Commonly used utilities for Python UV workflow
 
 import logging
 import os
-import shutil
+import re
 import subprocess
 from typing import List, Optional
 
+from aws_lambda_builders.utils import which
 from aws_lambda_builders.workflows.python_pip.utils import OSUtils as BaseOSUtils
 
 LOG = logging.getLogger(__name__)
@@ -15,12 +16,20 @@ LOG = logging.getLogger(__name__)
 EXPERIMENTAL_FLAG_BUILD_PERFORMANCE = "experimentalBuildPerformance"
 
 
+def normalize_package_name(name: str) -> str:
+    """PEP 503 normalized name, the form uv.lock stores package names in."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 class OSUtils(BaseOSUtils):
     """Extended OS utilities for UV workflow."""
 
     def which(self, executable):
         """Find executable in PATH."""
-        return shutil.which(executable)
+        paths = which(executable)
+        if isinstance(paths, str):
+            return paths
+        return paths[0] if paths else None
 
     def run_subprocess(self, cmd, cwd=None, env=None):
         """Run subprocess and return result."""
@@ -28,7 +37,16 @@ class OSUtils(BaseOSUtils):
             env = self.original_environ()
 
         try:
-            result = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                cmd,
+                cwd=cwd,
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+            )
             return result.returncode, result.stdout, result.stderr
         except Exception as e:
             return 1, "", str(e)
@@ -133,9 +151,13 @@ class UvConfig:
         no_cache: bool = False,
         prerelease: str = "disallow",
         resolution: str = "highest",
-        compile_bytecode: bool = True,
+        compile_bytecode: bool = False,
         exclude_newer: Optional[str] = None,
         generate_hashes: bool = False,
+        groups: Optional[List[str]] = None,
+        extras: Optional[List[str]] = None,
+        all_extras: bool = False,
+        prune: Optional[List[str]] = None,
     ):
         self.index_url = index_url
         self.extra_index_urls = extra_index_urls or []
@@ -146,6 +168,32 @@ class UvConfig:
         self.compile_bytecode = compile_bytecode
         self.exclude_newer = exclude_newer
         self.generate_hashes = generate_hashes
+        self.groups = groups or []
+        self.extras = extras or []
+        self.all_extras = all_extras
+        self.prune = prune or []
+
+    def to_export_args(self) -> List[str]:
+        """Convert the dependency selection to `uv export` arguments."""
+        args = []
+        for group in self.groups:
+            args.extend(["--group", group])
+        for extra in self.extras:
+            args.extend(["--extra", extra])
+        if self.all_extras:
+            args.append("--all-extras")
+        for package in self.prune:
+            args.extend(["--prune", package])
+        return args
+
+    def cache_args(self) -> List[str]:
+        """Convert the cache options to UV command line arguments."""
+        args = []
+        if self.cache_dir:
+            args.extend(["--cache-dir", self.cache_dir])
+        if self.no_cache:
+            args.append("--no-cache")
+        return args
 
     def to_uv_args(self) -> List[str]:
         """Convert configuration to UV command line arguments."""
@@ -157,11 +205,7 @@ class UvConfig:
         for extra_url in self.extra_index_urls:
             args.extend(["--extra-index-url", extra_url])
 
-        if self.cache_dir:
-            args.extend(["--cache-dir", self.cache_dir])
-
-        if self.no_cache:
-            args.append("--no-cache")
+        args.extend(self.cache_args())
 
         if self.prerelease != "disallow":
             args.extend(["--prerelease", self.prerelease])

@@ -175,10 +175,6 @@ def which(cmd, mode=os.F_OK | os.X_OK, executable_search_paths=None):  # pragma:
         path = executable_search_paths + path
 
     if sys.platform == "win32":
-        # The current directory takes precedence on Windows.
-        if os.curdir not in path:
-            path.insert(0, os.curdir)
-
         # PATHEXT is necessary to check on Windows.
         pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
         # See if the given file matches any of the expected path
@@ -198,13 +194,16 @@ def which(cmd, mode=os.F_OK | os.X_OK, executable_search_paths=None):  # pragma:
     paths = []
 
     for dir in path:
+        if not dir:
+            # Skip empty entries (e.g. from a trailing path separator), which would resolve to the working directory
+            continue
         normdir = os.path.normcase(dir)
         if normdir not in seen:
             seen.add(normdir)
             for thefile in files:
                 name = os.path.join(dir, thefile)
                 if _access_check(name, mode):
-                    paths.append(name)
+                    paths.append(os.path.abspath(name))
     return paths
 
 
@@ -279,7 +278,10 @@ def extract_tarfile(tarfile_path: Union[str, os.PathLike], unpack_dir: Union[str
             if not _is_within_directory(unpack_dir, member_path):
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
 
-        tar.extractall(unpack_dir)
+        if hasattr(tarfile, "data_filter"):
+            tar.extractall(unpack_dir, filter="data")
+        else:
+            tar.extractall(unpack_dir)
 
 
 def _locale_encoding() -> str:

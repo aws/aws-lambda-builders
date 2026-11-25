@@ -1,10 +1,14 @@
+import os
+import shutil
+import tempfile
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from parameterized import parameterized_class
+from parameterized import parameterized, parameterized_class
 
 from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
-from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction
+from aws_lambda_builders.exceptions import WorkflowFailedError
+from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction, PythonUvCompileSourceAction
 from aws_lambda_builders.workflows.python_uv.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE, OSUtils
 from aws_lambda_builders.workflows.python_uv.workflow import PythonUvWorkflow
 
@@ -188,4 +192,209 @@ class TestPythonUvWorkflow(TestCase):
         mock_detect.assert_called_once_with("source")
         # Should have UV build action since manifest was detected
         self.assertEqual(len(workflow.actions), 2)
+        self.assertIsInstance(workflow.actions[0], PythonUvBuildAction)
+
+
+class TestPythonUvWorkflowBuildOptions(TestCase):
+    def setUp(self):
+        self.source_dir = tempfile.mkdtemp()
+        self.pyproject = os.path.join(self.source_dir, "pyproject.toml")
+        self._write_pyproject('[build-system]\nrequires = ["uv_build"]\nbuild-backend = "uv_build"\n')
+        # Keep a developer's own UV_COMPILE_BYTECODE out of these tests
+        env = patch.dict(os.environ)
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop("UV_COMPILE_BYTECODE", None)
+
+    def tearDown(self):
+        shutil.rmtree(self.source_dir)
+
+    def _write_pyproject(self, extra=""):
+        with open(self.pyproject, "w") as f:
+            f.write('[project]\nname = "app"\nversion = "0.1.0"\n' + extra)
+
+    def _workflow(self, options, manifest=None, **kwargs):
+        return PythonUvWorkflow(
+            self.source_dir,
+            "artifacts",
+            "scratch_dir",
+            manifest or self.pyproject,
+            runtime="python3.12",
+            options=options,
+            **kwargs,
+        )
+
+    @parameterized.expand(
+        [
+            ("named_extras", {"uv_extras": ["fast"]}, ["fast"], False),
+            # uv_extras and uv_all_extras cannot be combined, so all_extras gets its own case
+            ("all_extras", {"uv_all_extras": True}, [], True),
+        ]
+    )
+    def test_options_are_passed_to_the_build_action(self, _, extras_options, extras, all_extras):
+        workflow = self._workflow(
+            {
+                "build_logical_id": "Fn",
+                "uv_groups": ["lambda"],
+                "uv_prune": ["boto3"],
+                **extras_options,
+            }
+        )
+        config = workflow.actions[0].config
+        self.assertEqual(config.groups, ["lambda"])
+        self.assertEqual(config.extras, extras)
+        self.assertEqual(config.all_extras, all_extras)
+        self.assertEqual(config.prune, ["boto3"])
+        self.assertFalse(config.compile_bytecode)
+
+    def test_compile_bytecode_option_is_passed_to_the_build_action(self):
+        config = self._workflow({"uv_compile_bytecode": True}).actions[0].config
+        self.assertTrue(config.compile_bytecode)
+
+    def test_compile_bytecode_compiles_the_source_after_copying_it(self):
+        workflow = self._workflow({"uv_compile_bytecode": True})
+        self.assertIsInstance(workflow.actions[-2], CopySourceAction)
+        compile_action = workflow.actions[-1]
+        self.assertIsInstance(compile_action, PythonUvCompileSourceAction)
+        self.assertEqual(compile_action.source_dir, self.source_dir)
+        self.assertEqual(compile_action.artifacts_dir, "artifacts")
+        self.assertEqual(compile_action.runtime, "python3.12")
+        self.assertEqual(compile_action.excludes, PythonUvWorkflow.EXCLUDED_FILES)
+
+    def test_source_is_not_compiled_by_default(self):
+        workflow = self._workflow({"build_logical_id": "Fn"})
+        self.assertIsInstance(workflow.actions[-1], CopySourceAction)
+
+    def test_compile_bytecode_on_requirements_build_is_allowed(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        config = self._workflow({"uv_compile_bytecode": True}, manifest=requirements).actions[0].config
+        self.assertTrue(config.compile_bytecode)
+
+    def test_compile_bytecode_without_manifest_builds_without_dependencies(self):
+        os.remove(self.pyproject)
+        workflow = self._workflow({"uv_compile_bytecode": True}, manifest=os.path.join(self.source_dir, "missing.txt"))
+        self.assertEqual([type(action) for action in workflow.actions], [CopySourceAction, PythonUvCompileSourceAction])
+
+    def test_truthy_env_without_manifest_builds_without_dependencies(self):
+        os.environ["UV_COMPILE_BYTECODE"] = "1"
+        os.remove(self.pyproject)
+        workflow = self._workflow({"build_logical_id": "Fn"}, manifest=os.path.join(self.source_dir, "missing.txt"))
+        self.assertEqual([type(action) for action in workflow.actions], [CopySourceAction, PythonUvCompileSourceAction])
+
+    def test_export_option_with_compile_bytecode_on_requirements_build_fails(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow({"uv_groups": ["lambda"], "uv_compile_bytecode": True}, manifest=requirements)
+        self.assertIn("Build options uv_groups need a pyproject.toml project", str(ctx.exception))
+
+    @parameterized.expand([("1",), ("true",), ("YES",), ("On",), ("y",), ("t",)])
+    def test_truthy_env_enables_compile_bytecode_without_option(self, value):
+        os.environ["UV_COMPILE_BYTECODE"] = value
+        with self.assertLogs("aws_lambda_builders.workflows.python_uv.workflow", "INFO") as logs:
+            config = self._workflow(None).actions[0].config
+        self.assertTrue(config.compile_bytecode)
+        self.assertIn(f"UV_COMPILE_BYTECODE={value} is set", "\n".join(logs.output))
+
+    def test_truthy_env_enables_compile_bytecode_on_requirements_build(self):
+        os.environ["UV_COMPILE_BYTECODE"] = "1"
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        config = self._workflow({"build_logical_id": "Fn"}, manifest=requirements).actions[0].config
+        self.assertTrue(config.compile_bytecode)
+
+    def test_explicit_false_option_wins_over_truthy_env(self):
+        os.environ["UV_COMPILE_BYTECODE"] = "1"
+        config = self._workflow({"uv_compile_bytecode": False}).actions[0].config
+        self.assertFalse(config.compile_bytecode)
+
+    @parameterized.expand([("0",), ("false",), ("OFF",), ("no",), ("n",), ("f",)])
+    def test_falsy_env_keeps_compile_bytecode_off(self, value):
+        os.environ["UV_COMPILE_BYTECODE"] = value
+        with self.assertNoLogs("aws_lambda_builders.workflows.python_uv.workflow", "INFO"):
+            config = self._workflow(None).actions[0].config
+        self.assertFalse(config.compile_bytecode)
+
+    @parameterized.expand([("2",), ("maybe",), ("",)])
+    def test_unknown_env_value_warns_and_keeps_compile_bytecode_off(self, value):
+        os.environ["UV_COMPILE_BYTECODE"] = value
+        with self.assertLogs("aws_lambda_builders.workflows.python_uv.workflow", "WARNING") as logs:
+            config = self._workflow(None).actions[0].config
+        self.assertFalse(config.compile_bytecode)
+        self.assertIn(f"Ignoring UV_COMPILE_BYTECODE={value!r}", "\n".join(logs.output))
+
+    @parameterized.expand(
+        [("app", "app"), ("app", "App"), ("my-app", "my_app"), ("My_App", "my.app"), ("my-app", "My--App")]
+    )
+    def test_prune_of_the_project_itself_fails(self, project_name, prune_name):
+        with open(self.pyproject, "w") as f:
+            f.write(f'[project]\nname = "{project_name}"\nversion = "0.1.0"\n')
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow({"uv_prune": ["boto3", prune_name]})
+        self.assertTrue(str(ctx.exception).startswith("PythonUvBuilder:Validation - "), str(ctx.exception))
+        self.assertIn("uv_prune cannot name the project being built", str(ctx.exception))
+
+    def test_prune_of_a_similar_name_is_allowed(self):
+        workflow = self._workflow({"uv_prune": ["app-core"]})
+        self.assertEqual(workflow.actions[0].config.prune, ["app-core"])
+
+    @parameterized.expand(
+        [
+            ("[tool.uv.workspace]\nmembers = []\n",),  # virtual workspace root, no [project]
+            ("[project\n",),  # unreadable; uv reports it
+            ("[project]\nversion = 1\n",),  # no name
+        ]
+    )
+    def test_prune_without_a_project_name_is_left_to_uv(self, content):
+        with open(self.pyproject, "w") as f:
+            f.write(content)
+        workflow = self._workflow({"uv_prune": ["app"]})
+        self.assertEqual(workflow.actions[0].config.prune, ["app"])
+
+    def test_no_options_keep_defaults(self):
+        config = self._workflow(None).actions[0].config
+        self.assertEqual(config.to_export_args(), [])
+        self.assertFalse(config.compile_bytecode)
+
+    @parameterized.expand(
+        [
+            ({"uv_groups": "lambda"}, "uv_groups must be a list of non-empty strings"),
+            ({"uv_extras": ["ok", 1]}, "uv_extras must be a list of non-empty strings"),
+            ({"uv_groups": [""]}, "uv_groups must be a list of non-empty strings"),
+            ({"uv_all_extras": "true"}, "uv_all_extras must be true or false"),
+            ({"uv_prune": "boto3"}, "uv_prune must be a list of non-empty strings"),
+            ({"uv_prune": [""]}, "uv_prune must be a list of non-empty strings"),
+            ({"uv_compile_bytecode": "true"}, "uv_compile_bytecode must be true or false"),
+            ({"uv_compile_bytecode": 1}, "uv_compile_bytecode must be true or false"),
+            ({"uv_group": ["lambda"]}, "Unknown uv build option(s): uv_group"),
+            ({"uv_extras": ["x"], "uv_all_extras": True}, "uv_extras and uv_all_extras cannot be used together"),
+        ]
+    )
+    def test_invalid_options_fail(self, options, message):
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow(options)
+        self.assertTrue(str(ctx.exception).startswith("PythonUvBuilder:Validation - "), str(ctx.exception))
+        self.assertIn(message, str(ctx.exception))
+
+    def test_options_on_requirements_build_fail(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow({"uv_groups": ["lambda"]}, manifest=requirements)
+        self.assertIn(
+            "uv_groups need a pyproject.toml project, but this build uses requirements.txt", str(ctx.exception)
+        )
+
+    def test_prune_on_requirements_build_fails(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        with self.assertRaises(WorkflowFailedError) as ctx:
+            self._workflow({"uv_prune": ["boto3"]}, manifest=requirements)
+        self.assertIn("uv_prune need a pyproject.toml project", str(ctx.exception))
+
+    def test_default_valued_options_on_requirements_build_are_allowed(self):
+        requirements = os.path.join(self.source_dir, "requirements.txt")
+        open(requirements, "w").close()
+        workflow = self._workflow({"uv_groups": [], "uv_all_extras": False}, manifest=requirements)
         self.assertIsInstance(workflow.actions[0], PythonUvBuildAction)

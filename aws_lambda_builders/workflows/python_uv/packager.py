@@ -2,15 +2,16 @@
 UV-based Python dependency packager for AWS Lambda
 """
 
+import copy
 import logging
 import os
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from aws_lambda_builders.architecture import ARM64, X86_64
 
 from .exceptions import LockFileError, MissingUvError, UvBuildError, UvInstallationError
-from .utils import OSUtils, UvConfig
+from .utils import OSUtils, UvConfig, normalize_package_name
 
 LOG = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class SubprocessUv:
             osutils = OSUtils()
         self._osutils = osutils
         self._uv_executable = self._find_uv_executable()
+        self._warnings_seen: Set[str] = set()
 
     def _find_uv_executable(self) -> str:
         """Find UV executable in PATH."""
@@ -55,6 +57,17 @@ class SubprocessUv:
             pass
         return None
 
+    def find_python(self, python_version: str) -> Optional[str]:
+        """Find an already-installed interpreter matching the requested Python version."""
+        rc, stdout, stderr = self.run_uv_command(
+            ["python", "find", "--no-project", "--no-python-downloads", python_version]
+        )
+        if rc == 0 and stdout:
+            return stdout.strip()
+        diagnostic = (stderr or "").strip() or (stdout or "").strip() or "no diagnostic output"
+        LOG.warning("Could not locate target Python %s via uv (exit code %d): %s", python_version, rc, diagnostic)
+        return None
+
     def run_uv_command(self, args: List[str], cwd: Optional[str] = None, env: Optional[Dict[str, str]] = None) -> tuple:
         """
         Execute UV command with given arguments.
@@ -75,8 +88,27 @@ class SubprocessUv:
         LOG.debug("UV command return code: %d", rc)
         LOG.debug("UV stdout: %s", stdout)
         LOG.debug("UV stderr: %s", stderr)
+        self._log_warnings(stderr)
 
         return rc, stdout, stderr
+
+    def _log_warnings(self, stderr: Optional[str]) -> None:
+        """Log each `warning:` block uv prints, once per build; uv repeats some on every command."""
+        blocks: List[List[str]] = []
+        current = None
+        for line in (stderr or "").splitlines():
+            if line.startswith("warning:"):
+                current = [line]
+                blocks.append(current)
+            elif current is not None and line[:1] in (" ", "\t"):
+                current.append(line)  # uv indents a warning's continuation lines
+            else:
+                current = None
+        for block in blocks:
+            message = "\n".join(block)
+            if message not in self._warnings_seen:
+                self._warnings_seen.add(message)
+                LOG.warning("uv %s", message)
 
 
 class UvRunner:
@@ -96,6 +128,17 @@ class UvRunner:
         """Get UV version."""
         return self._uv.get_uv_version()
 
+    def cache_dir(self, cwd: Optional[str] = None) -> Optional[str]:
+        """Get the cache directory UV would use, or None if UV can't report it.
+
+        Ask from the project directory: a project can set its own cache-dir in
+        ``[tool.uv]``, and UV only reads that when it runs there.
+        """
+        rc, stdout, _ = self._uv.run_uv_command(["cache", "dir"], cwd)
+        if rc != 0 or not stdout:
+            return None
+        return stdout.strip()
+
     def install_requirements(
         self,
         requirements_path: str,
@@ -109,11 +152,10 @@ class UvRunner:
         """
         Install requirements using UV pip interface.
 
-        No ``--cache-dir`` is passed unless the caller supplies one, so UV uses its own
-        default cache location. That cache outlives a single build, letting UV reuse
-        previously downloaded dependencies across functions and across builds. Pointing UV
-        at a per-build directory instead would discard the cache every time, since the
-        build's scratch directory is deleted when the build finishes.
+        Cache options come from ``config``. Normally that leaves UV on its own default cache,
+        which outlives a single build so UV can reuse downloads across functions and builds.
+        Only when that default can't be created does the builder point ``config`` at a
+        cache under the build's scratch directory, which is discarded after the build.
 
         Args:
             requirements_path: Path to requirements.txt file
@@ -134,14 +176,27 @@ class UvRunner:
         # Resolve --target to an absolute path: UV runs from the project or workspace directory,
         # so a relative target (e.g. the incremental-build dependencies dir) would otherwise be
         # created under the UV's cwd instead of the build root.
-        args.extend(["--target", os.path.abspath(target_dir)])
+        target_dir = os.path.abspath(target_dir)
+        args.extend(["--target", target_dir])
 
-        # Add configuration arguments
+        target_python = self._find_target_python(python_version) if config.compile_bytecode else None
+
+        # Add configuration arguments that are independent of interpreter selection.
         args.extend(config.to_uv_args())
 
         # Add platform-specific arguments
         if python_version:
             args.extend(["--python-version", python_version])
+
+            # Use the exact interpreter found by UV instead of repeating a version request that
+            # could resolve differently when the install command runs.
+            if target_python:
+                args.extend(["--python", target_python])
+
+        # UV currently produces timestamp-based bytecode. SAM packages files with normalized
+        # timestamps, so that bytecode would be rejected by the Lambda runtime after deployment.
+        # Keep UV compilation disabled and generate unchecked-hash bytecode below instead.
+        args.append("--no-compile-bytecode")
 
         if platform and architecture:
             # UV pip install uses --python-platform format
@@ -162,13 +217,59 @@ class UvRunner:
                     python_platform = f"{target_arch}-manylinux_{manylinux_version}"
                 args.extend(["--python-platform", python_platform])
 
+        # uv rejects --no-compile-bytecode when UV_COMPILE_BYTECODE is also set ("cannot be used
+        # with"), so drop the variable for this command; bytecode is handled by _compile_bytecode.
+        env = self._osutils.original_environ()
+        env.pop("UV_COMPILE_BYTECODE", None)
+
         # Execute UV pip install
-        rc, stdout, stderr = self._uv.run_uv_command(args, cwd)
+        rc, stdout, stderr = self._uv.run_uv_command(args, cwd, env=env)
 
         if rc != 0:
             raise UvInstallationError(reason=f"UV pip install failed: {stderr}")
 
         LOG.debug("UV pip install completed successfully: %s", stdout)
+
+        if target_python:
+            self._compile_bytecode(target_python, target_dir)
+
+    def compile_bytecode(self, python_version: Optional[str], paths: List[str]) -> None:
+        """Compile unchecked-hash bytecode for the given files and directories with the target Python."""
+        target_python = self._find_target_python(python_version)
+        if target_python:
+            self._compile_bytecode(target_python, *paths)
+
+    def _find_target_python(self, python_version: Optional[str]) -> Optional[str]:
+        """Find the interpreter that compiles bytecode for the target runtime, or None if there isn't one."""
+        if not python_version:
+            LOG.warning("Target Python version is unavailable; skipping bytecode compilation")
+            return None
+        return self._uv.find_python(python_version)
+
+    def _compile_bytecode(self, python_executable: str, *paths: str) -> None:
+        """Compile reusable bytecode with the interpreter selected for the target runtime."""
+        command = [
+            python_executable,
+            "-m",
+            "compileall",
+            "-f",
+            "-q",
+            "--invalidation-mode",
+            "unchecked-hash",
+            *paths,
+        ]
+        LOG.debug("Compiling unchecked-hash bytecode: %s", " ".join(command))
+        rc, stdout, stderr = self._osutils.run_subprocess(command)
+        if rc != 0:
+            diagnostic = stderr.strip() or stdout.strip() or "no diagnostic output"
+            LOG.warning(
+                "Could not compile unchecked-hash bytecode with target Python (exit code %d): %s",
+                rc,
+                diagnostic,
+            )
+            return
+
+        LOG.debug("Python bytecode compilation completed successfully: %s", stdout)
 
 
 class PythonUvDependencyBuilder:
@@ -211,6 +312,7 @@ class PythonUvDependencyBuilder:
 
         if config is None:
             config = UvConfig()
+        config = self._with_writable_cache(config, scratch_dir_path, os.path.dirname(manifest_path))
 
         # Determine Python version from runtime
         python_version = self._extract_python_version(self.runtime)
@@ -233,6 +335,23 @@ class PythonUvDependencyBuilder:
         except Exception as e:
             LOG.error("Failed to build dependencies: %s", str(e))
             raise
+
+    def _with_writable_cache(self, config: UvConfig, scratch_dir: str, project_dir: str) -> UvConfig:
+        """Use a cache under scratch_dir only when UV's own cache can't be created.
+
+        For example, a container build run as a host uid that has no home directory.
+        """
+        if config.cache_dir or config.no_cache:
+            return config
+        cache_dir = self._uv_runner.cache_dir(cwd=project_dir)
+        if not cache_dir or _can_create_dir(cache_dir):
+            return config
+        # Absolute, because UV runs from the project and the workspace root in turn.
+        fallback = os.path.abspath(os.path.join(scratch_dir, "uv-cache"))
+        LOG.warning("UV cache directory %s is not writable, using %s for this build", cache_dir, fallback)
+        config = copy.copy(config)
+        config.cache_dir = fallback
+        return config
 
     def _get_manifest_handler(self, manifest_name: str):
         """Get the appropriate handler function for a manifest file.
@@ -424,10 +543,35 @@ class PythonUvDependencyBuilder:
                 args.extend([flag, options[option]])
         for package, cutoff in options.get("exclude-newer-package", {}).items():
             value = cutoff
-            if isinstance(cutoff, dict):
+            if cutoff is False:
+                # UV only accepts the lowercase TOML spelling for an opt-out.
+                value = "false"
+            elif isinstance(cutoff, dict):
                 value = cutoff["span"] if "span" in cutoff else cutoff["timestamp"]
             args.extend(["--exclude-newer-package", f"{package}={value}"])
         return args
+
+    @staticmethod
+    def _check_prune_names(lock_path: str, prune: List[str]) -> None:
+        """Fail on prune names missing from the lock; `uv export --prune` ignores them silently."""
+        if not prune:
+            return
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python 3.10
+            import tomli as tomllib
+
+        try:
+            with open(lock_path, "rb") as lock_file:
+                packages = tomllib.load(lock_file).get("package", [])
+        except FileNotFoundError:
+            # Leave missing-lock diagnostics to UV.
+            return
+
+        locked = {package.get("name") for package in packages if isinstance(package, dict)}
+        missing = [name for name in prune if normalize_package_name(name) not in locked]
+        if missing:
+            raise LockFileError(reason=f"Build option uv_prune names packages not in {lock_path}: {', '.join(missing)}")
 
     def _build_from_lock_file(
         self,
@@ -451,6 +595,7 @@ class PythonUvDependencyBuilder:
         try:
             if project_dir is None:
                 project_dir = os.path.dirname(lock_path)
+            self._check_prune_names(lock_path, config.prune)
 
             # Export lock file to requirements.txt for platform-specific install
             # Export and install may run from different directories in a workspace
@@ -471,7 +616,9 @@ class PythonUvDependencyBuilder:
                 "--python",
                 python_version,
             ]
+            export_args.extend(config.to_export_args())
             export_args.extend(self._lock_export_options(lock_path))
+            export_args.extend(config.cache_args())
 
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(export_args, cwd=project_dir)
             if rc != 0:
@@ -516,6 +663,8 @@ class PythonUvDependencyBuilder:
             lock_args = ["lock", "--no-progress"]
             if python_version:
                 lock_args.extend(["--python", python_version])
+            # uv lock also needs a writable cache, same as export and pip install.
+            lock_args.extend(config.cache_args())
 
             project_dir = os.path.dirname(pyproject_path)
             rc, stdout, stderr = self._uv_runner._uv.run_uv_command(lock_args, cwd=project_dir)
@@ -581,3 +730,13 @@ class PythonUvDependencyBuilder:
             return runtime.replace("python", "")
 
         return runtime
+
+
+def _can_create_dir(path: str) -> bool:
+    """Whether path exists as a writable directory or could be created."""
+    while not os.path.exists(path):
+        parent = os.path.dirname(path)
+        if parent == path:
+            return False
+        path = parent
+    return os.path.isdir(path) and os.access(path, os.W_OK)
