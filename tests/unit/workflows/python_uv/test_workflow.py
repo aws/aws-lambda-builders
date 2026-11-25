@@ -8,7 +8,7 @@ from parameterized import parameterized, parameterized_class
 
 from aws_lambda_builders.actions import CleanUpAction, CopyDependenciesAction, CopySourceAction
 from aws_lambda_builders.exceptions import WorkflowFailedError
-from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction
+from aws_lambda_builders.workflows.python_uv.actions import PythonUvBuildAction, PythonUvCompileSourceAction
 from aws_lambda_builders.workflows.python_uv.utils import EXPERIMENTAL_FLAG_BUILD_PERFORMANCE, OSUtils
 from aws_lambda_builders.workflows.python_uv.workflow import PythonUvWorkflow
 
@@ -251,6 +251,20 @@ class TestPythonUvWorkflowBuildOptions(TestCase):
         config = self._workflow({"uv_compile_bytecode": True}).actions[0].config
         self.assertTrue(config.compile_bytecode)
 
+    def test_compile_bytecode_compiles_the_source_after_copying_it(self):
+        workflow = self._workflow({"uv_compile_bytecode": True})
+        self.assertIsInstance(workflow.actions[-2], CopySourceAction)
+        compile_action = workflow.actions[-1]
+        self.assertIsInstance(compile_action, PythonUvCompileSourceAction)
+        self.assertEqual(compile_action.source_dir, self.source_dir)
+        self.assertEqual(compile_action.artifacts_dir, "artifacts")
+        self.assertEqual(compile_action.runtime, "python3.12")
+        self.assertEqual(compile_action.excludes, PythonUvWorkflow.EXCLUDED_FILES)
+
+    def test_source_is_not_compiled_by_default(self):
+        workflow = self._workflow({"build_logical_id": "Fn"})
+        self.assertIsInstance(workflow.actions[-1], CopySourceAction)
+
     def test_compile_bytecode_on_requirements_build_is_allowed(self):
         requirements = os.path.join(self.source_dir, "requirements.txt")
         open(requirements, "w").close()
@@ -260,15 +274,13 @@ class TestPythonUvWorkflowBuildOptions(TestCase):
     def test_compile_bytecode_without_manifest_builds_without_dependencies(self):
         os.remove(self.pyproject)
         workflow = self._workflow({"uv_compile_bytecode": True}, manifest=os.path.join(self.source_dir, "missing.txt"))
-        self.assertEqual(len(workflow.actions), 1)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertEqual([type(action) for action in workflow.actions], [CopySourceAction, PythonUvCompileSourceAction])
 
     def test_truthy_env_without_manifest_builds_without_dependencies(self):
         os.environ["UV_COMPILE_BYTECODE"] = "1"
         os.remove(self.pyproject)
         workflow = self._workflow({"build_logical_id": "Fn"}, manifest=os.path.join(self.source_dir, "missing.txt"))
-        self.assertEqual(len(workflow.actions), 1)
-        self.assertIsInstance(workflow.actions[0], CopySourceAction)
+        self.assertEqual([type(action) for action in workflow.actions], [CopySourceAction, PythonUvCompileSourceAction])
 
     def test_export_option_with_compile_bytecode_on_requirements_build_fails(self):
         requirements = os.path.join(self.source_dir, "requirements.txt")

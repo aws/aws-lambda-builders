@@ -239,7 +239,7 @@ SAM CLI maps them from `Metadata.BuildProperties`.
 | `uv_extras` | `UvExtras` | list of str | `--extra <name>` per entry |
 | `uv_all_extras` | `UvAllExtras` | bool | `--all-extras` |
 | `uv_prune` | `UvPrune` | list of str | `--prune <name>` per entry: drops the package and any dependency only it needs |
-| `uv_compile_bytecode` | `UvCompileBytecode` | bool | none; after install, runs `compileall --invalidation-mode unchecked-hash` with the target Python (also for `requirements.txt` builds) |
+| `uv_compile_bytecode` | `UvCompileBytecode` | bool | none; runs `compileall --invalidation-mode unchecked-hash` with the target Python over the dependencies and the function's source (also for `requirements.txt` builds) |
 
 Default groups stay excluded (`--no-default-groups`); `uv_groups` adds groups on top of that.
 `uv_prune` is meant for packages the Lambda runtime already ships, such as `boto3`. The function then
@@ -258,7 +258,9 @@ timestamps in the deployment package. So the workflow always passes `--no-compil
 `uv pip install`, removes `UV_COMPILE_BYTECODE` from that command's environment (uv refuses the flag and
 the variable together), and, when bytecode is enabled, runs the target Python
 (`uv python find --no-project --no-python-downloads <version>`) as
-`python -m compileall -f -q --invalidation-mode unchecked-hash` over the install directory.
+`python -m compileall -f -q --invalidation-mode unchecked-hash` over the install directory. The function's
+own source is compiled the same way after it is copied into the artifacts directory, so it gets bytecode
+too, including when the build has no manifest.
 
 Bytecode is enabled by `uv_compile_bytecode: true`. When that option isn't given, a truthy
 `UV_COMPILE_BYTECODE` in the build environment enables it too, and the build logs that at INFO. Values are
